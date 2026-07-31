@@ -1,100 +1,22 @@
-/* Home page sections. Tokens only — no raw hex below this line. */
+/* Home page. Layout mirrors the reference's composition exactly — the hero is a
+   full-viewport stage with fixed furniture in each corner and the lockup
+   centred at the top. Tokens only; no raw hex below this line. */
 
-/* ---------------------------------------------------------------- Nav */
-
-.nav {
-  position: fixed;
-  inset: 0 0 auto;
-  z-index: 100;
-  height: var(--nav-h);
-  display: flex;
-  align-items: center;
-  /* Gradient rather than a solid bar: the hero runs underneath, and a hard
-     edge across a 3D scene reads as a seam. */
-  background: linear-gradient(to bottom, var(--bg) 0%, transparent 100%);
-}
-
-.nav__inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.nav__mark {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-}
-
-.nav__num {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: var(--step-1);
-  color: var(--accent);
-  line-height: 1;
-}
-
-.nav__name {
-  font-size: var(--step--1);
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-weight: 600;
-}
-
-.nav__list {
-  display: flex;
-  gap: clamp(1rem, 2vw, 2.5rem);
-  list-style: none;
-  font-size: var(--step--1);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-weight: 600;
-}
-
-.nav__list a {
-  position: relative;
-  padding-block: 0.35rem;
-  color: var(--text-muted);
-  transition: color var(--dur-micro) var(--ease-out);
-}
-
-.nav__list a::after {
-  content: '';
-  position: absolute;
-  inset: auto 0 0;
-  height: 1px;
-  background: var(--accent);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform var(--dur-micro) var(--ease-out);
-}
-
-.nav__list a:hover,
-.nav__list a:focus-visible {
-  color: var(--text);
-}
-
-.nav__list a:hover::after,
-.nav__list a:focus-visible::after {
-  transform: scaleX(1);
-}
-
-/* --------------------------------------------------------------- Hero */
+/* =============================================================== Hero */
 
 .hero {
   position: relative;
   min-height: 100dvh;
-  display: grid;
-  align-items: end;
   overflow: clip;
+  isolation: isolate;
 }
 
-/* The canvas sits behind the copy and is inert to pointer events so text stays
-   selectable — the scene tracks the pointer on window, not on itself. */
+/* The canvas fills the stage and is inert to pointer events — the scene tracks
+   the pointer on window, so the furniture above it stays clickable. */
 .hero__stage {
   position: absolute;
   inset: 0;
+  z-index: 0;
   pointer-events: none;
 }
 
@@ -103,49 +25,268 @@
   height: 100%;
 }
 
-.hero__copy {
-  position: relative;
-  z-index: 2;
-  padding-bottom: clamp(3rem, 8vh, 7rem);
+/* --------------------------------------------------- Store pill (top-left) */
+
+.store {
+  position: absolute;
+  top: var(--gutter);
+  left: var(--gutter);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.1rem;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: var(--radius-pill);
+  font-size: var(--step--1);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  transition: transform var(--dur-micro) var(--ease-out);
 }
 
-.hero__name {
-  font-size: var(--display);
+.store:hover,
+.store:focus-visible {
+  transform: translateY(-2px);
+}
+
+.store__icon {
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+
+/* -------------------------------------------------- Menu button (top-right) */
+
+.menu-btn {
+  position: absolute;
+  top: var(--gutter);
+  right: var(--gutter);
+  z-index: 3;
   display: grid;
-  margin-block: 0.15em 0.35em;
+  place-items: center;
+  inline-size: 3rem;
+  block-size: 3rem;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: border-color var(--dur-micro) var(--ease-out);
 }
 
-.hero__name--accent {
-  color: var(--era);
+.menu-btn:hover,
+.menu-btn:focus-visible {
+  border-color: var(--accent);
 }
 
-.hero__meta {
+.menu-btn__bars {
+  display: grid;
+  gap: 5px;
+}
+
+.menu-btn__bars i {
+  display: block;
+  inline-size: 18px;
+  block-size: 1.5px;
+  background: var(--text);
+}
+
+/* Second bar is short — the reference's mark is asymmetric, not a hamburger. */
+.menu-btn__bars i:last-child {
+  inline-size: 11px;
+  margin-left: auto;
+}
+
+/* --------------------------------------------- Name lockup (top-centre) */
+
+.lockup {
+  position: absolute;
+  top: calc(var(--gutter) + 0.5rem);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 2;
+  text-align: center;
+  width: min(92vw, 60rem);
+}
+
+.lockup__mark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-1);
+  letter-spacing: -0.04em;
+  color: var(--text);
+  line-height: 1;
+}
+
+.lockup__name {
+  margin-top: 0.35em;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(1.75rem, 0.9rem + 4vw, 4rem);
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  line-height: 0.95;
+}
+
+.lockup__team {
+  margin-top: 0.5em;
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--text-muted);
+}
+
+/* ------------------------------------------- Next race (bottom-left) */
+
+.next-race {
+  position: absolute;
+  left: var(--gutter);
+  bottom: var(--gutter);
+  z-index: 3;
+  inline-size: 11rem;
+  padding: 0.9rem;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.next-race__label,
+.next-race__name,
+.next-race__badge {
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.next-race__label {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.next-race__circuit {
+  inline-size: 100%;
+  block-size: auto;
+  margin-block: 0.6rem;
+  color: var(--accent);
+}
+
+.next-race__name {
+  font-weight: 700;
+}
+
+.next-race__badge {
+  margin-top: 0.7rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--hairline);
+  color: var(--text-muted);
+  display: grid;
+  gap: 0.15rem;
+}
+
+.next-race__since {
+  color: var(--text-faint);
+}
+
+/* ------------------------------------------ Tap to lock (bottom-right) */
+
+.lock {
+  position: absolute;
+  right: var(--gutter);
+  bottom: var(--gutter);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.lock__label {
   font-size: var(--step--1);
   text-transform: uppercase;
   letter-spacing: 0.14em;
   color: var(--text-muted);
+  font-weight: 600;
 }
 
-.hero__hint {
-  position: absolute;
-  right: var(--gutter);
-  bottom: clamp(3rem, 8vh, 7rem);
-  z-index: 2;
-  font-size: var(--step--1);
+.lock__btn {
+  display: grid;
+  place-items: center;
+  inline-size: 3.25rem;
+  block-size: 3.25rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--bg);
+  transition:
+    transform var(--dur-micro) var(--ease-out),
+    background var(--dur-micro) var(--ease-out);
+}
+
+.lock__btn svg {
+  inline-size: 1.4rem;
+  block-size: 1.4rem;
+}
+
+.lock__btn:hover {
+  transform: translateY(-2px);
+}
+
+.lock__btn[aria-pressed='true'] {
+  background: var(--text);
+}
+
+/* Narrow viewports: the corner furniture would collide, so the next-race card
+   and the lock control stack rather than overlap. */
+@media (max-width: 40rem) {
+  .next-race {
+    inline-size: 9rem;
+  }
+  .lock__label {
+    display: none;
+  }
+}
+
+/* ============================================================== Menu */
+
+.menu {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+
+.menu[hidden] {
+  display: none;
+}
+
+.menu__list {
+  list-style: none;
+  display: grid;
+  gap: 0.25em;
+  text-align: center;
+}
+
+.menu__list a {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-3);
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  color: var(--text-faint);
-  transition: opacity var(--dur-base) var(--ease-out);
+  line-height: 1;
+  color: var(--text-muted);
+  transition: color var(--dur-micro) var(--ease-out);
 }
 
-/* Fade rather than remove: [hidden] would collapse the box and shift layout. */
-.hero__hint[hidden] {
-  display: block;
-  opacity: 0;
-  pointer-events: none;
+.menu__list a:hover,
+.menu__list a:focus-visible {
+  color: var(--accent);
 }
 
-/* -------------------------------------------------------------- Stats */
+/* ============================================================= Stats */
 
 .stats__grid {
   list-style: none;
@@ -168,7 +309,6 @@
   font-weight: 800;
   font-size: var(--step-2);
   line-height: 1;
-  color: var(--text);
 }
 
 .stat--hero .stat__value {
@@ -187,7 +327,7 @@
   font-size: var(--step--1);
 }
 
-/* --------------------------------------------------------------- Eras */
+/* ============================================================== Eras */
 
 .eras__title {
   font-size: var(--step-3);
@@ -257,7 +397,7 @@
   }
 }
 
-/* ------------------------------------------------------------- Footer */
+/* ============================================================ Footer */
 
 .footer {
   border-top: 1px solid var(--hairline);

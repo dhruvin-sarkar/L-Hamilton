@@ -19,6 +19,11 @@ const bindings: Record<string, string> = {
   age: `${age()} y.o`,
   birthplace: driver.birthplace,
   seasons: String(seasonsRacing()),
+  team: driver.currentTeam,
+  debut: String(driver.debutYear),
+  // Placeholder until the calendar feed lands. Named honestly rather than
+  // filled with a plausible-looking circuit that would read as real.
+  'race-name': 'TBC',
 };
 
 for (const [key, value] of Object.entries(bindings)) {
@@ -148,6 +153,31 @@ if (!reducedMotion) {
 }
 
 /* ------------------------------------------------------------------ *
+ * Menu
+ * ------------------------------------------------------------------ */
+
+const menu = document.querySelector<HTMLDivElement>('#menu');
+const menuBtn = document.querySelector<HTMLButtonElement>('.menu-btn');
+
+if (menu && menuBtn) {
+  const setOpen = (open: boolean) => {
+    menu.hidden = !open;
+    menuBtn.setAttribute('aria-expanded', String(open));
+    // Stop the page scrolling behind an overlay that covers it.
+    document.body.style.overflow = open ? 'hidden' : '';
+    if (open) menu.querySelector<HTMLAnchorElement>('a')?.focus();
+    else menuBtn.focus();
+  };
+
+  menuBtn.addEventListener('click', () => setOpen(menu.hidden));
+
+  // Escape must close it. An overlay with no keyboard exit is a trap.
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !menu.hidden) setOpen(false);
+  });
+}
+
+/* ------------------------------------------------------------------ *
  * Hero WebGL scene
  * ------------------------------------------------------------------ */
 
@@ -168,16 +198,24 @@ if (stage) {
   };
   window.addEventListener('resize', resize);
 
-  const hint = document.querySelector<HTMLParagraphElement>('#hero-hint');
+  // "Tap to lock" freezes the reveal where it is, so the composition can be
+  // read without the cursor dragging it around.
+  let locked = false;
+  const lockBtn = document.querySelector<HTMLButtonElement>('#lock-btn');
+  lockBtn?.addEventListener('click', () => {
+    locked = !locked;
+    lockBtn.setAttribute('aria-pressed', String(locked));
+  });
+
   window.addEventListener(
     'pointermove',
     (e) => {
+      if (locked) return;
       // -1..1, y flipped: screen y grows downward, the shader assumes y up.
       head.setPointer(
         (e.clientX / window.innerWidth) * 2 - 1,
         -((e.clientY / window.innerHeight) * 2 - 1),
       );
-      if (hint) hint.hidden = true;
     },
     { passive: true },
   );
