@@ -1,0 +1,22 @@
+{
+  "name": "lando-rebuild",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "From-scratch rebuild. Own code, own architecture — reuses only the asset files from ../public.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "three": "^0.174.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "@types/three": "^0.174.0",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}

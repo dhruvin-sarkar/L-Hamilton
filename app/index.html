@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Lewis Hamilton — seven-time Formula 1 World Champion. Career, seasons, helmets and results."
+    />
+    <title>Lewis Hamilton — Formula 1 Driver</title>
+  </head>
+  <body>
+    <a class="sr-only" href="#main">Skip to content</a>
+
+    <!-- ---------------------------------------------------------- Nav -->
+    <header class="nav">
+      <div class="nav__inner shell">
+        <a class="nav__mark" href="/" aria-label="Lewis Hamilton — home">
+          <span class="nav__num">44</span>
+          <span class="nav__name">Hamilton</span>
+        </a>
+        <nav aria-label="Primary">
+          <ul class="nav__list">
+            <li><a href="/on-track.html">On Track</a></li>
+            <li><a href="/off-track.html">Off Track</a></li>
+            <li><a href="/calendar.html">Calendar</a></li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main">
+      <!-- ------------------------------------------------------- Hero -->
+      <section class="hero" data-era="ferrari">
+        <div class="hero__stage" id="stage" aria-hidden="true"></div>
+
+        <div class="hero__copy shell">
+          <p class="eyebrow reveal">Ferrari &middot; Since 2007</p>
+          <h1 class="hero__name display">
+            <span class="reveal">Lewis</span>
+            <span class="reveal hero__name--accent">Hamilton</span>
+          </h1>
+          <p class="hero__meta">
+            <span data-bind="age"></span> &middot; <span data-bind="birthplace"></span> &middot;
+            <span data-bind="seasons"></span> seasons
+          </p>
+        </div>
+
+        <p class="hero__hint" id="hero-hint">Move to reveal</p>
+      </section>
+
+      <!-- ------------------------------------------------------ Stats -->
+      <section class="section stats" aria-labelledby="stats-h">
+        <div class="shell">
+          <h2 class="sr-only" id="stats-h">Career statistics</h2>
+          <ul class="stats__grid" id="stats-grid"></ul>
+          <p class="stats__note muted" id="stats-note"></p>
+        </div>
+      </section>
+
+      <!-- ------------------------------------------------------- Eras -->
+      <section class="section eras" aria-labelledby="eras-h">
+        <div class="shell">
+          <p class="eyebrow">Three teams</p>
+          <h2 class="eras__title display" id="eras-h">The Career</h2>
+          <ol class="eras__list" id="eras-list"></ol>
+        </div>
+      </section>
+    </main>
+
+    <!-- ------------------------------------------------------- Footer -->
+    <footer class="footer">
+      <div class="shell footer__inner">
+        <p class="footer__mark display">44</p>
+        <p class="muted">
+          An independent tribute project. Not affiliated with Lewis Hamilton, Scuderia Ferrari or
+          Formula 1.
+        </p>
+      </div>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

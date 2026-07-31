@@ -1,0 +1,90 @@
+/* Design tokens — implements docs/DESIGN-SYSTEM.md.
+   Every colour, size and easing in the app resolves through here. If a component
+   hardcodes a hex, that is a bug. */
+
+:root {
+  /* --- Surfaces. Warm near-black, never pure #000: pure black flattens
+         photography and kills the sense of depth in the GL scene. --- */
+  --bg: #0a0809;
+  --bg-elevated: #131011;
+  --bg-raised: #1c1719;
+  --hairline: #2a2426;
+
+  /* --- Accent --- */
+  --accent: #ff2800; /* rosso corsa */
+  --accent-soft: #c41e10; /* anything covering real area */
+  --accent-glow: #ff280033;
+
+  /* --- Type --- */
+  --text: #f2edeb;
+  --text-muted: #948a87;
+  --text-faint: #5c5457;
+
+  /* --- GL scene (see ANIMATIONS-SPEC §0b) --- */
+  --gl-bg: #0a0809;
+  --gl-outline: #4a3f41;
+  --gl-cursor-fg: #ff2800;
+  --gl-cursor-bg: #1c1719;
+
+  /* --- Era default: Ferrari is the present tense, so unscoped
+         elements inherit rosso. --- */
+  --era: #ff2800;
+  --era-soft: #c41e10;
+
+  /* --- Radii, matching the reference --- */
+  --radius-sm: 1rem;
+  --radius-md: 3rem;
+  --radius-lg: 6.25rem;
+  --radius-pill: 999px;
+
+  /* --- Motion. Measured from the reference; power2.out is cubic, not quad. --- */
+  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-expo-in-out: cubic-bezier(0.87, 0, 0.13, 1);
+
+  --dur-micro: 250ms;
+  --dur-base: 500ms; /* the house value */
+  --dur-slow: 800ms;
+
+  --stagger: 20ms;
+
+  /* --- Type scale. Fluid, so no breakpoint jumps mid-headline. --- */
+  --step--1: clamp(0.75rem, 0.71rem + 0.2vw, 0.85rem);
+  --step-0: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+  --step-1: clamp(1.5rem, 1.3rem + 1vw, 2rem);
+  --step-2: clamp(2rem, 1.5rem + 2.5vw, 3.5rem);
+  --step-3: clamp(3rem, 1.8rem + 6vw, 6rem);
+  --display: clamp(4rem, 1rem + 15vw, 11.25rem);
+
+  /* --- Spacing --- */
+  --gutter: clamp(1rem, 0.5rem + 2.5vw, 3rem);
+  --section-gap: clamp(4rem, 2rem + 10vw, 10rem);
+
+  --nav-h: 4.5rem;
+}
+
+/* Era accent layers. Applied per SECTION, never on <body> — the whole point is
+   that the base theme holds steady while the accent moves. */
+[data-era='mclaren'] {
+  --era: #ff8000;
+  --era-soft: #c25e00;
+}
+[data-era='mercedes'] {
+  --era: #00d2be;
+  --era-soft: #00a19c;
+}
+[data-era='ferrari'] {
+  --era: #ff2800;
+  --era-soft: #c41e10;
+}
+
+/* Motion is opt-out at the token level as well as in JS, so a component that
+   forgets to check the hook still degrades instead of shipping full motion. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-micro: 1ms;
+    --dur-base: 1ms;
+    --dur-slow: 1ms;
+    --stagger: 0ms;
+  }
+}

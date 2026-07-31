@@ -1,0 +1,19 @@
+# This repository tracks the Lewis Hamilton site only.
+#
+# Deny-by-default, then allow app/. Everything else in this working directory —
+# the reference material it was studied against, the planning docs, the tooling
+# used to produce them — stays local.
+
+/*
+!/.gitignore
+!/app/
+
+# Inside app/
+app/node_modules/
+app/dist/
+app/*.log
+app/*.err
+app/.vite/
+
+.DS_Store
+Thumbs.db

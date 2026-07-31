@@ -1,0 +1,279 @@
+/* Home page sections. Tokens only — no raw hex below this line. */
+
+/* ---------------------------------------------------------------- Nav */
+
+.nav {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 100;
+  height: var(--nav-h);
+  display: flex;
+  align-items: center;
+  /* Gradient rather than a solid bar: the hero runs underneath, and a hard
+     edge across a 3D scene reads as a seam. */
+  background: linear-gradient(to bottom, var(--bg) 0%, transparent 100%);
+}
+
+.nav__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.nav__mark {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.nav__num {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-1);
+  color: var(--accent);
+  line-height: 1;
+}
+
+.nav__name {
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-weight: 600;
+}
+
+.nav__list {
+  display: flex;
+  gap: clamp(1rem, 2vw, 2.5rem);
+  list-style: none;
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+}
+
+.nav__list a {
+  position: relative;
+  padding-block: 0.35rem;
+  color: var(--text-muted);
+  transition: color var(--dur-micro) var(--ease-out);
+}
+
+.nav__list a::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-micro) var(--ease-out);
+}
+
+.nav__list a:hover,
+.nav__list a:focus-visible {
+  color: var(--text);
+}
+
+.nav__list a:hover::after,
+.nav__list a:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* --------------------------------------------------------------- Hero */
+
+.hero {
+  position: relative;
+  min-height: 100dvh;
+  display: grid;
+  align-items: end;
+  overflow: clip;
+}
+
+/* The canvas sits behind the copy and is inert to pointer events so text stays
+   selectable — the scene tracks the pointer on window, not on itself. */
+.hero__stage {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero__stage canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.hero__copy {
+  position: relative;
+  z-index: 2;
+  padding-bottom: clamp(3rem, 8vh, 7rem);
+}
+
+.hero__name {
+  font-size: var(--display);
+  display: grid;
+  margin-block: 0.15em 0.35em;
+}
+
+.hero__name--accent {
+  color: var(--era);
+}
+
+.hero__meta {
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+}
+
+.hero__hint {
+  position: absolute;
+  right: var(--gutter);
+  bottom: clamp(3rem, 8vh, 7rem);
+  z-index: 2;
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+
+/* Fade rather than remove: [hidden] would collapse the box and shift layout. */
+.hero__hint[hidden] {
+  display: block;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* -------------------------------------------------------------- Stats */
+
+.stats__grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1px;
+  background: var(--hairline); /* the gap becomes the rule */
+  border-block: 1px solid var(--hairline);
+}
+
+.stat {
+  background: var(--bg);
+  padding: clamp(1.25rem, 3vw, 2.5rem) 1rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.stat__value {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-2);
+  line-height: 1;
+  color: var(--text);
+}
+
+.stat--hero .stat__value {
+  color: var(--accent);
+}
+
+.stat__label {
+  font-size: var(--step--1);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+}
+
+.stats__note {
+  margin-top: 1.25rem;
+  font-size: var(--step--1);
+}
+
+/* --------------------------------------------------------------- Eras */
+
+.eras__title {
+  font-size: var(--step-3);
+  margin-block: 0.2em 1em;
+}
+
+.eras__list {
+  list-style: none;
+  display: grid;
+  gap: 1px;
+  background: var(--hairline);
+  border-block: 1px solid var(--hairline);
+}
+
+.era {
+  background: var(--bg);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+  padding: clamp(1.5rem, 4vw, 3rem) 0;
+  transition: background var(--dur-micro) var(--ease-out);
+}
+
+.era:hover {
+  background: var(--bg-elevated);
+}
+
+/* The era colour lives in the year text and a small swatch, not a slab down the
+   side. Same information, far less shouting. */
+.era__years {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: var(--step--1);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--era);
+  font-weight: 600;
+}
+
+.era__years::before {
+  content: '';
+  inline-size: 0.5rem;
+  block-size: 0.5rem;
+  flex: none;
+  background: var(--era);
+}
+
+.era__team {
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  font-size: var(--step-2);
+  line-height: 1;
+}
+
+.era__blurb {
+  color: var(--text-muted);
+  max-width: 48ch;
+}
+
+@media (min-width: 48rem) {
+  .era {
+    grid-template-columns: 10rem minmax(0, 22rem) minmax(0, 1fr);
+    align-items: baseline;
+    gap: 2rem;
+  }
+}
+
+/* ------------------------------------------------------------- Footer */
+
+.footer {
+  border-top: 1px solid var(--hairline);
+  padding-block: clamp(2rem, 6vw, 4rem);
+}
+
+.footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  font-size: var(--step--1);
+}
+
+.footer__mark {
+  font-size: var(--step-2);
+  color: var(--accent);
+}
