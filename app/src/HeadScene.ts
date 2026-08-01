@@ -478,12 +478,15 @@ export class HeadScene {
     const normalised = new THREE.Group();
     normalised.add(group);
     normalised.scale.setScalar(1 / longest);
-    // The model is authored facing away from the camera — its z bounds sit
-    // entirely on the positive side (19.4 to 73.2), so the visor aperture ends
-    // up at the back and you see the shell's rear. Flip it here rather than on
-    // the wrapper, so the idle animation stays a small offset from a correct
-    // resting orientation instead of oscillating around a backwards one.
-    normalised.rotation.y = Math.PI;
+    // The model is authored Z-UP, not Y-up: +z is the neck opening and +y is
+    // the face. Rendered as-authored you look straight into the shell through
+    // the neck hole and see the liner. I flipped it about Y first, which only
+    // ever spins that same opening around — the axis was wrong, not the sign.
+    //
+    // Rotating +90 degrees about X maps -z (crown) onto +y (up) and +y (visor)
+    // onto +z (toward the camera). Applied to the normalised group so the idle
+    // animation on the wrapper stays a small offset from a correct rest pose.
+    normalised.rotation.set(Math.PI / 2, 0, 0);
 
     const wrapper = new THREE.Group();
     wrapper.add(normalised);
@@ -505,7 +508,7 @@ export class HeadScene {
    * spans x 315-635 / y 363-723 over a head at x 350-590 / y 385-700 — i.e. it
    * encases the head with clearance, rather than sitting on the face as a mask.
    */
-  helmetFit = { size: 0.72, x: 0, y: 0.155 };
+  helmetFit = { size: 0.95, x: 0, y: 0.125 };
 
   /** Place the helmet over the head, in the portrait's local space. */
   fitHelmet(): void {
