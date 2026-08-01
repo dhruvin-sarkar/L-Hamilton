@@ -108,6 +108,25 @@ html {
   --gap: 1.25rem;
   --nav-height: 6.25rem;
 
+  /* These are referenced across main.css and home.css and were missing, which
+     is not a cosmetic omission: an undefined var() makes the whole declaration
+     invalid, so `width: min(100% - var(--gutter) * 2, 1600px)` was being thrown
+     away entirely and .shell fell back to full width. That is why every section
+     below the hero sat flush against the viewport edge. --section-gap did the
+     same to vertical rhythm, and --step-0 left body with no font-size. */
+  --gutter: var(--padding--container);
+  --section-gap: var(--padding--xlarge);
+
+  /* Body scale. The display sizes live in the --text--* ramp above; these two
+     are the running-text sizes that main.css reaches for. */
+  --step-0: 1rem;
+  --step--1: var(--text--eyebrow);
+
+  /* Aliases onto the house curve, so a component asking for "slow" and one
+     asking for the default resolve to the same motion. */
+  --dur-slow: var(--duration-default);
+  --ease-out: var(--cubic-default);
+
   --radius--small: 1rem;
   --radius--med: 3rem;
   --radius--large: 6.25rem;

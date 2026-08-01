@@ -544,6 +544,127 @@
   color: var(--accent);
 }
 
+/* =========================================================== Marquee
+ * Two rows travelling in opposite directions. Mechanics taken from the
+ * reference: 30s linear, infinite, paused until scrolled into view, and the
+ * right-hand row justified to its end so it fills from the correct side.
+ * ------------------------------------------------------------------ */
+
+.marquee {
+  padding-block: var(--padding--med);
+  overflow: clip;
+  /* Contain the rows' overflow without a scrollbar appearing on the page. */
+  display: grid;
+  gap: 0.1em;
+}
+
+.marquee__row {
+  display: flex;
+  inline-size: 100%;
+  overflow: hidden;
+}
+
+/* The loop only reads as seamless because the track holds several identical
+   copies laid side by side. Translating by exactly -100% lands copy 2 where
+   copy 1 began, so the joint is invisible — animating a single copy would snap
+   back to an empty row instead. */
+.marquee__track {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.25em;
+  white-space: nowrap;
+  will-change: transform;
+  animation-duration: 30s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  /* Held until the section is in view, then released by main.ts. Starting on
+     load means most of the loop has already gone past before it is seen. */
+  animation-play-state: paused;
+}
+
+[data-marquee='left'] .marquee__track {
+  animation-name: marquee-left;
+}
+
+[data-marquee='right'] .marquee__track {
+  animation-name: marquee-right;
+  /* Fills from the right, so the row is populated at the edge it travels from
+     rather than leaving a gap on entry. */
+  justify-content: flex-end;
+}
+
+.marquee.is-running .marquee__track {
+  animation-play-state: running;
+}
+
+@keyframes marquee-left {
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes marquee-right {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.marquee__item {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--text--impact); /* 7.94rem */
+  line-height: 0.9;
+  text-transform: uppercase;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+/* Alternating outline type. The counter-scrolling rows read as one object
+   rather than two lists when the emphasis alternates across them. */
+.marquee__item.is-outline {
+  color: transparent;
+  -webkit-text-stroke: 1px var(--text-faint);
+}
+
+.marquee__sep {
+  color: var(--accent);
+  font-size: var(--text--impact);
+  line-height: 0.9;
+}
+
+/* Fade both ends so the type dissolves rather than being guillotined by the
+   viewport edge. The reference applies this above 1920px, where the row is
+   wide enough for the mask to have somewhere to work. */
+@media (min-width: 120rem) {
+  .marquee__row {
+    -webkit-mask-image: linear-gradient(
+      90deg,
+      transparent,
+      #fff 7.5%,
+      #fff 92.5%,
+      transparent
+    );
+    mask-image: linear-gradient(90deg, transparent, #fff 7.5%, #fff 92.5%, transparent);
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+  }
+}
+
+/* Motion off: the rows stop dead and the visually-hidden paragraph is what
+   carries the content, so nothing is lost. */
+@media (prefers-reduced-motion: reduce) {
+  .marquee__track,
+  .marquee.is-running .marquee__track {
+    animation: none;
+  }
+  .marquee__row {
+    overflow-x: auto;
+  }
+}
+
 /* ============================================================= Stats */
 
 .stats__grid {

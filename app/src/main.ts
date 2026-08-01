@@ -1,7 +1,14 @@
 import './styles/main.css';
 import * as THREE from 'three';
 import { HeadScene } from './HeadScene';
-import { age, careerTotals, driver, eras, seasonsRacing } from './content/hamilton';
+import {
+  age,
+  careerTotals,
+  championshipYears,
+  driver,
+  eras,
+  seasonsRacing,
+} from './content/hamilton';
 
 /** The era he is in now — the one with no end date. */
 const currentEra = eras.find((e) => e.to === null);
@@ -162,6 +169,69 @@ if (!reducedMotion) {
     { threshold: 0.4 },
   );
   for (const el of document.querySelectorAll('[data-count]')) counter.observe(el);
+}
+
+/* ------------------------------------------------------------------ *
+ * Marquee
+ *
+ * Content comes from the model, not the markup: the years are the seven title
+ * seasons and the teams are the three eras, so neither can drift out of sync
+ * with the rest of the page.
+ * ------------------------------------------------------------------ */
+
+/** How many copies of the phrase each track holds. */
+const MARQUEE_COPIES = 4;
+
+const marquee = document.querySelector<HTMLElement>('.marquee');
+if (marquee) {
+  const rows: Record<string, string[]> = {
+    left: championshipYears.map(String),
+    right: eras.map((e) => e.team),
+  };
+
+  for (const row of marquee.querySelectorAll<HTMLElement>('[data-marquee]')) {
+    const words = rows[row.dataset.marquee ?? 'left'] ?? [];
+    const track = row.querySelector<HTMLElement>('[data-marquee-track]');
+    if (!track || words.length === 0) continue;
+
+    // Several identical copies side by side. Translating the track by -100%
+    // then lands copy 2 exactly where copy 1 started, which is the only reason
+    // the loop has no visible seam.
+    for (let copy = 0; copy < MARQUEE_COPIES; copy++) {
+      words.forEach((word, i) => {
+        const item = el('span', 'marquee__item', word);
+        // Alternate solid and outline so the two rows read as one object.
+        if ((copy * words.length + i) % 2 === 1) item.classList.add('is-outline');
+        track.append(item, el('span', 'marquee__sep', '/'));
+      });
+    }
+  }
+
+  // The visible rows are aria-hidden because they repeat themselves several
+  // times over. This is the copy a screen reader actually gets.
+  const marqueeText = document.querySelector<HTMLElement>('#marquee-text');
+  if (marqueeText) {
+    marqueeText.textContent =
+      `World championships in ${rows.left!.join(', ')}. ` +
+      `Teams: ${rows.right!.join(', ')}.`;
+  }
+
+  if (reducedMotion) {
+    // Never released — the tracks stay put and the row scrolls manually.
+    marquee.classList.remove('is-running');
+  } else {
+    const runner = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          // Toggled both ways: a marquee animating off-screen is work the
+          // compositor does for nobody.
+          marquee.classList.toggle('is-running', entry.isIntersecting);
+        }
+      },
+      { threshold: 0 },
+    );
+    runner.observe(marquee);
+  }
 }
 
 /* ------------------------------------------------------------------ *

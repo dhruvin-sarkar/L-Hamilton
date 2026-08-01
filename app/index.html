@@ -165,6 +165,27 @@
         </div>
       </section>
 
+      <!-- =================================================== Marquee
+           Two rows counter-scrolling, matching the reference's mechanic:
+           30s linear infinite, paused until scrolled into view.
+           Rows are built in main.ts from the content model — the years and
+           teams here are data, not decoration, so they are not hardcoded. -->
+      <section class="marquee" aria-labelledby="marquee-h">
+        <h2 class="sr-only" id="marquee-h">Career at a glance</h2>
+
+        <!-- The visible rows are aria-hidden: they repeat their content several
+             times over to make the loop seamless, which a screen reader would
+             otherwise read out in full. This carries the real content. -->
+        <p class="sr-only" id="marquee-text"></p>
+
+        <div class="marquee__row" data-marquee="left" aria-hidden="true">
+          <div class="marquee__track" data-marquee-track></div>
+        </div>
+        <div class="marquee__row" data-marquee="right" aria-hidden="true">
+          <div class="marquee__track" data-marquee-track></div>
+        </div>
+      </section>
+
       <!-- ====================================================== Stats -->
       <section class="section stats" aria-labelledby="stats-h">
         <div class="shell">
