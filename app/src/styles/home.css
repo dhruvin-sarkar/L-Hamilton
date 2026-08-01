@@ -20,25 +20,39 @@
 
 /* ------------------------------------------- Wordmark (top-left, stacked) */
 
+/* Two voices, one lockup — the reference's move. A light italic serif given
+   name over a heavy condensed surname, left-aligned and tightly stacked so the
+   contrast reads as deliberate typography rather than two mismatched lines. */
 .wordmark {
   display: grid;
-  inline-size: 9.85rem; /* 174px */
-  font-family: var(--font-display);
-  text-transform: uppercase;
-  /* 0.78 leading is what fuses the two words into one block. Anything looser
-     and it reads as a two-line heading instead of a logotype. */
-  line-height: 0.78;
-  letter-spacing: -0.015em;
-  font-size: 2.35rem;
+  justify-items: start;
+  inline-size: max-content;
   color: var(--text);
+  /* Optical, not metric: the serif's own side bearing already indents it, so
+     the two lines only align by eye once that is pulled back out. */
+  padding-left: 0.06em;
 }
 
 .wordmark__first {
-  font-weight: 400;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 1.55rem;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  /* Nudge left: an italic's leading edge sits further right than a cap's. */
+  margin-left: -0.04em;
 }
 
 .wordmark__last {
+  font-family: var(--font-display);
   font-weight: 800;
+  font-size: 2.5rem;
+  line-height: 0.82;
+  text-transform: uppercase;
+  /* Negative tracking at display weight closes the gaps heavy condensed caps
+     open up, which is what makes it read as a mark and not a headline. */
+  letter-spacing: -0.028em;
 }
 
 /* ------------------------------------------------ Monogram (top-centre) */

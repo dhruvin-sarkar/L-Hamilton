@@ -11,6 +11,10 @@
 :root {
   --font-display: 'Archivo Narrow', 'Oswald', 'Helvetica Neue', Arial, sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* High-contrast serif for the wordmark's given name. Didone-ish faces first,
+     then the transitional serifs that ship on every OS, so the italic keeps its
+     character even with nothing installed. */
+  --font-serif: 'Playfair Display', 'Didot', 'Bodoni MT', 'Times New Roman', Georgia, serif;
 }
 
 /* ---------------------------------------------------------------- *
