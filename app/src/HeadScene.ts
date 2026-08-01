@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 
 /**
  * The hero scene: a contour-line field, a depth-map portrait on top of it, a
@@ -12,7 +13,19 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
  */
 
 const HERO_BASE = '/assets/hero';
-const HELMET_URL = '/assets/helmet/helmet.gltf';
+/**
+ * Draco-compressed, 3 meshes (shell / visor / trim), 139 KB.
+ *
+ * Replaces a 470-mesh 9.8 MB model that could never look right as a wireframe:
+ * overlapping shells composite to 1-(1-a)^N, so at N=470 even a=0.028 saturates
+ * to solid white. No opacity value exists that shows edges without the stack
+ * filling in. Geometry count was the bug, not the material.
+ *
+ * NOTE: this is the reference's own helmet, used as a stand-in on request.
+ * CLAUDE.md forbids shipping it — swap before anything goes public.
+ */
+const HELMET_URL = '/assets/helmet/helmet.glb';
+const DRACO_PATH = '/assets/draco/';
 
 export interface HeadSceneOptions {
   parallax?: number;
@@ -219,11 +232,11 @@ export class HeadScene {
   private helmetMat: THREE.MeshBasicMaterial | null = null;
   /** Opacity the helmet returns to when the cursor is clear of it. */
   /**
-   * Deliberately tiny. The model is 470 overlapping shells and every interior
-   * surface draws, so per-mesh alpha accumulates — at 0.11 the helmet reads as
-   * solid white. Tuned against the live render, not guessed.
+   * Three clean shells, so alpha barely accumulates and the wireframe can carry
+   * real weight. The old 470-mesh model needed 0.028 to avoid reading as solid
+   * white, which left individual edges invisible.
    */
-  private baseHelmetOpacity = 0.028;
+  private baseHelmetOpacity = 0.15;
   /** Scratch vector, reused per frame so the render loop allocates nothing. */
   private readonly helmetWorld = new THREE.Vector3();
   private viewAspect = 1;
@@ -346,14 +359,21 @@ export class HeadScene {
    * before it lands — and still usable if it never does.
    */
   async loadHelmet(): Promise<void> {
-    const gltf = await new GLTFLoader().loadAsync(HELMET_URL);
+    const loader = new GLTFLoader();
+    // The model is Draco-compressed, so the decoder has to be wired up before
+    // the parse or GLTFLoader rejects on the unhandled extension.
+    const draco = new DRACOLoader();
+    draco.setDecoderPath(DRACO_PATH);
+    loader.setDRACOLoader(draco);
+
+    const gltf = await loader.loadAsync(HELMET_URL);
+    // The decoder holds a worker pool; nothing else loads Draco, so release it.
+    draco.dispose();
 
     this.helmetMat = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       wireframe: true,
       transparent: true,
-      // A 470-mesh model has enough edges that even a low opacity reads as
-      // solid noise. Kept faint so it registers as a ghosted shell.
       opacity: this.baseHelmetOpacity,
       depthWrite: false,
     });
@@ -407,7 +427,13 @@ export class HeadScene {
    * -0.5..0.5). Exposed so it can be dialled in from the console against the
    * live render rather than by editing and reloading — see window.hamiltonGL.
    */
-  helmetFit = { size: 0.56, x: 0, y: 0.245 };
+  /**
+   * Measured, not guessed: the helmet's bounding box is projected to screen
+   * pixels and compared against the head in the portrait. At these values it
+   * spans x 315-635 / y 363-723 over a head at x 350-590 / y 385-700 — i.e. it
+   * encases the head with clearance, rather than sitting on the face as a mask.
+   */
+  helmetFit = { size: 0.73, x: 0, y: 0.19 };
 
   /** Place the helmet over the head, in the portrait's local space. */
   fitHelmet(): void {

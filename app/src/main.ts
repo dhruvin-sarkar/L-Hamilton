@@ -3,6 +3,14 @@ import * as THREE from 'three';
 import { HeadScene } from './HeadScene';
 import { age, careerTotals, driver, eras, seasonsRacing } from './content/hamilton';
 
+/** The era he is in now — the one with no end date. */
+const currentEra = eras.find((e) => e.to === null);
+if (!currentEra) {
+  // Fail fast: an eras list where every entry has ended means the data is stale,
+  // and silently rendering a blank team line would hide that.
+  throw new Error('[content] no ongoing era — eras data is out of date');
+}
+
 /* ------------------------------------------------------------------ *
  * Motion preference — read once, honoured everywhere.
  * ------------------------------------------------------------------ */
@@ -21,6 +29,10 @@ const bindings: Record<string, string> = {
   seasons: String(seasonsRacing()),
   team: driver.currentTeam,
   debut: String(driver.debutYear),
+  // When he joined the CURRENT team — not his F1 debut. The reference's card
+  // reads "mclaren f1 since 2019", which is Norris's tenure at that team, so
+  // binding debutYear here would say "ferrari since 2007" and be plainly wrong.
+  'team-since': String(currentEra.from),
   // Placeholder until the calendar feed lands. Named honestly rather than
   // filled with a plausible-looking circuit that would read as real.
   'race-name': 'TBC',
@@ -153,6 +165,176 @@ if (!reducedMotion) {
 }
 
 /* ------------------------------------------------------------------ *
+ * Hero entrance.
+ *
+ * Delays are assigned here rather than written into CSS so the order follows
+ * the markup: reorder the furniture and the sequence follows, with no stylesheet
+ * to keep in sync.
+ * ------------------------------------------------------------------ */
+
+const heroFurniture = [...document.querySelectorAll<HTMLElement>('.hero-in')];
+heroFurniture.forEach((el, i) => {
+  el.style.setProperty('--in-delay', `${i * 110}ms`);
+});
+
+let readyFired = false;
+const readyCallbacks: (() => void)[] = [];
+
+/** Run once the hero is ready — immediately if that has already happened. */
+function onReady(fn: () => void): void {
+  if (readyFired) fn();
+  else readyCallbacks.push(fn);
+}
+
+/** Release the entrance. Called once the scene has painted, or on a timeout. */
+function markReady(): void {
+  if (readyFired) return;
+  readyFired = true;
+  document.body.classList.add('is-ready');
+  for (const fn of readyCallbacks) fn();
+  readyCallbacks.length = 0;
+}
+
+// Backstop: if the WebGL scene never reports in — no GL context, a failed
+// texture — the hero must still appear. Content is never gated on an effect.
+setTimeout(markReady, 1200);
+
+/* ------------------------------------------------------------------ *
+ * Text reveals — the accent bar sweeping across a line.
+ *
+ * Staggered by document order within the hero so the card reads top to bottom
+ * rather than every line firing at once. CSS owns the animation; this only
+ * decides when it starts and how long each line waits.
+ * ------------------------------------------------------------------ */
+
+if (!reducedMotion) {
+  const lines = [...document.querySelectorAll<HTMLElement>('.reveal-text')];
+  const delayFor = (el: HTMLElement) => `${lines.indexOf(el) * 90}ms`;
+
+  /**
+   * Hero lines fire with the entrance, NOT on intersection.
+   *
+   * The observer below uses a negative bottom margin so nothing triggers while
+   * still at the very edge of the viewport. Inside the hero that is a trap: the
+   * card sits at the bottom of a 100dvh section, so its last line starts inside
+   * that dead band and there is no scroll position that ever moves it out. The
+   * line stayed at opacity 0 permanently — content lost to an animation that
+   * never ran.
+   */
+  const heroLines = lines.filter((el) => el.closest('.hero'));
+  const scrollLines = lines.filter((el) => !el.closest('.hero'));
+
+  for (const line of heroLines) line.style.setProperty('--reveal-delay', delayFor(line));
+  onReady(() => {
+    for (const line of heroLines) line.classList.add('is-in');
+  });
+
+  const textRevealer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const el = entry.target as HTMLElement;
+        el.style.setProperty('--reveal-delay', delayFor(el));
+        el.classList.add('is-in');
+        textRevealer.unobserve(el);
+      }
+    },
+    { rootMargin: '0px 0px -8% 0px' },
+  );
+  for (const line of scrollLines) textRevealer.observe(line);
+}
+
+/* ------------------------------------------------------------------ *
+ * Circuit outline — drawn on rather than faded in.
+ * ------------------------------------------------------------------ */
+
+const circuit = document.querySelector<SVGPathElement>('.next-race__circuit path');
+if (circuit) {
+  // Measured from the path itself. Hardcoding a length silently breaks the
+  // animation the moment the outline is redrawn for a different circuit.
+  const length = circuit.getTotalLength();
+  circuit.style.strokeDasharray = String(length);
+
+  if (reducedMotion) {
+    circuit.style.strokeDashoffset = '0';
+  } else {
+    circuit.style.strokeDashoffset = String(length);
+    const drawer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          circuit.style.strokeDashoffset = '0';
+          drawer.disconnect();
+        }
+      },
+      { threshold: 0.3 },
+    );
+    drawer.observe(circuit);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Cursor — a ring that trails the pointer and swells over targets.
+ *
+ * Skipped entirely without a fine pointer or with reduced motion: the ring is
+ * decorative, and the native cursor is the correct fallback in both cases.
+ * ------------------------------------------------------------------ */
+
+const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+if (finePointer && !reducedMotion) {
+  const ring = document.createElement('div');
+  ring.className = 'cursor';
+  ring.setAttribute('aria-hidden', 'true');
+  const dot = document.createElement('span');
+  dot.className = 'cursor__dot';
+  ring.append(dot);
+  document.body.append(ring);
+
+  let targetX = 0;
+  let targetY = 0;
+  let x = 0;
+  let y = 0;
+  let started = false;
+
+  window.addEventListener(
+    'pointermove',
+    (e) => {
+      targetX = e.clientX;
+      targetY = e.clientY;
+      if (!started) {
+        // Jump to the first known position instead of gliding in from 0,0.
+        x = targetX;
+        y = targetY;
+        started = true;
+        ring.classList.add('is-active');
+      }
+      // Swell over anything clickable. Checked on move rather than with
+      // per-element listeners so it covers content added later for free.
+      const el = e.target as Element | null;
+      ring.classList.toggle('is-hovering', Boolean(el?.closest('a, button')));
+    },
+    { passive: true },
+  );
+
+  // The ring must not linger over a window it has left.
+  document.addEventListener('pointerleave', () => ring.classList.remove('is-active'));
+  document.addEventListener('pointerenter', () => ring.classList.add('is-active'));
+
+  const followCursor = () => {
+    requestAnimationFrame(followCursor);
+    // Lags the true pointer. The trailing ring against the exact dot is what
+    // gives the cursor a sense of weight rather than being a second crosshair.
+    x += (targetX - x) * 0.16;
+    y += (targetY - y) * 0.16;
+    // translate, not top/left: this runs every frame and must stay off the
+    // layout path.
+    ring.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+  };
+  requestAnimationFrame(followCursor);
+}
+
+/* ------------------------------------------------------------------ *
  * Menu
  * ------------------------------------------------------------------ */
 
@@ -191,9 +373,10 @@ if (stage) {
   stage.appendChild(renderer.domElement);
 
   // Hamilton's source is 4:3 landscape where the reference's was square, so a
-  // plain height-fit leaves him small in frame. Scaled up to sit like the
-  // reference's subject does.
-  const head = new HeadScene({ subjectScale: 0.95 });
+  // plain height-fit does not place him the way the reference places its
+  // subject. 0.78 leaves the contour field readable around him and keeps his
+  // head clear of the nav — at 0.95 he filled the frame and crowded both.
+  const head = new HeadScene({ subjectScale: 0.78 });
 
   const resize = () => {
     renderer.setSize(stage.clientWidth, stage.clientHeight);
@@ -240,6 +423,8 @@ if (stage) {
     .then(() => {
       resize();
       frame();
+      // The scene has painted, so the furniture can settle in around it.
+      markReady();
       // Helmet is ~11 MB, so it loads after the hero is already interactive
       // and never blocks it. If it fails the scene is still complete enough to
       // ship — log it, don't take the page down with it.

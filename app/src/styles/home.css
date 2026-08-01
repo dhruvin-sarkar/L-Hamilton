@@ -33,26 +33,30 @@
   padding-left: 0.06em;
 }
 
+/* Sized off the surname's cap height, not off the two font sizes independently.
+   The serif is set to ~62% of the display line so it reads as a subordinate
+   first name rather than a second headline competing with it. */
 .wordmark__first {
   font-family: var(--font-serif);
   font-style: italic;
   font-weight: 500;
-  font-size: 1.55rem;
-  line-height: 0.95;
-  letter-spacing: -0.01em;
+  font-size: 1.22rem;
+  line-height: 1;
+  letter-spacing: 0;
   /* Nudge left: an italic's leading edge sits further right than a cap's. */
-  margin-left: -0.04em;
+  margin-left: -0.05em;
+  margin-bottom: 0.06em;
 }
 
 .wordmark__last {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 2.5rem;
-  line-height: 0.82;
+  font-size: 1.98rem;
+  line-height: 0.84;
   text-transform: uppercase;
   /* Negative tracking at display weight closes the gaps heavy condensed caps
      open up, which is what makes it read as a mark and not a headline. */
-  letter-spacing: -0.028em;
+  letter-spacing: -0.03em;
 }
 
 /* ------------------------------------------------ Monogram (top-centre) */
@@ -181,10 +185,13 @@
   min-block-size: 15.23rem; /* 269px */
   /* Top padding clears the notch: the outline's left edge starts ~19.5/244 of
      the way down, so content must not sit above that line. */
-  padding: 0.25rem 0.7rem 0.8rem;
+  padding: 0.3rem 0.62rem 0.9rem;
   display: grid;
+  /* label / circuit row / rule / crest row. The 1fr sits on the circuit row so
+     the rule and crest stay pinned to the bottom of the card as the reference's
+     do, instead of floating up when the race name wraps to one line. */
   grid-template-rows: auto 1fr auto auto;
-  gap: 0.5rem;
+  gap: 0.55rem;
   color: var(--text);
 }
 
@@ -202,11 +209,12 @@
 
 .next-race__label,
 .next-race__name,
-.next-race__badge {
+.next-race__team {
   font-size: var(--text--eyebrow); /* 0.578rem */
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 600;
+  line-height: 1.35;
 }
 
 /* The notch cuts the LEFT half of the top edge downward, leaving the right
@@ -219,24 +227,56 @@
   letter-spacing: 0.1em;
 }
 
+/* Circuit above its name, crest above its team line — one rule for both rows. */
+.next-race__row {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 0.4rem;
+  color: var(--text);
+  text-align: center;
+}
+
 .next-race__circuit {
   inline-size: 5.5rem; /* 97px */
-  block-size: 4.7rem; /* 83px */
-  margin-inline: auto;
+  block-size: 4.2rem;
+  color: var(--accent);
+  /* Drawn on, not faded in. The dash offset is set from the path's own measured
+     length in main.ts — a hardcoded length is wrong the moment the path is
+     edited. */
+  transition: stroke-dashoffset 1.1s var(--cubic-default);
+}
+
+/* Hover lifts the circuit to full white the way the reference's Rive circuit
+   swaps colour on hover. */
+.next-race__row:hover .next-race__circuit,
+.next-race__row:focus-visible .next-race__circuit {
+  color: var(--text);
+}
+
+.next-race__line {
+  block-size: 1px;
+  background: var(--hairline);
+  /* Bleeds into the card's side padding so it meets the outline, which is how
+     the reference's divider reads — a rule across the card, not a short dash. */
+  margin-inline: -0.62rem;
+}
+
+.next-race__crest {
+  inline-size: 3.6rem;
+  block-size: 2.48rem;
+  color: var(--text-muted);
+  transition: color var(--animation-default);
+}
+
+.next-race__row.is-2:hover .next-race__crest {
   color: var(--accent);
 }
 
-.next-race__name {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.next-race__badge {
+.next-race__team {
   color: var(--text-muted);
   display: grid;
-  gap: 0.15rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--hairline);
+  gap: 0.1rem;
 }
 
 .next-race__since {
@@ -289,6 +329,178 @@
 
 @media (max-width: 40rem) {
   .lock__label {
+    display: none;
+  }
+}
+
+/* ================================================== Hero entrance
+ * The furniture settles in around the portrait rather than being there from
+ * the first frame. Staggered by --in-delay, which main.ts assigns in document
+ * order so the sequence follows the eye: wordmark, nav, then the corners.
+ *
+ * Gated on body.is-ready rather than running on load, so nothing animates
+ * until the scene has actually painted — otherwise the sequence plays out
+ * against an empty canvas and is over before the hero appears.
+ * ------------------------------------------------------------------ */
+
+.hero-in {
+  opacity: 0;
+  translate: 0 0.7rem;
+}
+
+.is-ready .hero-in {
+  opacity: 1;
+  translate: none;
+  transition:
+    opacity 0.9s var(--cubic-default),
+    translate 0.9s var(--cubic-default);
+  transition-delay: var(--in-delay, 0ms);
+}
+
+/* The content must be present even if the ready flag never arrives — a failed
+   scene load must not leave the page permanently blank. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-in {
+    opacity: 1;
+    translate: none;
+  }
+}
+
+/* ============================================================ Cursor
+ * A ring that trails the pointer and swells over interactive targets. The
+ * native cursor is hidden only where the ring actually replaces it, and only
+ * on devices that have a real pointer — a touch device gets neither.
+ * ------------------------------------------------------------------ */
+
+@media (hover: hover) and (pointer: fine) {
+  .hero,
+  .hero a,
+  .hero button {
+    cursor: none;
+  }
+}
+
+.cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 300;
+  inline-size: 2.2rem;
+  block-size: 2.2rem;
+  margin: -1.1rem 0 0 -1.1rem; /* centre on the hotspot */
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  /* Inert: it sits above everything, so anything but none would swallow every
+     click on the page. */
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity var(--dur-base) var(--cubic-default),
+    scale var(--dur-base) var(--cubic-default),
+    background-color var(--dur-base) var(--cubic-default);
+  will-change: transform;
+}
+
+/* The dot is the precise hotspot; the ring lags behind it. */
+.cursor__dot {
+  position: absolute;
+  inset: 50%;
+  inline-size: 0.22rem;
+  block-size: 0.22rem;
+  margin: -0.11rem 0 0 -0.11rem;
+  background: var(--accent);
+  border-radius: 50%;
+}
+
+.cursor.is-active {
+  opacity: 1;
+}
+
+.cursor.is-hovering {
+  scale: 1.75;
+  background-color: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+/* No ring without a fine pointer, and none when motion is reduced — a lagging
+   element that chases the pointer is exactly what that preference asks to
+   remove, and the native cursor is the accessible fallback. */
+@media (prefers-reduced-motion: reduce), (hover: none), (pointer: coarse) {
+  .cursor {
+    display: none;
+  }
+}
+
+/* ====================================================== Text reveals
+ * The reference's signature entrance: an accent bar wipes across the line and
+ * the text is behind it when it retreats. Not a fade — the bar is the event.
+ * ------------------------------------------------------------------ */
+
+.reveal-text {
+  position: relative;
+  opacity: 0;
+}
+
+.reveal-text::after {
+  content: '';
+  position: absolute;
+  /* Slightly larger than the text box so the bar covers descenders and the
+     letterforms never peek out from under its edge. */
+  inset: -0.1em -0.15em;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  pointer-events: none;
+}
+
+.reveal-text.is-in {
+  animation: text-in var(--duration-default) var(--cubic-default) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal-text.is-in::after {
+  animation: bar-sweep var(--duration-default) var(--cubic-default) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+/* Stepped, not eased: the text must be fully hidden until the bar has covered
+   it, then fully present. A cross-fade under a moving bar reads as a mistake. */
+@keyframes text-in {
+  0%,
+  48% {
+    opacity: 0;
+  }
+  49%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Grow from the left, then shrink away to the right — one continuous sweep,
+   which is why the origin flips at the midpoint rather than the bar sliding. */
+@keyframes bar-sweep {
+  0% {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+  48% {
+    transform: scaleX(1);
+    transform-origin: left;
+  }
+  52% {
+    transform: scaleX(1);
+    transform-origin: right;
+  }
+  100% {
+    transform: scaleX(0);
+    transform-origin: right;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal-text {
+    opacity: 1;
+  }
+  .reveal-text::after {
     display: none;
   }
 }

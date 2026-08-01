@@ -27,14 +27,14 @@
         <!-- Nav: wordmark left, monogram centre, store + menu right.
              Heights and paddings are the reference's, in rem. -->
         <div class="nav-inner">
-          <h1 class="wordmark">
+          <h1 class="wordmark hero-in">
             <span class="wordmark__first">Lewis</span>
             <span class="wordmark__last">Hamilton</span>
           </h1>
 
-          <p class="monogram" aria-hidden="true">LH</p>
+          <p class="monogram hero-in" aria-hidden="true">LH</p>
 
-          <div class="topbar">
+          <div class="topbar hero-in">
             <a class="store" href="https://store.lewishamilton.com" target="_blank" rel="noopener">
               <svg class="store__icon" viewBox="0 0 16 16" aria-hidden="true">
                 <path
@@ -54,7 +54,7 @@
         </div>
 
         <!-- Bottom-left -->
-        <aside class="next-race" aria-labelledby="next-race-h">
+        <aside class="next-race hero-in" aria-labelledby="next-race-h">
           <!-- The card border is an SVG because the top-left corner is notched
                by a diagonal. Path traced from the reference's own outline. -->
           <svg
@@ -70,27 +70,84 @@
             />
           </svg>
 
-          <p class="next-race__label" id="next-race-h">Next Race</p>
-          <svg class="next-race__circuit" viewBox="0 0 97 83" aria-hidden="true">
-            <path
-              d="M18 60c-6-14 2-28 16-32 16-5 26 8 40 6 9-1 15-7 15-15"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-            />
-          </svg>
-          <p class="next-race__name">
-            <span data-bind="race-name">TBC</span><span>gp</span>
-          </p>
-          <p class="next-race__badge">
-            <span data-bind="team">Ferrari</span>
-            <span class="next-race__since">Since <span data-bind="debut">2007</span></span>
-          </p>
+          <!-- The notch cuts the LEFT half of the top edge down, leaving a
+               raised strip on the right. The label sits in that strip. -->
+          <p class="next-race__label reveal-text" id="next-race-h">Next Race</p>
+
+          <a class="next-race__row" href="/calendar.html">
+            <svg class="next-race__circuit" viewBox="0 0 97 74" aria-hidden="true">
+              <!-- A closed loop, because that is what a circuit is. Generic on
+                   purpose: the race is TBC, so drawing any real track's layout
+                   here would assert a fixture that is not known yet. Swapped
+                   for the real outline once the calendar feed lands. -->
+              <path
+                d="M14 60Q9 46 12 32Q15 18 30 14Q46 10 55 20Q62 28 72 22Q84 15 88 30Q91 44 78 50Q64 56 54 58Q40 61 30 66Q18 70 14 60Z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="next-race__name reveal-text">
+              <span data-bind="race-name">TBC</span> <span>gp</span>
+            </span>
+          </a>
+
+          <span class="next-race__line" aria-hidden="true"></span>
+
+          <div class="next-race__row is-2">
+            <!-- Laurel wreath around a helmet. Original artwork: the reference
+                 uses a proprietary Rive animation in this slot. -->
+            <svg class="next-race__crest" viewBox="0 0 64 44" aria-hidden="true">
+              <g fill="currentColor">
+                <!-- Helmet: dome and chin bar, visor aperture knocked out. -->
+                <path
+                  d="M32 9c-6.1 0-11 4.9-11 11v6.3c0 1.9 1.5 3.4 3.4 3.4h15.2c1.9 0 3.4-1.5 3.4-3.4V20c0-6.1-4.9-11-11-11Z"
+                />
+                <path
+                  d="M23.6 19.6c1.7-3.4 4.8-5.3 8.4-5.3s6.7 1.9 8.4 5.3v2.7h-16.8Z"
+                  fill="var(--bg)"
+                />
+              </g>
+              <!-- Left branch: stem plus five leaves placed along the curve. -->
+              <g id="nr-branch" fill="currentColor">
+                <path
+                  d="M18 38C11 34.5 6.5 26.5 7.5 17.5"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.3"
+                  stroke-linecap="round"
+                />
+                <g transform="translate(15 36.1) rotate(-125)">
+                  <path d="M0 0c2.2-2.6 5.4-3 7.4-1.2C5.2 1.4 2 1.6 0 0Z" />
+                </g>
+                <g transform="translate(11.7 32.8) rotate(-138)">
+                  <path d="M0 0c2.2-2.6 5.4-3 7.4-1.2C5.2 1.4 2 1.6 0 0Z" />
+                </g>
+                <g transform="translate(9.2 28.7) rotate(-150)">
+                  <path d="M0 0c2.2-2.6 5.4-3 7.4-1.2C5.2 1.4 2 1.6 0 0Z" />
+                </g>
+                <g transform="translate(7.7 24) rotate(-162)">
+                  <path d="M0 0c2.2-2.6 5.4-3 7.4-1.2C5.2 1.4 2 1.6 0 0Z" />
+                </g>
+                <g transform="translate(7.4 19.4) rotate(-172)">
+                  <path d="M0 0c2.2-2.6 5.4-3 7.4-1.2C5.2 1.4 2 1.6 0 0Z" />
+                </g>
+              </g>
+              <!-- Right branch is the left one mirrored about the centre line,
+                   so the two can never drift apart when the left is tweaked. -->
+              <use href="#nr-branch" transform="matrix(-1 0 0 1 64 0)" />
+            </svg>
+            <span class="next-race__team reveal-text">
+              <span data-bind="team">Ferrari</span>
+              <span class="next-race__since">since <span data-bind="team-since">2025</span></span>
+            </span>
+          </div>
         </aside>
 
         <!-- Bottom-right -->
-        <div class="lock">
+        <div class="lock hero-in">
           <p class="lock__label">Tap to lock</p>
           <button class="lock__btn" type="button" aria-pressed="false" id="lock-btn">
             <span class="sr-only">Lock the cursor interaction</span>
