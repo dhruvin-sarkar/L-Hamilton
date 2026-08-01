@@ -518,7 +518,17 @@ export class HeadScene {
    * spans x 315-635 / y 363-723 over a head at x 350-590 / y 385-700 — i.e. it
    * encases the head with clearance, rather than sitting on the face as a mask.
    */
-  helmetFit = { size: 0.95, x: 0, y: 0.125 };
+  /**
+   * width/height are a deliberate departure from the model's own proportions.
+   * The scan is a road-helmet shape — rounder and wider than a race lid — so
+   * narrowing it and drawing it out lengthens the crown and tucks the sides in
+   * off the ears. Small numbers on purpose: past about 0.93/1.09 the chin bar
+   * overruns the collar and the silhouette stops reading as a helmet.
+   *
+   * These multiply size rather than replacing it, so size stays the single
+   * knob for "bigger or smaller" and these two only ever shape it.
+   */
+  helmetFit = { size: 0.95, x: 0, y: 0.137, width: 0.95, height: 1.05 };
 
   /** Place the helmet over the head, in the portrait's local space. */
   fitHelmet(): void {
@@ -526,8 +536,14 @@ export class HeadScene {
     // The portrait plane is scaled non-uniformly (aspect on x, 1 on y) and a
     // child inherits that, so an unmodified helmet comes out stretched. Divide
     // the x scale back out to keep it round.
-    const { size, x, y } = this.helmetFit;
-    this.helmet.scale.set(size / this.aspect, size, size);
+    //
+    // This scale lands on the wrapper, whose child carries the -90 X rotation,
+    // and a parent's scale applies after a child's rotation — so x and y here
+    // are screen axes, not model axes. That is what makes width/height mean
+    // "narrower on screen" and "longer on screen" rather than something that
+    // depends on how the glTF happened to be authored.
+    const { size, x, y, width, height } = this.helmetFit;
+    this.helmet.scale.set((size * width) / this.aspect, size * height, size);
     this.helmet.position.set(x, y, 0.02);
   }
 
