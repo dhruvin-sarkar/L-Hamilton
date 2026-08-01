@@ -122,9 +122,16 @@ const fieldFragment = /* glsl */ `
     float edge  = abs(fract(bands) - 0.5);
     float line  = 1.0 - smoothstep(0.0, fwidth(bands) * 1.6, edge);
 
-    // Only inside the cursor radius do the lines take the accent colour.
+    // Held well below full strength. On the reference this field reads as faint
+    // topography you notice second, not as a graphic competing with the
+    // portrait — at full opacity it draws the eye straight off his face.
+    line *= 0.35;
+
+    // Only inside the cursor radius do the lines take the accent colour, and
+    // they come up to full strength there.
     float reveal = 1.0 - smoothstep(uRevealPx * 0.45, uRevealPx, dPx);
     vec3  lineCol = mix(uLine, uCursorLine, reveal);
+    line = mix(line, min(line * 2.6, 1.0), reveal);
 
     gl_FragColor = vec4(mix(uBg, lineCol, line), 1.0);
   }
@@ -197,12 +204,9 @@ const headFragment = /* glsl */ `
     float wipe = smoothstep(vUv.y - 0.25, vUv.y, uIntro * 1.3);
     alpha *= wipe;
 
-    // The reveal disc, noise-broken at the edge so it never reads as a hard
-    // circular mask. Outside it the portrait sits back but stays legible —
-    // fully hiding the face would leave the hero with nothing in it.
-    float edgeNoise = fbm(vUv * 6.0 + uTime * 0.08, uOctaves) * uRevealPx * 0.35;
-    float reveal = 1.0 - smoothstep(uRevealPx * 0.5, uRevealPx + edgeNoise, dPx);
-    alpha *= mix(0.55, 1.0, reveal);
+    // The portrait stays fully opaque. On the reference the cursor reveals the
+    // wireframe HELMET over the face — the face itself never fades. Dimming it
+    // here was backwards, and it let the background contours read through skin.
 
     if (alpha < 0.004) discard;
     gl_FragColor = vec4(color, alpha);

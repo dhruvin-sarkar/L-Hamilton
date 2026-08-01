@@ -3,28 +3,34 @@
    hardcodes a hex, that is a bug. */
 
 :root {
-  /* --- Surfaces. Warm near-black, never pure #000: pure black flattens
-         photography and kills the sense of depth in the GL scene. --- */
-  --bg: #0a0809;
-  --bg-elevated: #131011;
-  --bg-raised: #1c1719;
-  --hairline: #2a2426;
+  /* --- Surfaces.
+         The reference is a LIGHT site — warm off-white hero, with dark sections
+         further down the page. Its measured background is #F8F8F3; ours is the
+         same value pulled fractionally toward red, the way the reference pulls
+         all of its neutrals toward its lime. --- */
+  --bg: #f8f5f3;
+  --bg-elevated: #efeae7;
+  --bg-raised: #e6dfdc;
+  --hairline: #ddd4d1;
 
-  /* --- Accent --- */
-  --accent: #ff2800; /* rosso corsa */
+  /* --- Accent. Rosso corsa where the reference has lime. --- */
+  --accent: #ff2800;
   --accent-soft: #c41e10; /* anything covering real area */
-  --accent-glow: #ff280033;
+  --accent-glow: #ff28001f;
 
   /* --- Type --- */
-  --text: #f2edeb;
-  --text-muted: #948a87;
-  --text-faint: #5c5457;
+  --text: #16100f;
+  --text-muted: #6b5a58;
+  --text-faint: #9c8d8a;
 
-  /* --- GL scene (see ANIMATIONS-SPEC §0b) --- */
-  --gl-bg: #0a0809;
-  --gl-outline: #4a3f41;
+  /* --- GL scene (see ANIMATIONS-SPEC §0b).
+         The contour field is deliberately near-invisible: on the reference it
+         reads as faint topography, not as a graphic element. Anything louder
+         competes with the portrait for attention and loses. --- */
+  --gl-bg: #f8f5f3;
+  --gl-outline: #cbc3c1;
   --gl-cursor-fg: #ff2800;
-  --gl-cursor-bg: #1c1719;
+  --gl-cursor-bg: #ece4e2;
 
   /* --- Era default: Ferrari is the present tense, so unscoped
          elements inherit rosso. --- */

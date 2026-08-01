@@ -25,13 +25,60 @@
   height: 100%;
 }
 
-/* --------------------------------------------------- Store pill (top-left) */
+/* ------------------------------------------- Wordmark (top-left, stacked) */
 
-.store {
+.wordmark {
   position: absolute;
   top: var(--gutter);
   left: var(--gutter);
   z-index: 3;
+  display: grid;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  /* Tight leading is what makes the two words read as one stacked block
+     rather than two lines of a heading. */
+  line-height: 0.82;
+  letter-spacing: -0.02em;
+  font-size: clamp(1.6rem, 0.9rem + 2.2vw, 3rem);
+}
+
+/* Given name lighter, surname heavy — the reference's hierarchy. */
+.wordmark__first {
+  font-weight: 400;
+}
+
+.wordmark__last {
+  font-weight: 800;
+}
+
+/* ------------------------------------------------ Monogram (top-centre) */
+
+.monogram {
+  position: absolute;
+  top: var(--gutter);
+  left: 50%;
+  translate: -50% 0;
+  z-index: 3;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: var(--step-1);
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+/* -------------------------------------- Store + menu (top-right, paired) */
+
+.topbar {
+  position: absolute;
+  top: var(--gutter);
+  right: var(--gutter);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.store {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -59,20 +106,16 @@
 /* -------------------------------------------------- Menu button (top-right) */
 
 .menu-btn {
-  position: absolute;
-  top: var(--gutter);
-  right: var(--gutter);
-  z-index: 3;
   display: grid;
   place-items: center;
   inline-size: 3rem;
   block-size: 3rem;
-  border: 1px solid var(--hairline);
+  border: 1px solid var(--text);
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--bg) 70%, transparent);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  transition: border-color var(--dur-micro) var(--ease-out);
+  background: var(--bg);
+  transition:
+    border-color var(--dur-micro) var(--ease-out),
+    background var(--dur-micro) var(--ease-out);
 }
 
 .menu-btn:hover,
@@ -98,45 +141,6 @@
   margin-left: auto;
 }
 
-/* --------------------------------------------- Name lockup (top-centre) */
-
-.lockup {
-  position: absolute;
-  top: calc(var(--gutter) + 0.5rem);
-  left: 50%;
-  translate: -50% 0;
-  z-index: 2;
-  text-align: center;
-  width: min(92vw, 60rem);
-}
-
-.lockup__mark {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: var(--step-1);
-  letter-spacing: -0.04em;
-  color: var(--text);
-  line-height: 1;
-}
-
-.lockup__name {
-  margin-top: 0.35em;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(1.75rem, 0.9rem + 4vw, 4rem);
-  text-transform: uppercase;
-  letter-spacing: -0.01em;
-  line-height: 0.95;
-}
-
-.lockup__team {
-  margin-top: 0.5em;
-  font-size: var(--step--1);
-  text-transform: uppercase;
-  letter-spacing: 0.22em;
-  color: var(--text-muted);
-}
-
 /* ------------------------------------------- Next race (bottom-left) */
 
 .next-race {
@@ -146,11 +150,11 @@
   z-index: 3;
   inline-size: 11rem;
   padding: 0.9rem;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--bg) 70%, transparent);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  border: 1px solid var(--text);
+  /* Notched corner — the reference's card has one clipped corner rather than
+     a uniform radius, which is what stops it reading as a generic panel. */
+  border-radius: var(--radius-sm) var(--radius-sm) var(--radius-sm) 0;
+  background: var(--bg);
 }
 
 .next-race__label,
