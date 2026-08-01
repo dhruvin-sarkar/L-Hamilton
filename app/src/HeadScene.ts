@@ -218,7 +218,12 @@ export class HeadScene {
   private helmet: THREE.Group | null = null;
   private helmetMat: THREE.MeshBasicMaterial | null = null;
   /** Opacity the helmet returns to when the cursor is clear of it. */
-  private baseHelmetOpacity = 0.09;
+  /**
+   * Deliberately tiny. The model is 470 overlapping shells and every interior
+   * surface draws, so per-mesh alpha accumulates — at 0.11 the helmet reads as
+   * solid white. Tuned against the live render, not guessed.
+   */
+  private baseHelmetOpacity = 0.028;
   /** Scratch vector, reused per frame so the render loop allocates nothing. */
   private readonly helmetWorld = new THREE.Vector3();
   private viewAspect = 1;
@@ -359,7 +364,13 @@ export class HeadScene {
     const group = gltf.scene;
     group.traverse((child) => {
       const mesh = child as THREE.Mesh;
-      if (mesh.isMesh) mesh.material = this.helmetMat!;
+      if (!mesh.isMesh) return;
+      mesh.material = this.helmetMat!;
+      // renderOrder must be set per mesh — Three reads it off the object being
+      // drawn and does not inherit it from a parent Group. Left at the default
+      // 0 these draw before the transparent portrait, which then paints over
+      // them, and the helmet never appears however opaque it is.
+      mesh.renderOrder = 3;
     });
 
     // Normalise: the model arrives at an arbitrary scale and origin, so fit it
@@ -391,17 +402,22 @@ export class HeadScene {
     this.fitHelmet();
   }
 
+  /**
+   * Where the helmet sits, in the portrait's local space (the unit plane,
+   * -0.5..0.5). Exposed so it can be dialled in from the console against the
+   * live render rather than by editing and reloading — see window.hamiltonGL.
+   */
+  helmetFit = { size: 0.56, x: 0, y: 0.245 };
+
   /** Place the helmet over the head, in the portrait's local space. */
-  private fitHelmet(): void {
+  fitHelmet(): void {
     if (!this.helmet) return;
-    // The portrait plane is scaled non-uniformly (aspect on x, 1 on y), and a
-    // child inherits that — so an unmodified helmet comes out stretched. Divide
+    // The portrait plane is scaled non-uniformly (aspect on x, 1 on y) and a
+    // child inherits that, so an unmodified helmet comes out stretched. Divide
     // the x scale back out to keep it round.
-    const size = 0.34;
+    const { size, x, y } = this.helmetFit;
     this.helmet.scale.set(size / this.aspect, size, size);
-    // Local space is the unit plane, -0.5..0.5. Sits on the upper third, where
-    // a head falls in a portrait crop; needs a nudge when the final model lands.
-    this.helmet.position.set(0, 0.2, 0.02);
+    this.helmet.position.set(x, y, 0.02);
   }
 
   setPointer(nx: number, ny: number): void {

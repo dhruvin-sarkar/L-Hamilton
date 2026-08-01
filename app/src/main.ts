@@ -223,6 +223,12 @@ if (stage) {
     { passive: true },
   );
 
+  // Live handle on the scene, the way the reference exposes window.landoGL.
+  // Tuning the helmet's fit by eye and re-editing source each time is slow and
+  // error-prone; being able to read and set values from the console makes it
+  // measurable. Costs nothing, and doubles as the modding surface.
+  (window as unknown as Record<string, unknown>).hamiltonGL = { head, renderer };
+
   const frame = () => {
     requestAnimationFrame(frame);
     head.update();
