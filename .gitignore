@@ -15,17 +15,11 @@ app/*.log
 app/*.err
 app/.vite/
 
-# Third-party binaries that must not be redistributed from this repo.
-#
-# The hero currently loads the reference site's own helmet model as a local
-# stand-in so the scene can be built and tuned against something real. It is not
-# our artwork, and pushing it would make a public repo republish it. The code
-# that loads it is tracked; the file is not — so a fresh clone renders the hero
-# without a helmet and logs why, rather than shipping someone else's asset.
-# Replace with an original model, then delete this rule.
-app/public/assets/helmet/*.glb
-app/public/assets/helmet/*.gltf
-app/public/assets/helmet/*.bin
+# The reference site's own helmet model, if it ever reappears here. It was used
+# briefly as a stand-in and is not ours to redistribute. The supplied
+# helmet.gltf/buffer.bin are tracked normally — this rule is narrow on purpose,
+# an earlier blanket *.gltf/*.bin rule would have silently untracked those too.
+app/public/assets/helmet/helmet.glb
 
 .DS_Store
 Thumbs.db

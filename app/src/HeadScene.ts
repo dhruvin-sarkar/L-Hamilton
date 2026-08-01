@@ -15,17 +15,16 @@ import { FluidCursor } from './FluidCursor';
 
 const HERO_BASE = '/assets/hero';
 /**
- * Draco-compressed, 3 meshes (shell / visor / trim), 139 KB.
+ * The supplied helmet: 470 meshes, 27 materials, ~11 MB.
  *
- * Replaces a 470-mesh 9.8 MB model that could never look right as a wireframe:
- * overlapping shells composite to 1-(1-a)^N, so at N=470 even a=0.028 saturates
- * to solid white. No opacity value exists that shows edges without the stack
- * filling in. Geometry count was the bug, not the material.
- *
- * NOTE: this is the reference's own helmet, used as a stand-in on request.
- * CLAUDE.md forbids shipping it — swap before anything goes public.
+ * That mesh count is the reason this needs depth writing turned on. Transparent
+ * materials normally skip the depth buffer, so every interior surface of every
+ * shell draws and their alphas composite to 1-(1-a)^N — at N=470 even a=0.028
+ * saturates to solid white, and no opacity exists that shows edges without the
+ * stack filling in. Writing depth culls the hidden lines, which both fixes the
+ * accumulation and gives a cleaner hidden-line wireframe. See loadHelmet.
  */
-const HELMET_URL = '/assets/helmet/helmet.glb';
+const HELMET_URL = '/assets/helmet/helmet.gltf';
 const DRACO_PATH = '/assets/draco/';
 
 export interface HeadSceneOptions {
@@ -123,7 +122,7 @@ const fieldFragment = /* glsl */ `
     // field is so flat that fwidth returns a sub-pixel threshold and the lines
     // vanish everywhere except where the cursor steepens the gradient — which
     // is exactly the "only lit under the pointer" failure.
-    float bands = n * 26.0;
+    float bands = n * 18.0;
     float edge  = abs(fract(bands) - 0.5);
     // Floor the threshold so a line is never thinner than it can be drawn.
     float w     = max(fwidth(bands) * 1.6, 0.02);
@@ -428,7 +427,12 @@ export class HeadScene {
       fragmentShader: helmetFragment,
       wireframe: true,
       transparent: true,
-      depthWrite: false,
+      // Depth writing ON, which is unusual for a transparent material and is
+      // the point. Without it all 470 nested shells draw their interiors and
+      // the alphas stack to opaque white. Writing depth removes the hidden
+      // lines, so only the shell facing the viewer contributes.
+      depthWrite: true,
+      depthTest: true,
       uniforms: {
         tCursorEffect: { value: this.fluid.texture },
         uResolution: { value: new THREE.Vector2(1, 1) },
@@ -495,7 +499,7 @@ export class HeadScene {
    * spans x 315-635 / y 363-723 over a head at x 350-590 / y 385-700 — i.e. it
    * encases the head with clearance, rather than sitting on the face as a mask.
    */
-  helmetFit = { size: 0.98, x: 0, y: 0.15 };
+  helmetFit = { size: 0.72, x: 0, y: 0.155 };
 
   /** Place the helmet over the head, in the portrait's local space. */
   fitHelmet(): void {
@@ -552,7 +556,11 @@ export class HeadScene {
     // centring it. The camera spans -1..1 vertically and the plane's origin is
     // its centre, so pushing it up by half its height sits it on the floor —
     // the subject stands in frame instead of floating in it.
-    this.headBase.set(0, -1 + scale / 2);
+    // Nudged right of centre. The camera spans -view..view horizontally and one
+    // world unit is half the viewport height, so this is roughly 37px at
+    // 1908x926 — enough to break dead-centre symmetry, not enough to read as
+    // off-centre.
+    this.headBase.set(0.08, -1 + scale / 2);
     this.headMesh.position.set(this.headBase.x, this.headBase.y, 0);
 
     this.fieldMesh.scale.set(view * 2, 2, 1);
