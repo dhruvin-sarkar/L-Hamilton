@@ -478,6 +478,12 @@ export class HeadScene {
     const normalised = new THREE.Group();
     normalised.add(group);
     normalised.scale.setScalar(1 / longest);
+    // The model is authored facing away from the camera — its z bounds sit
+    // entirely on the positive side (19.4 to 73.2), so the visor aperture ends
+    // up at the back and you see the shell's rear. Flip it here rather than on
+    // the wrapper, so the idle animation stays a small offset from a correct
+    // resting orientation instead of oscillating around a backwards one.
+    normalised.rotation.y = Math.PI;
 
     const wrapper = new THREE.Group();
     wrapper.add(normalised);
