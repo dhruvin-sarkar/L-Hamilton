@@ -1,6 +1,7 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { FluidCursor } from './FluidCursor';
 
 /**
  * The hero scene: a contour-line field, a depth-map portrait on top of it, a
@@ -139,6 +140,40 @@ const fieldFragment = /* glsl */ `
   }
 `;
 
+/**
+ * Helmet wireframe, masked per-fragment by the fluid field.
+ *
+ * Per-fragment is the point. A single opacity fades the whole shell together;
+ * sampling the fluid at each fragment's own screen position lets a swirl erase
+ * only the part of the helmet it passes over. That is what the reference means
+ * by masking it on and off with blobs, and why its head material takes a
+ * tCursorEffect sampler rather than a hover scalar.
+ */
+const helmetFragment = /* glsl */ `
+  precision highp float;
+  uniform sampler2D tCursorEffect;
+  uniform vec2  uResolution;
+  uniform float uOpacity;
+  uniform vec3  uColor;
+
+  void main() {
+    // The fluid target is square and stretched to the viewport, and its splat is
+    // pre-corrected for aspect, so a straight screen-space lookup matches.
+    vec2 uv = gl_FragCoord.xy / uResolution;
+    float dye = clamp(texture2D(tCursorEffect, uv).r, 0.0, 1.0);
+
+    float alpha = uOpacity * (1.0 - smoothstep(0.04, 0.5, dye));
+    if (alpha < 0.002) discard;
+    gl_FragColor = vec4(uColor, alpha);
+  }
+`;
+
+const helmetVertex = /* glsl */ `
+  void main() {
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
 /* ------------------------------------------------------------------ *
  * Portrait
  * ------------------------------------------------------------------ */
@@ -229,22 +264,31 @@ export class HeadScene {
 
   /** Wireframe helmet, parented so it scales with the portrait. */
   private helmet: THREE.Group | null = null;
-  private helmetMat: THREE.MeshBasicMaterial | null = null;
+  private helmetMat: THREE.ShaderMaterial | null = null;
   /** Opacity the helmet returns to when the cursor is clear of it. */
   /**
    * Three clean shells, so alpha barely accumulates and the wireframe can carry
    * real weight. The old 470-mesh model needed 0.028 to avoid reading as solid
    * white, which left individual edges invisible.
    */
-  private baseHelmetOpacity = 0.15;
-  /** Scratch vector, reused per frame so the render loop allocates nothing. */
-  private readonly helmetWorld = new THREE.Vector3();
-  private viewAspect = 1;
+  /**
+   * Very low on purpose. On the reference the shell reads as a faint glass dome
+   * you notice at the silhouette, not as a visible triangulated mesh sitting on
+   * the face — the wireframe density is only legible once the cursor is near.
+   */
+  private baseHelmetOpacity = 0.07;
+  /** Where layout() put the portrait, before any pointer drift is added. */
+  private readonly headBase = new THREE.Vector2();
+  /** How far the whole plane travels with the pointer, in world units. */
+  imageShift = 0.02;
 
   private readonly pointerTarget = new THREE.Vector2();
   private readonly pointer = new THREE.Vector2();
   private readonly pointerPx = new THREE.Vector2();
   private readonly pointerPxTarget = new THREE.Vector2();
+
+  /** Pointer-driven fluid field. The helmet is masked by it, per fragment. */
+  readonly fluid: FluidCursor;
 
   private readonly ease: number;
   private readonly subjectScale: number;
@@ -253,7 +297,8 @@ export class HeadScene {
   private intro = 0;
   private dpr = 1;
 
-  constructor(opts: HeadSceneOptions = {}) {
+  constructor(renderer: THREE.WebGLRenderer, opts: HeadSceneOptions = {}) {
+    this.fluid = new FluidCursor(renderer);
     this.ease = opts.ease ?? 0.08;
     this.subjectScale = opts.subjectScale ?? 1;
 
@@ -370,12 +415,18 @@ export class HeadScene {
     // The decoder holds a worker pool; nothing else loads Draco, so release it.
     draco.dispose();
 
-    this.helmetMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
+    this.helmetMat = new THREE.ShaderMaterial({
+      vertexShader: helmetVertex,
+      fragmentShader: helmetFragment,
       wireframe: true,
       transparent: true,
-      opacity: this.baseHelmetOpacity,
       depthWrite: false,
+      uniforms: {
+        tCursorEffect: { value: this.fluid.texture },
+        uResolution: { value: new THREE.Vector2(1, 1) },
+        uOpacity: { value: this.baseHelmetOpacity },
+        uColor: { value: new THREE.Color(0xffffff) },
+      },
     });
 
     // Keep the glTF's own node hierarchy and only swap materials. Reparenting
@@ -433,7 +484,7 @@ export class HeadScene {
    * spans x 315-635 / y 363-723 over a head at x 350-590 / y 385-700 — i.e. it
    * encases the head with clearance, rather than sitting on the face as a mask.
    */
-  helmetFit = { size: 0.73, x: 0, y: 0.19 };
+  helmetFit = { size: 0.8, x: 0, y: 0.175 };
 
   /** Place the helmet over the head, in the portrait's local space. */
   fitHelmet(): void {
@@ -448,6 +499,10 @@ export class HeadScene {
 
   setPointer(nx: number, ny: number): void {
     this.pointerTarget.set(nx, ny);
+    // Raw, not eased: the fluid takes its force from how fast the pointer is
+    // actually moving, so smoothing first would flatten every flick into the
+    // same gentle push and lose the character of the effect.
+    this.fluid.setPointer((nx + 1) / 2, (ny + 1) / 2);
     // gl_FragCoord is device pixels, origin bottom-left, so the conversion has
     // to carry the device pixel ratio or the disc drifts on HiDPI displays.
     this.pointerPxTarget.set(
@@ -468,7 +523,7 @@ export class HeadScene {
 
   set helmetOpacity(v: number) {
     this.baseHelmetOpacity = v;
-    if (this.helmetMat) this.helmetMat.opacity = v;
+    if (this.helmetMat) this.helmetMat.uniforms.uOpacity!.value = v;
   }
 
   /**
@@ -486,7 +541,8 @@ export class HeadScene {
     // centring it. The camera spans -1..1 vertically and the plane's origin is
     // its centre, so pushing it up by half its height sits it on the floor —
     // the subject stands in frame instead of floating in it.
-    this.headMesh.position.y = -1 + scale / 2;
+    this.headBase.set(0, -1 + scale / 2);
+    this.headMesh.position.set(this.headBase.x, this.headBase.y, 0);
 
     this.fieldMesh.scale.set(view * 2, 2, 1);
     this.field.uniforms.uAspect!.value.set(view, 1);
@@ -495,7 +551,13 @@ export class HeadScene {
   resize(dpr = Math.min(window.devicePixelRatio, 2)): void {
     this.dpr = dpr;
     const view = window.innerWidth / window.innerHeight;
-    this.viewAspect = view;
+    this.fluid.setAspect(view);
+    // The helmet mask samples by gl_FragCoord, which is in device pixels, so
+    // the divisor must carry the DPR or the mask lands offset on HiDPI.
+    this.helmetMat?.uniforms.uResolution!.value.set(
+      window.innerWidth * dpr,
+      window.innerHeight * dpr,
+    );
     this.camera.left = -view;
     this.camera.right = view;
     this.camera.top = 1;
@@ -511,7 +573,12 @@ export class HeadScene {
   }
 
   update(): void {
+    const dt = this.clock.getDelta();
     const t = this.clock.getElapsedTime();
+
+    // Step the fluid before the scene draws. It binds and restores its own
+    // render targets, so it must not run mid-draw.
+    this.fluid.update(dt);
     this.field.uniforms.uTime!.value = t;
     this.head.uniforms.uTime!.value = t;
 
@@ -526,25 +593,26 @@ export class HeadScene {
     this.pointerPx.lerp(this.pointerPxTarget, this.ease);
 
     if (this.helmet && this.helmetMat) {
-      // Tilts with the pointer, giving the flat portrait a sense of a third
-      // axis without moving the face itself.
-      this.helmet.rotation.y = this.pointer.x * 0.22;
-      this.helmet.rotation.x = -this.pointer.y * 0.14;
+      // The helmet does NOT track the pointer. It sits on the head and is only
+      // ever masked — the cursor drives the fluid field, and the field decides
+      // per fragment where the shell survives. Rotating it to follow the pointer
+      // was my own addition and is not what the reference does.
+      //
+      // It is not static either: the reference runs its wireframe with
+      // IS_WIREFRAME_ANIMATING true. This is that — a slow idle drift, on its
+      // own clock, independent of input.
+      this.helmet.rotation.y = Math.sin(t * 0.28) * 0.045;
+      this.helmet.rotation.x = Math.sin(t * 0.21 + 1.3) * 0.028;
 
-      // Dissolves as the cursor approaches, which is the reference's core
-      // interaction: the shell is present until you sweep it away, revealing
-      // the face beneath. Measured against the helmet's own screen position so
-      // it responds to proximity rather than to raw pointer coordinates.
-      this.helmet.getWorldPosition(this.helmetWorld);
-      this.helmetWorld.project(this.camera);
-      const dx = (this.helmetWorld.x - this.pointer.x) * this.viewAspect;
-      const dy = this.helmetWorld.y - this.pointer.y;
-      const distance = Math.hypot(dx, dy);
-
-      // 1 when the cursor is on the helmet, 0 when it is well clear.
-      const proximity = 1 - Math.min(distance / 0.85, 1);
-      this.helmetMat.opacity = this.baseHelmetOpacity * (1 - proximity * 0.92);
+      this.helmetMat.uniforms.tCursorEffect!.value = this.fluid.texture;
     }
+
+    // The whole portrait drifts with the pointer, on top of the per-pixel depth
+    // parallax. Two scales of the same idea: the plane shifts as one object
+    // while the depth map moves features against each other within it. Eased
+    // pointer, so it settles rather than snapping.
+    this.headMesh.position.x = this.headBase.x + this.pointer.x * this.imageShift;
+    this.headMesh.position.y = this.headBase.y + this.pointer.y * this.imageShift * 0.6;
   }
 
   dispose(): void {
@@ -553,6 +621,7 @@ export class HeadScene {
       (this.head.uniforms[key]!.value as THREE.Texture | null)?.dispose();
     }
     this.helmetMat?.dispose();
+    this.fluid.dispose();
     this.field.dispose();
     this.head.dispose();
   }

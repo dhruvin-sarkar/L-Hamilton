@@ -71,11 +71,13 @@ html {
      raising BOTH ends reads as a brighter scene; raising only the line reads as
      a harsher one on the same black. */
   --gl-bg: #241b1e;
-  /* Faint topography, but it must actually be VISIBLE across the whole frame —
-     the reference's field reads everywhere, not only under the cursor. Setting
-     this too close to --gl-bg makes the page look plain black with a lit patch
-     following the pointer around. */
-  --gl-outline: #9c6a71;
+  /* Faint topography — and it should be genuinely faint.
+     Measured off the reference's own dark pairing: COLOR_BACKGROUND #282c20
+     against COLOR_FOREGROUND #363B25, a line only ~15/255 above its ground.
+     This is the same relative lift applied to our red. The earlier #9c6a71 was
+     several times that and read as bright piping rather than topography; the
+     cursor is what lifts the field, not the base colour. */
+  --gl-outline: #33252a;
   --gl-cursor-fg: var(--accent);
 
   /* Era accents. Content-level only; never re-themes global chrome. */

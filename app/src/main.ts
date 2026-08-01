@@ -372,11 +372,11 @@ if (stage) {
   renderer.setClearColor(0x000000, 0);
   stage.appendChild(renderer.domElement);
 
-  // Hamilton's source is 4:3 landscape where the reference's was square, so a
-  // plain height-fit does not place him the way the reference places its
-  // subject. 0.78 leaves the contour field readable around him and keeps his
-  // head clear of the nav — at 0.95 he filled the frame and crowded both.
-  const head = new HeadScene({ subjectScale: 0.78 });
+  // Sized so the top of his head sits just under the monogram, which is where
+  // the reference puts its subject: measured on the running reference at
+  // 1908x926, its monogram ends at y=79 and the hair starts at ~y=110. The
+  // portrait is bottom-anchored, so scale is what drives the top edge up.
+  const head = new HeadScene(renderer, { subjectScale: 0.88 });
 
   const resize = () => {
     renderer.setSize(stage.clientWidth, stage.clientHeight);
