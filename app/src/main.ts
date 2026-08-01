@@ -421,7 +421,9 @@ if (menu && menuBtn) {
     else menuBtn.focus();
   };
 
-  menuBtn.addEventListener('click', () => setOpen(menu.hidden));
+  // `hidden` is `boolean | "until-found"` in the DOM lib, and "until-found" is
+  // still hidden, so coerce rather than compare against true.
+  menuBtn.addEventListener('click', () => setOpen(Boolean(menu.hidden)));
 
   // Escape must close it. An overlay with no keyboard exit is a trap.
   window.addEventListener('keydown', (e) => {

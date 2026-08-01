@@ -490,11 +490,13 @@ export class HeadScene {
     //   gasket (NERO GUARNIZ) sits at y -20 and the full-width visor at y -15.9,
     //   while the black rear band (NERO) is at y +24.8.
     //
-    // So: +90 about X brings the crown up, and a further 180 yaw brings the
-    // visor round to face the camera. Applied to the normalised group so the
-    // idle animation on the wrapper stays a small offset from a correct rest
-    // pose rather than oscillating around a wrong one.
-    normalised.rotation.set(Math.PI / 2, Math.PI, 0);
+    // So: -90 about X is the single rotation that satisfies both at once — it
+    // swings the crown up out of -z AND brings the -y face round to the camera.
+    // Every pose that fixed only one of the two (+90 X, or +90 X with a yaw or
+    // roll stacked on it) left the visor on the back of the head. Applied to
+    // the normalised group so the idle animation on the wrapper stays a small
+    // offset from a correct rest pose rather than oscillating around a wrong one.
+    normalised.rotation.set(-Math.PI / 2, 0, 0);
 
     const wrapper = new THREE.Group();
     wrapper.add(normalised);
