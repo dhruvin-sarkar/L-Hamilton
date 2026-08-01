@@ -478,15 +478,23 @@ export class HeadScene {
     const normalised = new THREE.Group();
     normalised.add(group);
     normalised.scale.setScalar(1 / longest);
-    // The model is authored Z-UP, not Y-up: +z is the neck opening and +y is
-    // the face. Rendered as-authored you look straight into the shell through
-    // the neck hole and see the liner. I flipped it about Y first, which only
-    // ever spins that same opening around — the axis was wrong, not the sign.
+    // The model is authored Z-UP with the face on -y. Two separate things were
+    // wrong about how it arrives, which is why fixing one at a time never
+    // worked:
     //
-    // Rotating +90 degrees about X maps -z (crown) onto +y (up) and +y (visor)
-    // onto +z (toward the camera). Applied to the normalised group so the idle
-    // animation on the wrapper stays a small offset from a correct rest pose.
-    normalised.rotation.set(Math.PI / 2, 0, 0);
+    //   +z is the NECK OPENING, not the facing. As authored you look straight
+    //   into the shell through the neck hole and see the liner from inside, so
+    //   the crown has to come up out of -z.
+    //
+    //   The face is on -y, not +y. The material names settle it: the visor
+    //   gasket (NERO GUARNIZ) sits at y -20 and the full-width visor at y -15.9,
+    //   while the black rear band (NERO) is at y +24.8.
+    //
+    // So: +90 about X brings the crown up, and a further 180 yaw brings the
+    // visor round to face the camera. Applied to the normalised group so the
+    // idle animation on the wrapper stays a small offset from a correct rest
+    // pose rather than oscillating around a wrong one.
+    normalised.rotation.set(Math.PI / 2, Math.PI, 0);
 
     const wrapper = new THREE.Group();
     wrapper.add(normalised);
