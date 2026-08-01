@@ -154,6 +154,7 @@ const helmetFragment = /* glsl */ `
   uniform sampler2D tCursorEffect;
   uniform vec2  uResolution;
   uniform float uOpacity;
+  uniform float uRevealOpacity;
   uniform vec3  uColor;
 
   void main() {
@@ -162,7 +163,14 @@ const helmetFragment = /* glsl */ `
     vec2 uv = gl_FragCoord.xy / uResolution;
     float dye = clamp(texture2D(tCursorEffect, uv).r, 0.0, 1.0);
 
-    float alpha = uOpacity * (1.0 - smoothstep(0.04, 0.5, dye));
+    // The cursor REVEALS the shell — it does not wipe it away. The reference
+    // names this uHoverReveal / REVEAL_SIZE, and describes rendering the helmet
+    // and then deciding what to show. Having it the other way round meant
+    // sweeping the pointer erased something already near-invisible, so no blob
+    // ever registered. Idle opacity is a ghost; the fluid brings it forward.
+    float reveal = smoothstep(0.03, 0.4, dye);
+    float alpha = mix(uOpacity, uRevealOpacity, reveal);
+
     if (alpha < 0.002) discard;
     gl_FragColor = vec4(uColor, alpha);
   }
@@ -425,6 +433,9 @@ export class HeadScene {
         tCursorEffect: { value: this.fluid.texture },
         uResolution: { value: new THREE.Vector2(1, 1) },
         uOpacity: { value: this.baseHelmetOpacity },
+        // What a blob lifts the shell to. The gap between these two is the
+        // whole effect — too close and the fluid has nothing to show.
+        uRevealOpacity: { value: 0.5 },
         uColor: { value: new THREE.Color(0xffffff) },
       },
     });
@@ -484,7 +495,7 @@ export class HeadScene {
    * spans x 315-635 / y 363-723 over a head at x 350-590 / y 385-700 — i.e. it
    * encases the head with clearance, rather than sitting on the face as a mask.
    */
-  helmetFit = { size: 0.8, x: 0, y: 0.175 };
+  helmetFit = { size: 0.98, x: 0, y: 0.15 };
 
   /** Place the helmet over the head, in the portrait's local space. */
   fitHelmet(): void {

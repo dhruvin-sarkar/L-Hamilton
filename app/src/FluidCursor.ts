@@ -248,7 +248,10 @@ export class FluidCursor {
       uTarget: { value: null },
       uPoint: { value: new THREE.Vector2() },
       uValue: { value: new THREE.Vector3() },
-      uRadius: { value: 0.0004 },
+      // Blob size. Small values give a thin thread that reads as a scratch
+      // rather than a blob — this is the single knob that decides whether the
+      // effect looks like liquid or like a pen line.
+      uRadius: { value: 0.0022 },
       uAspect: { value: 1 },
     });
 
@@ -330,8 +333,9 @@ export class FluidCursor {
     this.advect.uniforms.uVelocity!.value = this.velocity.read.texture;
     this.advect.uniforms.uTarget!.value = this.dye.read.texture;
     // Dye fades faster than velocity so the trail has a tail rather than
-    // saturating the whole frame after a few seconds of movement.
-    this.advect.uniforms.uDissipation!.value = 0.955;
+    // saturating the whole frame after a few seconds of movement. Kept high
+    // enough that a blob survives long enough to actually be looked at.
+    this.advect.uniforms.uDissipation!.value = 0.978;
     this.pass(this.advect, this.dye.write);
     this.dye.swap();
 
