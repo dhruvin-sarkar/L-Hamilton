@@ -194,7 +194,16 @@ const headFragment = /* glsl */ `
  * Scene
  * ------------------------------------------------------------------ */
 
-const tokenColor = (css: string) => new THREE.Color(css).convertSRGBToLinear();
+/**
+ * Colours are used as authored, NOT converted to linear.
+ *
+ * These shaders write gl_FragColor directly, and a raw ShaderMaterial gets no
+ * linear -> sRGB conversion applied on output. Converting the input to linear
+ * therefore double-darkens everything: it put a warm cast over the portrait and
+ * rendered the contour lines almost black, so the field only appeared where the
+ * cursor brightened it. Straight sRGB in, straight sRGB out, no cast.
+ */
+const tokenColor = (css: string) => new THREE.Color(css);
 
 export class HeadScene {
   readonly scene = new THREE.Scene();
@@ -208,6 +217,11 @@ export class HeadScene {
   /** Wireframe helmet, parented so it scales with the portrait. */
   private helmet: THREE.Group | null = null;
   private helmetMat: THREE.MeshBasicMaterial | null = null;
+  /** Opacity the helmet returns to when the cursor is clear of it. */
+  private baseHelmetOpacity = 0.09;
+  /** Scratch vector, reused per frame so the render loop allocates nothing. */
+  private readonly helmetWorld = new THREE.Vector3();
+  private viewAspect = 1;
 
   private readonly pointerTarget = new THREE.Vector2();
   private readonly pointer = new THREE.Vector2();
@@ -263,7 +277,9 @@ export class HeadScene {
         uHasShadow: { value: false },
         uPointer: { value: this.pointer },
         uPointerPx: { value: this.pointerPx },
-        uParallax: { value: opts.parallax ?? 0.02 },
+        // Subtle. The depth map is strong enough that anything higher reads as
+        // the photo sliding rather than the head having volume.
+        uParallax: { value: opts.parallax ?? 0.011 },
         uShadowAmount: { value: 0.65 },
         uRevealPx: { value: 220 },
         uCursorIntensity: { value: 0.15 },
@@ -288,9 +304,12 @@ export class HeadScene {
 
   async load(): Promise<void> {
     const loader = new THREE.TextureLoader();
-    const get = (name: string, srgb = false) =>
+    // NoColorSpace on every map, diffuse included. Tagging the diffuse sRGB
+    // makes the GPU decode it to linear on sample, and nothing converts back on
+    // output — see tokenColor. Passthrough shows the photo exactly as authored.
+    const get = (name: string) =>
       loader.loadAsync(`${HERO_BASE}/${name}`).then((t) => {
-        t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+        t.colorSpace = THREE.NoColorSpace;
         // Never wrap: a sampled offset running past the edge must clamp, not
         // reappear on the opposite side of the face.
         t.wrapS = THREE.ClampToEdgeWrapping;
@@ -299,7 +318,7 @@ export class HeadScene {
       });
 
     const [diffuse, depth, alpha] = await Promise.all([
-      get('lewis-hero.webp', true),
+      get('lewis-hero.webp'),
       get('depth-map.webp'),
       get('alpha-map.webp'),
     ]);
@@ -330,7 +349,7 @@ export class HeadScene {
       transparent: true,
       // A 470-mesh model has enough edges that even a low opacity reads as
       // solid noise. Kept faint so it registers as a ghosted shell.
-      opacity: 0.09,
+      opacity: this.baseHelmetOpacity,
       depthWrite: false,
     });
 
@@ -406,6 +425,7 @@ export class HeadScene {
   }
 
   set helmetOpacity(v: number) {
+    this.baseHelmetOpacity = v;
     if (this.helmetMat) this.helmetMat.opacity = v;
   }
 
@@ -420,6 +440,12 @@ export class HeadScene {
     const scale = base * this.subjectScale;
     this.headMesh.scale.set(scale * this.aspect, scale, 1);
 
+    // Anchor the portrait's bottom edge to the bottom of the hero rather than
+    // centring it. The camera spans -1..1 vertically and the plane's origin is
+    // its centre, so pushing it up by half its height sits it on the floor —
+    // the subject stands in frame instead of floating in it.
+    this.headMesh.position.y = -1 + scale / 2;
+
     this.fieldMesh.scale.set(view * 2, 2, 1);
     this.field.uniforms.uAspect!.value.set(view, 1);
   }
@@ -427,6 +453,7 @@ export class HeadScene {
   resize(dpr = Math.min(window.devicePixelRatio, 2)): void {
     this.dpr = dpr;
     const view = window.innerWidth / window.innerHeight;
+    this.viewAspect = view;
     this.camera.left = -view;
     this.camera.right = view;
     this.camera.top = 1;
@@ -456,11 +483,25 @@ export class HeadScene {
     this.pointer.lerp(this.pointerTarget, this.ease);
     this.pointerPx.lerp(this.pointerPxTarget, this.ease);
 
-    // The helmet tilts with the pointer, giving the flat portrait a sense of
-    // a third axis without moving the face itself.
-    if (this.helmet) {
+    if (this.helmet && this.helmetMat) {
+      // Tilts with the pointer, giving the flat portrait a sense of a third
+      // axis without moving the face itself.
       this.helmet.rotation.y = this.pointer.x * 0.22;
       this.helmet.rotation.x = -this.pointer.y * 0.14;
+
+      // Dissolves as the cursor approaches, which is the reference's core
+      // interaction: the shell is present until you sweep it away, revealing
+      // the face beneath. Measured against the helmet's own screen position so
+      // it responds to proximity rather than to raw pointer coordinates.
+      this.helmet.getWorldPosition(this.helmetWorld);
+      this.helmetWorld.project(this.camera);
+      const dx = (this.helmetWorld.x - this.pointer.x) * this.viewAspect;
+      const dy = this.helmetWorld.y - this.pointer.y;
+      const distance = Math.hypot(dx, dy);
+
+      // 1 when the cursor is on the helmet, 0 when it is well clear.
+      const proximity = 1 - Math.min(distance / 0.85, 1);
+      this.helmetMat.opacity = this.baseHelmetOpacity * (1 - proximity * 0.92);
     }
   }
 
