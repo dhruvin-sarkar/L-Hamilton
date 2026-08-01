@@ -70,6 +70,61 @@ const noiseChunk = /* glsl */ `
     }
     return sum;
   }
+
+  // ---- 3D, for animating the field by MORPHING it rather than sliding it ----
+  //
+  // The 2D pair above animates by translating the sample point, which reads as
+  // a texture scrolling past. The reference animates by feeding time into a
+  // THIRD noise axis, so the contours grow, split, merge and close in place —
+  // the level sets of a surface that is itself slowly changing shape. That is
+  // the whole difference between "moving" and "flowing", and it cannot be
+  // reached by retuning a translation.
+  //
+  // Sine-free hash on purpose. The 2D path costs 3 sin() per lookup, which is
+  // affordable at 4 lookups per sample; the 3D path takes 8 lookups per sample
+  // and runs several samples per pixel over a fullscreen quad, where the sin
+  // count would land in the hundreds of millions per frame.
+  vec3 hash3(vec3 p) {
+    p = fract(p * vec3(0.1031, 0.1030, 0.0973));
+    p += dot(p, p.yxz + 19.19);
+    return -1.0 + 2.0 * fract(vec3(
+      (p.x + p.y) * p.z,
+      (p.x + p.z) * p.y,
+      (p.y + p.z) * p.x
+    ));
+  }
+
+  float gnoise3(vec3 p) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    vec3 u = f * f * (3.0 - 2.0 * f);
+    return mix(
+      mix(
+        mix(dot(hash3(i + vec3(0.0, 0.0, 0.0)), f - vec3(0.0, 0.0, 0.0)),
+            dot(hash3(i + vec3(1.0, 0.0, 0.0)), f - vec3(1.0, 0.0, 0.0)), u.x),
+        mix(dot(hash3(i + vec3(0.0, 1.0, 0.0)), f - vec3(0.0, 1.0, 0.0)),
+            dot(hash3(i + vec3(1.0, 1.0, 0.0)), f - vec3(1.0, 1.0, 0.0)), u.x),
+        u.y),
+      mix(
+        mix(dot(hash3(i + vec3(0.0, 0.0, 1.0)), f - vec3(0.0, 0.0, 1.0)),
+            dot(hash3(i + vec3(1.0, 0.0, 1.0)), f - vec3(1.0, 0.0, 1.0)), u.x),
+        mix(dot(hash3(i + vec3(0.0, 1.0, 1.0)), f - vec3(0.0, 1.0, 1.0)),
+            dot(hash3(i + vec3(1.0, 1.0, 1.0)), f - vec3(1.0, 1.0, 1.0)), u.x),
+        u.y),
+      u.z);
+  }
+
+  float fbm3(vec3 p, int octaves) {
+    float sum = 0.0;
+    float amp = 0.5;
+    for (int i = 0; i < 8; i++) {
+      if (i >= octaves) break;
+      sum += amp * gnoise3(p);
+      p *= 2.02;
+      amp *= 0.5;
+    }
+    return sum;
+  }
 `;
 
 const quadVertex = /* glsl */ `
@@ -96,6 +151,9 @@ const fieldFragment = /* glsl */ `
   uniform float uRevealPx;
   uniform float uCursorIntensity;
   uniform int   uOctaves;
+  uniform float uSpeed;
+  uniform float uDistortScale;
+  uniform float uDistortIntensity;
 
   varying vec2 vUv;
 
@@ -104,8 +162,35 @@ const fieldFragment = /* glsl */ `
   void main() {
     vec2 p = (vUv - 0.5) * uAspect;
 
-    // Ambient drift, two rates so the field never visibly loops.
-    float n = fbm(p * 1.6 + vec2(uTime * 0.06, uTime * -0.035), uOctaves);
+    // ---- Domain warp -------------------------------------------------------
+    // A second, much coarser noise field displaces where the main field is
+    // sampled. Warping the DOMAIN rather than the value is what bends the
+    // contours along a current instead of just wobbling their brightness, and
+    // because it leaves the value distribution untouched the band density is
+    // unchanged — only the motion is.
+    //
+    // Two samples, offset in noise space, so x and y are displaced
+    // independently. The reference adds a single scalar to both axes at once,
+    // which shears the field along one diagonal; independent axes read as
+    // water rather than as a sliding pane of glass.
+    //
+    // The warp advances at a TENTH of the main rate, as on the reference. One
+    // clock always reads as mechanical however slow it is; two clocks that do
+    // not divide into each other have a combined period long enough that the
+    // eye never finds the loop.
+    float warpT = uTime * uSpeed * 0.1;
+    vec2 warp = vec2(
+      gnoise3(vec3(p * uDistortScale, warpT)),
+      gnoise3(vec3(p * uDistortScale + 41.7, warpT + 11.3))
+    );
+
+    // ---- Main field --------------------------------------------------------
+    // Time rides the third noise axis, so the surface deforms in place rather
+    // than travelling. There is deliberately no translation term here.
+    float n = fbm3(
+      vec3(p * 1.6 + warp * uDistortIntensity, uTime * uSpeed),
+      uOctaves
+    );
 
     // Distance from the pointer in PIXELS. The portrait measures the reveal
     // the same way — doing it in each mesh's plane space made the two discs
@@ -332,6 +417,13 @@ export class HeadScene {
         uRevealPx: { value: 220 },
         uCursorIntensity: { value: 0.12 },
         uOctaves: { value: 3 },
+        // Motion, named after the reference's own controls so the two can be
+        // compared like for like. Its SPEED is 0.1 against a noise sampled at
+        // SCALE 1; ours samples at 1.6, so the same felt laziness needs a
+        // slightly lower number here. Tuned side by side, not derived.
+        uSpeed: { value: 0.07 },
+        uDistortScale: { value: 0.55 },
+        uDistortIntensity: { value: 0.5 },
       },
     });
 
