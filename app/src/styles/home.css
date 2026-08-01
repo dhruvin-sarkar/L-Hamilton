@@ -165,10 +165,12 @@
   z-index: 10;
   inline-size: 7.42rem; /* 131px */
   min-block-size: 15.23rem; /* 269px */
-  padding: 0.85rem;
+  /* Top padding clears the notch: the outline's left edge starts ~19.5/244 of
+     the way down, so content must not sit above that line. */
+  padding: 0.25rem 0.7rem 0.8rem;
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 0.6rem;
+  grid-template-rows: auto 1fr auto auto;
+  gap: 0.5rem;
   color: var(--text);
 }
 
@@ -193,12 +195,14 @@
   font-weight: 600;
 }
 
+/* The notch cuts the LEFT half of the top edge downward, leaving the right
+   half raised. The label sits in that raised strip, hard right. */
 .next-race__label {
-  color: var(--text-muted);
-  /* Right-aligned into the space the notch leaves, rather than padded in —
-     padding forced a wrap at this width. */
+  color: var(--text);
   text-align: right;
   white-space: nowrap;
+  font-size: 0.5rem;
+  letter-spacing: 0.1em;
 }
 
 .next-race__circuit {

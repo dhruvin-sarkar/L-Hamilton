@@ -190,7 +190,10 @@ if (stage) {
   renderer.setClearColor(0x000000, 0);
   stage.appendChild(renderer.domElement);
 
-  const head = new HeadScene();
+  // Hamilton's source is 4:3 landscape where the reference's was square, so a
+  // plain height-fit leaves him small in frame. Scaled up to sit like the
+  // reference's subject does.
+  const head = new HeadScene({ subjectScale: 0.95 });
 
   const resize = () => {
     renderer.setSize(stage.clientWidth, stage.clientHeight);
@@ -231,6 +234,12 @@ if (stage) {
     .then(() => {
       resize();
       frame();
+      // Helmet is ~11 MB, so it loads after the hero is already interactive
+      // and never blocks it. If it fails the scene is still complete enough to
+      // ship — log it, don't take the page down with it.
+      return head.loadHelmet().catch((err: unknown) => {
+        console.error('[hero] helmet failed to load', err);
+      });
     })
     .catch((err: unknown) => {
       // The page is fully readable without the canvas, so fail quietly for the

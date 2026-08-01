@@ -68,7 +68,11 @@ html {
 
   /* GL scene (see ANIMATIONS-SPEC §0b) */
   --gl-bg: var(--dark);
-  --gl-outline: #2f2427; /* faint topography — must not compete with the face */
+  /* Faint topography, but it must actually be VISIBLE across the whole frame —
+     the reference's field reads everywhere, not only under the cursor. Setting
+     this too close to --gl-bg makes the page look plain black with a lit patch
+     following the pointer around. */
+  --gl-outline: #6a4a4e;
   --gl-cursor-fg: var(--accent);
 
   /* Era accents. Content-level only; never re-themes global chrome. */
