@@ -1,48 +1,38 @@
-/* Home page. Layout mirrors the reference's composition exactly — the hero is a
-   full-viewport stage with fixed furniture in each corner and the lockup
-   centred at the top. Tokens only; no raw hex below this line. */
+/* Home page.
+ *
+ * Every measurement here is taken off the running reference and converted to
+ * rem at its fluid root, so the whole composition scales as one object. The
+ * measured pixel value is noted beside each so it can be re-checked.
+ * Tokens only; no raw hex below this line. */
 
-/* =============================================================== Hero */
+/* =============================================================== Nav */
 
-.hero {
-  position: relative;
-  min-height: 100dvh;
-  overflow: clip;
-  isolation: isolate;
-}
-
-/* The canvas fills the stage and is inert to pointer events — the scene tracks
-   the pointer on window, so the furniture above it stays clickable. */
-.hero__stage {
+.nav-inner {
   position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-}
-
-.hero__stage canvas {
-  width: 100%;
-  height: 100%;
+  inset: 0 0 auto;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--nav-height); /* 110px */
+  padding: var(--padding--container); /* 22px */
 }
 
 /* ------------------------------------------- Wordmark (top-left, stacked) */
 
 .wordmark {
-  position: absolute;
-  top: var(--gutter);
-  left: var(--gutter);
-  z-index: 3;
   display: grid;
+  inline-size: 9.85rem; /* 174px */
   font-family: var(--font-display);
   text-transform: uppercase;
-  /* Tight leading is what makes the two words read as one stacked block
-     rather than two lines of a heading. */
-  line-height: 0.82;
-  letter-spacing: -0.02em;
-  font-size: clamp(1.6rem, 0.9rem + 2.2vw, 3rem);
+  /* 0.78 leading is what fuses the two words into one block. Anything looser
+     and it reads as a two-line heading instead of a logotype. */
+  line-height: 0.78;
+  letter-spacing: -0.015em;
+  font-size: 2.35rem;
+  color: var(--text);
 }
 
-/* Given name lighter, surname heavy — the reference's hierarchy. */
 .wordmark__first {
   font-weight: 400;
 }
@@ -55,139 +45,180 @@
 
 .monogram {
   position: absolute;
-  top: var(--gutter);
   left: 50%;
-  translate: -50% 0;
-  z-index: 3;
+  top: 50%;
+  translate: -50% -50%;
+  inline-size: 2.77rem; /* 49px */
+  text-align: center;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: var(--step-1);
-  letter-spacing: -0.05em;
+  font-size: 1.6rem;
+  letter-spacing: -0.06em;
   line-height: 1;
+  color: var(--text);
 }
 
 /* -------------------------------------- Store + menu (top-right, paired) */
 
 .topbar {
-  position: absolute;
-  top: var(--gutter);
-  right: var(--gutter);
-  z-index: 3;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.75rem;
 }
 
 .store {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.65rem 1.1rem;
+  gap: 0.75rem;
+  block-size: 4.53rem; /* 80px */
+  padding-inline: 1rem; /* 17.7px */
   background: var(--accent);
-  color: var(--bg);
-  border-radius: var(--radius-pill);
-  font-size: var(--step--1);
-  font-weight: 700;
+  color: var(--dark);
+  border-radius: var(--radius--btn); /* 9.54px */
+  font-size: var(--text--btn-nav); /* 22px */
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  transition: transform var(--dur-micro) var(--ease-out);
+  line-height: 1;
+  transition: background var(--animation-default);
 }
 
 .store:hover,
 .store:focus-visible {
-  transform: translateY(-2px);
+  background: var(--accent-off);
 }
 
 .store__icon {
-  inline-size: 1rem;
-  block-size: 1rem;
+  inline-size: 1.4rem; /* 25px */
+  block-size: 1.4rem;
 }
 
-/* -------------------------------------------------- Menu button (top-right) */
-
+/* Borderless and transparent on the reference — the icon carries it alone. */
 .menu-btn {
   display: grid;
   place-items: center;
-  inline-size: 3rem;
-  block-size: 3rem;
-  border: 1px solid var(--text);
-  border-radius: var(--radius-sm);
-  background: var(--bg);
-  transition:
-    border-color var(--dur-micro) var(--ease-out),
-    background var(--dur-micro) var(--ease-out);
+  inline-size: 4.53rem; /* 80px */
+  block-size: 4.53rem;
+  border-radius: 0.74rem; /* 13.07px */
+  background: transparent;
+  color: var(--text);
+  transition: color var(--animation-default);
 }
 
 .menu-btn:hover,
 .menu-btn:focus-visible {
-  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .menu-btn__bars {
   display: grid;
-  gap: 5px;
+  gap: 0.34rem;
 }
 
 .menu-btn__bars i {
   display: block;
-  inline-size: 18px;
+  inline-size: 1.55rem;
   block-size: 1.5px;
-  background: var(--text);
+  background: currentColor;
+  transition: inline-size var(--animation-default);
 }
 
-/* Second bar is short — the reference's mark is asymmetric, not a hamburger. */
+/* Asymmetric — the reference's mark is two unequal bars, not a hamburger. */
 .menu-btn__bars i:last-child {
-  inline-size: 11px;
+  inline-size: 0.95rem;
   margin-left: auto;
+}
+
+.menu-btn:hover .menu-btn__bars i:last-child {
+  inline-size: 1.55rem;
+}
+
+/* ============================================================== Hero */
+
+.hero {
+  position: relative;
+  min-height: 100dvh;
+  overflow: clip;
+  isolation: isolate;
+  background: var(--bg);
+}
+
+/* Canvas fills the stage and is inert to pointer events — the scene tracks the
+   pointer on window, so the furniture above it stays clickable. */
+.hero__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero__stage canvas {
+  width: 100%;
+  height: 100%;
 }
 
 /* ------------------------------------------- Next race (bottom-left) */
 
 .next-race {
   position: absolute;
-  left: var(--gutter);
-  bottom: var(--gutter);
-  z-index: 3;
-  inline-size: 11rem;
-  padding: 0.9rem;
-  border: 1px solid var(--text);
-  /* Notched corner — the reference's card has one clipped corner rather than
-     a uniform radius, which is what stops it reading as a generic panel. */
-  border-radius: var(--radius-sm) var(--radius-sm) var(--radius-sm) 0;
-  background: var(--bg);
+  left: var(--padding--container); /* 22px */
+  bottom: var(--padding--container);
+  z-index: 10;
+  inline-size: 7.42rem; /* 131px */
+  min-block-size: 15.23rem; /* 269px */
+  padding: 0.85rem;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 0.6rem;
+  color: var(--text);
+}
+
+/* The card's border is an SVG so it can carry the notched top-left corner.
+   A CSS border cannot cut that diagonal, and faking it with clip-path would
+   lose the 1px stroke. */
+.next-race__outline {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  inline-size: 100%;
+  block-size: 100%;
+  color: var(--hairline);
 }
 
 .next-race__label,
 .next-race__name,
 .next-race__badge {
-  font-size: var(--step--1);
+  font-size: var(--text--eyebrow); /* 0.578rem */
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.08em;
+  font-weight: 600;
 }
 
 .next-race__label {
   color: var(--text-muted);
-  font-weight: 600;
+  /* Right-aligned into the space the notch leaves, rather than padded in —
+     padding forced a wrap at this width. */
+  text-align: right;
+  white-space: nowrap;
 }
 
 .next-race__circuit {
-  inline-size: 100%;
-  block-size: auto;
-  margin-block: 0.6rem;
+  inline-size: 5.5rem; /* 97px */
+  block-size: 4.7rem; /* 83px */
+  margin-inline: auto;
   color: var(--accent);
 }
 
 .next-race__name {
-  font-weight: 700;
+  display: flex;
+  gap: 0.25rem;
 }
 
 .next-race__badge {
-  margin-top: 0.7rem;
-  padding-top: 0.7rem;
-  border-top: 1px solid var(--hairline);
   color: var(--text-muted);
   display: grid;
   gap: 0.15rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--hairline);
 }
 
 .next-race__since {
@@ -198,18 +229,18 @@
 
 .lock {
   position: absolute;
-  right: var(--gutter);
-  bottom: var(--gutter);
-  z-index: 3;
+  right: var(--padding--container);
+  bottom: var(--padding--container);
+  z-index: 10;
   display: flex;
   align-items: center;
   gap: 0.9rem;
 }
 
 .lock__label {
-  font-size: var(--step--1);
+  font-size: var(--text--eyebrow);
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.1em;
   color: var(--text-muted);
   font-weight: 600;
 }
@@ -217,14 +248,12 @@
 .lock__btn {
   display: grid;
   place-items: center;
-  inline-size: 3.25rem;
-  block-size: 3.25rem;
-  border-radius: var(--radius-sm);
+  inline-size: 3.4rem;
+  block-size: 3.4rem;
+  border-radius: var(--radius--btn);
   background: var(--accent);
-  color: var(--bg);
-  transition:
-    transform var(--dur-micro) var(--ease-out),
-    background var(--dur-micro) var(--ease-out);
+  color: var(--dark);
+  transition: background var(--animation-default);
 }
 
 .lock__btn svg {
@@ -233,19 +262,14 @@
 }
 
 .lock__btn:hover {
-  transform: translateY(-2px);
+  background: var(--accent-off);
 }
 
 .lock__btn[aria-pressed='true'] {
   background: var(--text);
 }
 
-/* Narrow viewports: the corner furniture would collide, so the next-race card
-   and the lock control stack rather than overlap. */
 @media (max-width: 40rem) {
-  .next-race {
-    inline-size: 9rem;
-  }
   .lock__label {
     display: none;
   }
@@ -259,7 +283,7 @@
   z-index: 200;
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  background: color-mix(in srgb, var(--dark) 94%, transparent);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
 }
@@ -278,11 +302,11 @@
 .menu__list a {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: var(--step-3);
+  font-size: var(--text--h2);
   text-transform: uppercase;
   line-height: 1;
   color: var(--text-muted);
-  transition: color var(--dur-micro) var(--ease-out);
+  transition: color var(--animation-default);
 }
 
 .menu__list a:hover,
@@ -303,7 +327,7 @@
 
 .stat {
   background: var(--bg);
-  padding: clamp(1.25rem, 3vw, 2.5rem) 1rem;
+  padding: var(--padding--small) var(--padding--mini);
   display: grid;
   gap: 0.4rem;
 }
@@ -311,7 +335,7 @@
 .stat__value {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: var(--step-2);
+  font-size: var(--text--h3);
   line-height: 1;
 }
 
@@ -320,22 +344,24 @@
 }
 
 .stat__label {
-  font-size: var(--step--1);
+  font-size: var(--text--eyebrow);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   color: var(--text-muted);
 }
 
 .stats__note {
-  margin-top: 1.25rem;
-  font-size: var(--step--1);
+  margin-top: var(--padding--mini);
+  font-size: var(--text--eyebrow);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 /* ============================================================== Eras */
 
 .eras__title {
-  font-size: var(--step-3);
-  margin-block: 0.2em 1em;
+  font-size: var(--text--h2);
+  margin-block: 0.2em 0.6em;
 }
 
 .eras__list {
@@ -351,22 +377,22 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 0.5rem;
-  padding: clamp(1.5rem, 4vw, 3rem) 0;
-  transition: background var(--dur-micro) var(--ease-out);
+  padding-block: var(--padding--small);
+  transition: background var(--animation-default);
 }
 
 .era:hover {
   background: var(--bg-elevated);
 }
 
-/* The era colour lives in the year text and a small swatch, not a slab down the
+/* Era colour lives in the year text and a small swatch, not a slab down the
    side. Same information, far less shouting. */
 .era__years {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  font-size: var(--step--1);
-  letter-spacing: 0.14em;
+  font-size: var(--text--eyebrow);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--era);
   font-weight: 600;
@@ -374,8 +400,8 @@
 
 .era__years::before {
   content: '';
-  inline-size: 0.5rem;
-  block-size: 0.5rem;
+  inline-size: 0.4rem;
+  block-size: 0.4rem;
   flex: none;
   background: var(--era);
 }
@@ -384,7 +410,7 @@
   font-family: var(--font-display);
   font-weight: 800;
   text-transform: uppercase;
-  font-size: var(--step-2);
+  font-size: var(--text--h3);
   line-height: 1;
 }
 
@@ -397,7 +423,7 @@
   .era {
     grid-template-columns: 10rem minmax(0, 22rem) minmax(0, 1fr);
     align-items: baseline;
-    gap: 2rem;
+    gap: var(--padding--small);
   }
 }
 
@@ -405,7 +431,7 @@
 
 .footer {
   border-top: 1px solid var(--hairline);
-  padding-block: clamp(2rem, 6vw, 4rem);
+  padding-block: var(--padding--med);
 }
 
 .footer__inner {
@@ -413,11 +439,13 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1.5rem;
-  font-size: var(--step--1);
+  gap: var(--padding--mini);
+  font-size: var(--text--eyebrow);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .footer__mark {
-  font-size: var(--step-2);
+  font-size: var(--text--h3);
   color: var(--accent);
 }

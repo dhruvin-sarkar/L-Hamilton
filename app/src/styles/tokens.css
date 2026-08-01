@@ -1,76 +1,121 @@
-/* Design tokens — implements docs/DESIGN-SYSTEM.md.
-   Every colour, size and easing in the app resolves through here. If a component
-   hardcodes a hex, that is a bug. */
+/* Design tokens.
+ *
+ * Structure is lifted from the reference's own token set, measured off the
+ * running site — same names, same relationships, same scale mechanics. Only the
+ * hues change: the reference is dark-green + lime, ours is dark-red + rosso.
+ *
+ * Do not hardcode a colour or a size anywhere else in the app. */
 
-:root {
-  /* --- Surfaces.
-         The reference is a LIGHT site — warm off-white hero, with dark sections
-         further down the page. Its measured background is #F8F8F3; ours is the
-         same value pulled fractionally toward red, the way the reference pulls
-         all of its neutrals toward its lime. --- */
-  --bg: #f8f5f3;
-  --bg-elevated: #efeae7;
-  --bg-raised: #e6dfdc;
-  --hairline: #ddd4d1;
+/* --------------------------------------------------------------------------
+ * Fluid root.
+ *
+ * THE most important rule in this file. The reference sizes everything in rem
+ * and scales the root font against a 1728px design width, so the entire layout
+ * grows and shrinks as one object instead of reflowing at breakpoints:
+ *
+ *     clamp(992px, 100vw, 1920px) / 1728 * 16
+ *
+ * At a 1908px viewport that puts 1rem at ~17.7px, which is why the reference's
+ * nav is 110px tall rather than 100 — it is 6.25rem. Getting this wrong makes
+ * every single measurement drift, and no amount of per-component tuning fixes
+ * it. Below 992px it locks, above 1920px it stops growing.
+ * -------------------------------------------------------------------------- */
 
-  /* --- Accent. Rosso corsa where the reference has lime. --- */
-  --accent: #ff2800;
-  --accent-soft: #c41e10; /* anything covering real area */
-  --accent-glow: #ff28001f;
-
-  /* --- Type --- */
-  --text: #16100f;
-  --text-muted: #6b5a58;
-  --text-faint: #9c8d8a;
-
-  /* --- GL scene (see ANIMATIONS-SPEC §0b).
-         The contour field is deliberately near-invisible: on the reference it
-         reads as faint topography, not as a graphic element. Anything louder
-         competes with the portrait for attention and loses. --- */
-  --gl-bg: #f8f5f3;
-  --gl-outline: #cbc3c1;
-  --gl-cursor-fg: #ff2800;
-  --gl-cursor-bg: #ece4e2;
-
-  /* --- Era default: Ferrari is the present tense, so unscoped
-         elements inherit rosso. --- */
-  --era: #ff2800;
-  --era-soft: #c41e10;
-
-  /* --- Radii, matching the reference --- */
-  --radius-sm: 1rem;
-  --radius-md: 3rem;
-  --radius-lg: 6.25rem;
-  --radius-pill: 999px;
-
-  /* --- Motion. Measured from the reference; power2.out is cubic, not quad. --- */
-  --ease-out: cubic-bezier(0.33, 1, 0.68, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --ease-expo-in-out: cubic-bezier(0.87, 0, 0.13, 1);
-
-  --dur-micro: 250ms;
-  --dur-base: 500ms; /* the house value */
-  --dur-slow: 800ms;
-
-  --stagger: 20ms;
-
-  /* --- Type scale. Fluid, so no breakpoint jumps mid-headline. --- */
-  --step--1: clamp(0.75rem, 0.71rem + 0.2vw, 0.85rem);
-  --step-0: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
-  --step-1: clamp(1.5rem, 1.3rem + 1vw, 2rem);
-  --step-2: clamp(2rem, 1.5rem + 2.5vw, 3.5rem);
-  --step-3: clamp(3rem, 1.8rem + 6vw, 6rem);
-  --display: clamp(4rem, 1rem + 15vw, 11.25rem);
-
-  /* --- Spacing --- */
-  --gutter: clamp(1rem, 0.5rem + 2.5vw, 3rem);
-  --section-gap: clamp(4rem, 2rem + 10vw, 10rem);
-
-  --nav-h: 4.5rem;
+html {
+  font-size: calc(clamp(992px, 100vw, 1920px) / 1728 * 16);
 }
 
-/* Era accent layers. Applied per SECTION, never on <body> — the whole point is
-   that the base theme holds steady while the accent moves. */
+/* Small screens opt out: the design width is desktop, and holding a 992px
+   minimum on a phone would push the layout off the side of the device. */
+@media (max-width: 991px) {
+  html {
+    font-size: 16px;
+  }
+}
+
+:root {
+  /* ---------------------------------------------------------------- Colour
+   * Mirrors the reference's palette shape one-for-one:
+   *   dark-green #282c20 -> dark-red   |  lime #d2ff00 -> rosso corsa
+   *   cream/white/greys stay warm neutrals, pulled toward red not olive.
+   * Every neutral is hue-contaminated toward the accent. That is what makes a
+   * two-colour site look designed rather than assembled. */
+
+  --black: #111012;
+  --dark: #1a1416; /* the reference's #282c20 slot — the "black" surface */
+  --dark-tint-1: #332628;
+  --dark-tint-2: #4a3a3c;
+
+  --accent: #ff2800; /* rosso corsa, replacing lime */
+  --accent-off: #c4212a; /* muted accent, for larger areas */
+  --accent-zero: #ff280000; /* gradient stop */
+
+  --white: #f7f3f1;
+  --cream: #f0ebe9;
+  --grey-1: #ede7e5;
+  --grey-2: #c9c0be; /* wordmark colour on the reference */
+  --off-white-1: #e0d6d4;
+  --off-white-2: #b8adab;
+  --grey-on-track: #bbadab;
+
+  /* Semantic aliases — components use these, not the raw ramp above. */
+  --bg: var(--dark);
+  --bg-elevated: var(--dark-tint-1);
+  --hairline: var(--dark-tint-2);
+  --text: var(--cream);
+  --text-muted: var(--off-white-2);
+  --text-faint: var(--dark-tint-2);
+
+  /* GL scene (see ANIMATIONS-SPEC §0b) */
+  --gl-bg: var(--dark);
+  --gl-outline: #2f2427; /* faint topography — must not compete with the face */
+  --gl-cursor-fg: var(--accent);
+
+  /* Era accents. Content-level only; never re-themes global chrome. */
+  --era: var(--accent);
+  --era-soft: var(--accent-off);
+
+  /* ----------------------------------------------------------------- Type */
+  --text--eyebrow: 0.578125rem;
+  --text--reg: 1.6rem;
+  --text--med: 2.76rem;
+  --text--impact: 7.9375rem;
+  --text--h1: 4rem;
+  --text--h2: 4.5rem;
+  --text--h3: 2rem;
+  --text--h4: 1.5rem;
+  --text--h5: 1.2rem;
+  --text--h6: 1rem;
+  --text--btn-nav: 1.25rem;
+  --text--btn-primary: 1rem;
+
+  /* --------------------------------------------------------------- Layout */
+  --padding--container: 1.25rem;
+  --padding--mini: 1rem;
+  --padding--small: 2rem;
+  --padding--med: 3rem;
+  --padding--large: 4rem;
+  --padding--xlarge: 5rem;
+  --gap: 1.25rem;
+  --nav-height: 6.25rem;
+
+  --radius--small: 1rem;
+  --radius--med: 3rem;
+  --radius--large: 6.25rem;
+  --radius--btn: 0.54rem; /* measured 9.54px on the nav store button */
+
+  /* --------------------------------------------------------------- Motion
+   * The reference's house curve and duration, measured off its own tokens.
+   * Everything on the site uses these unless it has a reason not to. */
+  --cubic-default: cubic-bezier(0.65, 0.05, 0, 1);
+  --duration-default: 0.75s;
+  --animation-default: var(--duration-default) var(--cubic-default);
+
+  --dur-micro: 0.25s;
+  --dur-base: 0.5s;
+  --stagger: 20ms;
+}
+
 [data-era='mclaren'] {
   --era: #ff8000;
   --era-soft: #c25e00;
@@ -80,17 +125,17 @@
   --era-soft: #00a19c;
 }
 [data-era='ferrari'] {
-  --era: #ff2800;
-  --era-soft: #c41e10;
+  --era: var(--accent);
+  --era-soft: var(--accent-off);
 }
 
 /* Motion is opt-out at the token level as well as in JS, so a component that
    forgets to check the hook still degrades instead of shipping full motion. */
 @media (prefers-reduced-motion: reduce) {
   :root {
+    --duration-default: 1ms;
     --dur-micro: 1ms;
     --dur-base: 1ms;
-    --dur-slow: 1ms;
     --stagger: 0ms;
   }
 }
