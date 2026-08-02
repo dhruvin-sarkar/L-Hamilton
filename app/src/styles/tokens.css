@@ -95,9 +95,19 @@ html {
      the FILLED noise regions that draw rather than their outlines, so this
      colour covers real area — and #ff2800 over that much of the frame reads as
      a flood rather than as something passing across the field. */
-  --gl-cursor-bg: #3a2529;
-  --gl-cursor-outline: var(--gl-cursor-bg);
+  /* A straight INVERSION of the field, which is the whole idea: outside the
+     fluid the frame is black ground with red contour lines; inside it, the
+     ground becomes red and the same contours draw black through it. So the
+     blob does not tint the topography — it swaps figure and ground, and the
+     lines stay legible either way because they simply change which side of the
+     contrast they sit on.
+
+     bg and fg are the same red on purpose. They are the two ends of the filled
+     region ramp, and holding them equal gives a flat red field, so the only
+     structure showing inside the blob is the black linework. */
+  --gl-cursor-bg: #a33a34;
   --gl-cursor-fg: #a33a34;
+  --gl-cursor-outline: var(--gl-bg);
 
   /* Era accents. Content-level only; never re-themes global chrome. */
   --era: var(--accent);

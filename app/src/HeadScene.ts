@@ -424,7 +424,7 @@ export class HeadScene {
    * between the two is the entire blob effect — at 0.30/0.92 there was barely
    * a stop of range left to show, which is why the masking read as absent.
    */
-  private baseHelmetOpacity = 0.055;
+  private baseHelmetOpacity = 0.022;
   /** Where layout() put the portrait, before any pointer drift is added. */
   private readonly headBase = new THREE.Vector2();
   /** How far the whole plane travels with the pointer, in world units. */
@@ -530,7 +530,11 @@ export class HeadScene {
          * ground where that ratio would vanish, so the colours are further
          * apart; this pulls the blend back so the result stays a tint rather
          * than a flood. The blob COLOURS the field — it does not replace it. */
-        uCursorIntensity: { value: 0.95 },
+        // 1.0, so the blob REPLACES the field rather than tinting it. Anything
+        // below full leaves a percentage of the black-ground/red-line pass
+        // showing through the red-ground/black-line one, which reads as the
+        // fluid sitting behind the contours instead of in front of them.
+        uCursorIntensity: { value: 1.0 },
       },
     });
 

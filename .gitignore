@@ -15,11 +15,12 @@ app/*.log
 app/*.err
 app/.vite/
 
-# The reference site's own helmet model, if it ever reappears here. It was used
-# briefly as a stand-in and is not ours to redistribute. The supplied
-# helmet.gltf/buffer.bin are tracked normally — this rule is narrow on purpose,
-# an earlier blanket *.gltf/*.bin rule would have silently untracked those too.
-app/public/assets/helmet/helmet.glb
+# NOTE: there was an ignore rule here for app/public/assets/helmet/helmet.glb,
+# added when the reference site's own helmet briefly sat at that filename. That
+# model is gone, and our own packed helmet now lives at exactly that path — so
+# the rule was silently untracking the asset the hero needs to render. Removed
+# deliberately; do not reinstate it by filename. If a third-party model ever
+# needs excluding again, give it a name that ours cannot collide with.
 
 .DS_Store
 Thumbs.db

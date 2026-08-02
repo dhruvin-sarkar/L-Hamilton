@@ -82,7 +82,7 @@ const MOUSE_FORCE = 20;
  * distinct shapes rather than one travelling blob. None of that emerges unless
  * the injection is small compared to the distance the fluid moves per frame.
  */
-const CURSOR_RADIUS = 0.05;
+const CURSOR_RADIUS = 0.105;
 
 const quadVertex = /* glsl */ `
   varying vec2 vUv;
