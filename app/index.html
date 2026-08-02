@@ -323,14 +323,37 @@
       <div class="menu__grid">
         <!-- Left: the collage. Decorative, so it is hidden from assistive tech
              entirely — the links carry all the meaning. -->
+        <!-- Each tile belongs to a page. Hovering that page's link brings its
+             tile up to full colour and drops the others back, so the collage
+             answers the link you are pointing at. The reference interleaves
+             them down the two columns rather than filling one then the other:
+             Home and Off Track on the left, On Track and Calendar on the right.
+
+             Two stacked layers per tile. The muted one is always there; the lit
+             one crossfades 0 -> 1 on top. When the real photography lands, the
+             muted layer takes the blend treatment (a `saturation` layer to
+             strip colour, then `plus-lighter` with the page ground to tint it
+             back) and the lit layer is simply the untouched image. -->
         <div class="menu__images" aria-hidden="true">
           <div class="menu__col">
-            <div class="menu__tile" data-menu-tile><span>Helmet</span></div>
-            <div class="menu__tile" data-menu-tile><span>Podium</span></div>
+            <div class="menu__tile" data-menu-tile="0">
+              <div class="menu__tile-lit"></div>
+              <span>Home</span>
+            </div>
+            <div class="menu__tile" data-menu-tile="2">
+              <div class="menu__tile-lit"></div>
+              <span>Off Track</span>
+            </div>
           </div>
           <div class="menu__col">
-            <div class="menu__tile" data-menu-tile><span>Car</span></div>
-            <div class="menu__tile" data-menu-tile><span>Portrait</span></div>
+            <div class="menu__tile" data-menu-tile="1">
+              <div class="menu__tile-lit"></div>
+              <span>On Track</span>
+            </div>
+            <div class="menu__tile" data-menu-tile="3">
+              <div class="menu__tile-lit"></div>
+              <span>Calendar</span>
+            </div>
           </div>
         </div>
 
@@ -338,7 +361,7 @@
         <div class="menu__side">
           <div class="menu__block">
             <nav class="menu__links" aria-label="Primary">
-              <a class="menu__link is-current" href="/index.html" aria-current="page">
+              <a class="menu__link is-current" href="/index.html" aria-current="page" data-menu-link="0">
                 <!-- Same arrangement as the store button: the visible copy is
                      split per character and hidden from assistive tech, and an
                      sr-only twin carries the real accessible name. -->
@@ -358,15 +381,15 @@
                   />
                 </svg>
               </a>
-              <a class="menu__link" href="/on-track.html">
+              <a class="menu__link" href="/on-track.html" data-menu-link="1">
                 <span class="sr-only">On Track</span>
                 <span class="menu__link-text" aria-hidden="true" data-split-chars>On Track</span>
               </a>
-              <a class="menu__link" href="/off-track.html">
+              <a class="menu__link" href="/off-track.html" data-menu-link="2">
                 <span class="sr-only">Off Track</span>
                 <span class="menu__link-text" aria-hidden="true" data-split-chars>Off Track</span>
               </a>
-              <a class="menu__link" href="/calendar.html">
+              <a class="menu__link" href="/calendar.html" data-menu-link="3">
                 <span class="sr-only">Calendar</span>
                 <span class="menu__link-text" aria-hidden="true" data-split-chars>Calendar</span>
               </a>

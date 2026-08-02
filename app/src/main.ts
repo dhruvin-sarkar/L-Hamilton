@@ -800,14 +800,49 @@ if (menu && menuBtn) {
    * power4.out as everything else — an ellipse that only ever approaches its
    * final size from below reads as sliding, while one that passes it and
    * returns reads as landing. */
+  /* Timings are the reference's proportions stretched by about a third, which
+   * is the "slightly slower, smoother" ask: the ORDER and the relative offsets
+   * are what make the cascade read, so they are scaled together rather than
+   * retuned individually. The overlay and tiles also drop from power4.out to
+   * power3.out — same shape, less abrupt in the final third, which is where a
+   * power4 deceleration reads as a snap. */
   const MENU_REVEAL = {
-    overlay: { at: 0, duration: 0.75, ease: 'power4.out' },
-    tiles: { at: 0.15, stagger: 0.037, duration: 0.75, ease: 'power4.out' },
-    links: { at: 0.35, stagger: 0.08, duration: 0.63, ease: 'back.out(0.9)' },
+    overlay: { at: 0, duration: 1, ease: 'power3.out' },
+    tiles: { at: 0.2, stagger: 0.05, duration: 1, ease: 'power3.out' },
+    links: { at: 0.47, stagger: 0.105, duration: 0.85, ease: 'back.out(0.8)' },
+    mark: { at: 0.62, duration: 0.7, ease: 'power2.inOut' },
+    footer: { at: 0.76, stagger: 0.08, duration: 0.56, ease: 'back.out(1.1)' },
   } as const;
 
   const tiles = menu.querySelectorAll<HTMLElement>('[data-menu-tile]');
   const links = menu.querySelectorAll<HTMLAnchorElement>('.menu__link');
+  const footerLinks = menu.querySelectorAll<HTMLAnchorElement>('.menu__footer a');
+  const images = menu.querySelector<HTMLElement>('.menu__images');
+  const mark = menu.querySelector<SVGPathElement>('.menu__link-mark path');
+
+  /* The current page's tile rests part-lit rather than dark, so the collage is
+     never entirely flat and the mark always has somewhere to return to. */
+  const TILE_REST = 0.5;
+  const currentTile = menu.querySelector<HTMLAnchorElement>('.menu__link.is-current')?.dataset
+    .menuLink;
+
+  /** Bring one page's tile to full colour and drop the rest back. */
+  const litTiles = (active: string | null) => {
+    for (const tile of tiles) {
+      const i = tile.dataset.menuTile;
+      const target = active === i ? 1 : active === null && i === currentTile ? TILE_REST : 0;
+      if (reducedMotion) tile.style.setProperty('--tile-lit', String(target));
+      else gsap.to(tile, { '--tile-lit': target, duration: 0.45, ease: 'power2.out', overwrite: 'auto' });
+    }
+  };
+
+  for (const link of links) {
+    const i = link.dataset.menuLink ?? null;
+    link.addEventListener('pointerenter', () => litTiles(i));
+    link.addEventListener('focus', () => litTiles(i));
+    link.addEventListener('pointerleave', () => litTiles(null));
+    link.addEventListener('blur', () => litTiles(null));
+  }
 
   const reveal = gsap.timeline({
     paused: true,
@@ -828,7 +863,44 @@ if (menu && menuBtn) {
         { '--link-p': 0, y: 20 },
         { '--link-p': 1, y: 0, ...MENU_REVEAL.links },
         MENU_REVEAL.links.at,
+      )
+      // Wipe in from the left with a 15px rise, rather than fading — a fade
+      // would have this type arrive grey, and it is small enough already.
+      .fromTo(
+        footerLinks,
+        { '--wipe': 0, y: 15 },
+        { '--wipe': 1, y: 0, ...MENU_REVEAL.footer },
+        MENU_REVEAL.footer.at,
       );
+
+    if (mark) {
+      // Dash the path with its OWN length so the line draws on rather than
+      // fading in. Measured from the path, never hardcoded: the reference's is
+      // 433px for its shape, ours is whatever ours happens to be, and the
+      // number changes the moment the path or the viewport does.
+      const length = mark.getTotalLength();
+      gsap.set(mark, { strokeDasharray: length, strokeDashoffset: length });
+      reveal.to(mark, { strokeDashoffset: 0, ...MENU_REVEAL.mark }, MENU_REVEAL.mark.at);
+    }
+  }
+
+  /* Cursor-height parallax. The two columns counter-slide as the pointer moves
+     up and down, which is what stops the collage feeling like a static grid
+     behind the links. Measured off the reference: linear in cursor Y, +/-5.98rem
+     at the extremes, zero at the vertical centre.
+
+     quickTo rather than a tween per event: it retargets a single running tween
+     instead of spawning one per pointermove, so the follow stays smooth under a
+     fast mouse instead of queueing up. */
+  if (images && !reducedMotion) {
+    const followParallax = gsap.quickTo(images, '--menu-parallax', {
+      duration: 0.9,
+      ease: 'power2.out',
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (menu.hidden) return;
+      followParallax(1 - (2 * e.clientY) / window.innerHeight);
+    });
   }
 
   const setOpen = (open: boolean) => {
@@ -843,6 +915,15 @@ if (menu && menuBtn) {
     // and <html> goes to `clip`. Locking the body instead leaves the scrollbar
     // gutter collapsing and shifts the whole layout sideways as it opens.
     document.documentElement.style.overflow = open ? 'clip' : '';
+
+    // Drives the nav's own menu-open styling — the centred monogram hides,
+    // because over the open panel it sits on the collage and reads as a stray
+    // graphic rather than as branding.
+    document.documentElement.toggleAttribute('data-menu-open', open);
+
+    // Back to the resting arrangement each time it opens: the current page's
+    // tile part-lit, the rest dark.
+    if (open) litTiles(null);
 
     if (reducedMotion) {
       if (!open) menu.hidden = true;
