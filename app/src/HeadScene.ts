@@ -240,8 +240,11 @@ const helmetFragment = /* glsl */ `
   uniform float uOpacity;
   uniform float uRevealOpacity;
   uniform vec3  uColor;
+  uniform sampler2D uMap;
+  uniform bool  uHasMap;
 
   varying vec3 vNormal;
+  varying vec2 vUv;
 
   void main() {
     // The fluid target is square and stretched to the viewport, and its splat is
@@ -268,7 +271,14 @@ const helmetFragment = /* glsl */ `
     vec3 n = normalize(vNormal);
     float key = max(dot(n, normalize(vec3(-0.35, 0.55, 0.75))), 0.0);
     float rim = pow(1.0 - max(dot(n, vec3(0.0, 0.0, 1.0)), 0.0), 2.4);
-    vec3 shaded = uColor * (0.42 + 0.58 * key) + vec3(rim * 0.35);
+
+    // The DDS diffuse is the real 2020 Champion livery, so where a mesh has
+    // one it replaces the flat baseColorFactor outright rather than tinting it
+    // — multiplying the two would darken the artwork by whatever colour the
+    // material happened to carry. baseColorFactor stays as the fallback for
+    // the meshes the texture set does not cover.
+    vec3 albedo = uHasMap ? texture2D(uMap, vUv).rgb : uColor;
+    vec3 shaded = albedo * (0.42 + 0.58 * key) + vec3(rim * 0.35);
 
     gl_FragColor = vec4(shaded, alpha);
   }
@@ -276,11 +286,13 @@ const helmetFragment = /* glsl */ `
 
 const helmetVertex = /* glsl */ `
   varying vec3 vNormal;
+  varying vec2 vUv;
   void main() {
     // View space, not world: the shading rig above is defined relative to the
     // camera, so the key stays put while the helmet does its idle drift rather
     // than sweeping across the shell.
     vNormal = normalMatrix * normal;
+    vUv = uv;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
@@ -376,6 +388,8 @@ export class HeadScene {
   /** Wireframe helmet, parented so it scales with the portrait. */
   private helmet: THREE.Group | null = null;
   private helmetMat: THREE.ShaderMaterial | null = null;
+  /** Livery sheets, held only so dispose() can release their GPU memory. */
+  private helmetMaps: THREE.Texture[] = [];
   /** Opacity the helmet returns to when the cursor is clear of it. */
   /**
    * Three clean shells, so alpha barely accumulates and the wireframe can carry
@@ -577,11 +591,54 @@ export class HeadScene {
     // writes to helmetMat.uniforms elsewhere (opacity, resolution, the fluid
     // texture) still reach every variant — without that, each would need
     // updating by hand every frame.
+    // The real 2020 Champion livery, as DDS. The glTF embeds no images at all,
+    // so these are the only artwork the helmet has — the mesh does carry
+    // TEXCOORD_0, which is what makes them applicable.
+    // PNG rather than the DDS directly. The source files carry DX10 headers
+    // with DXGI formats 78 (BC3_UNORM_SRGB) and 98 (BC7_UNORM); Three's
+    // DDSLoader only walks the legacy FourCC DXT1/3/5 path and cannot decode
+    // BC7 at all, so it rejected them outright. Converted offline to PNG at
+    // full 2048 resolution instead — build-time cost rather than a runtime
+    // transcoder, and no decoder ships to the client.
+    const tex2d = new THREE.TextureLoader();
+    const loadMap = (file: string): THREE.Texture => {
+      const tex = tex2d.load(`/assets/helmet/textures/${file}`);
+      // glTF UVs have their origin at the top left, which is the opposite of
+      // the loader's default flip.
+      tex.flipY = false;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 4;
+      return tex;
+    };
+    const maps = {
+      shell: loadMap('helmet_d.png'),
+      wing: loadMap('wing_d.png'),
+      // The visor sheet is DXGI 78, which the converter could not read either.
+      // That group falls back to its baseColorFactor, which is near-black —
+      // the correct colour for a visor gasket regardless.
+      visor: null as THREE.Texture | null,
+    };
+    this.helmetMaps = Object.values(maps).filter((m): m is THREE.Texture => m !== null);
+
+    // Which of the three sets a mesh belongs to, read off the material names —
+    // ALETTE is the aero fins, the GUARNIZ/visor group the aperture furniture,
+    // everything else the shell.
+    const mapFor = (name: string): THREE.Texture | null => {
+      const n = name.toUpperCase();
+      if (n.startsWith('ALETTE')) return maps.wing;
+      if (n.includes('GUARNIZ') || n.includes('VISOR')) return maps.visor;
+      if (n === '__DEFAULT' || n === '') return null;
+      return maps.shell;
+    };
+
     const shared = this.helmetMat.uniforms;
-    const byColour = new Map<string, THREE.ShaderMaterial>();
-    const variantFor = (colour: THREE.Color): THREE.ShaderMaterial => {
-      const key = colour.getHexString();
-      let mat = byColour.get(key);
+    const byVariant = new Map<string, THREE.ShaderMaterial>();
+    const variantFor = (colour: THREE.Color, map: THREE.Texture | null): THREE.ShaderMaterial => {
+      // Keyed on both, since two regions can share a base colour but take
+      // different sheets — collapsing on colour alone would texture the fins
+      // with the shell's artwork.
+      const key = `${colour.getHexString()}|${map ? map.uuid : 'none'}`;
+      let mat = byVariant.get(key);
       if (!mat) {
         mat = new THREE.ShaderMaterial({
           vertexShader: helmetVertex,
@@ -589,9 +646,14 @@ export class HeadScene {
           transparent: true,
           depthWrite: true,
           depthTest: true,
-          uniforms: { ...shared, uColor: { value: colour } },
+          uniforms: {
+            ...shared,
+            uColor: { value: colour },
+            uMap: { value: map },
+            uHasMap: { value: map !== null },
+          },
         });
-        byColour.set(key, mat);
+        byVariant.set(key, mat);
       }
       return mat;
     };
@@ -609,10 +671,11 @@ export class HeadScene {
       // grey rather than to black, which would read as a hole in the shell.
       const single = Array.isArray(source) ? source[0] : source;
       const colour = (single as THREE.MeshStandardMaterial | undefined)?.color?.clone();
+      const sourceName = (single as THREE.Material | undefined)?.name ?? '';
       // The glTF's own materials are replaced, so release them here rather
       // than leaving 27 orphaned programs alive for the page's lifetime.
       if (!Array.isArray(source)) (source as THREE.Material | undefined)?.dispose();
-      mesh.material = variantFor(colour ?? new THREE.Color(0x8a8a8a));
+      mesh.material = variantFor(colour ?? new THREE.Color(0x8a8a8a), mapFor(sourceName));
       // renderOrder must be set per mesh — Three reads it off the object being
       // drawn and does not inherit it from a parent Group. Left at the default
       // 0 these draw before the transparent portrait, which then paints over
@@ -836,6 +899,9 @@ export class HeadScene {
       (this.head.uniforms[key]!.value as THREE.Texture | null)?.dispose();
     }
     this.helmetMat?.dispose();
+    // ~11MB of compressed livery, so worth releasing explicitly rather than
+    // waiting on the material teardown to reach it.
+    for (const map of this.helmetMaps) map.dispose();
     this.fluid.dispose();
     this.field.dispose();
     this.head.dispose();
