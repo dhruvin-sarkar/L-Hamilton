@@ -82,7 +82,11 @@ const MOUSE_FORCE = 20;
  * distinct shapes rather than one travelling blob. None of that emerges unless
  * the injection is small compared to the distance the fluid moves per frame.
  */
-const CURSOR_RADIUS = 0.105;
+/* Nudge this in small steps. The shape does not scale with the radius: force
+ * falls off as d-squared across a disc whose area already grows as r-squared,
+ * so the region clearing the mask threshold grows much faster than the number
+ * does. 0.105 -> 0.125 looked like a modest bump and flooded half the frame. */
+const CURSOR_RADIUS = 0.113;
 
 const quadVertex = /* glsl */ `
   varying vec2 vUv;
