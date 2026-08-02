@@ -78,7 +78,26 @@ html {
      black it disappeared. Brightness here is a deliberate departure, not an
      oversight — this is the value that reads. */
   --gl-outline: #9c6a71;
-  --gl-cursor-fg: var(--accent);
+
+  /* The alternate palette painted inside a cursor blob. The reference carries
+     three of these (COLOR_CURSOR_BACKGROUND / _FOREGROUND / _OUTLINE) and its
+     values are instructive: on a #F8F8F3 ground the blob is #E8E8DF, and its
+     outline colour is that SAME #E8E8DF. So inside the blob the contour lines
+     do not recolour — they disappear, and the region reads as a smooth patch
+     wiped through the topography.
+
+     Ours inverts the tonal direction because our ground is dark: the blob
+     lifts rather than sinks. The outline still collapses into the blob's own
+     background, which is the part that matters — that erasure is what makes it
+     read as liquid moving over the field instead of a tinted circle.
+
+     The foreground is a muted red, not the raw accent. Inside the blob it is
+     the FILLED noise regions that draw rather than their outlines, so this
+     colour covers real area — and #ff2800 over that much of the frame reads as
+     a flood rather than as something passing across the field. */
+  --gl-cursor-bg: #2e2124;
+  --gl-cursor-outline: var(--gl-cursor-bg);
+  --gl-cursor-fg: #7a2b2a;
 
   /* Era accents. Content-level only; never re-themes global chrome. */
   --era: var(--accent);

@@ -2,6 +2,7 @@
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 import { FluidCursor } from './FluidCursor';
+import { ContourField } from './ContourField';
 
 /**
  * The hero scene: a contour-line field, a depth-map portrait on top of it, a
@@ -71,61 +72,10 @@ const noiseChunk = /* glsl */ `
     return sum;
   }
 
-  // ---- 3D, for animating the field by MORPHING it rather than sliding it ----
-  //
-  // The 2D pair above animates by translating the sample point, which reads as
-  // a texture scrolling past. The reference animates by feeding time into a
-  // THIRD noise axis, so the contours grow, split, merge and close in place —
-  // the level sets of a surface that is itself slowly changing shape. That is
-  // the whole difference between "moving" and "flowing", and it cannot be
-  // reached by retuning a translation.
-  //
-  // Sine-free hash on purpose. The 2D path costs 3 sin() per lookup, which is
-  // affordable at 4 lookups per sample; the 3D path takes 8 lookups per sample
-  // and runs several samples per pixel over a fullscreen quad, where the sin
-  // count would land in the hundreds of millions per frame.
-  vec3 hash3(vec3 p) {
-    p = fract(p * vec3(0.1031, 0.1030, 0.0973));
-    p += dot(p, p.yxz + 19.19);
-    return -1.0 + 2.0 * fract(vec3(
-      (p.x + p.y) * p.z,
-      (p.x + p.z) * p.y,
-      (p.y + p.z) * p.x
-    ));
-  }
-
-  float gnoise3(vec3 p) {
-    vec3 i = floor(p);
-    vec3 f = fract(p);
-    vec3 u = f * f * (3.0 - 2.0 * f);
-    return mix(
-      mix(
-        mix(dot(hash3(i + vec3(0.0, 0.0, 0.0)), f - vec3(0.0, 0.0, 0.0)),
-            dot(hash3(i + vec3(1.0, 0.0, 0.0)), f - vec3(1.0, 0.0, 0.0)), u.x),
-        mix(dot(hash3(i + vec3(0.0, 1.0, 0.0)), f - vec3(0.0, 1.0, 0.0)),
-            dot(hash3(i + vec3(1.0, 1.0, 0.0)), f - vec3(1.0, 1.0, 0.0)), u.x),
-        u.y),
-      mix(
-        mix(dot(hash3(i + vec3(0.0, 0.0, 1.0)), f - vec3(0.0, 0.0, 1.0)),
-            dot(hash3(i + vec3(1.0, 0.0, 1.0)), f - vec3(1.0, 0.0, 1.0)), u.x),
-        mix(dot(hash3(i + vec3(0.0, 1.0, 1.0)), f - vec3(0.0, 1.0, 1.0)),
-            dot(hash3(i + vec3(1.0, 1.0, 1.0)), f - vec3(1.0, 1.0, 1.0)), u.x),
-        u.y),
-      u.z);
-  }
-
-  float fbm3(vec3 p, int octaves) {
-    float sum = 0.0;
-    float amp = 0.5;
-    for (int i = 0; i < 8; i++) {
-      if (i >= octaves) break;
-      sum += amp * gnoise3(p);
-      p *= 2.02;
-      amp *= 0.5;
-    }
-    return sum;
-  }
 `;
+// The 3D gradient-noise path that used to live here is gone with the field it
+// served. Pass one now uses real simplex (see ContourField) rather than a
+// gradient-noise stand-in, and the portrait below only ever wanted the 2D fbm.
 
 const quadVertex = /* glsl */ `
   varying vec2 vUv;
@@ -139,88 +89,101 @@ const quadVertex = /* glsl */ `
  * Contour field
  * ------------------------------------------------------------------ */
 
+/**
+ * Pass two: trace the outlines of the binary map ContourField wrote, and tint
+ * the result. Ported from the reference's `118-offsets-for-neighboring-pixels`.
+ *
+ * The equality test is the whole mechanism and it is intentionally exact, not
+ * a tolerance. Pass one emits only 0.0 and 1.0, so inside a region all five
+ * taps return the identical interpolated constant and `!=` is false; within one
+ * texel of a boundary bilinear filtering puts them on a ramp and `!=` is true.
+ * A tolerance would only widen the line — badly, and non-uniformly.
+ */
 const fieldFragment = /* glsl */ `
   precision highp float;
 
-  uniform vec3  uBg;
-  uniform vec3  uLine;
-  uniform vec3  uCursorLine;
-  uniform vec2  uPointerPx;
-  uniform vec2  uAspect;
-  uniform float uTime;
-  uniform float uRevealPx;
+  uniform sampler2D tBackgroundNoise;
+  uniform sampler2D tCursorEffect;
+
+  uniform bool  OUTLINE;
+  uniform float THICKNESS;
+  uniform vec3  COLOR_BACKGROUND;
+  uniform vec3  COLOR_FOREGROUND;
+  uniform vec3  COLOR_OUTLINE;
+  uniform vec3  COLOR_CURSOR_BACKGROUND;
+  uniform vec3  COLOR_CURSOR_FOREGROUND;
+  uniform vec3  COLOR_CURSOR_OUTLINE;
+
+  uniform float uReveal;
   uniform float uCursorIntensity;
-  uniform int   uOctaves;
-  uniform float uSpeed;
-  uniform float uDistortScale;
-  uniform float uDistortIntensity;
 
   varying vec2 vUv;
 
-  ${noiseChunk}
-
   void main() {
-    vec2 p = (vUv - 0.5) * uAspect;
+    vec4 textureBackgroundNoise = texture2D(tBackgroundNoise, vUv);
+    float noiseBase = textureBackgroundNoise.r;
 
-    // ---- Domain warp -------------------------------------------------------
-    // A second, much coarser noise field displaces where the main field is
-    // sampled. Warping the DOMAIN rather than the value is what bends the
-    // contours along a current instead of just wobbling their brightness, and
-    // because it leaves the value distribution untouched the band density is
-    // unchanged — only the motion is.
-    //
-    // Two samples, offset in noise space, so x and y are displaced
-    // independently. The reference adds a single scalar to both axes at once,
-    // which shears the field along one diagonal; independent axes read as
-    // water rather than as a sliding pane of glass.
-    //
-    // The warp advances at a TENTH of the main rate, as on the reference. One
-    // clock always reads as mechanical however slow it is; two clocks that do
-    // not divide into each other have a combined period long enough that the
-    // eye never finds the loop.
-    float warpT = uTime * uSpeed * 0.1;
-    vec2 warp = vec2(
-      gnoise3(vec3(p * uDistortScale, warpT)),
-      gnoise3(vec3(p * uDistortScale + 41.7, warpT + 11.3))
+    // uReveal fades the field in from flat background during the intro, so the
+    // topography draws itself on rather than being there from frame one.
+    vec3 background = mix(
+      COLOR_BACKGROUND,
+      mix(COLOR_BACKGROUND, COLOR_FOREGROUND, uReveal),
+      noiseBase
     );
 
-    // ---- Main field --------------------------------------------------------
-    // Time rides the third noise axis, so the surface deforms in place rather
-    // than travelling. There is deliberately no translation term here.
-    float n = fbm3(
-      vec3(p * 1.6 + warp * uDistortIntensity, uTime * uSpeed),
-      uOctaves
-    );
+    // The alternate palette shown inside a cursor blob. Built even when the
+    // blob is elsewhere — a branch around it would cost more than the two mixes.
+    vec3 cursorBackground = mix(COLOR_CURSOR_BACKGROUND, COLOR_CURSOR_FOREGROUND, noiseBase);
 
-    // Distance from the pointer in PIXELS. The portrait measures the reveal
-    // the same way — doing it in each mesh's plane space made the two discs
-    // disagree, because the meshes are scaled differently.
-    float dPx = length(gl_FragCoord.xy - uPointerPx);
+    if (OUTLINE) {
+      float edge = 0.0;
 
-    float influence = exp(-pow(dPx / max(uRevealPx, 1.0), 2.0));
-    n += influence * uCursorIntensity;
+      vec4 sampledRight = texture2D(tBackgroundNoise, vUv + vec2(THICKNESS, 0.0));
+      vec4 sampledLeft  = texture2D(tBackgroundNoise, vUv + vec2(-THICKNESS, 0.0));
+      vec4 sampledUp    = texture2D(tBackgroundNoise, vUv + vec2(0.0, THICKNESS));
+      vec4 sampledDown  = texture2D(tBackgroundNoise, vUv + vec2(0.0, -THICKNESS));
 
-    // Contour extraction: fractional part of the field, thresholded against
-    // its own screen-space derivative. fwidth keeps the lines one pixel wide at
-    // every aspect — a fixed epsilon thickens them on wide viewports.
-    // Band frequency drives how many contour rings cross the frame. At 9 the
-    // field is so flat that fwidth returns a sub-pixel threshold and the lines
-    // vanish everywhere except where the cursor steepens the gradient — which
-    // is exactly the "only lit under the pointer" failure.
-    float bands = n * 18.0;
-    float edge  = abs(fract(bands) - 0.5);
-    // Floor the threshold so a line is never thinner than it can be drawn.
-    float w     = max(fwidth(bands) * 1.6, 0.02);
-    float line  = 1.0 - smoothstep(0.0, w, edge);
+      if (sampledRight.r != textureBackgroundNoise.r ||
+          sampledLeft.r  != textureBackgroundNoise.r ||
+          sampledUp.r    != textureBackgroundNoise.r ||
+          sampledDown.r  != textureBackgroundNoise.r) {
+        edge = 1.0;
+      }
 
-    // The field must be legible across the WHOLE frame, not only under the
-    // cursor — on the reference it reads as faint topography everywhere. The
-    // cursor then lifts its own neighbourhood to the accent colour.
-    float reveal = 1.0 - smoothstep(uRevealPx * 0.45, uRevealPx * 1.35, dPx);
-    vec3  lineCol = mix(uLine, uCursorLine, reveal);
-    float strength = mix(0.85, 1.0, reveal);
+      // Note this REPLACES the filled-region colouring above rather than adding
+      // to it: with OUTLINE on, the regions go flat and only their borders draw.
+      background = mix(
+        COLOR_BACKGROUND,
+        mix(COLOR_BACKGROUND, COLOR_OUTLINE, uReveal),
+        edge
+      );
 
-    gl_FragColor = vec4(mix(uBg, lineCol, line * strength), 1.0);
+      cursorBackground = mix(cursorBackground, COLOR_CURSOR_OUTLINE, edge);
+    }
+
+    /* Cursor blob.
+     *
+     * The inset is the reference's own "gap fix on bottom and top": the fluid
+     * solve has no boundary conditions, so its outermost texels carry garbage
+     * that would otherwise paint a frame around the viewport. Sampling the
+     * inner 95% steps past it.
+     *
+     * No inversion here, unlike the reference. Its fluid target rests at white
+     * and the dye darkens it, so it needs 1.0 - rgb before thresholding; ours
+     * rests at black and splats dye in positive, which is already the right way
+     * round. Same semantics, one less operation.
+     *
+     * step, not smoothstep. A hard threshold is what gives the blob a crisp,
+     * liquid edge — feathering it is exactly what made the effect read as
+     * "nothing is happening" before, because a soft ramp over a small opacity
+     * range is indistinguishable from a uniform haze.
+     */
+    vec2 cursorUv = vec2(0.025) + vUv * 0.95;
+    float cursorEffect = step(0.1, texture2D(tCursorEffect, cursorUv).r);
+
+    background = mix(background, cursorBackground, cursorEffect * uCursorIntensity);
+
+    gl_FragColor = vec4(background, 1.0);
   }
 `;
 
@@ -239,26 +202,55 @@ const helmetFragment = /* glsl */ `
   uniform vec2  uResolution;
   uniform float uOpacity;
   uniform float uRevealOpacity;
+  uniform float uHelmetHover;
   uniform vec3  uColor;
   uniform sampler2D uMap;
   uniform bool  uHasMap;
 
   varying vec3 vNormal;
   varying vec2 vUv;
+  varying vec2 vScreenUv;
 
   void main() {
     // The fluid target is square and stretched to the viewport, and its splat is
-    // pre-corrected for aspect, so a straight screen-space lookup matches.
-    vec2 uv = gl_FragCoord.xy / uResolution;
-    float dye = clamp(texture2D(tCursorEffect, uv).r, 0.0, 1.0);
+    // pre-corrected for aspect, so a straight screen-space lookup matches. The
+    // 0.025/0.95 inset is the reference's "gap fix" — see the field shader.
+    vec2 uv = vec2(0.025) + (gl_FragCoord.xy / uResolution) * 0.95;
 
-    // The cursor REVEALS the shell — it does not wipe it away. The reference
-    // names this uHoverReveal / REVEAL_SIZE, and describes rendering the helmet
-    // and then deciding what to show. Having it the other way round meant
-    // sweeping the pointer erased something already near-invisible, so no blob
-    // ever registered. Idle opacity is a ghost; the fluid brings it forward.
-    float reveal = smoothstep(0.03, 0.4, dye);
-    float alpha = mix(uOpacity, uRevealOpacity, reveal);
+    /* THE BLOB MASK.
+     *
+     * step, not smoothstep, and this is the correction that makes the effect
+     * exist at all. The reference reduces its fluid to a hard binary with
+     * step(0.1, ...) and then composites the helmet with
+     *
+     *     mix(base, helmet.rgb, cursorEffect * helmet.a)
+     *
+     * so the shell has a crisp, liquid-edged boundary that swims across it. I
+     * had smoothstep(0.03, 0.4, dye) feeding a narrow opacity range, which is a
+     * soft gradient over a small delta — perceptually a uniform haze, and no
+     * amount of tuning the endpoints turns a gradient into a blob. The edge IS
+     * the effect.
+     */
+    float cursorEffect = step(0.1, texture2D(tCursorEffect, uv).r);
+
+    /* Hover wipe, from the reference's head shader. A band sweeps up the frame,
+     * bowed by sin(x * PI) so it crests in the middle rather than crossing dead
+     * level — the helmet arrives as a curve, not a rising horizon.
+     *
+     * Rests at 0, and deliberately is NOT driven by the intro clock. It adds
+     * into the mask and saturates it, so anything that parks it at 1 pins the
+     * shell fully visible and makes blob masking structurally impossible. It is
+     * a hover input on the reference, not an intro one; wiring it to the intro
+     * was my error and cost the entire effect. */
+    float hoverTransition = vScreenUv.y
+      + sin(vScreenUv.x * 3.141592) * sin(uHelmetHover * 3.141592) * 0.2;
+    cursorEffect += step(1.0 - hoverTransition, uHelmetHover);
+    cursorEffect = clamp(cursorEffect, 0.0, 1.0);
+
+    // Floor, then the mask lifts to the ceiling. The reference's idle shell is
+    // a faint translucent cage rather than absent — measured off the running
+    // site, not assumed — so this keeps a ghost rather than going to zero.
+    float alpha = mix(uOpacity, uRevealOpacity, cursorEffect);
 
     if (alpha < 0.002) discard;
 
@@ -287,13 +279,21 @@ const helmetFragment = /* glsl */ `
 const helmetVertex = /* glsl */ `
   varying vec3 vNormal;
   varying vec2 vUv;
+  varying vec2 vScreenUv;
   void main() {
-    // View space, not world: the shading rig above is defined relative to the
-    // camera, so the key stays put while the helmet does its idle drift rather
-    // than sweeping across the shell.
+    // View space, not world: the shading rig is defined relative to the camera,
+    // so the key light stays put on the shell rather than sweeping across it.
     vNormal = normalMatrix * normal;
     vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+
+    vec4 clip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    // Screen position, for the intro wipe. Taken here rather than from
+    // gl_FragCoord because the wipe is a property of where the helmet sits in
+    // the FRAME — it has to agree with the field's own reveal, which works in
+    // the same 0..1 viewport space.
+    vScreenUv = (clip.xy / clip.w) * 0.5 + 0.5;
+
+    gl_Position = clip;
   }
 `;
 
@@ -420,12 +420,49 @@ export class HeadScene {
   /** Pointer-driven fluid field. The helmet is masked by it, per fragment. */
   readonly fluid: FluidCursor;
 
+  /**
+   * Pass one of the background. Exposed so its parameters can be dialled in
+   * from the console against the live render — `hamiltonGL.head.contour.params`
+   * mirrors `landoGL.params.headScene` name for name, so the two sites can be
+   * compared by setting the same value on both.
+   */
+  readonly contour: ContourField;
+
+  /**
+   * Intro reveal, 0..1, over REVEAL_DURATION seconds.
+   *
+   * Drives three things at once, which is why it is one number: the field's UV
+   * window slides down into frame, the outline colour fades up from the
+   * background, and the helmet's wipe sweeps across. They share a clock because
+   * on the reference they visibly resolve together.
+   */
+  private reveal = 0;
+  /** Seconds. The reference's REVEAL_DURATION, read off its live params. */
+  private readonly revealDuration = 1.1;
+
   private readonly ease: number;
   private readonly subjectScale: number;
   private aspect = 1;
   private readonly clock = new THREE.Clock();
   private intro = 0;
   private dpr = 1;
+
+  /**
+   * Viewport size in DEVICE pixels, shared by reference with the helmet
+   * material's uResolution.
+   *
+   * Shared, not copied, and that is the entire point. resize() runs on load;
+   * loadHelmet() is async and resolves after it, so the old
+   * `this.helmetMat?.uniforms.uResolution.value.set(...)` silently did nothing
+   * — the optional chain short-circuited on a material that did not exist yet,
+   * and the uniform kept its constructor value of (1, 1). The helmet then
+   * divided gl_FragCoord by one, sampled the dye texture hundreds of units
+   * outside its range, clamped to a corner texel and read zero everywhere. The
+   * cursor mask could never fire, whatever the threshold or the opacities.
+   *
+   * Handing the material this same Vector2 makes load order irrelevant.
+   */
+  private readonly viewportPx = new THREE.Vector2(1, 1);
 
   constructor(renderer: THREE.WebGLRenderer, opts: HeadSceneOptions = {}) {
     this.fluid = new FluidCursor(renderer);
@@ -442,26 +479,33 @@ export class HeadScene {
     const token = (name: string, fallback: string) =>
       tokenColor(css.getPropertyValue(name).trim() || fallback);
 
+    // Pass one lives in its own object with its own render target; this
+    // material is pass two, and does nothing but trace what that wrote.
+    this.contour = new ContourField(renderer);
+
     this.field = new THREE.ShaderMaterial({
       vertexShader: quadVertex,
       fragmentShader: fieldFragment,
       uniforms: {
-        uBg: { value: token('--gl-bg', '#1a1416') },
-        uLine: { value: token('--gl-outline', '#4a3438') },
-        uCursorLine: { value: token('--gl-cursor-fg', '#ff2800') },
-        uPointerPx: { value: this.pointerPx },
-        uAspect: { value: new THREE.Vector2(1, 1) },
-        uTime: { value: 0 },
-        uRevealPx: { value: 220 },
-        uCursorIntensity: { value: 0.12 },
-        uOctaves: { value: 3 },
-        // Motion, named after the reference's own controls so the two can be
-        // compared like for like. Its SPEED is 0.1 against a noise sampled at
-        // SCALE 1; ours samples at 1.6, so the same felt laziness needs a
-        // slightly lower number here. Tuned side by side, not derived.
-        uSpeed: { value: 0.07 },
-        uDistortScale: { value: 0.55 },
-        uDistortIntensity: { value: 0.5 },
+        tBackgroundNoise: { value: this.contour.texture },
+        tCursorEffect: { value: this.fluid.texture },
+
+        OUTLINE: { value: true },
+        // The reference's epsilon, unchanged. See ContourField: this is not a
+        // width, and 0.0001 is already dramatic.
+        THICKNESS: { value: 0.000005 },
+
+        COLOR_BACKGROUND: { value: token('--gl-bg', '#241b1e') },
+        COLOR_OUTLINE: { value: token('--gl-outline', '#9c6a71') },
+        COLOR_FOREGROUND: { value: token('--gl-outline', '#9c6a71') },
+        COLOR_CURSOR_BACKGROUND: { value: token('--gl-cursor-bg', '#33262a') },
+        COLOR_CURSOR_FOREGROUND: { value: token('--gl-cursor-fg', '#ff2800') },
+        COLOR_CURSOR_OUTLINE: { value: token('--gl-cursor-outline', '#ff2800') },
+
+        uReveal: { value: 0 },
+        // How strongly a blob repaints the background under it. The reference
+        // animates its equivalent; ours is fixed until there is a reason not to.
+        uCursorIntensity: { value: 0.85 },
       },
     });
 
@@ -564,11 +608,15 @@ export class HeadScene {
       depthTest: true,
       uniforms: {
         tCursorEffect: { value: this.fluid.texture },
-        uResolution: { value: new THREE.Vector2(1, 1) },
+        // The live viewport vector, not a copy — see viewportPx.
+        uResolution: { value: this.viewportPx },
         uOpacity: { value: this.baseHelmetOpacity },
         // What a blob lifts the shell to. The gap between these two is the
         // whole effect — too close and the fluid has nothing to show.
         uRevealOpacity: { value: 0.92 },
+        // Intro wipe progress. Shared by reference, so one write in update()
+        // reaches every per-colour variant.
+        uHelmetHover: { value: 0 },
         uColor: { value: new THREE.Color(0xffffff) },
       },
     });
@@ -781,6 +829,9 @@ export class HeadScene {
     // actually moving, so smoothing first would flatten every flick into the
     // same gentle push and lose the character of the effect.
     this.fluid.setPointer((nx + 1) / 2, (ny + 1) / 2);
+    // Same reasoning — the contour field derives its own pace from the raw
+    // positions, and CURSOR_BOUNCE only reads as a bounce if the input is live.
+    this.contour.setPointer(nx, ny);
     // gl_FragCoord is device pixels, origin bottom-left, so the conversion has
     // to carry the device pixel ratio or the disc drifts on HiDPI displays.
     this.pointerPxTarget.set(
@@ -795,8 +846,10 @@ export class HeadScene {
 
   /** Reveal radius, in CSS pixels. */
   set revealSize(v: number) {
+    // Portrait only. The field's cursor response is no longer a pixel radius —
+    // it is CURSOR_SCALE against an aspect-corrected UV distance, which lives
+    // in ContourField's params alongside the rest of the reference's names.
     this.head.uniforms.uRevealPx!.value = v * this.dpr;
-    this.field.uniforms.uRevealPx!.value = v * this.dpr * 1.25;
   }
 
   set helmetOpacity(v: number) {
@@ -826,20 +879,23 @@ export class HeadScene {
     this.headBase.set(0.08, -1 + scale / 2);
     this.headMesh.position.set(this.headBase.x, this.headBase.y, 0);
 
+    // Aspect now belongs to pass one, where the noise is actually sampled;
+    // pass two only reads a texture and needs no notion of shape.
     this.fieldMesh.scale.set(view * 2, 2, 1);
-    this.field.uniforms.uAspect!.value.set(view, 1);
   }
 
   resize(dpr = Math.min(window.devicePixelRatio, 2)): void {
     this.dpr = dpr;
     const view = window.innerWidth / window.innerHeight;
     this.fluid.setAspect(view);
+    // CSS pixels, not device — the noise target's texel size IS the contour
+    // line weight, so this is a visual decision rather than a quality one.
+    this.contour.setSize(window.innerWidth, window.innerHeight);
     // The helmet mask samples by gl_FragCoord, which is in device pixels, so
     // the divisor must carry the DPR or the mask lands offset on HiDPI.
-    this.helmetMat?.uniforms.uResolution!.value.set(
-      window.innerWidth * dpr,
-      window.innerHeight * dpr,
-    );
+    // Written unconditionally into the shared vector, so it is already correct
+    // whenever the helmet finishes loading.
+    this.viewportPx.set(window.innerWidth * dpr, window.innerHeight * dpr);
     this.camera.left = -view;
     this.camera.right = view;
     this.camera.top = 1;
@@ -858,16 +914,39 @@ export class HeadScene {
     const dt = this.clock.getDelta();
     const t = this.clock.getElapsedTime();
 
-    // Step the fluid before the scene draws. It binds and restores its own
-    // render targets, so it must not run mid-draw.
+    // Both offscreen stages step before the scene draws. Each binds and
+    // restores its own render target, so neither may run mid-draw.
     this.fluid.update(dt);
-    this.field.uniforms.uTime!.value = t;
+    this.contour.update(t);
     this.head.uniforms.uTime!.value = t;
 
     if (this.intro < 1) {
       this.intro = Math.min(this.intro + 0.012, 1);
       this.head.uniforms.uIntro!.value = this.intro;
     }
+
+    // The reference's REVEAL_DURATION is in seconds, so this is driven off the
+    // clock rather than off a per-frame increment — the intro then takes the
+    // same 1.1s whether the machine is managing 30fps or 120.
+    if (this.reveal < 1) {
+      this.reveal = Math.min(this.reveal + dt / this.revealDuration, 1);
+      // Cubic ease-out. The reference's UV window is divided by
+      // (1 + REVEAL_SIZE * (1 - uReveal)), which is violently non-linear near
+      // 0 — feeding it a linear ramp spends most of the second on a frame that
+      // has barely changed and then snaps.
+      const eased = 1 - Math.pow(1 - this.reveal, 3);
+      this.contour.reveal = eased;
+      this.field.uniforms.uReveal!.value = eased;
+    }
+
+    /* The fluid's dye is a PING-PONG pair, and `fluid.texture` is a getter that
+     * returns whichever half is currently the read side — so it names a
+     * different texture every frame. It has to be re-read here, not bound once
+     * at construction: a cached handle points at the half the simulation is
+     * writing half the time, and sampling a target mid-write returns velocity
+     * and pressure data rather than dye. Thresholded, that lights up most of
+     * the frame. */
+    this.field.uniforms.tCursorEffect!.value = this.fluid.texture;
 
     // Exponential smoothing. Frame-rate dependent, fine at 60fps and the first
     // thing to replace with a delta-time lerp if it ever isn't.
@@ -912,6 +991,7 @@ export class HeadScene {
     // waiting on the material teardown to reach it.
     for (const map of this.helmetMaps) map.dispose();
     this.fluid.dispose();
+    this.contour.dispose();
     this.field.dispose();
     this.head.dispose();
   }
