@@ -106,7 +106,23 @@
             <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu">
               <span class="sr-only" data-menu-label>Open menu</span>
               <svg class="menu-btn__icon" viewBox="0 0 66 66" aria-hidden="true">
-                <rect class="menu-btn__frame" x="0.8" y="0.8" width="64.4" height="64.4" rx="13" />
+                <defs>
+                  <!-- The monogram's liquid fill again, same mechanism: two
+                       stops a constant gap apart, driven together from main.ts
+                       so the pair travels as one edge up the button. -->
+                  <linearGradient
+                    id="menu-liquid"
+                    gradientUnits="userSpaceOnUse"
+                    x1="0"
+                    y1="66"
+                    x2="0"
+                    y2="0"
+                  >
+                    <stop class="menu-btn__stop-fill" offset="0" />
+                    <stop class="menu-btn__stop-base" offset="0.05" />
+                  </linearGradient>
+                </defs>
+                <rect class="menu-btn__frame" x="0" y="0" width="66" height="66" rx="13" />
                 <path
                   class="menu-btn__bar"
                   data-menu-bar="1"

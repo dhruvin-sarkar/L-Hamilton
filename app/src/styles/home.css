@@ -5,6 +5,27 @@
  * measured pixel value is noted beside each so it can be re-checked.
  * Tokens only; no raw hex below this line. */
 
+/* ======================================================= Liquid fill
+ *
+ * One interaction, three surfaces: the LH monogram, the store button and the
+ * menu button all fill Rosso Corsa -> Giallo Modena as a level rises through
+ * them. The level itself is tweened in main.ts; only its two ends live here.
+ *
+ * --liquid-level runs from -(--liquid-gap) to 1, NOT 0 to 1. At level 0 the
+ * meniscus sits exactly on the bottom edge, which leaves a visible sliver of
+ * yellow at rest; starting one gap lower parks it fully outside the shape. */
+@property --liquid-level {
+  syntax: '<number>';
+  initial-value: -0.05;
+  inherits: true;
+}
+
+:root {
+  /* The distance between the two stops — that gap IS the meniscus, so it
+     travels with the level rather than being animated separately. */
+  --liquid-gap: 0.05;
+}
+
 /* =============================================================== Nav */
 
 .nav-inner {
@@ -28,7 +49,7 @@
      than set independently, because the two lines only read as one mark while
      they hold their ratio — tuning them separately is how a lockup drifts into
      looking like two unrelated headlines. */
-  --wordmark-size: 2.45rem;
+  --wordmark-size: 3.43rem;
 
   display: grid;
   justify-items: start;
@@ -122,19 +143,25 @@
   gap: 0.75rem;
   block-size: 4.53rem; /* 80px */
   padding-inline: 1rem; /* 17.7px */
-  background: var(--accent);
+  /* The monogram's liquid fill, in CSS rather than SVG. Two hard stops a
+     constant --liquid-gap apart make a meniscus; raising --liquid-level carries
+     it up the button. Below the level is Giallo Modena, above it Rosso Corsa,
+     so hovering fills the button the way it fills the mark.
+
+     The level runs from -gap (meniscus entirely below the button, so it reads
+     as pure red) to 1 (entirely above it, pure yellow). Starting at 0 instead
+     would leave a sliver of yellow along the bottom edge at rest. */
+  background: linear-gradient(
+    to top,
+    var(--giallo-modena) calc(var(--liquid-level) * 100%),
+    var(--rosso-corsa) calc((var(--liquid-level) + var(--liquid-gap)) * 100%)
+  );
   color: var(--dark);
   border-radius: var(--radius--btn); /* 9.54px */
   font-size: var(--text--btn-nav); /* 22px */
   font-weight: 800;
   text-transform: uppercase;
   line-height: 1;
-  transition: background var(--animation-default);
-}
-
-.store:hover,
-.store:focus-visible {
-  background: var(--accent-off);
 }
 
 .store__icon {
@@ -188,31 +215,19 @@
  *
  * The reference drives this with a Rive state machine; ours is SVG + GSAP.
  *
- * TWO SCALARS, AND NOTHING ELSE, CROSS THE JS/CSS LINE. The hover timeline
- * owns --menu-hover, the open/close timeline owns --menu-open, and every colour
- * below is composed from them here. That is what makes the two timelines
- * genuinely unable to conflict: hovering an already-open button cannot clobber
- * the open colour, because neither timeline ever writes a colour at all. Tween
- * `background-color` from one timeline and `stroke` from the other and you get
- * exactly the fight this avoids — whichever ran last wins, and reversing one
- * timeline strands the property the other set. */
+ * Two independent things happen here and they never touch the same property:
+ * the LIQUID FILL (hover, Rosso -> Giallo, shared with the store button and the
+ * monogram) lives entirely in the SVG gradient's stop offsets, and the SHAPE
+ * MORPH (open/close, bars -> X) lives entirely in the path data. So hovering an
+ * already-open button cannot disturb the X, and opening an already-hovered one
+ * cannot reset the fill. */
 
-/* Registered so the scalars are typed numbers rather than strings. Without
-   this, `calc(var(--menu-open) * 100%)` is unresolvable at parse time and the
-   whole color-mix() declaration is dropped.
- *
- * `inherits: true` is required, not stylistic. GSAP sets these on the button,
- * but the frame and the bars are its CHILDREN, and a custom property is
- * substituted at computed-value time on the element where it is DECLARED. A
- * non-inheriting scalar therefore reads back as its initial 0 inside any rule
- * written on a child — so the frame stayed transparent and the bars never
- * shifted, while the bar STROKE worked, because that one comes from --menu-ink,
- * which is declared on the button and inherits down already substituted. */
-@property --menu-hover {
-  syntax: '<number>';
-  initial-value: 0;
-  inherits: true;
-}
+/* Registered so it is a typed number rather than a string — an unregistered
+   custom property cannot be resolved inside calc() at parse time, which would
+   invalidate the whole declaration it appears in. `inherits: true` matters too:
+   the bars are CHILDREN of the button, and a custom property is substituted on
+   the element where it is DECLARED, so a non-inheriting scalar reads back as
+   its initial value inside any rule written on a child. */
 @property --menu-open {
   syntax: '<number>';
   initial-value: 0;
@@ -220,21 +235,7 @@
 }
 
 .menu-btn {
-  --menu-hover: 0;
   --menu-open: 0;
-
-  /* The button's identity colour, travelling Rosso Corsa -> Giallo Modena as it
-     opens. Mixing in oklab keeps the path through orange rather than through
-     the muddy grey sRGB interpolation gives between these two. */
-  --menu-accent: color-mix(
-    in oklab,
-    var(--giallo-modena) calc(var(--menu-open) * 100%),
-    var(--rosso-corsa)
-  );
-
-  /* Ink inverts under the hover fill, the way the reference's does: at rest the
-     mark is the accent on nothing, hovered it is the page ground on accent. */
-  --menu-ink: color-mix(in oklab, var(--bg) calc(var(--menu-hover) * 100%), var(--menu-accent));
 
   display: grid;
   place-items: center;
@@ -245,7 +246,7 @@
 }
 
 .menu-btn:focus-visible {
-  outline: 2px solid var(--menu-accent);
+  outline: 2px solid var(--giallo-modena);
   outline-offset: 3px;
 }
 
@@ -256,31 +257,48 @@
   block-size: 3.74rem;
 }
 
+/* Filled, so it pairs with the store button rather than reading as a different
+   class of control. The fill is a gradient whose stops main.ts drives. */
 .menu-btn__frame {
-  fill: color-mix(in oklab, var(--menu-accent) calc(var(--menu-hover) * 100%), transparent);
-  stroke: var(--menu-ink);
-  stroke-width: 1.6;
+  fill: url(#menu-liquid);
 }
 
+/* Only the colours live here; the OFFSETS are animated from main.ts, exactly as
+   with the monogram's pair. */
+.menu-btn__stop-fill {
+  stop-color: var(--giallo-modena);
+}
+.menu-btn__stop-base {
+  stop-color: var(--rosso-corsa);
+}
+
+/* Dark ink throughout. It has to stay legible over both ends of the fill, and
+   the page ground is the one colour that reads on Rosso and Giallo alike. */
 .menu-btn__bar {
   fill: none;
-  stroke: var(--menu-ink);
+  stroke: var(--dark);
   stroke-width: 2.8;
   stroke-linecap: round;
   will-change: transform;
 }
 
-/* The hover position shift. Deliberately on `translate` and not on the path
-   data: the morph timeline owns `d`, so keeping this on a separate property is
-   what lets someone hover mid-morph without the two cancelling each other.
-   Gated by (1 - --menu-open) so it decays to nothing as the X forms — a
-   translated X would sit visibly off-centre. */
+/* The hover position shift, on `translate` and NOT on the path data, because
+   the morph owns `d`. Keeping them on separate properties is what lets someone
+   hover mid-morph without the two cancelling each other. Gated by
+   (1 - --menu-open) so it decays to nothing as the X forms; a translated X
+   would sit visibly off-centre. */
 .menu-btn__bar[data-menu-bar='1'] {
   translate: calc(var(--menu-hover) * (1 - var(--menu-open)) * -2.6px) 0;
 }
 
 .menu-btn__bar[data-menu-bar='2'] {
   translate: calc(var(--menu-hover) * (1 - var(--menu-open)) * 2.6px) 0;
+}
+
+@property --menu-hover {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: true;
 }
 
 /* ============================================================== Hero */

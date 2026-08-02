@@ -144,7 +144,11 @@ html {
   --padding--large: 4rem;
   --padding--xlarge: 5rem;
   --gap: 1.25rem;
-  --nav-height: 6.25rem;
+  /* The reference's nav is 6.25rem (110px). Ours is taller on purpose: at
+     --wordmark-size 3.43rem the lockup stacks to 5.12rem, which does not fit
+     6.25rem once the 1.25rem padding is taken off both ends. Recorded here so
+     this is not later "corrected" back to the measured 110px and clipped. */
+  --nav-height: 7.9rem;
 
   /* These are referenced across main.css and home.css and were missing, which
      is not a cosmetic omission: an undefined var() makes the whole declaration

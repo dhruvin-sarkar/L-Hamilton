@@ -430,30 +430,38 @@ if (finePointer && !reducedMotion) {
  * liquid fill and a hover state.
  * ------------------------------------------------------------------ */
 
-function mountMonogram(): void {
-  const root = document.querySelector<HTMLAnchorElement>('.monogram');
-  const fill = document.querySelector<SVGStopElement>('.monogram__stop-fill');
-  const base = document.querySelector<SVGStopElement>('.monogram__stop-base');
-  if (!root || !fill || !base) return;
+/** The distance between the two stops. That gap IS the meniscus. */
+const LIQUID_GAP = 0.05;
 
-  // The two stops sit a constant distance apart; that gap is the meniscus, so
-  // it travels with the level rather than being animated separately.
-  const GAP = 0.05;
-  const state = { level: 0 };
+/**
+ * The liquid fill, shared by the monogram, the store button and the menu
+ * button. A level rises through the element on activation and drains back off
+ * it, carrying a meniscus — two colour stops a constant LIQUID_GAP apart — so
+ * the change reads as one surface travelling rather than a colour swap.
+ *
+ * The level runs from -LIQUID_GAP to 1, NOT 0 to 1. At 0 the meniscus sits
+ * exactly on the bottom edge, leaving a sliver of the fill colour showing at
+ * rest; parking it one gap lower puts it fully outside the shape. (SVG clamps
+ * stop offsets into 0..1, so out-of-range values resolve to a flat single
+ * colour at each end, which is precisely what is wanted.)
+ *
+ * Each caller supplies its own `apply`, because the three surfaces express a
+ * level differently — SVG stop offsets for the two marks, a custom property for
+ * the HTML button — but the physics is defined once, here.
+ */
+function mountLiquidFill(root: Element, apply: (level: number) => void): void {
+  const state = { level: -LIQUID_GAP };
+  const push = () => apply(state.level);
+  push();
 
-  const apply = () => {
-    fill.setAttribute('offset', String(state.level));
-    base.setAttribute('offset', String(state.level + GAP));
-  };
-  apply();
-
-  const to = (level: number, active: boolean) => {
+  const to = (active: boolean) => {
     gsap.killTweensOf(state);
+    const level = active ? 1 : -LIQUID_GAP;
     if (reducedMotion) {
       // No travel, but the state change still has to be perceivable — snap the
-      // level past the glyph so the colour flips outright.
+      // level past the shape so the colour flips outright.
       state.level = level;
-      apply();
+      push();
       return;
     }
     gsap.to(state, {
@@ -463,19 +471,44 @@ function mountMonogram(): void {
       // back faster than it climbs.
       duration: active ? 0.62 : 0.38,
       ease: active ? 'power3.out' : 'power2.in',
-      onUpdate: apply,
+      onUpdate: push,
     });
   };
 
-  // Pointer and keyboard both count as activation. A monogram that only
-  // responds to a mouse is invisible to anyone tabbing through the nav.
-  root.addEventListener('pointerenter', () => to(1 + GAP, true));
-  root.addEventListener('pointerleave', () => to(0, false));
-  root.addEventListener('focus', () => to(1 + GAP, true));
-  root.addEventListener('blur', () => to(0, false));
+  // Pointer and keyboard both count as activation. A control that only responds
+  // to a mouse is invisible to anyone tabbing through the nav.
+  root.addEventListener('pointerenter', () => to(true));
+  root.addEventListener('pointerleave', () => to(false));
+  root.addEventListener('focus', () => to(true));
+  root.addEventListener('blur', () => to(false));
+}
+
+/** Drives a pair of SVG gradient stops from one level. */
+function stopPair(fill: SVGStopElement, base: SVGStopElement): (level: number) => void {
+  return (level) => {
+    fill.setAttribute('offset', String(level));
+    base.setAttribute('offset', String(level + LIQUID_GAP));
+  };
+}
+
+function mountMonogram(): void {
+  const root = document.querySelector<HTMLAnchorElement>('.monogram');
+  const fill = document.querySelector<SVGStopElement>('.monogram__stop-fill');
+  const base = document.querySelector<SVGStopElement>('.monogram__stop-base');
+  if (!root || !fill || !base) return;
+  mountLiquidFill(root, stopPair(fill, base));
+}
+
+function mountStoreFill(): void {
+  const store = document.querySelector<HTMLAnchorElement>('.store');
+  if (!store) return;
+  // The HTML button expresses the level as a CSS gradient stop position rather
+  // than an SVG offset, but it is the same level on the same curve.
+  mountLiquidFill(store, (level) => store.style.setProperty('--liquid-level', String(level)));
 }
 
 mountMonogram();
+mountStoreFill();
 
 /* ------------------------------------------------------------------ *
  * Rolling button text
@@ -580,23 +613,19 @@ mountRollingText();
  * horizontally — an earlier pass here had them as unequal lengths, which is
  * what it looks like at a glance but is not what the artboard does.
  *
- * Opening runs each bar through three states: line -> lobe -> diagonal. The two
- * lobes meet at the centre and together read as an infinity symbol, so the
- * button passes through a recognisable shape on its way to the X instead of
- * just rotating into it.
+ * Opening takes each bar straight to one diagonal of an X, in a single move.
  *
- * All three states are generated below as FOUR CUBIC SEGMENTS, always. That is
- * the load-bearing detail: MorphSVGPlugin maps anchor i of one path to anchor i
- * of the next, so giving every state the same command structure makes the
- * correspondence something we choose rather than something the plugin guesses.
- * A hand-drawn loop with a different number of segments would still morph, but
- * which part of the bar becomes which part of the loop would be luck.
+ * Both states are generated below as FOUR CUBIC SEGMENTS, always. That is the
+ * load-bearing detail: MorphSVGPlugin maps anchor i of one path to anchor i of
+ * the next, so giving both the same command structure makes the correspondence
+ * something we choose rather than something the plugin guesses. It is also what
+ * keeps the motion clean — lerping between two straight lines whose anchors are
+ * evenly spaced yields a straight line at every intermediate step, so each bar
+ * stays a bar the whole way across and simply translates and rotates into
+ * place. Mismatched structures would let it bow mid-flight.
  * ------------------------------------------------------------------ */
 
 gsap.registerPlugin(MorphSVGPlugin);
-
-/** Handle length for a 90-degree elliptical arc: 4/3 * tan(pi/8). */
-const ARC_K = 0.5522847498307936;
 
 /** Every generated path uses this many cubic segments. See the note above. */
 const PATH_SEGMENTS = 4;
@@ -623,9 +652,6 @@ const MENU_ICON = {
   barStagger: 6.05,
   /** Measured bar centres. */
   barY: [29.2, 38.8],
-  /** Lobe radii. rx sets how far the infinity reaches; ry how fat it is. */
-  loopRx: 8.2,
-  loopRy: 7,
   /** Half-extent of the X along each axis, so each arm is this * sqrt(2) long. */
   crossReach: 7.6,
 } as const;
@@ -659,27 +685,9 @@ function lineNodes(a: Pt, b: Pt): PathNode[] {
   });
 }
 
-/**
- * A full ellipse as four cubics, starting at `fromDeg` and travelling in
- * `sweep`. The handles are the parametric tangent scaled by ARC_K, which is the
- * standard four-arc circle approximation — accurate to about one part in 4000,
- * far finer than a 66px icon can show.
- */
-function ellipseNodes(c: Pt, rx: number, ry: number, fromDeg: number, sweep: 1 | -1): PathNode[] {
-  return Array.from({ length: PATH_SEGMENTS + 1 }, (_, i) => {
-    const a = ((fromDeg + sweep * 90 * i) * Math.PI) / 180;
-    const p: Pt = { x: c.x + rx * Math.cos(a), y: c.y + ry * Math.sin(a) };
-    const h: Pt = {
-      x: -rx * Math.sin(a) * sweep * ARC_K,
-      y: ry * Math.cos(a) * sweep * ARC_K,
-    };
-    return { p, in: { x: p.x - h.x, y: p.y - h.y }, out: { x: p.x + h.x, y: p.y + h.y } };
-  });
-}
-
-/** The three states, as [bar1, bar2] pairs. */
-function menuIconPaths(): { idle: [string, string]; loop: [string, string]; cross: [string, string] } {
-  const { box, barLength, barStagger, barY, loopRx, loopRy, crossReach } = MENU_ICON;
+/** The two states, as [bar1, bar2] pairs. */
+function menuIconPaths(): { idle: [string, string]; cross: [string, string] } {
+  const { box, barLength, barStagger, barY, crossReach } = MENU_ICON;
   const c = box / 2;
   const half = barLength / 2;
 
@@ -689,15 +697,8 @@ function menuIconPaths(): { idle: [string, string]; loop: [string, string]; cros
     return emitPath(lineNodes({ x: xc - half, y }, { x: xc + half, y }));
   };
 
-  // Both lobes start at the centre. Bar 1 takes the left one and leaves heading
-  // up; bar 2 takes the right and leaves heading down. That opposition is what
-  // makes the strokes cross in the middle and read as one infinity symbol
-  // rather than two circles sitting side by side.
-  const loop: [string, string] = [
-    emitPath(ellipseNodes({ x: c - loopRx, y: c }, loopRx, loopRy, 0, -1)),
-    emitPath(ellipseNodes({ x: c + loopRx, y: c }, loopRx, loopRy, 180, -1)),
-  ];
-
+  // Bar 1 takes the top-left to bottom-right diagonal, bar 2 the other, so each
+  // travels to the arm nearer its resting position rather than crossing over.
   const cross: [string, string] = [
     emitPath(
       lineNodes({ x: c - crossReach, y: c - crossReach }, { x: c + crossReach, y: c + crossReach }),
@@ -707,7 +708,7 @@ function menuIconPaths(): { idle: [string, string]; loop: [string, string]; cros
     ),
   ];
 
-  return { idle: [bar(0), bar(1)], loop, cross };
+  return { idle: [bar(0), bar(1)], cross };
 }
 
 interface MenuIcon {
@@ -720,7 +721,7 @@ function mountMenuButton(): MenuIcon | null {
   const bar2 = document.querySelector<SVGPathElement>('[data-menu-bar="2"]');
   if (!btn || !bar1 || !bar2) return null;
 
-  const { idle, loop, cross } = menuIconPaths();
+  const { idle, cross } = menuIconPaths();
 
   // Write the generated idle state over the markup's fallback, so the morph's
   // starting point is bit-identical to what the generator produces. Hand-copied
@@ -728,57 +729,35 @@ function mountMenuButton(): MenuIcon | null {
   bar1.setAttribute('d', idle[0]);
   bar2.setAttribute('d', idle[1]);
 
-  /* Two timelines, and they cannot conflict — not by careful sequencing, but
-     because they write disjoint properties. Hover owns --menu-hover; open/close
-     owns --menu-open and the path data. Neither writes a colour: home.css
-     composes both scalars into every colour on the button. So hovering an
-     already-open button, or opening an already-hovered one, simply moves the
-     other axis. Nothing has to be reconciled. */
+  /* Two independent systems, and they cannot conflict — not by careful
+     sequencing, but because they touch disjoint properties. The liquid fill
+     owns the gradient's stop offsets; the morph owns the path data. So hovering
+     an already-open button cannot disturb the X, and opening an already-hovered
+     one cannot reset the fill. Nothing has to be reconciled. */
 
-  const hover = gsap.timeline({ paused: true }).to(btn, {
-    '--menu-hover': 1,
-    duration: reducedMotion ? 0.001 : 0.36,
-    ease: 'power2.out',
-  });
-
-  const toggle = gsap.timeline({ paused: true });
-
-  if (reducedMotion) {
-    // The loop is pure flourish, so it goes first. The state change itself must
-    // still happen — the X is information, not decoration.
-    toggle
-      .to(bar1, { morphSVG: cross[0], duration: 0.001 }, 0)
-      .to(bar2, { morphSVG: cross[1], duration: 0.001 }, 0)
-      .to(btn, { '--menu-open': 1, duration: 0.001 }, 0);
-  } else {
-    const STAGE = 0.52;
-    toggle
-      // Line -> lobe. `power2.in` leaves the bars slowly and arrives fast, so
-      // the loop snaps into being rather than easing into a mush.
-      .to(bar1, { morphSVG: loop[0], duration: STAGE, ease: 'power2.in' }, 0)
-      .to(bar2, { morphSVG: loop[1], duration: STAGE, ease: 'power2.in' }, 0)
-      // Lobe -> diagonal. `power2.out` mirrors it, and the in/out seam at the
-      // midpoint gives the infinity a beat of hang time before it collapses.
-      .to(bar1, { morphSVG: cross[0], duration: STAGE, ease: 'power2.out' }, STAGE)
-      .to(bar2, { morphSVG: cross[1], duration: STAGE, ease: 'power2.out' }, STAGE)
-      // Colour spans the WHOLE morph at a linear rate, not one stage of it, so
-      // the mark is exactly half-way between the two house colours at the same
-      // instant it is a full infinity symbol. Running it as its own tween would
-      // let the two drift apart under any easing change.
-      .to(btn, { '--menu-open': 1, duration: STAGE * 2, ease: 'none' }, 0);
+  const fill = document.querySelector<SVGStopElement>('.menu-btn__stop-fill');
+  const base = document.querySelector<SVGStopElement>('.menu-btn__stop-base');
+  if (fill && base) {
+    const applyStops = stopPair(fill, base);
+    mountLiquidFill(btn, (level) => {
+      applyStops(level);
+      // The small bar shift rides the same level, so it is impossible for the
+      // colour and the movement to fall out of step.
+      btn.style.setProperty('--menu-hover', String(Math.min(Math.max(level, 0), 1)));
+    });
   }
 
-  const setHover = (on: boolean) => {
-    if (on) hover.play();
-    else hover.reverse();
-  };
-
-  // Keyboard focus counts as hover. A control that only lights up for a mouse
-  // is invisible to anyone tabbing the nav.
-  btn.addEventListener('pointerenter', () => setHover(true));
-  btn.addEventListener('pointerleave', () => setHover(false));
-  btn.addEventListener('focus', () => setHover(true));
-  btn.addEventListener('blur', () => setHover(false));
+  // One move, bars straight to the X. `power2.inOut` because the bars have real
+  // distance to cover: easing both ends keeps the departure and the arrival
+  // soft, which is what reads as fluid rather than mechanical.
+  const duration = reducedMotion ? 0.001 : 0.62;
+  const toggle = gsap
+    .timeline({ paused: true })
+    .to(bar1, { morphSVG: cross[0], duration, ease: 'power2.inOut' }, 0)
+    .to(bar2, { morphSVG: cross[1], duration, ease: 'power2.inOut' }, 0)
+    // Same duration and ease as the morph, so the shift decays exactly as the
+    // diagonals form rather than trailing them.
+    .to(btn, { '--menu-open': 1, duration, ease: 'power2.inOut' }, 0);
 
   return {
     setOpen(open: boolean) {
