@@ -348,21 +348,35 @@
 
 /* ============================================================== Hero */
 
-.hero {
+/* Two screens tall, with the canvas pinned across both. The height comes from
+   the two sections inside it, not from a fixed value. */
+.hero-track {
   position: relative;
-  min-height: 100dvh;
-  overflow: clip;
-  isolation: isolate;
   background: var(--bg);
 }
 
-/* Canvas fills the stage and is inert to pointer events — the scene tracks the
-   pointer on window, so the furniture above it stays clickable. */
+/* Canvas fills the viewport and is inert to pointer events — the scene tracks
+   the pointer on window, so the furniture above it stays clickable.
+
+   Sticky rather than absolute, then pulled back out of flow with an equal and
+   opposite margin so the sections below stack OVER it rather than after it.
+   That is what keeps the portrait on screen while the narrative plate scrolls
+   up around it. */
 .hero__stage {
-  position: absolute;
-  inset: 0;
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  margin-bottom: -100dvh;
   z-index: 0;
   pointer-events: none;
+}
+
+.hero {
+  position: relative;
+  min-height: 100dvh;
+  isolation: isolate;
+  /* No background of its own: the pinned canvas behind it IS the background
+     now, and painting over it would hide the portrait entirely. */
 }
 
 .hero__stage canvas {
@@ -1133,18 +1147,52 @@
  * right-hand row justified to its end so it fills from the correct side.
  * ------------------------------------------------------------------ */
 
-.marquee {
-  padding-block: var(--padding--med);
+/* Second screen of the hero track. Full height so the shrunken portrait, which
+   lands dead centre of the viewport, sits in the middle of it. */
+.narrative {
+  position: relative;
+  min-block-size: 100dvh;
+  display: grid;
+  place-items: center;
   overflow: clip;
-  /* Contain the rows' overflow without a scrollbar appearing on the page. */
+}
+
+/* The looping rows sit BEHIND the portrait and the mark. */
+.narrative__marquee {
+  position: absolute;
+  inset-block: 0;
+  inset-inline: 0;
+  z-index: 0;
   display: grid;
   gap: 0.1em;
+  align-content: center;
+  overflow: clip;
+  pointer-events: none;
+}
+
+/* Both are declared AND read on .marquee__row itself, so `inherits: false` is
+   correct here — unlike the menu's tokens, which are set on a parent and read
+   on a child and therefore have to inherit. */
+@property --marquee-cursor {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: false;
+}
+
+@property --marquee-dir {
+  syntax: '<number>';
+  initial-value: 1;
+  inherits: false;
 }
 
 .marquee__row {
   display: flex;
   inline-size: 100%;
   overflow: hidden;
+  /* Cursor parallax lives on the ROW so it composes with the loop rather than
+     fighting it — the keyframes own translateX on the track inside. Rows carry
+     opposite signs, set per row in the markup order by main.ts. */
+  transform: translate3d(calc(var(--marquee-cursor, 0) * var(--marquee-dir, 1) * 4.2rem), 0, 0);
 }
 
 /* The loop only reads as seamless because the track holds several identical
@@ -1177,8 +1225,39 @@
   justify-content: flex-end;
 }
 
-.marquee.is-running .marquee__track {
+.narrative.is-running .marquee__track {
   animation-play-state: running;
+}
+
+/* ---------------------------------------------- Narrative mark (44) */
+
+.narrative__mark {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 0.9rem;
+  /* Sits above the shrunken portrait, which lands centred. */
+  align-self: start;
+  margin-block-start: clamp(3rem, 7vh, 6rem);
+}
+
+.mark-44 {
+  inline-size: clamp(4.4rem, 7vw, 6.6rem);
+  block-size: auto;
+  color: var(--accent);
+  overflow: visible;
+}
+
+.narrative__eyebrow {
+  font-size: var(--text-eyebrow, 0.72rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--fg);
+  margin: 0;
+  /* Rises into place behind a clip, per line, like the reference's eyebrow. */
+  overflow: hidden;
 }
 
 @keyframes marquee-left {
@@ -1240,11 +1319,47 @@
    carries the content, so nothing is lost. */
 @media (prefers-reduced-motion: reduce) {
   .marquee__track,
-  .marquee.is-running .marquee__track {
+  .narrative.is-running .marquee__track {
     animation: none;
   }
   .marquee__row {
     overflow-x: auto;
+    /* The cursor parallax is never wired up in this mode, but the declaration
+       still resolves — pin it flat rather than relying on the initial value. */
+    transform: none;
+  }
+
+  /* Unpin the portrait. With the shrink timeline never built, a sticky stage
+     would park a full-bleed portrait behind the narrative plate for two whole
+     screens with no way to get past it. Absolute puts it back in the hero
+     where it belongs and lets the page scroll normally. */
+  .hero__stage {
+    position: absolute;
+    inset-block-start: 0;
+    margin-block-end: 0;
+  }
+
+  /* The plate no longer has a portrait landing in it, so it does not need to
+     reserve a screen for one. */
+  .narrative {
+    min-block-size: 0;
+    padding-block: var(--padding--med);
+  }
+
+  .narrative__mark {
+    align-self: center;
+    margin-block-start: 0;
+  }
+
+  /* Both are scrubbed into view by the timeline that this mode skips. */
+  .mark-44 path {
+    stroke-dasharray: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+  .narrative__eyebrow {
+    transform: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
   }
 }
 

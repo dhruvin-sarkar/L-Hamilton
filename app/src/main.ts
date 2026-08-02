@@ -2,6 +2,7 @@ import './styles/main.css';
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { HeadScene } from './HeadScene';
 import {
   age,
@@ -184,7 +185,7 @@ if (!reducedMotion) {
 /** How many copies of the phrase each track holds. */
 const MARQUEE_COPIES = 4;
 
-const marquee = document.querySelector<HTMLElement>('.marquee');
+const marquee = document.querySelector<HTMLElement>('.narrative');
 if (marquee) {
   const rows: Record<string, string[]> = {
     left: championshipYears.map(String),
@@ -195,6 +196,10 @@ if (marquee) {
     const words = rows[row.dataset.marquee ?? 'left'] ?? [];
     const track = row.querySelector<HTMLElement>('[data-marquee-track]');
     if (!track || words.length === 0) continue;
+
+    // Cursor parallax pushes the two rows opposite ways, so the pair shears
+    // rather than sliding as one slab — the same reason they counter-scroll.
+    row.style.setProperty('--marquee-dir', row.dataset.marquee === 'right' ? '-1' : '1');
 
     // Several identical copies side by side. Translating the track by -100%
     // then lands copy 2 exactly where copy 1 started, which is the only reason
@@ -233,6 +238,26 @@ if (marquee) {
       { threshold: 0 },
     );
     runner.observe(marquee);
+
+    /* Cursor parallax. The rows already counter-scroll, so pushing them
+       opposite ways on pointer X shears the pair rather than sliding it — the
+       text reads as two planes at different depths instead of one slab.
+
+       quickTo retargets one running tween per row instead of spawning a tween
+       per pointermove, and the property is a custom prop so the loop keyframes
+       keep sole ownership of `transform` on the track inside. */
+    const rowEls = marquee.querySelectorAll<HTMLElement>('[data-marquee]');
+    const followX = gsap.quickTo(rowEls, '--marquee-cursor', {
+      duration: 0.9,
+      ease: 'power2.out',
+    });
+    window.addEventListener(
+      'pointermove',
+      (e) => {
+        followX((e.clientX / window.innerWidth) * 2 - 1);
+      },
+      { passive: true },
+    );
   }
 }
 
@@ -625,7 +650,7 @@ mountRollingText();
  * place. Mismatched structures would let it bow mid-flight.
  * ------------------------------------------------------------------ */
 
-gsap.registerPlugin(MorphSVGPlugin);
+gsap.registerPlugin(MorphSVGPlugin, ScrollTrigger);
 
 /** Every generated path uses this many cubic segments. See the note above. */
 const PATH_SEGMENTS = 4;
@@ -1009,6 +1034,12 @@ if (stage) {
     'pointermove',
     (e) => {
       if (locked) return;
+      /* Stop feeding the scene once the portrait has mostly shrunk. The fluid's
+         dye is advected and dissipates on its own, so cutting the input lets
+         the reveal decay out rather than snapping — and it stops a cursor over
+         the narrative plate painting a blob across a composition the pointer is
+         no longer part of. Same intent as the reference's uFilter ramp. */
+      if (head.shrink > 0.25) return;
       // -1..1, y flipped: screen y grows downward, the shader assumes y up.
       head.setPointer(
         (e.clientX / window.innerWidth) * 2 - 1,
@@ -1018,11 +1049,78 @@ if (stage) {
     { passive: true },
   );
 
+  /* ---------------------------------------------------------------- *
+   * Scroll: the portrait shrinks onto the narrative plate
+   *
+   * Measured off the reference at 1908x982: its sticky track is 1964px — two
+   * viewport heights exactly — and the shrink runs across the FIRST of them.
+   * Its landing box is 625x404 centred, which is where HeadScene.SHRUNK_HEIGHT
+   * comes from.
+   *
+   * `ease: 'none'` here is deliberate and not a shortcut: the power1.inOut
+   * curve is applied inside HeadScene.layout() instead, so a resize mid-scroll
+   * recomputes the correct scale without the timeline having to re-fire.
+   * ---------------------------------------------------------------- */
+
+  const heroTrack = document.querySelector<HTMLElement>('[data-hero-track]');
+  const markPath = document.querySelector<SVGPathElement>('.mark-44 path');
+  const eyebrow = document.querySelector<HTMLElement>('[data-hero-anim="msg"]');
+
+  if (heroTrack && !reducedMotion) {
+    const shrink = { t: 0 };
+    gsap.to(shrink, {
+      t: 1,
+      ease: 'none',
+      onUpdate: () => {
+        head.shrink = shrink.t;
+      },
+      scrollTrigger: {
+        trigger: heroTrack,
+        start: 'top top',
+        end: () => `+=${window.innerHeight}`,
+        scrub: true,
+        invalidateOnRefresh: true,
+      },
+    });
+
+    /* The mark draws over the LAST 30% of the shrink, finishing exactly as the
+       portrait lands. That window is measured, not chosen: the reference's own
+       tracker spans scrollY 687 -> 982 against a 982px viewport. */
+    if (markPath && eyebrow) {
+      const length = markPath.getTotalLength();
+      gsap.set(markPath, { strokeDasharray: length, strokeDashoffset: length });
+      gsap.set(eyebrow, { yPercent: 110, autoAlpha: 0 });
+
+      gsap
+        .timeline({
+          scrollTrigger: {
+            trigger: heroTrack,
+            start: () => `top+=${window.innerHeight * 0.7} top`,
+            end: () => `top+=${window.innerHeight} top`,
+            scrub: true,
+            invalidateOnRefresh: true,
+          },
+        })
+        // One path, four subpaths — a single dashoffset walks them in order, so
+        // the two numerals draw one after the other for free.
+        .to(markPath, { strokeDashoffset: 0, duration: 0.8, ease: 'power2.out' }, 0)
+        // The reference offsets its second element by 0.3 of a 0.8 beat; same
+        // proportion here so the label lands just behind the mark.
+        .to(eyebrow, { yPercent: 0, autoAlpha: 1, duration: 0.8, ease: 'power3.out' }, 0.3);
+    }
+  }
+
   // Live handle on the scene, the way the reference exposes window.landoGL.
   // Tuning the helmet's fit by eye and re-editing source each time is slow and
   // error-prone; being able to read and set values from the console makes it
   // measurable. Costs nothing, and doubles as the modding surface.
-  (window as unknown as Record<string, unknown>).hamiltonGL = { head, renderer };
+  // ScrollTrigger rides along because the scroll story is now the hard part to
+  // tune, and reading a trigger's live start/end/progress beats guessing.
+  (window as unknown as Record<string, unknown>).hamiltonGL = {
+    head,
+    renderer,
+    ScrollTrigger,
+  };
 
   /* Every frame of this scene is a fluid simulation with 20 pressure
      iterations, a two-pass contour field and a Three.js draw. None of it is
