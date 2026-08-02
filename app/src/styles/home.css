@@ -1062,11 +1062,18 @@
 }
 
 /* Reduced motion keeps the panel and its contents, and drops only the reveal:
-   with no ellipse to expand, everything is simply present. */
+   with no ellipse to expand, everything is simply present.
+ *
+ * EVERY clipped element has to be listed here. The footer links were missing,
+ * and their resting --wipe of 0 resolves to inset(0 100% 0 0) — so under
+ * reduced motion the contact and social links were clipped away to nothing and
+ * never came back, because the timeline that would have opened them is never
+ * built. Reduced motion must cost the animation, never the content. */
 @media (prefers-reduced-motion: reduce) {
   .menu,
   .menu__tile,
-  .menu__link {
+  .menu__link,
+  .menu__footer a {
     clip-path: none;
   }
 }

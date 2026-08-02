@@ -1168,7 +1168,19 @@ export class HeadScene {
   }
 
   update(): void {
-    const dt = this.clock.getDelta();
+    /* CLAMPED, and not merely defensively — unclamped this is a live bug.
+     *
+     * getDelta() reports time since the previous CALL, and requestAnimationFrame
+     * does not fire in a background tab. Switching away for ten seconds and back
+     * therefore hands the next frame a dt of 10, which drives `reveal`
+     * (dt / 1.1s) straight past 1 and advances runAutoSwipe by five whole
+     * swipes in one step: the intro is simply over and a swipe has visibly
+     * teleported. The same applies to any long stall — a slow asset decode, a
+     * breakpoint, or the loop being skipped while the menu covers the scene.
+     *
+     * A 15fps frame is the ceiling. Longer than that is not a frame that took a
+     * while, it is a gap, and a gap should not be integrated. */
+    const dt = Math.min(this.clock.getDelta(), 1 / 15);
     const t = this.clock.getElapsedTime();
 
     // Both offscreen stages step before the scene draws. Each binds and

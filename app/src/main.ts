@@ -805,13 +805,21 @@ if (menu && menuBtn) {
    * are what make the cascade read, so they are scaled together rather than
    * retuned individually. The overlay and tiles also drop from power4.out to
    * power3.out — same shape, less abrupt in the final third, which is where a
-   * power4 deceleration reads as a snap. */
+   * power4 deceleration reads as a snap.
+   *
+   * `at` is kept OUT of the tween objects rather than stripped at the call
+   * site. Spreading a config that carried it put `at` among the tween vars,
+   * where GSAP has no such property — it warned on every tween and tried to
+   * animate a name that does not exist. The motion looked right only because
+   * the position is also passed as the third argument, so the stray copy was
+   * silent apart from the console. Splitting the shape makes it
+   * unrepresentable. */
   const MENU_REVEAL = {
-    overlay: { at: 0, duration: 1, ease: 'power3.out' },
-    tiles: { at: 0.2, stagger: 0.05, duration: 1, ease: 'power3.out' },
-    links: { at: 0.47, stagger: 0.105, duration: 0.85, ease: 'back.out(0.8)' },
-    mark: { at: 0.62, duration: 0.7, ease: 'power2.inOut' },
-    footer: { at: 0.76, stagger: 0.08, duration: 0.56, ease: 'back.out(1.1)' },
+    overlay: { at: 0, tween: { duration: 1, ease: 'power3.out' } },
+    tiles: { at: 0.2, tween: { duration: 1, ease: 'power3.out', stagger: 0.05 } },
+    links: { at: 0.47, tween: { duration: 0.85, ease: 'back.out(0.8)', stagger: 0.105 } },
+    mark: { at: 0.62, tween: { duration: 0.7, ease: 'power2.inOut' } },
+    footer: { at: 0.76, tween: { duration: 0.56, ease: 'back.out(1.1)', stagger: 0.08 } },
   } as const;
 
   const tiles = menu.querySelectorAll<HTMLElement>('[data-menu-tile]');
@@ -859,12 +867,12 @@ if (menu && menuBtn) {
 
   if (!reducedMotion) {
     reveal
-      .to(menu, { '--menu-p': 1, ...MENU_REVEAL.overlay }, MENU_REVEAL.overlay.at)
-      .to(tiles, { '--tile-p': 1, ...MENU_REVEAL.tiles }, MENU_REVEAL.tiles.at)
+      .to(menu, { '--menu-p': 1, ...MENU_REVEAL.overlay.tween }, MENU_REVEAL.overlay.at)
+      .to(tiles, { '--tile-p': 1, ...MENU_REVEAL.tiles.tween }, MENU_REVEAL.tiles.at)
       .fromTo(
         links,
         { '--link-p': 0, y: 20 },
-        { '--link-p': 1, y: 0, ...MENU_REVEAL.links },
+        { '--link-p': 1, y: 0, ...MENU_REVEAL.links.tween },
         MENU_REVEAL.links.at,
       )
       // Wipe in from the left with a 15px rise, rather than fading — a fade
@@ -872,7 +880,7 @@ if (menu && menuBtn) {
       .fromTo(
         footerLinks,
         { '--wipe': 0, y: 15 },
-        { '--wipe': 1, y: 0, ...MENU_REVEAL.footer },
+        { '--wipe': 1, y: 0, ...MENU_REVEAL.footer.tween },
         MENU_REVEAL.footer.at,
       );
 
@@ -883,7 +891,7 @@ if (menu && menuBtn) {
       // number changes the moment the path or the viewport does.
       const length = mark.getTotalLength();
       gsap.set(mark, { strokeDasharray: length, strokeDashoffset: length });
-      reveal.to(mark, { strokeDashoffset: 0, ...MENU_REVEAL.mark }, MENU_REVEAL.mark.at);
+      reveal.to(mark, { strokeDashoffset: 0, ...MENU_REVEAL.mark.tween }, MENU_REVEAL.mark.at);
     }
   }
 
@@ -900,10 +908,17 @@ if (menu && menuBtn) {
       duration: 0.9,
       ease: 'power2.out',
     });
-    window.addEventListener('pointermove', (e) => {
-      if (menu.hidden) return;
-      followParallax(1 - (2 * e.clientY) / window.innerHeight);
-    });
+    // Passive, like the page's other two pointermove listeners: this never
+    // calls preventDefault, and saying so lets the browser skip waiting on it
+    // before it scrolls.
+    window.addEventListener(
+      'pointermove',
+      (e) => {
+        if (menu.hidden) return;
+        followParallax(1 - (2 * e.clientY) / window.innerHeight);
+      },
+      { passive: true },
+    );
   }
 
   const setOpen = (open: boolean) => {
@@ -1009,8 +1024,29 @@ if (stage) {
   // measurable. Costs nothing, and doubles as the modding surface.
   (window as unknown as Record<string, unknown>).hamiltonGL = { head, renderer };
 
+  /* Every frame of this scene is a fluid simulation with 20 pressure
+     iterations, a two-pass contour field and a Three.js draw. None of it is
+     worth doing when nobody can see it, and there are two ways that happens:
+     the menu covers the hero with an opaque panel, and scrolling past it moves
+     it out of the viewport entirely. (The third — a background tab — rAF
+     already handles by not firing at all.)
+
+     The loop stays scheduled and only the work is skipped, so there is no
+     restart to coordinate; update()'s clamped dt absorbs the gap on resume. */
+  let heroVisible = true;
+  new IntersectionObserver(
+    ([entry]) => {
+      // Default to visible: an observer that has not reported yet must never
+      // read as "hidden", or the opening frames are dropped.
+      heroVisible = entry?.isIntersecting ?? true;
+    },
+    // A little lead, so it is already drawing by the time it scrolls in.
+    { rootMargin: '10%' },
+  ).observe(stage);
+
   const frame = () => {
     requestAnimationFrame(frame);
+    if (!heroVisible || document.documentElement.hasAttribute('data-menu-open')) return;
     head.update();
     renderer.render(head.scene, head.camera);
   };
