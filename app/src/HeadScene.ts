@@ -883,8 +883,13 @@ export class HeadScene {
       // It is not static either: the reference runs its wireframe with
       // IS_WIREFRAME_ANIMATING true. This is that — a slow idle drift, on its
       // own clock, independent of input.
-      this.helmet.rotation.y = Math.sin(t * 0.28) * 0.045;
-      this.helmet.rotation.x = Math.sin(t * 0.21 + 1.3) * 0.028;
+      // Idle drift removed. It was reasoned from the reference exposing
+      // IS_WIREFRAME_ANIMATING, but that flag animates the WIREFRAME, not the
+      // object's transform — the shell is meant to sit dead still on the head
+      // and be animated only by the mask deciding where it survives. The drift
+      // also fought the portrait's own pointer parallax, since the helmet is a
+      // child of that plane and inherited its motion on top of its own.
+      this.helmet.rotation.set(0, 0, 0);
 
       this.helmetMat.uniforms.tCursorEffect!.value = this.fluid.texture;
     }
