@@ -477,6 +477,98 @@ function mountMonogram(): void {
 mountMonogram();
 
 /* ------------------------------------------------------------------ *
+ * Rolling button text
+ *
+ * Reverse-engineered off the reference's own STORE button rather than guessed.
+ * Its label lives in a wrapper with `overflow: clip` exactly one line tall,
+ * holding one `<span class="char">` per letter at `display: inline-block`. On
+ * hover each char animates transform translateY(0 -> -100%), staggered left to
+ * right: sampled mid-tween the offsets read -20.77, -20.38, -19.91, -19.34,
+ * -18.67px, so the first letter leads and each one after trails a little. It
+ * settles at exactly -100% of the line box.
+ *
+ * The split happens here rather than in the markup so the HTML keeps a plain,
+ * readable label and the accessible name stays a single text node — a screen
+ * reader announcing five separate character nodes is not a label, which is why
+ * the visible copy is aria-hidden and an sr-only twin carries the real name.
+ * ------------------------------------------------------------------ */
+
+function mountRollingText(): void {
+  const targets = document.querySelectorAll<HTMLElement>('[data-split-chars]');
+
+  for (const el of targets) {
+    const label = el.textContent ?? '';
+    if (!label) continue;
+
+    const buildLine = (modifier: string) => {
+      const line = document.createElement('span');
+      line.className = `btn-text__line${modifier}`;
+      for (const ch of label) {
+        const span = document.createElement('span');
+        span.className = 'char';
+        // Non-breaking space, so a gap between words survives becoming its own
+        // inline-block.
+        span.textContent = ch === ' ' ? ' ' : ch;
+        line.appendChild(span);
+      }
+      return line;
+    };
+
+    const outgoing = buildLine('');
+    const incoming = buildLine(' btn-text__line--in');
+    el.textContent = '';
+    el.append(outgoing, incoming);
+
+    const outChars = [...outgoing.children] as HTMLElement[];
+    const inChars = [...incoming.children] as HTMLElement[];
+
+    // The button, not the label, owns the hover — the label is inline and its
+    // box does not cover the padding the user is actually pointing at.
+    const button = el.closest<HTMLElement>('a, button') ?? el;
+
+    if (reducedMotion) {
+      // No roll. The incoming copy would otherwise sit permanently below the
+      // clip, so drop it and leave a plain static label.
+      incoming.remove();
+      continue;
+    }
+
+    gsap.set(inChars, { yPercent: 0 });
+
+    const roll = (active: boolean) => {
+      gsap.killTweensOf([...outChars, ...inChars]);
+      const opts = {
+        duration: 0.75,
+        /* expo.out, NOT the site's cubic-bezier(0.65, 0.05, 0, 1).
+         *
+         * Passing that string to GSAP does nothing useful — parsing a raw
+         * cubic-bezier needs the CustomEase plugin, so it silently falls back
+         * to the default power1.out. That was measurable rather than
+         * theoretical: at 260ms our first char sat at 56.5% of travel and
+         * 1-(1-0.347)^2 is 57.4%, which is exactly power1.out. The reference
+         * was at 94% by the same moment. expo.out gives ~91% there, so it
+         * tracks the real curve closely without pulling in a plugin. */
+        ease: 'expo.out',
+        /* Solved for, not picked. Normalised against total travel, the
+         * reference's spread across five letters is 9.5%. 24ms gave 18.5% and
+         * 12ms gave 5.3%, so interpolating between the two measured points
+         * lands here. */
+        stagger: 0.016,
+      };
+      gsap.to(outChars, { ...opts, yPercent: active ? -100 : 0 });
+      gsap.to(inChars, { ...opts, yPercent: active ? -100 : 0 });
+    };
+
+    button.addEventListener('pointerenter', () => roll(true));
+    button.addEventListener('pointerleave', () => roll(false));
+    button.addEventListener('focus', () => roll(true));
+    button.addEventListener('blur', () => roll(false));
+  }
+}
+
+mountRollingText();
+
+/* ------------------------------------------------------------------ *
  * Menu
  * ------------------------------------------------------------------ */
 

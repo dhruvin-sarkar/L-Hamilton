@@ -81,7 +81,14 @@
                   stroke-width="1.4"
                 />
               </svg>
-              Store
+              <!-- Two copies, deliberately. The visible one is split into
+                   per-character spans at runtime and is aria-hidden, because a
+                   screen reader reading "S t o r e" as five nodes is not a
+                   label. The sr-only copy is the real accessible name. This is
+                   the reference's own arrangement: a `screen-reader` div beside
+                   a `split-text="chars"` div carrying one span per letter. -->
+              <span class="sr-only">Store</span>
+              <span class="btn-text" aria-hidden="true" data-split-chars>Store</span>
             </a>
             <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu">
               <span class="sr-only">Open menu</span>

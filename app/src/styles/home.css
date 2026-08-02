@@ -127,6 +127,48 @@
   block-size: 1.4rem;
 }
 
+/* ---------------------------------------------------- Rolling button text
+ *
+ * Measured off the reference, not invented. Its label sits in a wrapper with
+ * `overflow: clip` one line tall, holding one `<span class="char">` per letter
+ * at `display: inline-block`. On hover each char animates
+ * `transform: translateY(0 -> -100%)`, staggered left to right — sampled
+ * mid-tween the offsets ran -20.77, -20.38, -19.91, -19.34, -18.67px, i.e. the
+ * first letter leads and each subsequent one trails slightly. It settles at
+ * exactly -100% of the line box.
+ *
+ * A second copy sits directly below and rides up into its place, so the label
+ * rolls over rather than emptying the button. */
+.btn-text {
+  position: relative;
+  display: block;
+  /* clip, not hidden: `hidden` establishes a scroll container, which lets a
+     focused child scroll the label out of alignment. */
+  overflow: clip;
+  line-height: 1.25;
+}
+
+.btn-text__line {
+  display: block;
+  white-space: nowrap;
+}
+
+/* The incoming copy is parked exactly one line below and pulled out of flow, so
+   the wrapper keeps the height of a single line. */
+.btn-text__line--in {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-start: 0;
+}
+
+.btn-text .char {
+  display: inline-block;
+  /* Preserved spaces would collapse to zero width once each char is its own
+     inline-block. */
+  white-space: pre;
+  will-change: transform;
+}
+
 /* Borderless and transparent on the reference — the icon carries it alone. */
 .menu-btn {
   display: grid;
