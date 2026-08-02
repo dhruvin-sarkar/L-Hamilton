@@ -38,7 +38,7 @@ import * as THREE from 'three';
  * actually know its shape — a square buffer stretched to a 2:1 viewport makes
  * the fluid travel at different speeds horizontally and vertically.
  */
-const SIM_HEIGHT = 160;
+const SIM_HEIGHT = 224;
 
 /**
  * Jacobi iterations for the pressure solve.
@@ -65,8 +65,24 @@ const DT = 0.014;
  *  pointer-delta gives, and the reason the reference's fluid actually moves. */
 const MOUSE_FORCE = 20;
 
-/** Reference's cursor_size, in simulation texels. */
-const CURSOR_SIZE = 80;
+/**
+ * Injection radius, as a fraction of viewport HEIGHT.
+ *
+ * This is the number that decides whether the cursor makes a teardrop or a
+ * disc, and the previous value was catastrophically wrong: it was expressed as
+ * texels over the buffer height (80 / 160), which is a radius of 0.5 — half the
+ * screen. Force was being dumped into an enormous ellipse every frame, so the
+ * threshold caught a huge round region and advection never got a chance to
+ * shape it.
+ *
+ * The teardrop is what advection DOES to a small injection. Inject tight, and
+ * the velocity field drags that spot along the pointer's path, stretching it
+ * and tapering the tail behind it. A sharp change of direction strands the old
+ * lobe while a new one forms at the cursor — which is the separation into
+ * distinct shapes rather than one travelling blob. None of that emerges unless
+ * the injection is small compared to the distance the fluid moves per frame.
+ */
+const CURSOR_RADIUS = 0.05;
 
 const quadVertex = /* glsl */ `
   varying vec2 vUv;
@@ -320,8 +336,18 @@ export class FluidCursor {
 
   /** Kinematic viscosity. Higher is thicker and more coupled. */
   viscosity = 30;
-  /** Jacobi iterations for the viscous diffusion. */
-  viscousIterations = 4;
+  /**
+   * Jacobi iterations for the viscous diffusion. ZERO by default — the pass is
+   * skipped entirely.
+   *
+   * The reference ships this effect with viscosity off, and that is the right
+   * call for the look being chased here: diffusion couples neighbouring
+   * velocities, which smooths the field and pulls separate lobes back into one
+   * mass. Turning it off is what lets a sharp change of direction strand the
+   * old shape and start a new one, and lets fast flicks throw ragged, erratic
+   * forms instead of tidy ovals. It also removes several fullscreen passes.
+   */
+  viscousIterations = 0;
 
   private readonly renderer: THREE.WebGLRenderer;
   private readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
@@ -398,7 +424,7 @@ export class FluidCursor {
       // Velocity decay. Close to 1 so the field keeps drifting after the
       // pointer stops — but this is velocity, not dye, so it still dies quickly
       // enough that the blob tracks the cursor rather than trailing behind it.
-      dissipation: { value: 0.98 },
+      dissipation: { value: 0.991 },
       fboSize: { value: fboSize },
     });
     this.viscousMat = shader(viscousFragment, {
@@ -470,8 +496,18 @@ export class FluidCursor {
       (m.uniforms.px!.value as THREE.Vector2).set(1 / w, 1 / h);
     }
     (this.advect.uniforms.fboSize!.value as THREE.Vector2).set(w, h);
-    // Keep the push round on any viewport.
-    (this.force.uniforms.scale!.value as THREE.Vector2).set(CURSOR_SIZE / w, CURSOR_SIZE / h);
+    /* Keep the push round ON SCREEN, not in UV.
+     *
+     * A given UV distance covers more pixels horizontally on a wide viewport,
+     * so an isotropic UV radius comes out as a horizontally-stretched ellipse.
+     * Dividing x by the aspect makes the injected spot circular where it is
+     * actually seen — and a circular seed is what lets the direction of travel,
+     * rather than the shape of the brush, decide which way the teardrop points.
+     */
+    (this.force.uniforms.scale!.value as THREE.Vector2).set(
+      CURSOR_RADIUS / aspect,
+      CURSOR_RADIUS,
+    );
   }
 
   private pass(material: THREE.ShaderMaterial, target: THREE.WebGLRenderTarget): void {
@@ -499,18 +535,28 @@ export class FluidCursor {
     this.pass(this.advect, this.velocity.write);
     this.velocity.swap();
 
-    // Viscous diffusion. Iterated Jacobi, seeded from the advected field.
-    this.viscousMat.uniforms.v!.value = this.viscosity;
-    this.viscousMat.uniforms.velocity!.value = this.velocity.read.texture;
-    for (let i = 0; i < this.viscousIterations; i++) {
-      this.viscousMat.uniforms.velocityNew!.value =
-        i === 0 ? this.velocity.read.texture : this.viscous.read.texture;
-      this.pass(this.viscousMat, this.viscous.write);
-      this.viscous.swap();
+    /* Viscous diffusion. Iterated Jacobi, seeded from the advected field.
+     *
+     * `working` is what the projection reads next, and it must NOT be assumed
+     * to be the viscous buffer: at zero iterations that target is never written
+     * and still holds whatever was last in it, so the rest of the solve would
+     * run on a stale frame and the fluid would visibly stutter. Off means the
+     * advected velocity passes straight through. */
+    let working = this.velocity.read.texture;
+    if (this.viscousIterations > 0) {
+      this.viscousMat.uniforms.v!.value = this.viscosity;
+      this.viscousMat.uniforms.velocity!.value = this.velocity.read.texture;
+      for (let i = 0; i < this.viscousIterations; i++) {
+        this.viscousMat.uniforms.velocityNew!.value =
+          i === 0 ? this.velocity.read.texture : this.viscous.read.texture;
+        this.pass(this.viscousMat, this.viscous.write);
+        this.viscous.swap();
+      }
+      working = this.viscous.read.texture;
     }
 
     // Project to divergence-free.
-    this.divergenceMat.uniforms.velocity!.value = this.viscous.read.texture;
+    this.divergenceMat.uniforms.velocity!.value = working;
     this.pass(this.divergenceMat, this.divergence);
 
     this.pressureMat.uniforms.divergence!.value = this.divergence.texture;
@@ -521,7 +567,7 @@ export class FluidCursor {
     }
 
     this.projectMat.uniforms.pressure!.value = this.pressure.read.texture;
-    this.projectMat.uniforms.velocity!.value = this.viscous.read.texture;
+    this.projectMat.uniforms.velocity!.value = working;
     this.pass(this.projectMat, this.velocity.write);
     this.velocity.swap();
 

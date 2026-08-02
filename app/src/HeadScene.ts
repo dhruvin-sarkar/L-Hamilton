@@ -26,7 +26,22 @@ const HERO_BASE = '/assets/hero';
  * stack filling in. Writing depth culls the hidden lines, which both fixes the
  * accumulation and gives a cleaner hidden-line wireframe. See loadHelmet.
  */
-const HELMET_URL = '/assets/helmet/helmet.gltf';
+/**
+ * GLB, not glTF + external .bin, and this is functional rather than cosmetic.
+ *
+ * The .gltf form references a separate `buffer.bin`, which gets served as
+ * `application/octet-stream` — exactly the extension and content type download
+ * managers (IDM and friends) are configured to intercept. When one does, it
+ * takes the request over, the page receives an empty 204, and GLTFLoader fails
+ * with "Failed to load buffer". Nothing on our side is wrong and no retry gets
+ * past it; it presents as a broken asset and cost a long time to diagnose,
+ * because curl and a cache-busted URL both succeed.
+ *
+ * A .glb is one request carrying JSON and binary in a single container, served
+ * as model/gltf-binary, which those tools leave alone. Also one fewer round
+ * trip and slightly smaller, since the JSON is minified on the way in.
+ */
+const HELMET_URL = '/assets/helmet/helmet.glb';
 const DRACO_PATH = '/assets/draco/';
 
 export interface HeadSceneOptions {
@@ -515,7 +530,7 @@ export class HeadScene {
          * ground where that ratio would vanish, so the colours are further
          * apart; this pulls the blend back so the result stays a tint rather
          * than a flood. The blob COLOURS the field — it does not replace it. */
-        uCursorIntensity: { value: 0.5 },
+        uCursorIntensity: { value: 0.95 },
       },
     });
 
