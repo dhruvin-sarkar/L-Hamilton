@@ -397,16 +397,16 @@ export class HeadScene {
    * white, which left individual edges invisible.
    */
   /**
-   * Raised from the wireframe era's 0.07. That number was tuned for a hidden-
-   * line mesh, where the lines themselves carried the read; a shaded shell at
-   * the same alpha is simply not there. At 0.30 the helmet is present as an
-   * object — crown, visor aperture and chin bar all legible — while the face
-   * still comes through it, which is how the reference's shell behaves.
+   * Back to wire mesh, so the lines carry the read again — but not back to the
+   * old 0.07. That value predated the livery: an untextured white cage needed
+   * to stay near-invisible to avoid reading as a net over the face, whereas
+   * textured lines are already dark and self-shading over most of the shell.
    *
-   * The cursor then lifts it to uRevealOpacity. The gap between the two is the
-   * whole effect, so widening the floor means widening the ceiling to match.
+   * 0.16 is the floor. The cursor lifts it to uRevealOpacity, and the GAP
+   * between the two is the entire blob effect — at 0.30/0.92 there was barely
+   * a stop of range left to show, which is why the masking read as absent.
    */
-  private baseHelmetOpacity = 0.3;
+  private baseHelmetOpacity = 0.16;
   /** Where layout() put the portrait, before any pointer drift is added. */
   private readonly headBase = new THREE.Vector2();
   /** How far the whole plane travels with the pointer, in world units. */
@@ -643,6 +643,10 @@ export class HeadScene {
         mat = new THREE.ShaderMaterial({
           vertexShader: helmetVertex,
           fragmentShader: helmetFragment,
+          // Wire mesh, but textured: the lines still sample the livery, so the
+          // shell reads as the 2020 Champion helmet drawn in wire rather than
+          // as a uniform white cage. Solid filled it in and hid the face.
+          wireframe: true,
           transparent: true,
           depthWrite: true,
           depthTest: true,
