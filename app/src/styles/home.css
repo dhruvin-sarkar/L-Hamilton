@@ -808,6 +808,33 @@
   display: none;
 }
 
+/* Contour backdrop.
+ *
+ * Applied as a MASK rather than a background-image, so the line colour stays a
+ * token: the SVG carries only the shapes in flat white, and the colour comes
+ * from background-color here. Baking the colour into the asset would leave a
+ * hex sitting outside the palette that no one would think to update.
+ *
+ * `cover` because the artwork is a fixed 16:9 and the panel is the viewport —
+ * `contain` would letterbox it and leave the curves stopping short of two
+ * edges, which reads as a seam rather than as terrain. */
+.menu__bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-color: var(--gl-outline);
+  -webkit-mask-image: url('/assets/menu/contours.svg');
+  mask-image: url('/assets/menu/contours.svg');
+  -webkit-mask-size: cover;
+  mask-size: cover;
+  -webkit-mask-position: center;
+  mask-position: center;
+  /* Far fainter than the hero's field. There it is the subject; here it sits
+     under photographs and 92px type and only has to keep the panel from
+     reading as a flat slab. */
+  opacity: 0.3;
+}
+
 /* The panel takes focus on open, but it is a container, not a control — a ring
    around the whole viewport says nothing useful. The links inside keep theirs. */
 .menu:focus,

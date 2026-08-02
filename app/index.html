@@ -320,6 +320,13 @@
          every time the menu was opened with a mouse, which read as an error
          state; keyboard users still Tab straight into the list from here. -->
     <div class="menu" id="menu" tabindex="-1" hidden>
+      <!-- The contour backdrop. The reference fills this slot with a static SVG
+           rather than its live field, and so does ours: the curves are
+           generated as iso-lines of a warped simplex field at the same
+           1/NOISE_DETAIL spacing the hero's shader bands at, so the menu reads
+           as the same topography without a second WebGL context running behind
+           an opaque panel. -->
+      <div class="menu__bg" aria-hidden="true"></div>
       <div class="menu__grid">
         <!-- Left: the collage. Decorative, so it is hidden from assistive tech
              entirely — the links carry all the meaning. -->
