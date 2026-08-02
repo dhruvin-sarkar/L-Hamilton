@@ -32,7 +32,44 @@
             <span class="wordmark__last">Hamilton</span>
           </h1>
 
-          <p class="monogram hero-in" aria-hidden="true">LH</p>
+          <!-- Monogram. The reference runs a Rive animation in this slot; this
+               is the SVG + GSAP equivalent. Paths were traced from the supplied
+               artwork, so the mark is 452 bytes of vector rather than a 2MB
+               raster, crisp at any size and addressable per-shape.
+
+               The fill is a gradient in USER SPACE across the whole viewBox, not
+               per-path object space, so the colour change reads as one liquid
+               level rising through the mark rather than three shapes
+               recolouring in step. -->
+          <a class="monogram hero-in" href="/index.html" aria-label="Lewis Hamilton — home">
+            <svg class="monogram__svg" viewBox="0 0 464 501" aria-hidden="true">
+              <defs>
+                <linearGradient
+                  id="lh-fill"
+                  gradientUnits="userSpaceOnUse"
+                  x1="0"
+                  y1="501"
+                  x2="0"
+                  y2="0"
+                >
+                  <!-- Two stops a hair apart: that gap is the meniscus. Both
+                       offsets are driven together by GSAP so the pair travels
+                       as a single edge. -->
+                  <stop class="monogram__stop-fill" offset="0" />
+                  <stop class="monogram__stop-base" offset="0.05" />
+                </linearGradient>
+              </defs>
+              <g fill="url(#lh-fill)">
+                <path
+                  d="M84 0 L148 61 L87 350 L86 365 L89 369 L95 371 L254 370 L240 442 L38 442 L25 439 L16 434 L2 416 L0 390 L5 359 L53 132 L84 1 Z"
+                />
+                <path
+                  d="M381 63 L453 63 L462 66 L463 74 L437 191 L379 498 L378 500 L374 497 L308 436 L336 291 L268 290 L283 213 L350 212 L352 210 L381 64 Z"
+                />
+                <path d="M226 64 L295 64 L248 292 L176 292 L225 65 Z" />
+              </g>
+            </svg>
+          </a>
 
           <div class="topbar hero-in">
             <a class="store" href="https://store.lewishamilton.com" target="_blank" rel="noopener">

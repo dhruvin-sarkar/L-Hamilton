@@ -220,7 +220,7 @@ const helmetFragment = /* glsl */ `
   uniform float uRevealOpacity;
   uniform float uHelmetHover;
   uniform float uTime;
-  uniform float uScanFrequency;
+  uniform vec2  uScanBounds;
   uniform float uScanSpeed;
   uniform bool  uScanAnimating;
   uniform vec3  uColor;
@@ -282,8 +282,14 @@ const helmetFragment = /* glsl */ `
      * pulse sweeps through it, which is why it reads as a reveal instead of a
      * fade. With the flag off the reference substitutes a flat 0.1, so the
      * static case is the band's own ceiling held constant. */
+    /* Normalised against the helmet's OWN vertical bounds, so exactly one
+     * period spans the shell and exactly one pulse is ever in flight. Banding
+     * on a raw frequency put several sawtooth periods across the helmet at
+     * once, which is why it read as a stack of stripes rather than a pulse.
+     * 0 at the crown, 1 at the chin, so the band runs top to bottom. */
+    float h = clamp((uScanBounds.y - vViewPosition.y) / max(uScanBounds.y - uScanBounds.x, 1e-4), 0.0, 1.0);
     float scan = uScanAnimating
-      ? pow(fract(-vViewPosition.y * uScanFrequency - uTime * uScanSpeed), 4.0)
+      ? pow(fract(h - uTime * uScanSpeed), 4.0)
       : 1.0;
 
     /* The scan modulates the IDLE alpha only. Under a cursor blob the shell
@@ -528,8 +534,13 @@ export class HeadScene {
   private readonly swipeTo = new THREE.Vector2();
 
   /** How long the pointer must be still before the site starts sweeping. */
-  private readonly idleBeforeAuto = 3.5;
-  private readonly swipeDuration = 2.47;
+  /* Faster than the reference by request. Its own cadence was 2.47s swipes
+   * starting 4.0s/5.5s apart; these keep the same alternating shape but tighten
+   * it, and start sweeping sooner after the pointer goes quiet. The alternation
+   * is worth keeping — a single fixed interval reads as a metronome. */
+  private readonly idleBeforeAuto = 1.6;
+  private readonly swipeDuration = 1.9;
+  private readonly swipeIntervals = [2.6, 3.4];
 
   private readonly ease: number;
   private readonly subjectScale: number;
@@ -720,11 +731,11 @@ export class HeadScene {
         // reaches every per-colour variant.
         uHelmetHover: { value: 0 },
         uTime: { value: 0 },
-        // The reference bands at 10 cycles per object unit. Ours is measured in
-        // view units across a helmet about 0.5 units tall, so a higher number
-        // is needed for a comparable band count on screen.
-        uScanFrequency: { value: 3.2 },
-        uScanSpeed: { value: 0.55 },
+        // The helmet's view-space y range, filled in by fitHelmet. One scan
+        // period spans exactly this, so exactly one pulse exists at a time.
+        uScanBounds: { value: new THREE.Vector2(-0.5, 0.5) },
+        // Cycles per second. One pulse, top to bottom, every second.
+        uScanSpeed: { value: 1.0 },
         uScanAnimating: { value: true },
         uColor: { value: new THREE.Color(0xffffff) },
       },
@@ -978,6 +989,21 @@ export class HeadScene {
     const { size, x, y, width, height } = this.helmetFit;
     this.helmet.scale.set((size * width) / this.aspect, size * height, size);
     this.helmet.position.set(x, y, 0.02);
+
+    /* Measure where the helmet actually sits, for the scan band.
+     *
+     * The band has to span the shell exactly, so this cannot be a constant —
+     * the helmet's height on screen depends on the portrait fit, which depends
+     * on the viewport. Measured after every fit instead.
+     *
+     * World y is used directly as view y: the camera is orthographic, unrotated
+     * and looking down -z, so the view matrix contributes only a z offset.
+     */
+    if (this.helmetMat) {
+      this.helmet.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(this.helmet);
+      (this.helmetMat.uniforms.uScanBounds!.value as THREE.Vector2).set(box.min.y, box.max.y);
+    }
   }
 
   /**
@@ -1003,7 +1029,7 @@ export class HeadScene {
       this.swipeT = -1;
       // Starts alternate 4.00s and 5.50s apart, so the wait after a 2.47s
       // swipe is the remainder of whichever interval is next.
-      const interval = this.swipeIndex % 2 === 0 ? 4.0 : 5.5;
+      const interval = this.swipeIntervals[this.swipeIndex % this.swipeIntervals.length]!;
       this.nextSwipeIn = Math.max(0, interval - this.swipeDuration);
       return;
     }

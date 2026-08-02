@@ -66,14 +66,31 @@
   left: 50%;
   top: 50%;
   translate: -50% -50%;
-  inline-size: 2.77rem; /* 49px */
-  text-align: center;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 1.6rem;
-  letter-spacing: -0.06em;
-  line-height: 1;
-  color: var(--text);
+  display: block;
+  /* Sized off the mark's own aspect (464:501) rather than a square box, so the
+     glyph is never letterboxed inside its link. */
+  block-size: 1.9rem;
+  inline-size: calc(1.9rem * 464 / 501);
+  /* The link is a hit target, not a chrome element. */
+  color: inherit;
+  text-decoration: none;
+}
+
+.monogram__svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  /* Visible, so the liquid overshoot at the top of the tween is not clipped. */
+  overflow: visible;
+}
+
+/* The two gradient stops. Their OFFSETS are animated from main.ts; only their
+   colours live here, so the palette stays in one place. */
+.monogram__stop-fill {
+  stop-color: var(--giallo-modena);
+}
+.monogram__stop-base {
+  stop-color: var(--rosso-corsa);
 }
 
 /* -------------------------------------- Store + menu (top-right, paired) */

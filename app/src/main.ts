@@ -1,5 +1,6 @@
 import './styles/main.css';
 import * as THREE from 'three';
+import gsap from 'gsap';
 import { HeadScene } from './HeadScene';
 import {
   age,
@@ -415,6 +416,65 @@ if (finePointer && !reducedMotion) {
   };
   requestAnimationFrame(followCursor);
 }
+
+/* ------------------------------------------------------------------ *
+ * Monogram
+ *
+ * The reference drives this slot with a Rive animation. This is the SVG + GSAP
+ * equivalent: the mark is filled by one gradient spanning the whole viewBox in
+ * user space, and activating it raises the boundary between the two stops from
+ * the bottom of the glyph to the top. Because the gradient is shared across all
+ * three paths, that reads as a single level rising through the mark rather than
+ * three shapes changing colour together — which is the difference between a
+ * liquid fill and a hover state.
+ * ------------------------------------------------------------------ */
+
+function mountMonogram(): void {
+  const root = document.querySelector<HTMLAnchorElement>('.monogram');
+  const fill = document.querySelector<SVGStopElement>('.monogram__stop-fill');
+  const base = document.querySelector<SVGStopElement>('.monogram__stop-base');
+  if (!root || !fill || !base) return;
+
+  // The two stops sit a constant distance apart; that gap is the meniscus, so
+  // it travels with the level rather than being animated separately.
+  const GAP = 0.05;
+  const state = { level: 0 };
+
+  const apply = () => {
+    fill.setAttribute('offset', String(state.level));
+    base.setAttribute('offset', String(state.level + GAP));
+  };
+  apply();
+
+  const to = (level: number, active: boolean) => {
+    gsap.killTweensOf(state);
+    if (reducedMotion) {
+      // No travel, but the state change still has to be perceivable — snap the
+      // level past the glyph so the colour flips outright.
+      state.level = level;
+      apply();
+      return;
+    }
+    gsap.to(state, {
+      level,
+      // Filling is the expressive direction, so it gets the longer, softer
+      // curve; draining is quicker and plainer, the way liquid actually falls
+      // back faster than it climbs.
+      duration: active ? 0.62 : 0.38,
+      ease: active ? 'power3.out' : 'power2.in',
+      onUpdate: apply,
+    });
+  };
+
+  // Pointer and keyboard both count as activation. A monogram that only
+  // responds to a mouse is invisible to anyone tabbing through the nav.
+  root.addEventListener('pointerenter', () => to(1 + GAP, true));
+  root.addEventListener('pointerleave', () => to(0, false));
+  root.addEventListener('focus', () => to(1 + GAP, true));
+  root.addEventListener('blur', () => to(0, false));
+}
+
+mountMonogram();
 
 /* ------------------------------------------------------------------ *
  * Menu

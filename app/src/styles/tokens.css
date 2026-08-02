@@ -46,7 +46,13 @@ html {
   --dark-tint-1: #332628;
   --dark-tint-2: #4a3a3c;
 
-  --accent: #ff2800; /* rosso corsa, replacing lime */
+  /* Ferrari's two house colours, named so nothing has to guess at a hex.
+     Every red on the site resolves to --rosso-corsa and every yellow to
+     --giallo-modena; do not introduce a one-off red beside them. */
+  --rosso-corsa: #ff2800;
+  --giallo-modena: #fff200;
+
+  --accent: var(--rosso-corsa); /* replacing the reference's lime */
   --accent-off: #c4212a; /* muted accent, for larger areas */
   --accent-zero: #ff280000; /* gradient stop */
 
