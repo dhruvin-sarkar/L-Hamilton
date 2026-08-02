@@ -85,7 +85,10 @@ html {
   --era-soft: var(--accent-off);
 
   /* ----------------------------------------------------------------- Type */
-  --text--eyebrow: 0.578125rem;
+  /* Measured, not guessed: the reference's .text-eyebrow computes to 11.0417px
+     against its 17.667px root, which is 0.625rem exactly. The old 0.578125rem
+     rendered every eyebrow on the site ~0.8px small. */
+  --text--eyebrow: 0.625rem;
   --text--reg: 1.6rem;
   --text--med: 2.76rem;
   --text--impact: 7.9375rem;

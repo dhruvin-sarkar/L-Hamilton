@@ -185,7 +185,10 @@
   min-block-size: 15.23rem; /* 269px */
   /* Top padding clears the notch: the outline's left edge starts ~19.5/244 of
      the way down, so content must not sit above that line. */
-  padding: 0.3rem 0.62rem 0.9rem;
+  /* 0.98rem inline = 17.3px, which is where the reference insets its circuit
+     (17px) and race name (18px). The old 0.62rem put both at 11 and was the
+     last measurable gap once the notch was un-mirrored. */
+  padding: 0.16rem 0.98rem 0.9rem;
   display: grid;
   /* label / circuit row / rule / crest row. The 1fr sits on the circuit row so
      the rule and crest stay pinned to the bottom of the card as the reference's
@@ -205,41 +208,59 @@
   inline-size: 100%;
   block-size: 100%;
   color: var(--hairline);
+  /* Mirrored, because the path was traced with the notch on the right and the
+     reference cuts it on the left. Flipping the drawing beats retracing the
+     coordinates by hand — the shape is a rounded rectangle with one diagonal,
+     so a horizontal flip is exactly the transform required and cannot
+     introduce the rounding drift a hand-edited path would. */
+  scale: -1 1;
 }
 
 .next-race__label,
 .next-race__name,
 .next-race__team {
-  font-size: var(--text--eyebrow); /* 0.578rem */
+  /* Measured off the reference: 11.0417px against a 17.667px root is exactly
+     0.625rem, which is what --text--eyebrow now carries. Weight 400, not 600 —
+     the reference's eyebrows are regular, and the extra weight was closing up
+     the letterforms at this size. */
+  font-size: var(--text--eyebrow);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.35;
 }
 
-/* The notch cuts the LEFT half of the top edge downward, leaving the right
-   half raised. The label sits in that raised strip, hard right. */
+/* The notch is on the LEFT, and the label sits in the cut-away it opens up —
+   flush to the card's top-left corner, measured at 0,0 on the reference. This
+   was mirrored: the outline had its raised strip on the right and the label
+   ranged hard right against it. That single mistake is what every other
+   difference in this card followed from. */
 .next-race__label {
-  color: var(--text);
-  text-align: right;
+  color: var(--text-muted);
+  text-align: left;
   white-space: nowrap;
-  font-size: 0.5rem;
   letter-spacing: 0.1em;
+  /* Cancel the card's own padding so the label reaches the corner. */
+  margin-block-start: -0.16rem;
+  margin-inline-start: -0.98rem;
 }
 
-/* Circuit above its name, crest above its team line — one rule for both rows. */
+/* Rows are LEFT-aligned, not centred. On the reference the circuit sits inset
+   17px and its name starts at 18px — a shared left edge, not a centre line. */
 .next-race__row {
   display: grid;
-  justify-items: center;
+  justify-items: start;
   align-content: center;
   gap: 0.4rem;
   color: var(--text);
-  text-align: center;
+  text-align: left;
 }
 
 .next-race__circuit {
   inline-size: 5.5rem; /* 97px */
-  block-size: 4.2rem;
+  /* 83px on the reference, not 74 — taller than our viewBox assumed, which is
+     why ours sat 11px low inside the card. */
+  block-size: 4.7rem;
   color: var(--accent);
   /* Drawn on, not faded in. The dash offset is set from the path's own measured
      length in main.ts — a hardcoded length is wrong the moment the path is
