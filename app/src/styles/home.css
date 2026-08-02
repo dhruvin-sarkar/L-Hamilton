@@ -880,34 +880,56 @@
   border-radius: 0.25rem;
   /* Each tile reveals with the same ellipse as the overlay, on its own delay. */
   clip-path: ellipse(120% calc(var(--tile-p, 0) * 100%) at 50% calc(var(--tile-p, 0) * 20%));
-  /* The muted resting state. A plain surface while these are placeholders —
-     the earlier striped fill read as a rendering fault rather than as a gap
-     waiting for a photograph. */
   background: var(--bg-elevated);
-  display: grid;
-  place-items: center;
+  /* The blend layers below must composite against THIS tile and nothing else.
+     Without an isolated stacking context a `saturation` layer reaches through
+     and desaturates whatever is painted behind the tile too. */
+  isolation: isolate;
 }
 
-/* The lit layer. Sits at 0 and crossfades to 1 when its page's link is
-   pointed at; the current page's own tile rests part-lit rather than dark, so
-   the collage is never entirely flat. */
-.menu__tile-lit {
+/* Every layer fills the tile; the photographs are 3:4 and the tile is nearer
+   square, so they crop rather than distort. */
+.menu__tile img,
+.menu__tile-desat,
+.menu__tile-tint,
+.menu__tile-soften {
   position: absolute;
   inset: 0;
-  opacity: var(--tile-lit, 0);
-  background: linear-gradient(
-    150deg,
-    color-mix(in oklab, var(--accent) 55%, var(--bg-elevated)),
-    color-mix(in oklab, var(--giallo-modena) 22%, var(--bg-elevated))
-  );
+  inline-size: 100%;
+  block-size: 100%;
 }
 
-.menu__tile span {
-  position: relative;
-  font-size: var(--text--eyebrow);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-faint);
+.menu__tile img {
+  object-fit: cover;
+}
+
+/* The muted treatment, three layers over the base photograph. This is the
+   reference's own recipe, and it is why its collage reads as a duotone rather
+   than as flat greyscale: `saturation` with black strips the colour out, then
+   `plus-lighter` with the page ground puts that ground back INTO the midtones,
+   so the greys are tinted rather than neutral. A filter: grayscale() would
+   land in the same tonal range and look markedly deader. */
+.menu__tile-desat {
+  background: #000;
+  mix-blend-mode: saturation;
+}
+
+.menu__tile-tint {
+  background: var(--gl-bg);
+  mix-blend-mode: plus-lighter;
+}
+
+.menu__tile-soften {
+  background: var(--bg-elevated);
+  opacity: 0.4;
+}
+
+/* The full-colour copy, sitting above the whole muted stack. Same file as the
+   base image, so it costs no extra request — only a second decode. Crossfades
+   0 -> 1 when its page's link is pointed at; the current page's own tile rests
+   part-lit, so the collage is never entirely flat. */
+.menu__tile-lit {
+  opacity: var(--tile-lit, 0);
 }
 
 /* --------------------------------------------------------- Right column */

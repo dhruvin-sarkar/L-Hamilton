@@ -337,22 +337,42 @@
         <div class="menu__images" aria-hidden="true">
           <div class="menu__col">
             <div class="menu__tile" data-menu-tile="0">
-              <div class="menu__tile-lit"></div>
-              <span>Home</span>
+              <img class="menu__tile-img" src="/assets/menu/home.webp" alt="" loading="lazy"
+                decoding="async" width="1080" height="1440" />
+              <div class="menu__tile-desat"></div>
+              <div class="menu__tile-tint"></div>
+              <div class="menu__tile-soften"></div>
+              <img class="menu__tile-lit" src="/assets/menu/home.webp" alt="" loading="lazy"
+                decoding="async" width="1080" height="1440" />
             </div>
             <div class="menu__tile" data-menu-tile="2">
-              <div class="menu__tile-lit"></div>
-              <span>Off Track</span>
+              <img class="menu__tile-img" src="/assets/menu/off-track.webp" alt="" loading="lazy"
+                decoding="async" width="1080" height="1440" />
+              <div class="menu__tile-desat"></div>
+              <div class="menu__tile-tint"></div>
+              <div class="menu__tile-soften"></div>
+              <img class="menu__tile-lit" src="/assets/menu/off-track.webp" alt="" loading="lazy"
+                decoding="async" width="1080" height="1440" />
             </div>
           </div>
           <div class="menu__col">
             <div class="menu__tile" data-menu-tile="1">
-              <div class="menu__tile-lit"></div>
-              <span>On Track</span>
+              <img class="menu__tile-img" src="/assets/menu/on-track.webp" alt="" loading="lazy"
+                decoding="async" width="1080" height="1440" />
+              <div class="menu__tile-desat"></div>
+              <div class="menu__tile-tint"></div>
+              <div class="menu__tile-soften"></div>
+              <img class="menu__tile-lit" src="/assets/menu/on-track.webp" alt="" loading="lazy"
+                decoding="async" width="1080" height="1440" />
             </div>
             <div class="menu__tile" data-menu-tile="3">
-              <div class="menu__tile-lit"></div>
-              <span>Calendar</span>
+              <img class="menu__tile-img" src="/assets/menu/calendar.webp" alt="" loading="lazy"
+                decoding="async" width="1080" height="1440" />
+              <div class="menu__tile-desat"></div>
+              <div class="menu__tile-tint"></div>
+              <div class="menu__tile-soften"></div>
+              <img class="menu__tile-lit" src="/assets/menu/calendar.webp" alt="" loading="lazy"
+                decoding="async" width="1080" height="1440" />
             </div>
           </div>
         </div>
@@ -370,9 +390,15 @@
                 <!-- Marks the page you are already on. Drawn here rather than
                      lifted from the reference: straight runs joined by eased
                      bends, which is a circuit read as a single line. -->
+                <!-- Spans the FULL viewBox width: 2 -> 410 of 412. The first
+                     version ran out at x=350, so the line stopped about 85% of
+                     the way across and left the last letter uncrossed. The
+                     segments sum to the width deliberately —
+                     2 +69 +34 +79 +34 +79 +34 +79 = 410 — leaving 2 units at
+                     each end for the round cap. -->
                 <svg class="menu__link-mark" viewBox="0 0 412 26" aria-hidden="true">
                   <path
-                    d="M2 13h58c14 0 20-9 34-9h64c14 0 20 18 34 18h64c14 0 20-9 34-9h60"
+                    d="M2 13h69c14 0 20-9 34-9h79c14 0 20 18 34 18h79c14 0 20-9 34-9h79"
                     fill="none"
                     stroke="currentColor"
                     stroke-width="4"
