@@ -24,6 +24,12 @@
    name over a heavy condensed surname, left-aligned and tightly stacked so the
    contrast reads as deliberate typography rather than two mismatched lines. */
 .wordmark {
+  /* One number sizes the lockup. The serif is derived from it below rather
+     than set independently, because the two lines only read as one mark while
+     they hold their ratio — tuning them separately is how a lockup drifts into
+     looking like two unrelated headlines. */
+  --wordmark-size: 2.45rem;
+
   display: grid;
   justify-items: start;
   inline-size: max-content;
@@ -44,7 +50,7 @@
      Corsa, surname in Giallo Modena. Same pairing the monogram animates
      between, so the nav reads as one system rather than two unrelated picks. */
   color: var(--rosso-corsa);
-  font-size: 1.22rem;
+  font-size: calc(var(--wordmark-size) * 0.616);
   line-height: 1;
   letter-spacing: 0;
   /* Nudge left: an italic's leading edge sits further right than a cap's. */
@@ -56,7 +62,7 @@
   font-family: var(--font-display);
   font-weight: 800;
   color: var(--giallo-modena);
-  font-size: 1.98rem;
+  font-size: var(--wordmark-size);
   line-height: 0.84;
   text-transform: uppercase;
   /* Negative tracking at display weight closes the gaps heavy condensed caps
