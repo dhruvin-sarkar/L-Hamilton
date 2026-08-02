@@ -241,6 +241,8 @@ const helmetFragment = /* glsl */ `
   uniform float uRevealOpacity;
   uniform vec3  uColor;
 
+  varying vec3 vNormal;
+
   void main() {
     // The fluid target is square and stretched to the viewport, and its splat is
     // pre-corrected for aspect, so a straight screen-space lookup matches.
@@ -256,12 +258,29 @@ const helmetFragment = /* glsl */ `
     float alpha = mix(uOpacity, uRevealOpacity, reveal);
 
     if (alpha < 0.002) discard;
-    gl_FragColor = vec4(uColor, alpha);
+
+    // Shading, so the shell reads as an object rather than a flat silhouette.
+    // There is no light rig in this scene and adding one would mean lit
+    // materials across 470 meshes, so this is a fixed two-term model evaluated
+    // from the view-space normal: a key from the upper left, and a rim that
+    // lifts the grazing angles. The rim is what makes the crown and the jaw
+    // read as curved while the shell is this translucent.
+    vec3 n = normalize(vNormal);
+    float key = max(dot(n, normalize(vec3(-0.35, 0.55, 0.75))), 0.0);
+    float rim = pow(1.0 - max(dot(n, vec3(0.0, 0.0, 1.0)), 0.0), 2.4);
+    vec3 shaded = uColor * (0.42 + 0.58 * key) + vec3(rim * 0.35);
+
+    gl_FragColor = vec4(shaded, alpha);
   }
 `;
 
 const helmetVertex = /* glsl */ `
+  varying vec3 vNormal;
   void main() {
+    // View space, not world: the shading rig above is defined relative to the
+    // camera, so the key stays put while the helmet does its idle drift rather
+    // than sweeping across the shell.
+    vNormal = normalMatrix * normal;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
 `;
@@ -364,11 +383,16 @@ export class HeadScene {
    * white, which left individual edges invisible.
    */
   /**
-   * Very low on purpose. On the reference the shell reads as a faint glass dome
-   * you notice at the silhouette, not as a visible triangulated mesh sitting on
-   * the face — the wireframe density is only legible once the cursor is near.
+   * Raised from the wireframe era's 0.07. That number was tuned for a hidden-
+   * line mesh, where the lines themselves carried the read; a shaded shell at
+   * the same alpha is simply not there. At 0.30 the helmet is present as an
+   * object — crown, visor aperture and chin bar all legible — while the face
+   * still comes through it, which is how the reference's shell behaves.
+   *
+   * The cursor then lifts it to uRevealOpacity. The gap between the two is the
+   * whole effect, so widening the floor means widening the ceiling to match.
    */
-  private baseHelmetOpacity = 0.07;
+  private baseHelmetOpacity = 0.3;
   /** Where layout() put the portrait, before any pointer drift is added. */
   private readonly headBase = new THREE.Vector2();
   /** How far the whole plane travels with the pointer, in world units. */
@@ -517,7 +541,6 @@ export class HeadScene {
     this.helmetMat = new THREE.ShaderMaterial({
       vertexShader: helmetVertex,
       fragmentShader: helmetFragment,
-      wireframe: true,
       transparent: true,
       // Depth writing ON, which is unusual for a transparent material and is
       // the point. Without it all 470 nested shells draw their interiors and
@@ -531,10 +554,47 @@ export class HeadScene {
         uOpacity: { value: this.baseHelmetOpacity },
         // What a blob lifts the shell to. The gap between these two is the
         // whole effect — too close and the fluid has nothing to show.
-        uRevealOpacity: { value: 0.5 },
+        uRevealOpacity: { value: 0.92 },
         uColor: { value: new THREE.Color(0xffffff) },
       },
     });
+
+    /* ---------------------------------------------------------------- *
+     * Livery
+     *
+     * The model ships 27 materials and ZERO textures — no images, no maps,
+     * just flat PBR colours (Italian names: VIOLA the shell, NERO the visor
+     * and gasket, ORO the trim). So there is nothing to sample; the colour a
+     * region should be is the baseColorFactor the file already carries.
+     *
+     * Taken verbatim rather than remapped onto the site palette. That is a
+     * deliberate call, not an oversight — the helmet keeps its own violet and
+     * gold instead of being pulled toward the page's red.
+     * ---------------------------------------------------------------- */
+
+    // One material per distinct source colour, sharing the template's uniform
+    // OBJECTS. Spreading copies the references, not the values, so the single
+    // writes to helmetMat.uniforms elsewhere (opacity, resolution, the fluid
+    // texture) still reach every variant — without that, each would need
+    // updating by hand every frame.
+    const shared = this.helmetMat.uniforms;
+    const byColour = new Map<string, THREE.ShaderMaterial>();
+    const variantFor = (colour: THREE.Color): THREE.ShaderMaterial => {
+      const key = colour.getHexString();
+      let mat = byColour.get(key);
+      if (!mat) {
+        mat = new THREE.ShaderMaterial({
+          vertexShader: helmetVertex,
+          fragmentShader: helmetFragment,
+          transparent: true,
+          depthWrite: true,
+          depthTest: true,
+          uniforms: { ...shared, uColor: { value: colour } },
+        });
+        byColour.set(key, mat);
+      }
+      return mat;
+    };
 
     // Keep the glTF's own node hierarchy and only swap materials. Reparenting
     // the raw geometries into a flat group drops every node's world transform,
@@ -543,7 +603,16 @@ export class HeadScene {
     group.traverse((child) => {
       const mesh = child as THREE.Mesh;
       if (!mesh.isMesh) return;
-      mesh.material = this.helmetMat!;
+      const source = mesh.material;
+      // baseColorFactor lands on .color, which is the entire livery this file
+      // has. Anything without one (the glTF's __DEFAULT) falls back to a mid
+      // grey rather than to black, which would read as a hole in the shell.
+      const single = Array.isArray(source) ? source[0] : source;
+      const colour = (single as THREE.MeshStandardMaterial | undefined)?.color?.clone();
+      // The glTF's own materials are replaced, so release them here rather
+      // than leaving 27 orphaned programs alive for the page's lifetime.
+      if (!Array.isArray(source)) (source as THREE.Material | undefined)?.dispose();
+      mesh.material = variantFor(colour ?? new THREE.Color(0x8a8a8a));
       // renderOrder must be set per mesh — Three reads it off the object being
       // drawn and does not inherit it from a parent Group. Left at the default
       // 0 these draw before the transparent portrait, which then paints over
