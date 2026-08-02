@@ -851,6 +851,9 @@ if (menu && menuBtn) {
     // `display: none` stops the clip-path from rendering at all.
     onReverseComplete: () => {
       menu.hidden = true;
+      // Cleared here rather than when the close starts, so the monogram fades
+      // back in as the panel finishes clearing instead of over the top of it.
+      document.documentElement.removeAttribute('data-menu-open');
     },
   });
 
@@ -918,8 +921,11 @@ if (menu && menuBtn) {
 
     // Drives the nav's own menu-open styling — the centred monogram hides,
     // because over the open panel it sits on the collage and reads as a stray
-    // graphic rather than as branding.
-    document.documentElement.toggleAttribute('data-menu-open', open);
+    // graphic rather than as branding. Set on the way in; on the way out the
+    // reveal timeline clears it once the panel has actually gone (and there is
+    // no timeline under reduced motion, so clear it here instead).
+    if (open) document.documentElement.setAttribute('data-menu-open', '');
+    else if (reducedMotion) document.documentElement.removeAttribute('data-menu-open');
 
     // Back to the resting arrangement each time it opens: the current page's
     // tile part-lit, the rest dark.

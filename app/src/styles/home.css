@@ -127,15 +127,31 @@
    a stray graphic rather than as branding. Faded rather than removed so it does
    not pop out of existence, and made inert so it cannot be tabbed to while it
    is invisible. */
-[data-menu-open] .monogram {
+/* BOTH of these are deliberately over-qualified, and it is load-bearing.
+ * `.is-ready .hero-in` further down this file also sets opacity on the
+ * monogram, at the same 0-2-0 specificity and LATER in the source, so it won
+ * every tie: opacity stayed pinned at 1 and only `visibility` ever changed,
+ * which is why the mark blinked out and back with no fade at all. Three
+ * selectors beats it outright, independent of source order.
+ *
+ * The same rule is why the transition has to be restated here — otherwise the
+ * monogram inherits the hero entrance's 0.9s curve and its --in-delay, and the
+ * mark drifts back in long after the panel has gone. */
+.nav-inner .monogram.hero-in {
+  transition:
+    opacity 0.45s var(--cubic-default),
+    visibility 0s linear 0s;
+}
+
+[data-menu-open] .nav-inner .monogram {
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
-  /* Delay the visibility flip until the fade has finished, so it does not
-     vanish instantly; on the way back both run at once. */
+  /* Hold the visibility flip until the fade has finished, so it does not blink
+     out; on the way back both run together from the first frame. */
   transition:
-    opacity 0.4s var(--cubic-default),
-    visibility 0s linear 0.4s;
+    opacity 0.45s var(--cubic-default),
+    visibility 0s linear 0.45s;
 }
 
 .monogram__svg {
