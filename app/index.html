@@ -20,13 +20,16 @@
            bottom-l   next race card
            bottom-r   tap-to-lock control
     -->
-    <main id="main">
-      <section class="hero" data-era="ferrari">
-        <div class="hero__stage" id="stage" aria-hidden="true"></div>
+    <!-- Nav: wordmark left, monogram centre, store + menu right.
+         Heights and paddings are the reference's, in rem.
 
-        <!-- Nav: wordmark left, monogram centre, store + menu right.
-             Heights and paddings are the reference's, in rem. -->
-        <div class="nav-inner">
+         It lives OUTSIDE the hero and is fixed, as the reference's is. That is
+         structural, not stylistic: the nav has to paint above the menu overlay
+         so the close button stays reachable, and `.hero` sets
+         `isolation: isolate`, which opens a stacking context that would trap
+         any z-index set on a descendant inside the hero. Nested here, the nav
+         disappeared entirely the moment the menu opened. -->
+    <div class="nav-inner">
           <h1 class="wordmark hero-in">
             <span class="wordmark__first">Lewis</span>
             <span class="wordmark__last">Hamilton</span>
@@ -136,7 +139,11 @@
               </svg>
             </button>
           </div>
-        </div>
+    </div>
+
+    <main id="main">
+      <section class="hero" data-era="ferrari">
+        <div class="hero__stage" id="stage" aria-hidden="true"></div>
 
         <!-- Bottom-left -->
         <aside class="next-race hero-in" aria-labelledby="next-race-h">
@@ -184,7 +191,10 @@
           <div class="next-race__row is-2">
             <!-- Laurel wreath around a helmet. Original artwork: the reference
                  uses a proprietary Rive animation in this slot. -->
+            <!-- Wrapped in an id so the menu can <use> the same mark rather
+                 than carrying a second copy that would drift out of sync. -->
             <svg class="next-race__crest" viewBox="0 0 64 44" aria-hidden="true">
+              <g id="nr-crest">
               <g fill="currentColor">
                 <!-- Helmet: dome and chin bar, visor aperture knocked out. -->
                 <path
@@ -223,6 +233,7 @@
               <!-- Right branch is the left one mirrored about the centre line,
                    so the two can never drift apart when the left is tweaked. -->
               <use href="#nr-branch" transform="matrix(-1 0 0 1 64 0)" />
+              </g>
             </svg>
             <span class="next-race__team reveal-text">
               <span data-bind="team">Ferrari</span>
@@ -290,16 +301,119 @@
       </section>
     </main>
 
-    <!-- ===================================================== Menu panel -->
-    <div class="menu" id="menu" hidden>
-      <nav class="menu__inner shell" aria-label="Primary">
-        <ul class="menu__list">
-          <li><a href="/index.html">Home</a></li>
-          <li><a href="/on-track.html">On Track</a></li>
-          <li><a href="/off-track.html">Off Track</a></li>
-          <li><a href="/calendar.html">Calendar</a></li>
-        </ul>
-      </nav>
+    <!-- ===================================================== Menu panel
+         Structure and geometry measured off the reference's own overlay at a
+         1908px viewport, converted to rem so it scales with the fluid root:
+
+           overlay   fixed, full bleed, BELOW the nav (the wordmark, store and
+                     close button stay visible and usable over it)
+           grid      two columns, space-between
+           left      two columns of image tiles, offset +/-5.98rem from each
+                     other so they interlock rather than lining up
+           right     the four links, then the crest, then the team eyebrow,
+                     with the contact and social links pinned to the bottom
+
+         Every panel reveals through the same expanding ellipse; see home.css
+         for why that shape and not a slide or a fade. -->
+    <!-- tabindex="-1" so opening can move focus to the panel itself rather than
+         to the first link. Focusing a link instead put a focus ring on HOME
+         every time the menu was opened with a mouse, which read as an error
+         state; keyboard users still Tab straight into the list from here. -->
+    <div class="menu" id="menu" tabindex="-1" hidden>
+      <div class="menu__grid">
+        <!-- Left: the collage. Decorative, so it is hidden from assistive tech
+             entirely — the links carry all the meaning. -->
+        <div class="menu__images" aria-hidden="true">
+          <div class="menu__col">
+            <div class="menu__tile" data-menu-tile><span>Helmet</span></div>
+            <div class="menu__tile" data-menu-tile><span>Podium</span></div>
+          </div>
+          <div class="menu__col">
+            <div class="menu__tile" data-menu-tile><span>Car</span></div>
+            <div class="menu__tile" data-menu-tile><span>Portrait</span></div>
+          </div>
+        </div>
+
+        <!-- Right: navigation and identity. -->
+        <div class="menu__side">
+          <div class="menu__block">
+            <nav class="menu__links" aria-label="Primary">
+              <a class="menu__link is-current" href="/index.html" aria-current="page">
+                <!-- Same arrangement as the store button: the visible copy is
+                     split per character and hidden from assistive tech, and an
+                     sr-only twin carries the real accessible name. -->
+                <span class="sr-only">Home</span>
+                <span class="menu__link-text" aria-hidden="true" data-split-chars>Home</span>
+                <!-- Marks the page you are already on. Drawn here rather than
+                     lifted from the reference: straight runs joined by eased
+                     bends, which is a circuit read as a single line. -->
+                <svg class="menu__link-mark" viewBox="0 0 412 26" aria-hidden="true">
+                  <path
+                    d="M2 13h58c14 0 20-9 34-9h64c14 0 20 18 34 18h64c14 0 20-9 34-9h60"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </a>
+              <a class="menu__link" href="/on-track.html">
+                <span class="sr-only">On Track</span>
+                <span class="menu__link-text" aria-hidden="true" data-split-chars>On Track</span>
+              </a>
+              <a class="menu__link" href="/off-track.html">
+                <span class="sr-only">Off Track</span>
+                <span class="menu__link-text" aria-hidden="true" data-split-chars>Off Track</span>
+              </a>
+              <a class="menu__link" href="/calendar.html">
+                <span class="sr-only">Calendar</span>
+                <span class="menu__link-text" aria-hidden="true" data-split-chars>Calendar</span>
+              </a>
+            </nav>
+
+            <!-- Laurel wreath around a helmet, reused from the next-race card so
+                 the two read as the same mark. -->
+            <!-- Crest and team line are one unit: they sit 22px apart, half the
+                 44px that separates this group from the links above it. -->
+            <div class="menu__team">
+              <svg class="menu__crest" viewBox="0 0 64 44" aria-hidden="true">
+                <use href="#nr-crest" />
+              </svg>
+              <p class="menu__eyebrow">Scuderia Ferrari since 2025</p>
+            </div>
+          </div>
+
+          <div class="menu__footer">
+            <!-- PLACEHOLDER LINKS. Deliberately inert: pointing these at a
+                 guessed handle would be inventing data, and a nav link that
+                 goes to the wrong account is worse than one that goes nowhere.
+                 Swap the hrefs once the real accounts are confirmed. -->
+            <a class="menu__contact" href="#" data-placeholder-href>
+              <span class="sr-only">Business enquiries</span>
+              <span class="btn-text" aria-hidden="true" data-split-chars>Business enquiries</span>
+            </a>
+            <div class="menu__socials">
+              <a href="#" data-placeholder-href>
+                <span class="sr-only">Instagram</span>
+                <span class="btn-text" aria-hidden="true" data-split-chars>Instagram</span>
+              </a>
+              <a href="#" data-placeholder-href>
+                <span class="sr-only">X</span>
+                <span class="btn-text" aria-hidden="true" data-split-chars>X</span>
+              </a>
+              <a href="#" data-placeholder-href>
+                <span class="sr-only">TikTok</span>
+                <span class="btn-text" aria-hidden="true" data-split-chars>TikTok</span>
+              </a>
+              <a href="#" data-placeholder-href>
+                <span class="sr-only">YouTube</span>
+                <span class="btn-text" aria-hidden="true" data-split-chars>YouTube</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- ========================================================= Footer -->

@@ -29,9 +29,16 @@
 /* =============================================================== Nav */
 
 .nav-inner {
-  position: absolute;
+  /* Fixed, and a sibling of <main> rather than a child of the hero — see the
+     note in index.html. The reference's nav is fixed too, so this also stops
+     ours scrolling away with the hero. */
+  position: fixed;
   inset: 0 0 auto;
-  z-index: 10;
+  /* Above the menu overlay (z-index 25), matching the reference's z-index 120.
+     The wordmark, store button and close button all have to stay visible and
+     clickable while the menu is open — this overlay is not a modal that covers
+     the chrome, it opens beneath it. */
+  z-index: 120;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -203,7 +210,10 @@
   inset-inline-start: 0;
 }
 
-.btn-text .char {
+/* Keyed off the generated class alone, not scoped under .btn-text: main.ts
+   splits every [data-split-chars] label the same way, and the menu's links use
+   the same roll without being buttons. */
+.char {
   display: inline-block;
   /* Preserved spaces would collapse to zero width once each char is its own
      inline-block. */
@@ -680,43 +690,296 @@
   }
 }
 
-/* ============================================================== Menu */
+/* ============================================================== Menu
+ *
+ * THE REVEAL IS AN EXPANDING ELLIPSE, and that is the whole character of this
+ * transition. Measured off the reference: every panel carries
+ *
+ *     clip-path: ellipse(120% <p*100>% at 50% <p*20>%)
+ *
+ * with one progress value p running 0 -> 1. Because the centre sits at a fifth
+ * of the current height, the shape grows downward from the top edge while its
+ * own centre travels down with it, so the reveal arrives as a shallow curved
+ * front rather than a straight horizontal wipe. A slide or a fade would carry
+ * the same content and feel nothing like it.
+ *
+ * The x-radius stays at 120% for the overlay and the tiles — wider than the box
+ * so the curve is only ever visible along the bottom edge, never pinching in at
+ * the sides. The LINKS are the exception: theirs runs 30% -> 120%, which makes
+ * each line open outward from its own centre as it drops in.
+ *
+ * Ordering is a cascade, not a single tween — overlay first, tiles behind it,
+ * then the links last, each staggered. See main.ts for the measured timings.
+ * ------------------------------------------------------------------ */
+
+/* Three separate progress values, because the three groups run on their own
+   delays and easings. Each is set by GSAP on the very element whose rule reads
+   it, so `inherits: false` is correct here — substitution happens on that
+   element and there is nothing to inherit down. */
+@property --menu-p {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: false;
+}
+@property --tile-p {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: false;
+}
+@property --link-p {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: false;
+}
 
 .menu {
+  --menu-p: 0;
+
   position: fixed;
   inset: 0;
-  z-index: 200;
-  display: grid;
-  place-items: center;
-  background: color-mix(in srgb, var(--dark) 94%, transparent);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
+  /* BELOW the nav on purpose. The reference keeps its nav at a far higher layer
+     so the wordmark, store button and close button stay visible and clickable
+     over the open menu; the overlay is not a modal that covers the chrome. */
+  z-index: 25;
+  background: var(--bg);
+  clip-path: ellipse(120% calc(var(--menu-p) * 100%) at 50% calc(var(--menu-p) * 20%));
 }
 
 .menu[hidden] {
   display: none;
 }
 
-.menu__list {
-  list-style: none;
-  display: grid;
-  gap: 0.25em;
-  text-align: center;
+/* The panel takes focus on open, but it is a container, not a control — a ring
+   around the whole viewport says nothing useful. The links inside keep theirs. */
+.menu:focus,
+.menu:focus-visible {
+  outline: none;
 }
 
-.menu__list a {
+.menu__link:focus-visible {
+  outline: 2px solid var(--giallo-modena);
+  outline-offset: 4px;
+  border-radius: 0.25rem;
+}
+
+.menu__grid {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.25rem; /* 22.08px */
+  block-size: 100%;
+  /* 44.16 top/bottom. The inline padding is deliberately asymmetric and
+     includes the reference's outer container inset: 22.08 + 39.75 on the left,
+     22.08 + 141.33 on the right, which is what pulls the link column well in
+     from the edge while the tiles sit close to it. */
+  padding: 2.5rem 9.25rem 2.5rem 3.5rem;
+}
+
+/* ------------------------------------------------------- Image collage */
+
+.menu__images {
+  display: flex;
+  gap: 3.75rem; /* 66.25px, the same gap the tiles use vertically */
+  /* The columns are TALLER than the track (two 442px tiles plus a 66px gap is
+     950 against a 903 track), so centring them parks their base at -23.6px,
+     which is exactly where the reference's sit before their own offset is
+     applied. The overflow that creates is clipped by the overlay. */
+  align-items: center;
+}
+
+.menu__col {
+  display: flex;
+  flex-direction: column;
+  gap: 3.75rem; /* 66.25px */
+  inline-size: 23rem; /* 406.3px */
+}
+
+/* The two columns are pushed in opposite directions so the tiles interlock
+   instead of forming a plain 2xN grid. The reference offsets by +/-105.57px.
+   Applied as a transform, not a margin, so it composes with the centring above
+   rather than fighting it. */
+.menu__col:first-child {
+  transform: translateY(5.98rem);
+}
+.menu__col:last-child {
+  transform: translateY(-5.98rem);
+}
+
+.menu__tile {
+  position: relative;
+  block-size: 25rem; /* 442px */
+  flex: none;
+  overflow: clip;
+  border-radius: 0.25rem;
+  /* Each tile reveals with the same ellipse as the overlay, on its own delay. */
+  clip-path: ellipse(120% calc(var(--tile-p, 0) * 100%) at 50% calc(var(--tile-p, 0) * 20%));
+  /* Placeholder treatment. Real photography will sit under the same blend
+     stack the reference uses: a `saturation` layer to strip colour, then
+     `plus-lighter` with the page ground to tint it back. That pair is why its
+     images read as a duotone rather than as flat greyscale. */
+  background:
+    repeating-linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent) 8%, transparent) 0 2px,
+      transparent 2px 12px
+    ),
+    var(--bg-elevated);
+  display: grid;
+  place-items: center;
+}
+
+.menu__tile span {
+  font-size: var(--text--eyebrow);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/* --------------------------------------------------------- Right column */
+
+.menu__side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: none;
+  inline-size: 27.3rem; /* 481.7px */
+}
+
+/* `auto` on the block axis centres this in the leftover space AND pushes the
+   footer to the bottom, which is what the reference's layout resolves to. */
+.menu__block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem; /* 44.17px */
+  margin-block: auto;
+  /* Not centred. The reference leaves 186px above this block and 157px below,
+     biasing it up toward the nav; `auto` margins alone would split the
+     difference evenly and sit it 36px too high. A transform rather than a
+     margin, so the footer below keeps its own measured position. */
+  transform: translateY(0.8rem);
+}
+
+.menu__links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.menu__link {
+  position: relative;
+  display: block;
+  /* Clips the per-character roll, exactly as the store button does. */
+  overflow: clip;
+  text-align: center;
+  color: var(--text);
+  text-decoration: none;
+  /* The links open outward as they drop, so their x-radius animates too. */
+  clip-path: ellipse(
+    calc(30% + var(--link-p, 0) * 90%) calc(var(--link-p, 0) * 100%) at 50%
+      calc(var(--link-p, 0) * 20%)
+  );
+}
+
+.menu__link-text {
+  display: block;
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: var(--text--h2);
+  font-size: 5.25rem; /* 92.75px */
+  line-height: 0.94; /* 87.19px */
   text-transform: uppercase;
-  line-height: 1;
-  color: var(--text-muted);
-  transition: color var(--animation-default);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
 }
 
-.menu__list a:hover,
-.menu__list a:focus-visible {
+/* The page you are already on is stated by being DIMMER, not brighter — it is
+   the one item you cannot usefully click. */
+.menu__link.is-current .menu__link-text {
+  color: var(--text-muted);
+}
+
+.menu__link:hover .menu__link-text,
+.menu__link:focus-visible .menu__link-text {
   color: var(--accent);
+}
+
+.menu__link-mark {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  color: var(--giallo-modena);
+  pointer-events: none;
+}
+
+/* Sized to the reference's 56px crest height rather than its width: our mark is
+   a 64x44 box against its wider one, so matching widths would have left ours
+   17px taller and pushed everything below it out of place. */
+.menu__crest {
+  inline-size: 4.6rem;
+  block-size: 3.17rem; /* 56px */
+  color: var(--text-muted);
+}
+
+.menu__team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem; /* 22px */
+}
+
+.menu__eyebrow {
+  font-size: var(--text--eyebrow);
+  /* The reference sets this line at letter-spacing `normal` and line-height 1.
+     Tracking it out, as eyebrows elsewhere on the site are, made it 60px wider
+     and 6px taller than the measured original. */
+  letter-spacing: normal;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* --------------------------------------------------------- Menu footer */
+
+.menu__footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.9rem;
+  font-size: 0.79rem; /* 14px */
+}
+
+.menu__contact {
+  color: var(--accent);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.menu__socials {
+  display: flex;
+  gap: 1.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+}
+
+.menu__socials a {
+  color: var(--text);
+}
+
+.menu__socials a:hover,
+.menu__contact:hover {
+  color: var(--giallo-modena);
+}
+
+/* Reduced motion keeps the panel and its contents, and drops only the reveal:
+   with no ellipse to expand, everything is simply present. */
+@media (prefers-reduced-motion: reduce) {
+  .menu,
+  .menu__tile,
+  .menu__link {
+    clip-path: none;
+  }
 }
 
 /* =========================================================== Marquee

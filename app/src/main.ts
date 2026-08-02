@@ -780,16 +780,82 @@ const menuIcon = mountMenuButton();
 const menuLabel = document.querySelector<HTMLSpanElement>('[data-menu-label]');
 
 if (menu && menuBtn) {
+  /* The reveal cascade.
+   *
+   * Every group expands the same ellipse (see home.css) but on its own delay
+   * and curve. These numbers are fitted to the reference's real transition,
+   * sampled per animation frame, not estimated:
+   *
+   *   overlay  no delay, ~750ms. Fitting power4.out against the samples gives
+   *            79.0/95.1/99.3% at 0.32/0.53/0.72 of the way through, measured
+   *            78.9/94.7/99.1 — so the curve is power4.out and not expo.out,
+   *            which would have been ~10 points high across that whole range.
+   *   tiles    ~150ms in, ~37ms apart, same curve.
+   *   links    ~350ms in, ~80ms apart, and they OVERSHOOT: the reference's
+   *            first link reaches 105.2% before settling back to 100. That is
+   *            a back ease, and the overshoot is what stops four big lines
+   *            arriving as a slab. They also translate 20px up into place.
+   *
+   * The overshoot is why the links get `back.out` rather than the same
+   * power4.out as everything else — an ellipse that only ever approaches its
+   * final size from below reads as sliding, while one that passes it and
+   * returns reads as landing. */
+  const MENU_REVEAL = {
+    overlay: { at: 0, duration: 0.75, ease: 'power4.out' },
+    tiles: { at: 0.15, stagger: 0.037, duration: 0.75, ease: 'power4.out' },
+    links: { at: 0.35, stagger: 0.08, duration: 0.63, ease: 'back.out(0.9)' },
+  } as const;
+
+  const tiles = menu.querySelectorAll<HTMLElement>('[data-menu-tile]');
+  const links = menu.querySelectorAll<HTMLAnchorElement>('.menu__link');
+
+  const reveal = gsap.timeline({
+    paused: true,
+    // Only take it out of the layout once it has finished closing. Setting
+    // `hidden` any earlier would kill the animation mid-flight, because
+    // `display: none` stops the clip-path from rendering at all.
+    onReverseComplete: () => {
+      menu.hidden = true;
+    },
+  });
+
+  if (!reducedMotion) {
+    reveal
+      .to(menu, { '--menu-p': 1, ...MENU_REVEAL.overlay }, MENU_REVEAL.overlay.at)
+      .to(tiles, { '--tile-p': 1, ...MENU_REVEAL.tiles }, MENU_REVEAL.tiles.at)
+      .fromTo(
+        links,
+        { '--link-p': 0, y: 20 },
+        { '--link-p': 1, y: 0, ...MENU_REVEAL.links },
+        MENU_REVEAL.links.at,
+      );
+  }
+
   const setOpen = (open: boolean) => {
-    menu.hidden = !open;
+    if (open) menu.hidden = false;
     menuBtn.setAttribute('aria-expanded', String(open));
     menuIcon?.setOpen(open);
     // The icon is aria-hidden, so the accessible name is the only thing telling
     // a screen reader what the button will do next. It has to track the state.
     if (menuLabel) menuLabel.textContent = open ? 'Close menu' : 'Open menu';
-    // Stop the page scrolling behind an overlay that covers it.
-    document.body.style.overflow = open ? 'hidden' : '';
-    if (open) menu.querySelector<HTMLAnchorElement>('a')?.focus();
+
+    // The reference locks the ROOT, not the body — body stays `visible` there
+    // and <html> goes to `clip`. Locking the body instead leaves the scrollbar
+    // gutter collapsing and shifts the whole layout sideways as it opens.
+    document.documentElement.style.overflow = open ? 'clip' : '';
+
+    if (reducedMotion) {
+      if (!open) menu.hidden = true;
+    } else if (open) {
+      reveal.play();
+    } else {
+      reveal.reverse();
+    }
+
+    // Move focus to the panel, not to its first link: browsers treat
+    // programmatic focus as :focus-visible, so focusing a link drew a ring on
+    // HOME even when the menu was opened by mouse.
+    if (open) menu.focus();
     else menuBtn.focus();
   };
 
