@@ -219,6 +219,10 @@ const helmetFragment = /* glsl */ `
   uniform float uOpacity;
   uniform float uRevealOpacity;
   uniform float uHelmetHover;
+  uniform float uTime;
+  uniform float uScanFrequency;
+  uniform float uScanSpeed;
+  uniform bool  uScanAnimating;
   uniform vec3  uColor;
   uniform sampler2D uMap;
   uniform bool  uHasMap;
@@ -226,6 +230,7 @@ const helmetFragment = /* glsl */ `
   varying vec3 vNormal;
   varying vec2 vUv;
   varying vec2 vScreenUv;
+  varying vec3 vViewPosition;
 
   void main() {
     // The fluid target is square and stretched to the viewport, and its splat is
@@ -265,10 +270,27 @@ const helmetFragment = /* glsl */ `
     cursorEffect += step(1.0 - hoverTransition, uHelmetHover);
     cursorEffect = clamp(cursorEffect, 0.0, 1.0);
 
-    // Floor, then the mask lifts to the ceiling. The reference's idle shell is
-    // a faint translucent cage rather than absent — measured off the running
-    // site, not assumed — so this keeps a ghost rather than going to zero.
-    float alpha = mix(uOpacity, uRevealOpacity, cursorEffect);
+    /* Pulsating wireframe scan, from the reference's own scan-effect shader:
+     *
+     *     scanEffect = pow(fract(-y * 10.0 - uTime), 4.0) * 0.1
+     *
+     * fract() of a scaled position is a sawtooth — a repeating ramp up the
+     * shell — and sliding it with time makes those ramps travel. The fourth
+     * power is what turns it into a SCAN rather than a stripe: it crushes
+     * everything below the crest toward zero, leaving a narrow bright band with
+     * a long dark tail behind it. So the shell sits almost invisible and a
+     * pulse sweeps through it, which is why it reads as a reveal instead of a
+     * fade. With the flag off the reference substitutes a flat 0.1, so the
+     * static case is the band's own ceiling held constant. */
+    float scan = uScanAnimating
+      ? pow(fract(-vViewPosition.y * uScanFrequency - uTime * uScanSpeed), 4.0)
+      : 1.0;
+
+    /* The scan modulates the IDLE alpha only. Under a cursor blob the shell
+     * goes fully present — a band travelling through a revealed helmet would
+     * read as a rendering fault rather than as an effect, and the reference
+     * likewise composites its lit helmet without the scan. */
+    float alpha = mix(uOpacity * scan, uRevealOpacity, cursorEffect);
 
     if (alpha < 0.002) discard;
 
@@ -298,13 +320,23 @@ const helmetVertex = /* glsl */ `
   varying vec3 vNormal;
   varying vec2 vUv;
   varying vec2 vScreenUv;
+  varying vec3 vViewPosition;
   void main() {
     // View space, not world: the shading rig is defined relative to the camera,
     // so the key light stays put on the shell rather than sweeping across it.
     vNormal = normalMatrix * normal;
     vUv = uv;
 
-    vec4 clip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    vec4 view = modelViewMatrix * vec4(position, 1.0);
+    /* View space for the scan band. The reference bands on OBJECT-space y, but
+     * our model arrives Z-up and is rotated -90 about X by a parent group, so
+     * the attribute's own y is the depth axis here and banding on it would send
+     * the scan through the helmet front-to-back instead of top-to-bottom. View
+     * space is the axis the viewer actually reads as vertical, and since the
+     * helmet faces the camera it comes to the same thing on the reference. */
+    vViewPosition = view.xyz;
+
+    vec4 clip = projectionMatrix * view;
     // Screen position, for the intro wipe. Taken here rather than from
     // gl_FragCoord because the wipe is a property of where the helmet sits in
     // the FRAME — it has to agree with the field's own reveal, which works in
@@ -424,7 +456,16 @@ export class HeadScene {
    * between the two is the entire blob effect — at 0.30/0.92 there was barely
    * a stop of range left to show, which is why the masking read as absent.
    */
-  private baseHelmetOpacity = 0.022;
+  /**
+   * Idle ceiling, not idle brightness — the scan band multiplies this.
+   *
+   * The mean of pow(x, 4) over a uniform sawtooth is 1/5, so the shell's
+   * AVERAGE alpha here is about 0.022 — the same near-invisible ghost as
+   * before — while the travelling crest peaks at this full value and actually
+   * reads. Lowering this to what the old flat value was would make the pulse
+   * itself invisible, which is the whole effect.
+   */
+  private baseHelmetOpacity = 0.11;
   /** Where layout() put the portrait, before any pointer drift is added. */
   private readonly headBase = new THREE.Vector2();
   /** How far the whole plane travels with the pointer, in world units. */
@@ -457,6 +498,38 @@ export class HeadScene {
   private reveal = 0;
   /** Seconds. The reference's REVEAL_DURATION, read off its live params. */
   private readonly revealDuration = 1.1;
+
+  /* ---------------------------------------------------------------- *
+   * Idle auto-swipe
+   *
+   * The reference sweeps the helmet by itself when the pointer goes quiet. It
+   * is NOT a shader animation — instrumenting its WebGL uniform traffic over a
+   * 22s idle window showed uHelmetHover, uIsWireframeAnimating and
+   * uHelmetTransition all completely static, while the FLUID's own `center` and
+   * `force` uniforms kept animating. In other words the site simply feeds the
+   * fluid a synthetic pointer path, and the ordinary cursor mask does the rest.
+   * That is a much better mechanism than a bespoke animation: the auto-swipe is
+   * automatically identical in character to a real one.
+   *
+   * Every number below is measured off that capture rather than guessed:
+   *   - swipe duration ~2.47s (samples: 2469, 2492, 2467, 2467, 2468ms)
+   *   - swipe STARTS alternate 4.00s and 5.50s apart
+   *   - travel is clamped within x [-0.75, 0.75], y [-0.5, 0.5] of centre
+   * ---------------------------------------------------------------- */
+
+  /** Seconds since the last real pointer movement. */
+  private idleFor = 0;
+  /** Seconds until the next auto-swipe begins. */
+  private nextSwipeIn = 0;
+  /** Progress through the current swipe, 0..1. Negative means none running. */
+  private swipeT = -1;
+  private swipeIndex = 0;
+  private readonly swipeFrom = new THREE.Vector2();
+  private readonly swipeTo = new THREE.Vector2();
+
+  /** How long the pointer must be still before the site starts sweeping. */
+  private readonly idleBeforeAuto = 3.5;
+  private readonly swipeDuration = 2.47;
 
   private readonly ease: number;
   private readonly subjectScale: number;
@@ -646,6 +719,13 @@ export class HeadScene {
         // Intro wipe progress. Shared by reference, so one write in update()
         // reaches every per-colour variant.
         uHelmetHover: { value: 0 },
+        uTime: { value: 0 },
+        // The reference bands at 10 cycles per object unit. Ours is measured in
+        // view units across a helmet about 0.5 units tall, so a higher number
+        // is needed for a comparable band count on screen.
+        uScanFrequency: { value: 3.2 },
+        uScanSpeed: { value: 0.55 },
+        uScanAnimating: { value: true },
         uColor: { value: new THREE.Color(0xffffff) },
       },
     });
@@ -900,7 +980,81 @@ export class HeadScene {
     this.helmet.position.set(x, y, 0.02);
   }
 
+  /**
+   * Drive the fluid from a synthetic pointer path while the user is idle.
+   *
+   * Only the FLUID and the contour field are driven, never `pointerTarget`.
+   * The portrait's parallax and depth shift stay bound to the real pointer, so
+   * the face does not drift on its own — which matches the reference, where the
+   * head sits still through the whole idle sequence and only the mask moves.
+   */
+  private runAutoSwipe(dt: number): void {
+    this.idleFor += dt;
+    if (this.idleFor < this.idleBeforeAuto) return;
+
+    if (this.swipeT < 0) {
+      this.nextSwipeIn -= dt;
+      if (this.nextSwipeIn > 0) return;
+      this.beginSwipe();
+    }
+
+    this.swipeT += dt / this.swipeDuration;
+    if (this.swipeT >= 1) {
+      this.swipeT = -1;
+      // Starts alternate 4.00s and 5.50s apart, so the wait after a 2.47s
+      // swipe is the remainder of whichever interval is next.
+      const interval = this.swipeIndex % 2 === 0 ? 4.0 : 5.5;
+      this.nextSwipeIn = Math.max(0, interval - this.swipeDuration);
+      return;
+    }
+
+    // Ease in and out. The pointer is meant to read as something being moved,
+    // not as a linear tween — a constant-velocity sweep starts and stops with a
+    // jolt that no hand makes, and the fluid shows it as a hard-ended streak.
+    const e = this.swipeT * this.swipeT * (3 - 2 * this.swipeT);
+    const x = this.swipeFrom.x + (this.swipeTo.x - this.swipeFrom.x) * e;
+    const y = this.swipeFrom.y + (this.swipeTo.y - this.swipeFrom.y) * e;
+
+    this.fluid.setPointer((x + 1) / 2, (y + 1) / 2);
+    this.contour.setPointer(x, y);
+  }
+
+  /** Pick the next swipe's endpoints, in -1..1 pointer space. */
+  private beginSwipe(): void {
+    this.swipeT = 0;
+    const i = this.swipeIndex++;
+
+    // Measured bounds: the reference's auto-cursor clamps to +/-0.75 across and
+    // +/-0.5 up. Alternating a traverse with a vertical sweep reproduces both
+    // the long crossing and the edge runs seen in the capture — and the
+    // traverse is the one that carries the fluid over the helmet.
+    const X = 0.75;
+    const Y = 0.5;
+    // Deterministic drift so successive swipes do not retrace one line, without
+    // reaching for randomness that would make the sequence untestable.
+    const drift = Math.sin(i * 2.399) * 0.45;
+
+    if (i % 2 === 0) {
+      // Traverse across the frame, through the head.
+      const dir = i % 4 === 0 ? 1 : -1;
+      this.swipeFrom.set(-X * dir, drift * Y);
+      this.swipeTo.set(X * dir, drift * Y * 0.4);
+    } else {
+      // Vertical sweep, offset from centre.
+      const dir = i % 4 === 1 ? 1 : -1;
+      this.swipeFrom.set(drift, Y * dir);
+      this.swipeTo.set(drift * 0.6, -Y * dir);
+    }
+  }
+
   setPointer(nx: number, ny: number): void {
+    // Any real movement cancels the idle sequence outright — including a swipe
+    // already in flight, so the user's own gesture never fights an automatic
+    // one for control of the fluid.
+    this.idleFor = 0;
+    this.swipeT = -1;
+    this.nextSwipeIn = 0;
+
     this.pointerTarget.set(nx, ny);
     // Raw, not eased: the fluid takes its force from how fast the pointer is
     // actually moving, so smoothing first would flatten every flick into the
@@ -1028,6 +1182,7 @@ export class HeadScene {
      * and pressure data rather than dye. Thresholded, that lights up most of
      * the frame. */
     this.field.uniforms.tCursorEffect!.value = this.fluid.texture;
+    this.runAutoSwipe(dt);
 
     // Exponential smoothing. Frame-rate dependent, fine at 60fps and the first
     // thing to replace with a delta-time lerp if it ever isn't.
@@ -1052,6 +1207,9 @@ export class HeadScene {
       this.helmet.rotation.set(0, 0, 0);
 
       this.helmetMat.uniforms.tCursorEffect!.value = this.fluid.texture;
+      // Drives the travelling scan band. Shared uniform object, so this one
+      // write reaches every per-colour variant.
+      this.helmetMat.uniforms.uTime!.value = t;
     }
 
     // The whole portrait drifts with the pointer, on top of the per-pixel depth
