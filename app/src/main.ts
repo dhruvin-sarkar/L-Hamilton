@@ -1,6 +1,7 @@
 import './styles/main.css';
 import * as THREE from 'three';
 import gsap from 'gsap';
+import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 import { HeadScene } from './HeadScene';
 import {
   age,
@@ -569,16 +570,244 @@ function mountRollingText(): void {
 mountRollingText();
 
 /* ------------------------------------------------------------------ *
+ * Menu button
+ *
+ * The reference drives this slot with a Rive state machine, which we cannot
+ * reproduce, so it is rebuilt as SVG paths morphed by GSAP. Its resting
+ * geometry is measured off the reference's artboard rather than guessed: a 66px
+ * icon inside an 80px target, two ~16.3-unit bars at y 29.2 and 38.8, staggered
+ * +/-6.05 either side of centre. The bars are EQUAL LENGTH and offset
+ * horizontally — an earlier pass here had them as unequal lengths, which is
+ * what it looks like at a glance but is not what the artboard does.
+ *
+ * Opening runs each bar through three states: line -> lobe -> diagonal. The two
+ * lobes meet at the centre and together read as an infinity symbol, so the
+ * button passes through a recognisable shape on its way to the X instead of
+ * just rotating into it.
+ *
+ * All three states are generated below as FOUR CUBIC SEGMENTS, always. That is
+ * the load-bearing detail: MorphSVGPlugin maps anchor i of one path to anchor i
+ * of the next, so giving every state the same command structure makes the
+ * correspondence something we choose rather than something the plugin guesses.
+ * A hand-drawn loop with a different number of segments would still morph, but
+ * which part of the bar becomes which part of the loop would be luck.
+ * ------------------------------------------------------------------ */
+
+gsap.registerPlugin(MorphSVGPlugin);
+
+/** Handle length for a 90-degree elliptical arc: 4/3 * tan(pi/8). */
+const ARC_K = 0.5522847498307936;
+
+/** Every generated path uses this many cubic segments. See the note above. */
+const PATH_SEGMENTS = 4;
+
+interface Pt {
+  x: number;
+  y: number;
+}
+
+/** An anchor with its two absolute control handles. */
+interface PathNode {
+  p: Pt;
+  in: Pt;
+  out: Pt;
+}
+
+/* The whole icon's shape, in the 66-unit viewBox. These are the numbers to turn
+   while tuning: everything else is derived from them. */
+const MENU_ICON = {
+  box: 66,
+  /** Mean of the reference's two measured bars (15.9 and 16.7). */
+  barLength: 16.3,
+  /** Horizontal offset of each bar from centre; the reference's is +/-6.05. */
+  barStagger: 6.05,
+  /** Measured bar centres. */
+  barY: [29.2, 38.8],
+  /** Lobe radii. rx sets how far the infinity reaches; ry how fat it is. */
+  loopRx: 8.2,
+  loopRy: 7,
+  /** Half-extent of the X along each axis, so each arm is this * sqrt(2) long. */
+  crossReach: 7.6,
+} as const;
+
+function emitPath(nodes: PathNode[]): string {
+  const round = (v: number) => (Math.round(v * 100) / 100).toString();
+  const head = nodes[0];
+  if (!head) throw new Error('emitPath: no nodes');
+
+  let d = `M${round(head.p.x)} ${round(head.p.y)}`;
+  for (let i = 1; i < nodes.length; i++) {
+    const prev = nodes[i - 1];
+    const cur = nodes[i];
+    if (!prev || !cur) throw new Error('emitPath: sparse nodes');
+    d +=
+      `C${round(prev.out.x)} ${round(prev.out.y)}` +
+      ` ${round(cur.in.x)} ${round(cur.in.y)}` +
+      ` ${round(cur.p.x)} ${round(cur.p.y)}`;
+  }
+  return d;
+}
+
+/** A straight line, but spent across PATH_SEGMENTS cubics so it can morph. */
+function lineNodes(a: Pt, b: Pt): PathNode[] {
+  // A cubic is straight when its handles lie a third of the way along it.
+  const h: Pt = { x: (b.x - a.x) / PATH_SEGMENTS / 3, y: (b.y - a.y) / PATH_SEGMENTS / 3 };
+  return Array.from({ length: PATH_SEGMENTS + 1 }, (_, i) => {
+    const t = i / PATH_SEGMENTS;
+    const p: Pt = { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+    return { p, in: { x: p.x - h.x, y: p.y - h.y }, out: { x: p.x + h.x, y: p.y + h.y } };
+  });
+}
+
+/**
+ * A full ellipse as four cubics, starting at `fromDeg` and travelling in
+ * `sweep`. The handles are the parametric tangent scaled by ARC_K, which is the
+ * standard four-arc circle approximation — accurate to about one part in 4000,
+ * far finer than a 66px icon can show.
+ */
+function ellipseNodes(c: Pt, rx: number, ry: number, fromDeg: number, sweep: 1 | -1): PathNode[] {
+  return Array.from({ length: PATH_SEGMENTS + 1 }, (_, i) => {
+    const a = ((fromDeg + sweep * 90 * i) * Math.PI) / 180;
+    const p: Pt = { x: c.x + rx * Math.cos(a), y: c.y + ry * Math.sin(a) };
+    const h: Pt = {
+      x: -rx * Math.sin(a) * sweep * ARC_K,
+      y: ry * Math.cos(a) * sweep * ARC_K,
+    };
+    return { p, in: { x: p.x - h.x, y: p.y - h.y }, out: { x: p.x + h.x, y: p.y + h.y } };
+  });
+}
+
+/** The three states, as [bar1, bar2] pairs. */
+function menuIconPaths(): { idle: [string, string]; loop: [string, string]; cross: [string, string] } {
+  const { box, barLength, barStagger, barY, loopRx, loopRy, crossReach } = MENU_ICON;
+  const c = box / 2;
+  const half = barLength / 2;
+
+  const bar = (index: 0 | 1): string => {
+    const xc = c + (index === 0 ? barStagger : -barStagger);
+    const y = barY[index];
+    return emitPath(lineNodes({ x: xc - half, y }, { x: xc + half, y }));
+  };
+
+  // Both lobes start at the centre. Bar 1 takes the left one and leaves heading
+  // up; bar 2 takes the right and leaves heading down. That opposition is what
+  // makes the strokes cross in the middle and read as one infinity symbol
+  // rather than two circles sitting side by side.
+  const loop: [string, string] = [
+    emitPath(ellipseNodes({ x: c - loopRx, y: c }, loopRx, loopRy, 0, -1)),
+    emitPath(ellipseNodes({ x: c + loopRx, y: c }, loopRx, loopRy, 180, -1)),
+  ];
+
+  const cross: [string, string] = [
+    emitPath(
+      lineNodes({ x: c - crossReach, y: c - crossReach }, { x: c + crossReach, y: c + crossReach }),
+    ),
+    emitPath(
+      lineNodes({ x: c + crossReach, y: c - crossReach }, { x: c - crossReach, y: c + crossReach }),
+    ),
+  ];
+
+  return { idle: [bar(0), bar(1)], loop, cross };
+}
+
+interface MenuIcon {
+  setOpen(open: boolean): void;
+}
+
+function mountMenuButton(): MenuIcon | null {
+  const btn = document.querySelector<HTMLButtonElement>('.menu-btn');
+  const bar1 = document.querySelector<SVGPathElement>('[data-menu-bar="1"]');
+  const bar2 = document.querySelector<SVGPathElement>('[data-menu-bar="2"]');
+  if (!btn || !bar1 || !bar2) return null;
+
+  const { idle, loop, cross } = menuIconPaths();
+
+  // Write the generated idle state over the markup's fallback, so the morph's
+  // starting point is bit-identical to what the generator produces. Hand-copied
+  // path data in the HTML would drift the moment MENU_ICON is tuned.
+  bar1.setAttribute('d', idle[0]);
+  bar2.setAttribute('d', idle[1]);
+
+  /* Two timelines, and they cannot conflict — not by careful sequencing, but
+     because they write disjoint properties. Hover owns --menu-hover; open/close
+     owns --menu-open and the path data. Neither writes a colour: home.css
+     composes both scalars into every colour on the button. So hovering an
+     already-open button, or opening an already-hovered one, simply moves the
+     other axis. Nothing has to be reconciled. */
+
+  const hover = gsap.timeline({ paused: true }).to(btn, {
+    '--menu-hover': 1,
+    duration: reducedMotion ? 0.001 : 0.36,
+    ease: 'power2.out',
+  });
+
+  const toggle = gsap.timeline({ paused: true });
+
+  if (reducedMotion) {
+    // The loop is pure flourish, so it goes first. The state change itself must
+    // still happen — the X is information, not decoration.
+    toggle
+      .to(bar1, { morphSVG: cross[0], duration: 0.001 }, 0)
+      .to(bar2, { morphSVG: cross[1], duration: 0.001 }, 0)
+      .to(btn, { '--menu-open': 1, duration: 0.001 }, 0);
+  } else {
+    const STAGE = 0.52;
+    toggle
+      // Line -> lobe. `power2.in` leaves the bars slowly and arrives fast, so
+      // the loop snaps into being rather than easing into a mush.
+      .to(bar1, { morphSVG: loop[0], duration: STAGE, ease: 'power2.in' }, 0)
+      .to(bar2, { morphSVG: loop[1], duration: STAGE, ease: 'power2.in' }, 0)
+      // Lobe -> diagonal. `power2.out` mirrors it, and the in/out seam at the
+      // midpoint gives the infinity a beat of hang time before it collapses.
+      .to(bar1, { morphSVG: cross[0], duration: STAGE, ease: 'power2.out' }, STAGE)
+      .to(bar2, { morphSVG: cross[1], duration: STAGE, ease: 'power2.out' }, STAGE)
+      // Colour spans the WHOLE morph at a linear rate, not one stage of it, so
+      // the mark is exactly half-way between the two house colours at the same
+      // instant it is a full infinity symbol. Running it as its own tween would
+      // let the two drift apart under any easing change.
+      .to(btn, { '--menu-open': 1, duration: STAGE * 2, ease: 'none' }, 0);
+  }
+
+  const setHover = (on: boolean) => {
+    if (on) hover.play();
+    else hover.reverse();
+  };
+
+  // Keyboard focus counts as hover. A control that only lights up for a mouse
+  // is invisible to anyone tabbing the nav.
+  btn.addEventListener('pointerenter', () => setHover(true));
+  btn.addEventListener('pointerleave', () => setHover(false));
+  btn.addEventListener('focus', () => setHover(true));
+  btn.addEventListener('blur', () => setHover(false));
+
+  return {
+    setOpen(open: boolean) {
+      // Reversing rather than re-tweening is why this is a paused timeline: a
+      // click mid-morph turns around from wherever it actually is, instead of
+      // jumping to the end and animating back.
+      if (open) toggle.play();
+      else toggle.reverse();
+    },
+  };
+}
+
+/* ------------------------------------------------------------------ *
  * Menu
  * ------------------------------------------------------------------ */
 
 const menu = document.querySelector<HTMLDivElement>('#menu');
 const menuBtn = document.querySelector<HTMLButtonElement>('.menu-btn');
+const menuIcon = mountMenuButton();
+const menuLabel = document.querySelector<HTMLSpanElement>('[data-menu-label]');
 
 if (menu && menuBtn) {
   const setOpen = (open: boolean) => {
     menu.hidden = !open;
     menuBtn.setAttribute('aria-expanded', String(open));
+    menuIcon?.setOpen(open);
+    // The icon is aria-hidden, so the accessible name is the only thing telling
+    // a screen reader what the button will do next. It has to track the state.
+    if (menuLabel) menuLabel.textContent = open ? 'Close menu' : 'Open menu';
     // Stop the page scrolling behind an overlay that covers it.
     document.body.style.overflow = open ? 'hidden' : '';
     if (open) menu.querySelector<HTMLAnchorElement>('a')?.focus();

@@ -40,6 +40,10 @@
   font-family: var(--font-serif);
   font-style: italic;
   font-weight: 500;
+  /* Ferrari's two house colours split across the lockup: given name in Rosso
+     Corsa, surname in Giallo Modena. Same pairing the monogram animates
+     between, so the nav reads as one system rather than two unrelated picks. */
+  color: var(--rosso-corsa);
   font-size: 1.22rem;
   line-height: 1;
   letter-spacing: 0;
@@ -51,6 +55,7 @@
 .wordmark__last {
   font-family: var(--font-display);
   font-weight: 800;
+  color: var(--giallo-modena);
   font-size: 1.98rem;
   line-height: 0.84;
   text-transform: uppercase;
@@ -62,6 +67,10 @@
 /* ------------------------------------------------ Monogram (top-centre) */
 
 .monogram {
+  /* One number controls the mark. The width is derived from it, so the two can
+     never drift out of aspect when this is tuned. */
+  --monogram-size: 2.35rem;
+
   position: absolute;
   left: 50%;
   top: 50%;
@@ -69,8 +78,8 @@
   display: block;
   /* Sized off the mark's own aspect (464:501) rather than a square box, so the
      glyph is never letterboxed inside its link. */
-  block-size: 1.9rem;
-  inline-size: calc(1.9rem * 464 / 501);
+  block-size: var(--monogram-size);
+  inline-size: calc(var(--monogram-size) * 464 / 501);
   /* The link is a hit target, not a chrome element. */
   color: inherit;
   text-decoration: none;
@@ -169,44 +178,103 @@
   will-change: transform;
 }
 
-/* Borderless and transparent on the reference — the icon carries it alone. */
+/* --------------------------------------------------------- Menu button
+ *
+ * The reference drives this with a Rive state machine; ours is SVG + GSAP.
+ *
+ * TWO SCALARS, AND NOTHING ELSE, CROSS THE JS/CSS LINE. The hover timeline
+ * owns --menu-hover, the open/close timeline owns --menu-open, and every colour
+ * below is composed from them here. That is what makes the two timelines
+ * genuinely unable to conflict: hovering an already-open button cannot clobber
+ * the open colour, because neither timeline ever writes a colour at all. Tween
+ * `background-color` from one timeline and `stroke` from the other and you get
+ * exactly the fight this avoids — whichever ran last wins, and reversing one
+ * timeline strands the property the other set. */
+
+/* Registered so the scalars are typed numbers rather than strings. Without
+   this, `calc(var(--menu-open) * 100%)` is unresolvable at parse time and the
+   whole color-mix() declaration is dropped.
+ *
+ * `inherits: true` is required, not stylistic. GSAP sets these on the button,
+ * but the frame and the bars are its CHILDREN, and a custom property is
+ * substituted at computed-value time on the element where it is DECLARED. A
+ * non-inheriting scalar therefore reads back as its initial 0 inside any rule
+ * written on a child — so the frame stayed transparent and the bars never
+ * shifted, while the bar STROKE worked, because that one comes from --menu-ink,
+ * which is declared on the button and inherits down already substituted. */
+@property --menu-hover {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: true;
+}
+@property --menu-open {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: true;
+}
+
 .menu-btn {
+  --menu-hover: 0;
+  --menu-open: 0;
+
+  /* The button's identity colour, travelling Rosso Corsa -> Giallo Modena as it
+     opens. Mixing in oklab keeps the path through orange rather than through
+     the muddy grey sRGB interpolation gives between these two. */
+  --menu-accent: color-mix(
+    in oklab,
+    var(--giallo-modena) calc(var(--menu-open) * 100%),
+    var(--rosso-corsa)
+  );
+
+  /* Ink inverts under the hover fill, the way the reference's does: at rest the
+     mark is the accent on nothing, hovered it is the page ground on accent. */
+  --menu-ink: color-mix(in oklab, var(--bg) calc(var(--menu-hover) * 100%), var(--menu-accent));
+
   display: grid;
   place-items: center;
   inline-size: 4.53rem; /* 80px */
   block-size: 4.53rem;
   border-radius: 0.74rem; /* 13.07px */
   background: transparent;
-  color: var(--text);
-  transition: color var(--animation-default);
 }
 
-.menu-btn:hover,
 .menu-btn:focus-visible {
-  color: var(--accent);
+  outline: 2px solid var(--menu-accent);
+  outline-offset: 3px;
 }
 
-.menu-btn__bars {
-  display: grid;
-  gap: 0.34rem;
-}
-
-.menu-btn__bars i {
+/* 66px inside the 80px target — the reference's own icon-to-button ratio. */
+.menu-btn__icon {
   display: block;
-  inline-size: 1.55rem;
-  block-size: 1.5px;
-  background: currentColor;
-  transition: inline-size var(--animation-default);
+  inline-size: 3.74rem;
+  block-size: 3.74rem;
 }
 
-/* Asymmetric — the reference's mark is two unequal bars, not a hamburger. */
-.menu-btn__bars i:last-child {
-  inline-size: 0.95rem;
-  margin-left: auto;
+.menu-btn__frame {
+  fill: color-mix(in oklab, var(--menu-accent) calc(var(--menu-hover) * 100%), transparent);
+  stroke: var(--menu-ink);
+  stroke-width: 1.6;
 }
 
-.menu-btn:hover .menu-btn__bars i:last-child {
-  inline-size: 1.55rem;
+.menu-btn__bar {
+  fill: none;
+  stroke: var(--menu-ink);
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  will-change: transform;
+}
+
+/* The hover position shift. Deliberately on `translate` and not on the path
+   data: the morph timeline owns `d`, so keeping this on a separate property is
+   what lets someone hover mid-morph without the two cancelling each other.
+   Gated by (1 - --menu-open) so it decays to nothing as the X forms — a
+   translated X would sit visibly off-centre. */
+.menu-btn__bar[data-menu-bar='1'] {
+  translate: calc(var(--menu-hover) * (1 - var(--menu-open)) * -2.6px) 0;
+}
+
+.menu-btn__bar[data-menu-bar='2'] {
+  translate: calc(var(--menu-hover) * (1 - var(--menu-open)) * 2.6px) 0;
 }
 
 /* ============================================================== Hero */
