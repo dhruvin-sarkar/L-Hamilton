@@ -397,9 +397,21 @@ if (finePointer && !reducedMotion) {
     // gives the cursor a sense of weight rather than being a second crosshair.
     x += (targetX - x) * 0.16;
     y += (targetY - y) * 0.16;
-    // translate, not top/left: this runs every frame and must stay off the
-    // layout path.
-    ring.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+    // Off the layout path, so not top/left. But specifically the `translate`
+    // PROPERTY rather than `transform`, and that distinction is load-bearing.
+    //
+    // CSS composes the transform family as T · R · S · transform, and a point
+    // is mapped right to left — so `transform` applies FIRST and the standalone
+    // `scale` from .is-hovering applies after it. Written into `transform`, the
+    // hover scale multiplied the translation itself: the negative margins that
+    // centre the ring put its transform-origin at viewport 0,0, so hovering the
+    // STORE pill at x 765 threw the ring to 765 * 1.75 = 1339, clean off a
+    // 950px viewport. It only ever misbehaved in the far corner because the
+    // error is proportional to distance from that origin.
+    //
+    // Writing to `translate` puts the scale INSIDE the translation instead, so
+    // the ring swells about its own centre and is then moved into place.
+    ring.style.translate = `${x}px ${y}px`;
   };
   requestAnimationFrame(followCursor);
 }

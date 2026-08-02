@@ -398,7 +398,10 @@
     opacity var(--dur-base) var(--cubic-default),
     scale var(--dur-base) var(--cubic-default),
     background-color var(--dur-base) var(--cubic-default);
-  will-change: transform;
+  /* Positioned via the `translate` property, not `transform` — see the note in
+     main.ts. Hinting the wrong property here would leave the ring off the
+     compositor's fast path. */
+  will-change: translate;
 }
 
 /* The dot is the precise hotspot; the ring lags behind it. */
