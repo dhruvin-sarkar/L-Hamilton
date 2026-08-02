@@ -95,9 +95,9 @@ html {
      the FILLED noise regions that draw rather than their outlines, so this
      colour covers real area — and #ff2800 over that much of the frame reads as
      a flood rather than as something passing across the field. */
-  --gl-cursor-bg: #2e2124;
+  --gl-cursor-bg: #2b1f22;
   --gl-cursor-outline: var(--gl-cursor-bg);
-  --gl-cursor-fg: #7a2b2a;
+  --gl-cursor-fg: #5e2a2f;
 
   /* Era accents. Content-level only; never re-themes global chrome. */
   --era: var(--accent);

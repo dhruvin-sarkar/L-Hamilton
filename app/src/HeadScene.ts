@@ -1,6 +1,7 @@
 ﻿import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { FluidCursor } from './FluidCursor';
 import { ContourField } from './ContourField';
 
@@ -168,10 +169,10 @@ const fieldFragment = /* glsl */ `
      * that would otherwise paint a frame around the viewport. Sampling the
      * inner 95% steps past it.
      *
-     * No inversion here, unlike the reference. Its fluid target rests at white
-     * and the dye darkens it, so it needs 1.0 - rgb before thresholding; ours
-     * rests at black and splats dye in positive, which is already the right way
-     * round. Same semantics, one less operation.
+     * The inversion is required. tCursorEffect is the fluid's velocity field
+     * rendered to colour, which rests at WHITE and darkens where the fluid
+     * moves — so "how white" means "how still". Sampling it the same way round
+     * as a dye buffer lights up the entire frame.
      *
      * step, not smoothstep. A hard threshold is what gives the blob a crisp,
      * liquid edge — feathering it is exactly what made the effect read as
@@ -179,7 +180,7 @@ const fieldFragment = /* glsl */ `
      * range is indistinguishable from a uniform haze.
      */
     vec2 cursorUv = vec2(0.025) + vUv * 0.95;
-    float cursorEffect = step(0.1, texture2D(tCursorEffect, cursorUv).r);
+    float cursorEffect = step(0.1, 1.0 - texture2D(tCursorEffect, cursorUv).r);
 
     background = mix(background, cursorBackground, cursorEffect * uCursorIntensity);
 
@@ -231,7 +232,9 @@ const helmetFragment = /* glsl */ `
      * amount of tuning the endpoints turns a gradient into a blob. The edge IS
      * the effect.
      */
-    float cursorEffect = step(0.1, texture2D(tCursorEffect, uv).r);
+    // Inverted: tCursorEffect is the velocity field rendered to colour, resting
+    // at white and darkening where the fluid moves. See the field shader.
+    float cursorEffect = step(0.1, 1.0 - texture2D(tCursorEffect, uv).r);
 
     /* Hover wipe, from the reference's head shader. A band sweeps up the frame,
      * bowed by sin(x * PI) so it crests in the middle rather than crossing dead
@@ -406,7 +409,7 @@ export class HeadScene {
    * between the two is the entire blob effect — at 0.30/0.92 there was barely
    * a stop of range left to show, which is why the masking read as absent.
    */
-  private baseHelmetOpacity = 0.16;
+  private baseHelmetOpacity = 0.055;
   /** Where layout() put the portrait, before any pointer drift is added. */
   private readonly headBase = new THREE.Vector2();
   /** How far the whole plane travels with the pointer, in world units. */
@@ -503,9 +506,16 @@ export class HeadScene {
         COLOR_CURSOR_OUTLINE: { value: token('--gl-cursor-outline', '#ff2800') },
 
         uReveal: { value: 0 },
-        // How strongly a blob repaints the background under it. The reference
-        // animates its equivalent; ours is fixed until there is a reason not to.
-        uCursorIntensity: { value: 0.85 },
+        /* How strongly a blob repaints the background under it.
+         *
+         * The reference's blob is a very small tonal step — its cursor colours
+         * sit within ~16/255 of its background, so what you see is a patch of
+         * slightly different tone drifting over the topography, with the
+         * contour lines running straight through it. Ours has to work on a dark
+         * ground where that ratio would vanish, so the colours are further
+         * apart; this pulls the blend back so the result stays a tint rather
+         * than a flood. The blob COLOURS the field — it does not replace it. */
+        uCursorIntensity: { value: 0.5 },
       },
     });
 
@@ -710,30 +720,78 @@ export class HeadScene {
       return mat;
     };
 
-    // Keep the glTF's own node hierarchy and only swap materials. Reparenting
-    // the raw geometries into a flat group drops every node's world transform,
-    // which collapses a 470-mesh model into a tangle of stray edges.
-    const group = gltf.scene;
-    group.traverse((child) => {
+    /* Merge by material.
+     *
+     * The model arrives as 470 separate meshes, which is 470 draw calls every
+     * frame — measured at ~8.5fps on its own, and by far the largest single
+     * cost in the scene. They only ever differ by base colour and texture
+     * sheet, so collapsing them into one mesh per distinct pairing takes that
+     * to fourteen. The geometry, and the ~1M wireframe segments it carries, is
+     * unchanged; what goes away is per-draw CPU overhead.
+     */
+    const source = gltf.scene;
+    // World matrices have to be current before they can be baked, and nothing
+    // has rendered yet at this point, so Three has not computed them.
+    source.updateMatrixWorld(true);
+
+    const buckets = new Map<
+      string,
+      { material: THREE.ShaderMaterial; geometries: THREE.BufferGeometry[] }
+    >();
+    const originals: THREE.BufferGeometry[] = [];
+
+    source.traverse((child) => {
       const mesh = child as THREE.Mesh;
       if (!mesh.isMesh) return;
-      const source = mesh.material;
+      const from = mesh.material;
       // baseColorFactor lands on .color, which is the entire livery this file
       // has. Anything without one (the glTF's __DEFAULT) falls back to a mid
       // grey rather than to black, which would read as a hole in the shell.
-      const single = Array.isArray(source) ? source[0] : source;
-      const colour = (single as THREE.MeshStandardMaterial | undefined)?.color?.clone();
+      const single = Array.isArray(from) ? from[0] : from;
+      const colour =
+        (single as THREE.MeshStandardMaterial | undefined)?.color?.clone() ??
+        new THREE.Color(0x8a8a8a);
       const sourceName = (single as THREE.Material | undefined)?.name ?? '';
       // The glTF's own materials are replaced, so release them here rather
       // than leaving 27 orphaned programs alive for the page's lifetime.
-      if (!Array.isArray(source)) (source as THREE.Material | undefined)?.dispose();
-      mesh.material = variantFor(colour ?? new THREE.Color(0x8a8a8a), mapFor(sourceName));
+      if (!Array.isArray(from)) (from as THREE.Material | undefined)?.dispose();
+
+      const map = mapFor(sourceName);
+      const key = `${colour.getHexString()}|${map ? map.uuid : 'none'}`;
+      let bucket = buckets.get(key);
+      if (!bucket) {
+        bucket = { material: variantFor(colour, map), geometries: [] };
+        buckets.set(key, bucket);
+      }
+
+      // Bake the node's world transform into the vertices. Merging discards the
+      // scene graph, so geometry that does not carry its own placement collapses
+      // onto the origin — which is exactly how a 470-part model turns into a
+      // tangle of stray edges at the centre.
+      bucket.geometries.push(mesh.geometry.clone().applyMatrix4(mesh.matrixWorld));
+      originals.push(mesh.geometry);
+    });
+
+    const group = new THREE.Group();
+    for (const { material, geometries } of buckets.values()) {
+      // useGroups false: one material per merged mesh, so draw groups would
+      // reintroduce exactly the per-part draw calls this is removing.
+      const geometry = mergeGeometries(geometries, false);
+      for (const g of geometries) g.dispose();
+      if (!geometry) {
+        // Fail loudly. A silent skip here would drop part of the shell and look
+        // like a modelling problem rather than a merge problem.
+        throw new Error('helmet: geometry merge failed — mismatched vertex attributes');
+      }
+      const mesh = new THREE.Mesh(geometry, material);
       // renderOrder must be set per mesh — Three reads it off the object being
       // drawn and does not inherit it from a parent Group. Left at the default
       // 0 these draw before the transparent portrait, which then paints over
       // them, and the helmet never appears however opaque it is.
       mesh.renderOrder = 3;
-    });
+      group.add(mesh);
+    }
+    for (const g of originals) g.dispose();
 
     // Normalise: the model arrives at an arbitrary scale and origin, so fit it
     // into a unit box and re-centre before parenting to the portrait.
@@ -916,7 +974,11 @@ export class HeadScene {
 
     // Both offscreen stages step before the scene draws. Each binds and
     // restores its own render target, so neither may run mid-draw.
-    this.fluid.update(dt);
+    // The fluid runs on a FIXED timestep now, matching the reference — its
+    // force, dissipation and dt terms are all tuned around that number, so
+    // feeding it real frame time made the effect change character with the
+    // frame rate. It no longer takes a delta.
+    this.fluid.update();
     this.contour.update(t);
     this.head.uniforms.uTime!.value = t;
 

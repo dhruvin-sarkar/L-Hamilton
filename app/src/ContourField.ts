@@ -316,14 +316,32 @@ export class ContourField {
   }
 
   update(time: number): void {
-    // Mouse pace: distance moved this frame, normalised and smoothed. The decay
-    // is what makes the field spring back after the pointer stops rather than
-    // holding its dent, and the asymmetry is deliberate — it climbs fast so a
-    // flick registers immediately, and falls slowly so the relaxation reads.
+    /* Mouse pace: distance moved this frame, normalised and smoothed.
+     *
+     * PACE_CEILING is the important number here and it is deliberately small.
+     *
+     * CURSOR_BOUNCE is the LOWER clamp on `cursor`, and since (1 - dist * 3)
+     * goes negative past about a third of the frame, that floor is what almost
+     * every pixel gets. So the far field is displaced by
+     * CURSOR_BOUNCE * pace * CURSOR_INTENSITY — a near-constant offset applied
+     * to the ENTIRE noise domain. At pace 1 that is 0.11 UV, and the whole
+     * background visibly slides sideways the moment the pointer moves, which
+     * reads as the field getting out of the cursor's way. It is not what the
+     * reference does: there the same term exists but stays imperceptible, and
+     * the contours run straight through a passing blob undisturbed.
+     *
+     * Capping pace holds the global shift near 0.02 UV — enough that the field
+     * breathes around the pointer, not enough to look like it is dodging. The
+     * cursor's visible contribution is meant to be the fluid COLOURING the
+     * background, not deforming it.
+     */
+    const PACE_CEILING = 0.18;
     const moved = this.pointer.distanceTo(this.lastPointer);
     this.lastPointer.copy(this.pointer);
-    const impulse = Math.min(moved * 12, 1);
-    this.pace += (impulse - this.pace) * (impulse > this.pace ? 0.35 : 0.04);
+    const impulse = Math.min(moved * 6, 1) * PACE_CEILING;
+    // Still asymmetric — it climbs faster than it falls, so a flick registers
+    // and then relaxes — but both are gentler now, so nothing snaps.
+    this.pace += (impulse - this.pace) * (impulse > this.pace ? 0.12 : 0.03);
     this.material.uniforms.uMousePace!.value = this.pace;
 
     this.material.uniforms.uTime!.value = time;
