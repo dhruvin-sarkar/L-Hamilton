@@ -1324,11 +1324,18 @@ if (stage) {
    * a scroll.
    * ---------------------------------------------------------------- */
 
-  /* When the signature starts writing, as a fraction of the shrink.
-     Read off the reference: at its midpoint there is no signature on screen at
-     all, and by the time the plate has landed it is fully drawn. So it belongs
-     to the back half of the sequence, not to the whole of it. */
-  const SIGN_FROM = 0.55;
+  /* When the signature writes, as a fraction of RAW scroll through the pin.
+   *
+   * Measured off the reference at ten increments by counting its drawn pixels:
+   * nothing through the third, a first mark around the fourth, barely under way
+   * at the fifth, then a steady climb through the sixth, seventh and eighth that
+   * lands on the tenth. Starting at 0.42 puts our first mark in the same place;
+   * ending at 1 lands it on the same notch.
+   *
+   * Both are raw, not eased. That is the difference between a signature that
+   * writes at a constant speed and one that lurches through the middle. */
+  const SIGN_FROM = 0.42;
+  const SIGN_TO = 1;
 
   const signatureHost = document.querySelector<HTMLElement>('#signature');
   let signatureDraw: gsap.core.Tween | null = null;
@@ -1341,8 +1348,10 @@ if (stage) {
       })
       .then((markup) => {
         signatureHost.innerHTML = markup;
-        const path = signatureHost.querySelector('path');
-        if (!path) throw new Error('no <path> in signature trace');
+        /* The NIB, not the ink. The visible letterforms are a filled outline;
+           what animates is the mask stroke that uncovers them. */
+        const path = signatureHost.querySelector('[data-signature-nib]');
+        if (!path) throw new Error('no [data-signature-nib] in signature asset');
 
         // The file carries width/height in pt, which would pin it to that size
         // and ignore the CSS. viewBox is what it needs to keep.
@@ -1357,7 +1366,9 @@ if (stage) {
         );
         // Catch up to wherever the scroll already is — a reload partway down the
         // sequence must not leave the signature unwritten under a closed plate.
-        signatureDraw.progress(gsap.utils.clamp(0, 1, (shrunk - SIGN_FROM) / (1 - SIGN_FROM)));
+        signatureDraw.progress(
+          gsap.utils.clamp(0, 1, (shrunk - SIGN_FROM) / (SIGN_TO - SIGN_FROM)),
+        );
       })
       .catch((err: unknown) => {
         // Decorative, and the sequence is complete without it. Fail visibly to
@@ -1370,13 +1381,30 @@ if (stage) {
     const p = { t: 0 };
     gsap.to(p, {
       t: 1,
-      ease: 'power1.inOut', // the reference's own curve on this scrub
+      /* LINEAR, so `p.t` is raw scroll position through the pin.
+       *
+       * The reference's curve on the plate is power1.inOut — confirmed against
+       * its own render at nine consecutive scroll increments, matching to within
+       * a pixel — and that curve is now applied below, explicitly, to the things
+       * that want it. It used to live here on the tween instead, which meant
+       * EVERYTHING read an eased clock, including the signature. That is what
+       * made the signature feel like it snapped: it started near the middle of
+       * the pin, which is exactly where an inOut curve is moving fastest, so it
+       * inherited the plate's acceleration on top of its own. */
+      ease: 'none',
       onUpdate: () => {
-        shrunk = p.t;
+        /* Two clocks, deliberately named apart:
+             p.t    raw scroll through the pin, 0..1, even
+             eased  the plate's curve, slow at both ends
+           Anything that belongs to the SHRINK reads `eased`. Anything that
+           should advance evenly with the wheel reads `p.t`. */
+        const eased = p.t < 0.5 ? 2 * p.t * p.t : 1 - Math.pow(-2 * p.t + 2, 2) / 2;
+
+        shrunk = eased;
         /* Note there is no second ramp here. plateGeometry already returns the
-           values FOR this progress — multiplying them by p.t again is what
+           values FOR this progress — multiplying them by eased again is what
            produced the quadratic sag described there. */
-        const box = plateGeometry(p.t);
+        const box = plateGeometry(eased);
         stage.style.setProperty('--hero-zoom', String(box.zoom));
         stage.style.setProperty('--hero-crop-x', `${box.cropX * 100}%`);
         stage.style.setProperty('--hero-crop-top', `${box.cropTop * 100}%`);
@@ -1390,37 +1418,54 @@ if (stage) {
          * helmet, nothing moving — while at a quarter through both are still
          * plainly there. So the handover happens somewhere in between, and it
          * is a switch rather than a fade. */
-        head.inert = p.t >= 0.4;
+        head.inert = eased >= 0.4;
 
-        /* The signature writes itself across the back half of the shrink. It is
-           a progress SET rather than a tween of its own, so scrubbing backwards
+        /* The signature writes itself across the back half of the pin, on the
+           RAW clock so it advances by the same amount for every notch of the
+           wheel. Measured against the reference over ten increments: nothing at
+           three, barely started at five, then a steady climb that lands exactly
+           on ten.
+
+           A progress SET rather than a tween of its own, so scrubbing backwards
            un-writes it exactly the way it was written. */
         signatureDraw?.progress(
-          gsap.utils.clamp(0, 1, (p.t - SIGN_FROM) / (1 - SIGN_FROM)),
+          gsap.utils.clamp(0, 1, (p.t - SIGN_FROM) / (SIGN_TO - SIGN_FROM)),
         );
         // Muted, not faded. Draining saturation keeps the plate solid; dropping
         // opacity would dissolve it into the screen behind and grey the
         // portrait out. Stops at 0.2 rather than 0 — a fully grey plate reads
         // as broken rather than as receding.
-        stage.style.setProperty('--hero-mute', String(1 - 0.8 * p.t));
+        stage.style.setProperty('--hero-mute', String(1 - 0.8 * eased));
         // The furniture belongs to the full-bleed screen, so it clears early —
         // gone by the time the plate is a third of the way in.
         heroTrack.style.setProperty(
           '--hero-furniture',
-          String(Math.max(0, 1 - p.t / 0.3)),
+          String(Math.max(0, 1 - eased / 0.3)),
         );
         /* The nav does not travel — it is already fixed in the corners. It just
            settles to a slightly smaller size as the screen behind it changes,
            so the chrome reads as belonging to the new screen rather than to the
            hero it came from. */
         const root = document.documentElement.style;
-        root.setProperty('--nav-shrink', String(1 - 0.18 * p.t));
+        root.setProperty('--nav-shrink', String(1 - 0.18 * eased));
         /* Present in the hero, absent through the middle, back at the end.
            It belongs to BOTH screens but not to the transition between them —
            carrying it across would tie the two together when the whole point is
            that one replaces the other. Out fast, back late. */
-        const mono = p.t < 0.15 ? 1 - p.t / 0.15 : Math.max(0, (p.t - 0.9) / 0.1);
+        const mono = eased < 0.15 ? 1 - eased / 0.15 : Math.max(0, (eased - 0.9) / 0.1);
         root.setProperty('--mono-in', String(mono));
+
+        /* The wordmark crosses from the hero's palette to the revealed screen's.
+           Lewis in Rosso over HAMILTON in Giallo works on the dark hero and is
+           close to unreadable on cream — Giallo on that ground measures about
+           1.06:1. So it inverts along with everything else behind it, into ink
+           and red, and back again on the way up.
+
+           Tied to `eased` rather than to the raw clock on purpose: it is a
+           property of the SCREEN changing, so it has to move when the screen
+           does. A linear ramp here would have the wordmark half-inverted while
+           the hero still filled the frame. */
+        root.setProperty('--nav-invert', String(gsap.utils.clamp(0, 1, (eased - 0.1) / 0.5)));
       },
       scrollTrigger: {
         trigger: heroTrack,
@@ -1472,12 +1517,26 @@ if (stage) {
        is ordering for readability rather than for correctness — the compositor
        stacks the two by z-index whatever order they were drawn in.
 
-       It keeps drawing for the whole sequence. The hero above it is what
-       shrinks away; this is what is left, so stopping it at any point would
-       freeze the finished screen. */
-    background?.update();
-    background?.render();
+       Skipped entirely while the plate still covers the viewport. At rest at the
+       top of the page the hero is full-bleed and paints an opaque ground, so
+       this layer is behind a wall — and that is where visitors who never scroll
+       spend all of their time. It is not a saving in the middle of the sequence
+       where the frame budget is tightest; it is a saving on the state the page
+       sits in by default.
 
+       The threshold has to be a hair above zero rather than a strict equality:
+       the scrub settles on values like 1e-7 rather than landing on 0. */
+    if (shrunk > 0.001) {
+      background?.update();
+      background?.render();
+    }
+
+    /* The hero keeps rendering even after it has gone inert, and deliberately.
+       Its canvas has no preserveDrawingBuffer, so the drawing buffer is not
+       guaranteed to survive compositing — skip the draw and the plate can blank
+       out. The saving is already banked inside update(), which returns before
+       the fluid solve and the contour pass once the plate is still. What is
+       left is a single textured quad. */
     head.update();
     renderer.render(head.scene, head.camera);
   };

@@ -81,7 +81,14 @@
   /* Ferrari's two house colours split across the lockup: given name in Rosso
      Corsa, surname in Giallo Modena. Same pairing the monogram animates
      between, so the nav reads as one system rather than two unrelated picks. */
-  color: var(--rosso-corsa);
+  /* Rosso on the hero, pulled toward the page's ink as the screen inverts. It
+     travels less far than the surname does, because Rosso already holds up on
+     cream — it darkens to seat the lockup rather than to rescue it. */
+  color: color-mix(
+    in oklab,
+    var(--rosso-corsa),
+    var(--dark) calc(var(--nav-invert, 0) * 35%)
+  );
   font-size: calc(var(--wordmark-size) * 0.616);
   line-height: 1;
   letter-spacing: 0;
@@ -93,7 +100,12 @@
 .wordmark__last {
   font-family: var(--font-display);
   font-weight: 800;
-  color: var(--giallo-modena);
+  /* Giallo on the hero, all the way to the page's ink on the revealed screen.
+     This one has to travel the full distance: Giallo Modena on that cream is
+     about 1.06:1, which is not "a bit low" — it is the same colour. The mix runs
+     in oklab so the midpoint stays a believable ochre instead of dipping through
+     the muddy grey an sRGB interpolation gives between yellow and near-black. */
+  color: color-mix(in oklab, var(--giallo-modena), var(--dark) calc(var(--nav-invert, 0) * 100%));
   font-size: var(--wordmark-size);
   line-height: 0.84;
   text-transform: uppercase;
@@ -425,6 +437,21 @@
   inherits: false;
 }
 
+/* How far the nav has crossed from the hero's palette to the revealed screen's.
+   0 on the dark hero, 1 on the cream screen behind it.
+
+   inherits: TRUE, and that is load-bearing rather than incidental. This is set
+   on the document element by the shrink timeline and read two levels down on
+   .wordmark__first and .wordmark__last. A non-inheriting custom property is
+   substituted on the element that declares it, so read from a child it silently
+   resolves to its initial value — the wordmark would simply never change colour,
+   with nothing in the console to say why. */
+@property --nav-invert {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: true;
+}
+
 /* Canvas fills the viewport and is inert to pointer events — the scene tracks
    the pointer on window, so the furniture above it stays clickable.
 
@@ -553,20 +580,17 @@
   overflow: visible;
 }
 
-.hero-sign path {
-  /* The trace arrives from potrace as a FILLED outline with no stroke. Filling
-     it would drop the whole signature in at once; stroking the same geometry is
-     what gives DrawSVG a length to run along. The shape is a skeleton, so its
-     two sides are within a hair of each other and stroking it reads as one
-     pen line rather than as an outline. */
-  fill: none;
-  stroke: var(--rosso-corsa);
-  /* In the path's own units, which the trace's <g> then scales by 0.1 — so this
-     is about 2px on screen at the size above. Raised in step with the box being
-     made smaller, or the line thins out as the signature does. */
-  stroke-width: 21;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+/* The visible ink is the OUTLINE trace — the real letterforms, filled, with the
+   weight and the swelling of an actual pen. Stroking the skeleton directly (the
+   first attempt) put the pen on the right path but drew it as a hairline, which
+   reads as a scribble rather than as a signature.
+
+   It is uncovered by a mask whose content is the SKELETON trace stroked wide,
+   animated by DrawSVG. So the reveal still follows the order the pen moved in,
+   while what actually appears is the full letterform. See the generator note in
+   the asset itself. */
+.hero-sign [data-signature-ink] {
+  fill: var(--rosso-corsa);
 }
 
 .hero {

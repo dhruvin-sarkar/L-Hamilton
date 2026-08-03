@@ -55,6 +55,10 @@ export class BackgroundField {
   /** The fluid's resting value. See the class note on tCursorEffect. */
   private readonly restTexture: THREE.DataTexture;
 
+  /** Seconds between noise steps — 30Hz. See `update`. */
+  private static readonly NOISE_INTERVAL = 1 / 30;
+  private lastNoiseStep = -Infinity;
+
   constructor(renderer: THREE.WebGLRenderer) {
     this.renderer = renderer;
     this.contour = new ContourField(renderer);
@@ -134,8 +138,30 @@ export class BackgroundField {
     this.contour.setSize(window.innerWidth, window.innerHeight);
   }
 
+  /**
+   * Step the noise.
+   *
+   * THROTTLED, and this is the single biggest saving available on this layer.
+   * Pass one evaluates a three-octave simplex over every pixel of the viewport —
+   * around 1.9 million of them at this size — and it is the most expensive
+   * thing either canvas does per frame after the hero's fluid.
+   *
+   * It also does not need 60Hz. The field's SPEED is 0.1, meaning the pattern
+   * takes about ten seconds to travel its own noise cell; halving its update
+   * rate changes what is on screen by an amount no one can perceive. Pass two,
+   * which traces the contours out of whatever pass one last wrote, still runs
+   * every frame — so the layer never drops a frame or judders, it just stops
+   * recomputing a texture that has barely moved.
+   *
+   * Deliberately NOT applied to the hero's own field. That one is the living
+   * surface of the opening screen and sits under a cursor the visitor is
+   * actively moving; throttling it is visible in a way this is not.
+   */
   update(): void {
-    this.contour.update(this.clock.getElapsedTime());
+    const now = this.clock.getElapsedTime();
+    if (now - this.lastNoiseStep < BackgroundField.NOISE_INTERVAL) return;
+    this.lastNoiseStep = now;
+    this.contour.update(now);
   }
 
   render(): void {
