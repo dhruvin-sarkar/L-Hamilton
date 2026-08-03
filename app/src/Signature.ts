@@ -66,6 +66,16 @@ function parse(svgText: string): Trace {
   const scale = /scale\(\s*([-\d.]+)[\s,]+([-\d.]+)\s*\)/.exec(m);
   if (!translate || !scale) throw new Error('signature: unreadable <g> transform');
 
+  /* Capture groups are `string | undefined`, and Number(undefined) is NaN —
+     which propagates silently through the transform and draws nothing at all.
+     Parse through a checked helper so a bad trace fails at load with a name
+     rather than at render with a blank canvas. */
+  const num = (v: string | undefined, what: string): number => {
+    const n = Number(v);
+    if (!Number.isFinite(n)) throw new Error(`signature: ${what} is not a number`);
+    return n;
+  };
+
   /* Length has to come from a real SVGPathElement — Path2D has no geometry
      query. It has to be in the document to measure, so it goes in and comes
      straight back out. */
@@ -87,10 +97,10 @@ function parse(svgText: string): Trace {
     nib: new Path2D(nibD),
     nibLength,
     viewBox: { w: vbW, h: vbH },
-    scaleX: Number(scale[1]),
-    scaleY: Number(scale[2]),
-    translateX: Number(translate[1]),
-    translateY: Number(translate[2]),
+    scaleX: num(scale[1], 'transform scale x'),
+    scaleY: num(scale[2], 'transform scale y'),
+    translateX: num(translate[1], 'transform translate x'),
+    translateY: num(translate[2], 'transform translate y'),
   };
 }
 

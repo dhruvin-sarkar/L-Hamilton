@@ -29,6 +29,19 @@ if (!currentEra) {
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/** Console handle on the live scene. See where it is assigned, at the bottom. */
+declare global {
+  interface Window {
+    hamiltonGL?: {
+      head: HeadScene;
+      renderer: THREE.WebGLRenderer;
+      background: BackgroundField | null;
+      bgRenderer: THREE.WebGLRenderer | null;
+      ScrollTrigger: typeof ScrollTrigger;
+    };
+  }
+}
+
 /* ------------------------------------------------------------------ *
  * Smooth scroll
  *
@@ -216,13 +229,13 @@ if (!reducedMotion) {
 /* ------------------------------------------------------------------ *
  * Marquee
  *
- * Content comes from the model, not the markup: the years are the seven title
- * seasons and the teams are the three eras, so neither can drift out of sync
- * with the rest of the page.
+ * Two counter-scrolling bands behind the plate. The copy is placeholder and
+ * defined below rather than in the markup, so the visible text and the
+ * screen-reader line cannot drift apart.
  * ------------------------------------------------------------------ */
 
-/** How many copies of the phrase each track holds. */
-const MARQUEE_COPIES = 4;
+/** Copies per track when the track cannot be measured. See the build below. */
+const MARQUEE_FALLBACK_COPIES = 4;
 
 const marquee = document.querySelector<HTMLElement>('.hero-back');
 if (marquee) {
@@ -230,15 +243,29 @@ if (marquee) {
      graphic surface, and hanging championship years off them made the layout
      look decided when the copy is not. Swap for the real line once it exists —
      the loop measures itself, so length does not matter. */
-  const rows: Record<string, string[]> = {
+  const BANDS = {
     left: ['Placeholder headline', 'Second placeholder'],
     right: ['Lower band copy', 'Another placeholder'],
-  };
+  } as const;
+
+  type BandName = keyof typeof BANDS;
+  const isBandName = (v: string | undefined): v is BandName => v === 'left' || v === 'right';
+
+  /* Built here, animated further down once the reduced-motion branch is known.
+     Carrying the copy count in a local rather than round-tripping it through a
+     data attribute: a missing attribute would silently fall back to a different
+     number, and the loop would jump at every repeat with nothing to say why. */
+  const bands: { track: HTMLElement; copies: number; rightward: boolean }[] = [];
 
   for (const row of marquee.querySelectorAll<HTMLElement>('[data-marquee]')) {
-    const words = rows[row.dataset.marquee ?? 'left'] ?? [];
+    const name = row.dataset.marquee;
+    /* Skip rather than guess. A row whose data-marquee does not name a band is
+       markup drifting away from this file, and quietly falling back to the left
+       band would render the wrong copy in the right colour. */
+    if (!isBandName(name)) continue;
+    const words = BANDS[name];
     const track = row.querySelector<HTMLElement>('[data-marquee-track]');
-    if (!track || words.length === 0) continue;
+    if (!track) continue;
 
     // Cursor parallax pushes the two rows opposite ways, so the pair shears
     // rather than sliding as one slab — the same reason they counter-scroll.
@@ -266,21 +293,22 @@ if (marquee) {
     const copies =
       copyWidth > 0
         ? Math.max(2, Math.ceil(window.innerWidth / copyWidth) + 1)
-        : MARQUEE_COPIES;
+        : MARQUEE_FALLBACK_COPIES;
     for (let i = 1; i < copies; i++) addCopy();
 
-    // Read back by the tween below. Stored on the element rather than passed,
-    // because the two loops are built in separate passes over the same rows.
-    track.dataset.copies = String(copies);
+    bands.push({ track, copies, rightward: name === 'right' });
   }
 
-  // The visible rows are aria-hidden because they repeat themselves several
-  // times over. This is the copy a screen reader actually gets.
+  /* The visible rows are aria-hidden because they repeat themselves several
+     times over; this is the copy a screen reader actually gets.
+   *
+     It reads the bands back as they are. It used to announce them as "World
+     championships in ..." and "Teams: ...", which was left over from when they
+     carried real data — so a screen reader was being told placeholder strings
+     were career facts while sighted readers saw obvious placeholders. */
   const marqueeText = document.querySelector<HTMLElement>('#marquee-text');
   if (marqueeText) {
-    marqueeText.textContent =
-      `World championships in ${rows.left!.join(', ')}. ` +
-      `Teams: ${rows.right!.join(', ')}.`;
+    marqueeText.textContent = [...BANDS.left, ...BANDS.right].join('. ') + '.';
   }
 
   if (!reducedMotion) {
@@ -291,15 +319,12 @@ if (marquee) {
 
        `ease: none` holds the speed constant so the joint never shows up as a
        hesitation. */
-    const loops = [...marquee.querySelectorAll<HTMLElement>('[data-marquee]')].map((row) => {
-      const track = row.querySelector<HTMLElement>('[data-marquee-track]')!;
-      const rightward = row.dataset.marquee === 'right';
-
+    const loops = bands.map(({ track, copies, rightward }) => {
       /* One copy's width, as a percentage of the whole track. This is the
          pattern's period, and therefore the ONLY distance the track can travel
          without changing phase — land on it and the loop is seamless, miss it
          and the text jumps at every repeat. */
-      const step = 100 / Number(track.dataset.copies ?? MARQUEE_COPIES);
+      const step = 100 / copies;
 
       // Duration derived from WIDTH rather than fixed, or the two bands travel
       // at visibly different speeds whenever their copy differs in length.
@@ -1448,19 +1473,13 @@ if (stage) {
     });
   }
 
-  // Live handle on the scene, the way the reference exposes window.landoGL.
-  // Tuning the helmet's fit by eye and re-editing source each time is slow and
-  // error-prone; being able to read and set values from the console makes it
-  // measurable. Costs nothing, and doubles as the modding surface.
-  // ScrollTrigger rides along because the scroll story is now the hard part to
-  // tune, and reading a trigger's live start/end/progress beats guessing.
-  (window as unknown as Record<string, unknown>).hamiltonGL = {
-    head,
-    renderer,
-    background,
-    bgRenderer,
-    ScrollTrigger,
-  };
+  /* Live handle on the scene, the way the reference exposes window.landoGL.
+     Reading and setting values from the console beats re-editing source to tune
+     by eye, and ScrollTrigger rides along so a trigger's live start, end and
+     progress can be read directly. Typed rather than cast, so a rename here is
+     a compile error rather than a console session that quietly returns
+     undefined. */
+  window.hamiltonGL = { head, renderer, background, bgRenderer, ScrollTrigger };
 
   /* Every frame of this scene is a fluid simulation with 20 pressure
      iterations, a two-pass contour field and a Three.js draw. None of it is
