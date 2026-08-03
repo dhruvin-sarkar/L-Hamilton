@@ -1418,47 +1418,16 @@
   gap: 0.25em;
   white-space: nowrap;
   will-change: transform;
-  animation-duration: 30s;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  /* Held until the section is in view, then released by main.ts. Starting on
-     load means most of the loop has already gone past before it is seen. */
-  animation-play-state: paused;
-}
-
-[data-marquee='left'] .marquee__track {
-  animation-name: marquee-left;
+  /* The loop lives in main.ts as a GSAP tween, NOT as a keyframe animation. A
+     CSS animation has no rate you can drive, and scroll velocity has to be able
+     to speed it up and reverse it. Declaring one here as well would fight the
+     tween for ownership of `transform`. */
 }
 
 [data-marquee='right'] .marquee__track {
-  animation-name: marquee-right;
   /* Fills from the right, so the row is populated at the edge it travels from
      rather than leaving a gap on entry. */
   justify-content: flex-end;
-}
-
-.hero-back.is-running .marquee__track {
-  animation-play-state: running;
-}
-
-@keyframes marquee-left {
-  to {
-    transform: translateX(-100%);
-  }
-}
-
-/* Starts a full copy to the LEFT and travels back to zero, rather than starting
-   at zero and travelling right. Both end on a seam-free loop, but the naive
-   version leaves the row empty on entry and — once the track is several
-   viewports wide, which it now is — carries it clean off screen for most of the
-   cycle. That is why this band kept disappearing. */
-@keyframes marquee-right {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(0);
-  }
 }
 
 .marquee__item {
@@ -1509,8 +1478,8 @@
 /* Motion off: the rows stop dead and the visually-hidden paragraph is what
    carries the content, so nothing is lost. */
 @media (prefers-reduced-motion: reduce) {
-  .marquee__track,
-  .hero-back.is-running .marquee__track,
+  /* The bands' own loop is a GSAP tween that is never built in this mode; only
+     the drifting field is a CSS animation, so only it needs stopping here. */
   .hero-back::before,
   .hero-back::after {
     animation: none;

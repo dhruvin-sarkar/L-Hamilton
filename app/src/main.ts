@@ -8,7 +8,6 @@ import { HeadScene } from './HeadScene';
 import {
   age,
   careerTotals,
-  championshipYears,
   driver,
   eras,
   seasonsRacing,
@@ -27,6 +26,46 @@ if (!currentEra) {
  * ------------------------------------------------------------------ */
 
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ------------------------------------------------------------------ *
+ * Smooth scroll
+ *
+ * Config read off the reference rather than picked: duration 1.2, lerp 0.1,
+ * smoothWheel and syncTouch on, wheelMultiplier 1, and an easing that is
+ * power1.inOut — the SAME curve its scroll-scrubbed camera uses. Sharing one
+ * curve between the scroll itself and what the scroll drives is most of why its
+ * motion feels like one system rather than several.
+ *
+ * ScrollTrigger has to be driven from Lenis rather than from the native scroll
+ * event, and Lenis has to be stepped from gsap's ticker, or the two keep
+ * separate clocks and every scrubbed value lags the page by a frame.
+ *
+ * Set up HERE, before anything that reads it: the marquee couples its loop to
+ * scroll velocity, and it is built further down this file.
+ * ------------------------------------------------------------------ */
+
+gsap.registerPlugin(MorphSVGPlugin, ScrollTrigger);
+
+/** The smooth-scroll instance, so the marquee can read scroll velocity. */
+let lenis: Lenis | null = null;
+
+if (!reducedMotion) {
+  const instance = new Lenis({
+    duration: 1.2,
+    easing: (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2),
+    lerp: 0.1,
+    smoothWheel: true,
+    syncTouch: true,
+    wheelMultiplier: 1,
+  });
+
+  instance.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add((time) => instance.raf(time * 1000));
+  // gsap's ticker drops a frame's worth of time after a stall; Lenis integrates
+  // that gap and lurches. Its own rAF already handles the tab-switch case.
+  gsap.ticker.lagSmoothing(0);
+  lenis = instance;
+}
 
 /* ------------------------------------------------------------------ *
  * Bind stable copy from the data model.
@@ -188,9 +227,13 @@ const MARQUEE_COPIES = 4;
 
 const marquee = document.querySelector<HTMLElement>('.hero-back');
 if (marquee) {
+  /* PLACEHOLDER. Deliberately not the real career data: the two bands are a
+     graphic surface, and hanging championship years off them made the layout
+     look decided when the copy is not. Swap for the real line once it exists —
+     the loop measures itself, so length does not matter. */
   const rows: Record<string, string[]> = {
-    left: championshipYears.map(String),
-    right: eras.map((e) => e.team),
+    left: ['Placeholder headline', 'Second placeholder'],
+    right: ['Lower band copy', 'Another placeholder'],
   };
 
   for (const row of marquee.querySelectorAll<HTMLElement>('[data-marquee]')) {
@@ -233,16 +276,47 @@ if (marquee) {
       `Teams: ${rows.right!.join(', ')}.`;
   }
 
-  if (reducedMotion) {
-    // Never released — the tracks stay put and the row scrolls manually.
-    marquee.classList.remove('is-running');
-  } else {
+  if (!reducedMotion) {
+    /* The loop is a GSAP tween, not a CSS animation, because the SCROLL has to
+       be able to reach it — a CSS keyframe has no rate you can drive. This is
+       the reference's own mechanic: one linear repeating tween per band with
+       timeScale coupled to scroll.
+
+       xPercent -100 lands copy 2 exactly where copy 1 began, which is what
+       makes the seam invisible, and `ease: none` holds the speed constant so
+       the joint never shows up as a hesitation. */
+    const loops = [...marquee.querySelectorAll<HTMLElement>('[data-marquee]')].map((row) => {
+      const track = row.querySelector<HTMLElement>('[data-marquee-track]')!;
+      const dir = row.dataset.marquee === 'right' ? -1 : 1;
+      // Duration derived from WIDTH rather than fixed, or the two bands travel
+      // at visibly different speeds whenever their copy differs in length.
+      const tween = gsap.to(track, {
+        xPercent: -100 * dir,
+        duration: track.scrollWidth / 90,
+        ease: 'none',
+        repeat: -1,
+      });
+      // Start mid-cycle so neither band opens sitting on its own seam.
+      tween.totalProgress(0.5);
+      return tween;
+    });
+
+    /* Scroll couples into the bands: scrolling faster drives them faster, and
+       reversing direction reverses them, so the text reads as attached to the
+       page rather than playing beside it.
+
+       Clamped, because an unclamped flick sends the type past legibility, and
+       Lenis reports velocity in the hundreds on a fast wheel. */
+    lenis?.on('scroll', ({ velocity }: { velocity: number }) => {
+      const rate = gsap.utils.clamp(-5, 5, 1 + velocity * 0.06);
+      for (const t of loops) t.timeScale(rate);
+    });
+
     const runner = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          // Toggled both ways: a marquee animating off-screen is work the
-          // compositor does for nobody.
-          marquee.classList.toggle('is-running', entry.isIntersecting);
+          // Both ways: a band animating off-screen is work done for nobody.
+          for (const t of loops) entry.isIntersecting ? t.play() : t.pause();
         }
       },
       { threshold: 0 },
@@ -660,38 +734,6 @@ mountRollingText();
  * place. Mismatched structures would let it bow mid-flight.
  * ------------------------------------------------------------------ */
 
-gsap.registerPlugin(MorphSVGPlugin, ScrollTrigger);
-
-/* ------------------------------------------------------------------ *
- * Smooth scroll
- *
- * Config read off the reference rather than picked: duration 1.2, lerp 0.1,
- * smoothWheel and syncTouch on, wheelMultiplier 1, and an easing that is
- * power1.inOut — the SAME curve its scroll-scrubbed camera uses. Sharing one
- * curve between the scroll itself and what the scroll drives is most of why its
- * motion feels like one system rather than several.
- *
- * ScrollTrigger has to be driven from Lenis rather than from the native scroll
- * event, and Lenis has to be stepped from gsap's ticker, or the two keep
- * separate clocks and every scrubbed value lags the page by a frame.
- * ------------------------------------------------------------------ */
-
-if (!reducedMotion) {
-  const lenis = new Lenis({
-    duration: 1.2,
-    easing: (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2),
-    lerp: 0.1,
-    smoothWheel: true,
-    syncTouch: true,
-    wheelMultiplier: 1,
-  });
-
-  lenis.on('scroll', ScrollTrigger.update);
-  gsap.ticker.add((time) => lenis.raf(time * 1000));
-  // gsap's ticker drops a frame's worth of time after a stall; Lenis integrates
-  // that gap and lurches. Its own rAF already handles the tab-switch case.
-  gsap.ticker.lagSmoothing(0);
-}
 
 /** Every generated path uses this many cubic segments. See the note above. */
 const PATH_SEGMENTS = 4;
