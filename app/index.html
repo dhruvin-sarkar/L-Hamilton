@@ -152,6 +152,24 @@
            negative margin, so the two sections below stack on top of it rather
            than being pushed down by it. -->
       <div class="hero-track" data-hero-track>
+        <!-- The screen BEHIND the hero. Already fully in place at scroll zero
+             and never animated in — it is uncovered as the hero screen pulls
+             away from the edges, which is what makes the inversion read as
+             instant rather than as a crossfade.
+
+             Two counter-scrolling bands, Rosso Corsa over Giallo Modena. The
+             words come from the content model in main.ts; the sr-only copy
+             below carries them for screen readers, since the visible rows
+             repeat themselves several times to close the loop. -->
+        <div class="hero-back" aria-hidden="true">
+          <div class="marquee__row" data-marquee="left">
+            <div class="marquee__track" data-marquee-track></div>
+          </div>
+          <div class="marquee__row" data-marquee="right">
+            <div class="marquee__track" data-marquee-track></div>
+          </div>
+        </div>
+
         <div class="hero__stage" id="stage" aria-hidden="true"></div>
 
       <section class="hero" data-era="ferrari">
@@ -272,81 +290,13 @@
         </div>
       </section>
 
-      <!-- ================================================ Narrative plate
-           The second screen of the hero track. The shrunken portrait lands in
-           the middle of this; the looping text sits BEHIND it and the drawn
-           mark and eyebrow sit above.
-
-           Rows are built in main.ts from the content model — the years and
-           teams here are data, not decoration, so they are not hardcoded. -->
-      <section class="narrative" aria-labelledby="marquee-h">
-        <h2 class="sr-only" id="marquee-h">Career at a glance</h2>
-
-        <!-- The visible rows are aria-hidden: they repeat their content several
-             times over to make the loop seamless, which a screen reader would
+        <!-- The visible bands are aria-hidden: they repeat their content
+             several times over to close the loop, which a screen reader would
              otherwise read out in full. This carries the real content. -->
+        <h2 class="sr-only" id="marquee-h">Career at a glance</h2>
         <p class="sr-only" id="marquee-text"></p>
-
-        <div class="narrative__marquee" aria-hidden="true">
-          <div class="marquee__row" data-marquee="left">
-            <div class="marquee__track" data-marquee-track></div>
-          </div>
-          <div class="marquee__row" data-marquee="right">
-            <div class="marquee__track" data-marquee-track></div>
-          </div>
-        </div>
-
-        <!-- The mark and its label. Deliberately NOT a signature: reproducing
-             Hamilton's actual autograph would be forging a personal mark. His
-             race number carries the same "this is him" beat honestly, and it
-             strokes cleanly, which a scrawl would not.
-
-             One path with four subpaths, so a single dashoffset draws the two
-             numerals in sequence rather than needing four staggered tweens. -->
-        <div class="narrative__mark">
-          <svg
-            class="mark-44"
-            viewBox="0 0 212 120"
-            data-hero-anim="mark"
-            aria-hidden="true"
-          >
-            <path
-              d="M62 8 14 82h74M62 8v104M172 8l-48 74h74M172 8v104"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="9"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-          <!-- Site copy, third person. The reference labels this slot as a
-               message FROM its driver; that framing is not available to us
-               without putting words in Hamilton's mouth. -->
-          <p class="narrative__eyebrow" data-hero-anim="msg">
-            Seven-time world champion
-          </p>
-        </div>
-      </section>
       </div>
       <!-- /.hero-track -->
-
-      <!-- ====================================================== Stats -->
-      <section class="section stats" aria-labelledby="stats-h">
-        <div class="shell">
-          <h2 class="sr-only" id="stats-h">Career statistics</h2>
-          <ul class="stats__grid" id="stats-grid"></ul>
-          <p class="stats__note muted" id="stats-note"></p>
-        </div>
-      </section>
-
-      <!-- ======================================================= Eras -->
-      <section class="section eras" aria-labelledby="eras-h">
-        <div class="shell">
-          <p class="eyebrow">Three teams</p>
-          <h2 class="eras__title display" id="eras-h">The Career</h2>
-          <ol class="eras__list" id="eras-list"></ol>
-        </div>
-      </section>
     </main>
 
     <!-- ===================================================== Menu panel

@@ -185,7 +185,7 @@ if (!reducedMotion) {
 /** How many copies of the phrase each track holds. */
 const MARQUEE_COPIES = 4;
 
-const marquee = document.querySelector<HTMLElement>('.narrative');
+const marquee = document.querySelector<HTMLElement>('.hero-back');
 if (marquee) {
   const rows: Record<string, string[]> = {
     left: championshipYears.map(String),
@@ -201,17 +201,26 @@ if (marquee) {
     // rather than sliding as one slab — the same reason they counter-scroll.
     row.style.setProperty('--marquee-dir', row.dataset.marquee === 'right' ? '-1' : '1');
 
-    // Several identical copies side by side. Translating the track by -100%
-    // then lands copy 2 exactly where copy 1 started, which is the only reason
-    // the loop has no visible seam.
-    for (let copy = 0; copy < MARQUEE_COPIES; copy++) {
+    /* Several identical copies side by side. Translating the track by -100%
+       then lands copy 2 exactly where copy 1 started, which is the only reason
+       the loop has no visible seam.
+     *
+     * The count is measured, not fixed. A fixed four copies is plenty for the
+     * 19 championship years but nowhere near enough for the three team names —
+     * that track came out NARROWER than the viewport, so translating it by a
+     * full 100% swung it clean off screen and the band vanished for half of
+     * every cycle. Keep adding copies until there is at least a viewport in
+     * hand, then the -100% always lands on populated text. */
+    let copy = 0;
+    do {
       words.forEach((word, i) => {
         const item = el('span', 'marquee__item', word);
         // Alternate solid and outline so the two rows read as one object.
         if ((copy * words.length + i) % 2 === 1) item.classList.add('is-outline');
         track.append(item, el('span', 'marquee__sep', '/'));
       });
-    }
+      copy++;
+    } while (copy < MARQUEE_COPIES || track.scrollWidth < window.innerWidth * 2);
   }
 
   // The visible rows are aria-hidden because they repeat themselves several
@@ -1039,7 +1048,7 @@ if (stage) {
          the reveal decay out rather than snapping — and it stops a cursor over
          the narrative plate painting a blob across a composition the pointer is
          no longer part of. Same intent as the reference's uFilter ramp. */
-      if (head.shrink > 0.25) return;
+      if (shrunk > 0.25) return;
       // -1..1, y flipped: screen y grows downward, the shader assumes y up.
       head.setPointer(
         (e.clientX / window.innerWidth) * 2 - 1,
@@ -1063,16 +1072,51 @@ if (stage) {
    * ---------------------------------------------------------------- */
 
   const heroTrack = document.querySelector<HTMLElement>('[data-hero-track]');
-  const markPath = document.querySelector<SVGPathElement>('.mark-44 path');
-  const eyebrow = document.querySelector<HTMLElement>('[data-hero-anim="msg"]');
+
+  /* End scale of the plate, per axis. Measured, not chosen: the reference's
+     landing box is 625x404 in a 1908x926 viewport.
+   *
+   * The two axes differ and that IS the move — 0.328 across against 0.436 down.
+   * The sides come in noticeably faster than the top, so a 2.06 viewport aspect
+   * resolves toward a 1.55 near-square. A single uniform scale holds the aspect
+   * fixed and reads as a plain zoom-out. */
+  const PLATE_X = 625 / 1908;
+  const PLATE_Y = 404 / 926;
+
+  /** How far the shrink has run, 0..1. Read by the pointer wiring below. */
+  let shrunk = 0;
 
   if (heroTrack && !reducedMotion) {
-    const shrink = { t: 0 };
-    gsap.to(shrink, {
+    const p = { t: 0 };
+    gsap.to(p, {
       t: 1,
-      ease: 'none',
+      ease: 'power1.inOut', // the reference's own curve on this scrub
       onUpdate: () => {
-        head.shrink = shrink.t;
+        shrunk = p.t;
+        stage.style.setProperty('--hero-shrink-x', String(1 + (PLATE_X - 1) * p.t));
+        stage.style.setProperty('--hero-shrink-y', String(1 + (PLATE_Y - 1) * p.t));
+        // Muted, not faded. Draining saturation keeps the plate solid; dropping
+        // opacity would dissolve it into the screen behind and grey the
+        // portrait out. Stops at 0.2 rather than 0 — a fully grey plate reads
+        // as broken rather than as receding.
+        stage.style.setProperty('--hero-mute', String(1 - 0.8 * p.t));
+        // The furniture belongs to the full-bleed screen, so it clears early —
+        // gone by the time the plate is a third of the way in.
+        heroTrack.style.setProperty(
+          '--hero-furniture',
+          String(Math.max(0, 1 - p.t / 0.3)),
+        );
+        /* The nav does not travel — it is already fixed in the corners. It just
+           settles to a slightly smaller size as the screen behind it changes,
+           so the chrome reads as belonging to the new screen rather than to the
+           hero it came from. */
+        const root = document.documentElement.style;
+        root.setProperty('--nav-shrink', String(1 - 0.18 * p.t));
+        /* The monogram is absent for the whole sequence and returns only once
+           the plate has landed. Held at 0 until the last tenth rather than
+           fading across the whole scrub, so it reads as arriving on the new
+           screen instead of hanging around through the transition. */
+        root.setProperty('--mono-in', String(Math.max(0, (p.t - 0.9) / 0.1)));
       },
       scrollTrigger: {
         trigger: heroTrack,
@@ -1082,32 +1126,6 @@ if (stage) {
         invalidateOnRefresh: true,
       },
     });
-
-    /* The mark draws over the LAST 30% of the shrink, finishing exactly as the
-       portrait lands. That window is measured, not chosen: the reference's own
-       tracker spans scrollY 687 -> 982 against a 982px viewport. */
-    if (markPath && eyebrow) {
-      const length = markPath.getTotalLength();
-      gsap.set(markPath, { strokeDasharray: length, strokeDashoffset: length });
-      gsap.set(eyebrow, { yPercent: 110, autoAlpha: 0 });
-
-      gsap
-        .timeline({
-          scrollTrigger: {
-            trigger: heroTrack,
-            start: () => `top+=${window.innerHeight * 0.7} top`,
-            end: () => `top+=${window.innerHeight} top`,
-            scrub: true,
-            invalidateOnRefresh: true,
-          },
-        })
-        // One path, four subpaths — a single dashoffset walks them in order, so
-        // the two numerals draw one after the other for free.
-        .to(markPath, { strokeDashoffset: 0, duration: 0.8, ease: 'power2.out' }, 0)
-        // The reference offsets its second element by 0.3 of a 0.8 beat; same
-        // proportion here so the label lands just behind the mark.
-        .to(eyebrow, { yPercent: 0, autoAlpha: 1, duration: 0.8, ease: 'power3.out' }, 0.3);
-    }
   }
 
   // Live handle on the scene, the way the reference exposes window.landoGL.

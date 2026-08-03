@@ -1115,84 +1115,19 @@ export class HeadScene {
   }
 
   /**
-   * Scroll shrink, 0..1. Drives the portrait from filling the hero down to the
-   * small centred plate the narrative section is built around.
-   *
-   * This is a plane scale rather than a camera dolly because our camera is
-   * ORTHOGRAPHIC — the reference moves its camera z 0 -> -1, which only reads as
-   * a shrink under perspective. Same visible result, different lever; dollying
-   * an ortho camera would have done nothing at all.
-   *
-   * Scaling in GL rather than with a CSS transform on the canvas also keeps the
-   * portrait crisp: a CSS scale would resample an already-rasterised frame.
-   */
-  private shrinkT = 0;
-
-  set shrink(v: number) {
-    const t = Math.max(0, Math.min(1, v));
-    if (t === this.shrinkT) return;
-    this.shrinkT = t;
-    this.layout();
-    /* The helmet is a CHILD of the portrait plane, so it rescales with it for
-       free — but its scan band is driven by uScanBounds, a measured world-space
-       y range that layout() does not touch. Left stale it stretches into a
-       wedge across the frame. Re-fitting is the same call resize() already
-       makes for exactly this reason. */
-    this.fitHelmet();
-
-    /* Take the hero's interactive layer off the plate.
-     *
-     * The reference ramps a `uFilter` uniform 0 -> 1 on this exact same scrub,
-     * over `duration: 0.25` — the first quarter of the shrink. That is what it
-     * is for: once the portrait is a small centred plate, the hero's overlays
-     * are drawing over a composition they no longer belong to. Ours showed it
-     * as a dark wedge of helmet hanging off the chin.
-     *
-     * Written straight to the uniform rather than through `helmetOpacity`,
-     * because that setter also rewrites baseHelmetOpacity — going through it
-     * would consume the authored rest value and never restore it. */
-    const filter = Math.min(t / 0.25, 1);
-    if (this.helmetMat) {
-      this.helmetMat.uniforms.uOpacity!.value = this.baseHelmetOpacity * (1 - filter);
-    }
-    /* Opacity alone does NOT clear it — measured: uOpacity read 0 with the
-       visor still fully drawn, because the shell and the wireframe pass are
-       separate materials and only one of them honours that uniform. Gating the
-       whole subtree is both unambiguous and cheaper, since it skips the draw
-       entirely rather than blending a fully transparent one. */
-    if (this.helmet) this.helmet.visible = filter < 1;
-  }
-
-  /** How far the scroll shrink has run, 0..1. Read by the pointer wiring. */
-  get shrink(): number {
-    return this.shrinkT;
-  }
-
-  /**
-   * Portrait world height once fully shrunk, as a fraction of the full frame.
-   *
-   * Measured, not chosen: the reference's landing box is 404px tall in a 982px
-   * viewport, and its centre sits at 491px — exactly the middle. So the plane
-   * ends up centred at 41.1% of the frame height.
-   */
-  private static readonly SHRUNK_HEIGHT = (2 * 404) / 982;
-
-  /**
    * Fit the portrait. The source is 4:3 landscape where the reference's was
    * square, so fitting by height alone leaves the subject small — hence the
    * subjectScale multiplier rather than a plain contain.
+   *
+   * Note there is no scroll shrink here any more. The sequence scales the whole
+   * rendered SCREEN — backdrop, contours and portrait together as one plate —
+   * which is a transform on the canvas element, not a change to what gets drawn
+   * inside it. Scaling down is minification, so it costs no sharpness.
    */
   private layout(): void {
     const view = window.innerWidth / window.innerHeight;
     const base = view > this.aspect ? 2 : (2 * view) / this.aspect;
-    const full = base * this.subjectScale;
-
-    /* power1.inOut, matching the reference's own camera curve. Baked here
-       rather than tweened outside so the value stays correct on a resize, when
-       layout() re-runs without the scroll timeline firing. */
-    const t = this.shrinkT;
-    const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-    const scale = full + (HeadScene.SHRUNK_HEIGHT - full) * eased;
+    const scale = base * this.subjectScale;
     this.headMesh.scale.set(scale * this.aspect, scale, 1);
 
     // Anchor the portrait's bottom edge to the bottom of the hero rather than
@@ -1203,10 +1138,7 @@ export class HeadScene {
     // world unit is half the viewport height, so this is roughly 37px at
     // 1908x926 — enough to break dead-centre symmetry, not enough to read as
     // off-centre.
-    // Bottom-anchored at full size; dead centre once shrunk. The reference's
-    // landing box is centred on both axes, so the off-centre nudge and the
-    // floor anchor both have to unwind as the shrink runs.
-    this.headBase.set(0.08 * (1 - eased), (-1 + scale / 2) * (1 - eased));
+    this.headBase.set(0.08, -1 + scale / 2);
     this.headMesh.position.set(this.headBase.x, this.headBase.y, 0);
 
     // Aspect now belongs to pass one, where the noise is actually sampled;

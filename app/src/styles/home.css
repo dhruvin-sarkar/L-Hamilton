@@ -62,6 +62,10 @@
   justify-items: start;
   inline-size: max-content;
   color: var(--text);
+  /* Settles smaller through the opening sequence. Anchored top-left so it holds
+     its corner while it scales. */
+  transform: scale(var(--nav-shrink, 1));
+  transform-origin: 0 0;
   /* Optical, not metric: the serif's own side bearing already indents it, so
      the two lines only align by eye once that is pulled back out. */
   padding-left: 0.06em;
@@ -141,6 +145,15 @@
   transition:
     opacity 0.45s var(--cubic-default),
     visibility 0s linear 0s;
+  /* Absent for the whole opening sequence, arriving only once the plate has
+     landed — the reference carries no centre mark until then either.
+     Scrubbed, so it must NOT also transition; the 0.45s above is for the menu,
+     which sets opacity by class rather than by this variable.
+
+     Over-qualified deliberately: `.is-ready .hero-in` sets opacity at the same
+     0-2-0 specificity later in this file and would otherwise win the tie. */
+  opacity: var(--mono-in, 0);
+  transition-property: visibility;
 }
 
 [data-menu-open] .nav-inner .monogram {
@@ -177,6 +190,10 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  /* Settles smaller as the screen behind changes. Anchored at the right edge so
+     it stays pinned to its corner while it scales. */
+  transform: scale(var(--nav-shrink, 1));
+  transform-origin: 100% 50%;
 }
 
 .store {
@@ -348,11 +365,45 @@
 
 /* ============================================================== Hero */
 
-/* Two screens tall, with the canvas pinned across both. The height comes from
-   the two sections inside it, not from a fixed value. */
+/* ===================================================== Hero track
+ *
+ * Two viewport heights. `position: sticky` pins for exactly
+ * (containerHeight - stickyHeight), so a 200dvh track holding a 100dvh stage
+ * pins it for 100dvh and then releases — measured on the reference at 1908x926,
+ * where its canvas holds top:0 until scrollY 926 to the pixel.
+ *
+ * That first screen IS the sequence. The page is genuinely scrolling, but
+ * nothing translates, so it reads as locked while the hero shrinks.
+ *
+ * The track's own background is the INVERTED screen: our hero is dark, so what
+ * it pulls back to reveal is light. Nothing fades it in — it is simply behind,
+ * already there, and gets uncovered. That is what makes the flip read as
+ * instant rather than as a crossfade. */
 .hero-track {
   position: relative;
-  background: var(--bg);
+  min-block-size: 200dvh;
+  background: var(--cream);
+}
+
+/* Written by one scrubbed timeline in main.ts. Registered because an
+   unregistered custom property inside scale() fails to parse and takes the
+   whole declaration down with it. */
+@property --hero-shrink-x {
+  syntax: '<number>';
+  initial-value: 1;
+  inherits: false;
+}
+
+@property --hero-shrink-y {
+  syntax: '<number>';
+  initial-value: 1;
+  inherits: false;
+}
+
+@property --hero-mute {
+  syntax: '<number>';
+  initial-value: 1;
+  inherits: false;
 }
 
 /* Canvas fills the viewport and is inert to pointer events — the scene tracks
@@ -362,21 +413,113 @@
    opposite margin so the sections below stack OVER it rather than after it.
    That is what keeps the portrait on screen while the narrative plate scrolls
    up around it. */
-.hero__stage {
+/* ALL THREE layers pin, then are pulled back out of flow with an equal and
+   opposite margin so they STACK rather than queue. DOM order is paint order:
+   revealed screen, plate, hero furniture.
+ *
+ * The hero itself has to be in here. Pinning only the canvas left the hero
+ * section in normal flow, so its furniture translated up the screen while the
+ * plate shrank — which is exactly the "it is still scrolling" everything else
+ * was measured against. With all three pinned, nothing on screen moves for the
+ * first viewport height: the only thing that changes is the plate's size. */
+.hero-back,
+.hero__stage,
+.hero {
   position: sticky;
   top: 0;
   height: 100dvh;
   margin-bottom: -100dvh;
-  z-index: 0;
+}
+
+.hero-back,
+.hero__stage {
   pointer-events: none;
 }
 
+.hero-back {
+  z-index: 0;
+  display: grid;
+  align-content: center;
+  gap: 0.1em;
+  overflow: clip;
+}
+
+/* The revealed screen carries the same topography as the hero, inverted: dark
+   ink on cream rather than red on black. Two layers at different scales and
+   opacities so it reads as depth rather than as one flat pattern.
+
+   Reuses the generated contour asset as a MASK, so the colour stays a token —
+   the file itself is flat white geometry, no palette baked in. */
+.hero-back::before,
+.hero-back::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  mask-image: url('/assets/menu/contours.svg');
+  mask-position: center;
+  mask-repeat: no-repeat;
+}
+
+/* Black lines, the wider of the two. */
+.hero-back::before {
+  background-color: var(--dark);
+  mask-size: cover;
+  opacity: 0.28;
+}
+
+/* Red lines, offset and scaled up so the two sets cross rather than trace each
+   other — a second copy at the same size would just thicken the first. */
+.hero-back::after {
+  background-color: var(--rosso-corsa);
+  mask-size: 150%;
+  mask-position: 30% 60%;
+  opacity: 0.4;
+}
+
+/* The whole rendered screen scales as one plate — backdrop, contours and
+   portrait together — which is the thing I had wrong before: it is not the
+   subject shrinking inside a full-bleed frame.
+ *
+ * A transform is the right tool and not a shortcut. Scaling DOWN a
+ * full-resolution canvas is minification: it downsamples and stays crisp. Only
+ * scaling up would resample and blur. So there is nothing to gain from
+ * rebuilding this inside the GL. */
+.hero__stage {
+  z-index: 1;
+  /* NON-UNIFORM, and that is the whole character of the move: the plate goes
+     from a 2.06 viewport aspect to a 1.55 landing box, so the sides have to
+     come in faster than the top and it resolves toward a square. A single
+     uniform scale keeps the aspect fixed and reads as a zoom-out instead. */
+  transform: scale(var(--hero-shrink-x, 1), var(--hero-shrink-y, 1));
+  /* Muted, not faded. Opacity dissolves the plate into the page behind it and
+     turns the portrait grey; desaturating drains the colour while the image
+     stays solid and readable. */
+  filter: saturate(var(--hero-mute, 1));
+  will-change: transform, filter;
+}
+
 .hero {
-  position: relative;
-  min-height: 100dvh;
+  z-index: 2;
   isolation: isolate;
   /* No background of its own: the pinned canvas behind it IS the background
      now, and painting over it would hide the portrait entirely. */
+}
+
+/* The hero's own furniture belongs to the full-bleed screen, so it goes with
+   it. Faded on its own token because it has to clear EARLY — carrying a
+   next-race card down into a shrinking plate reads as a bug.
+
+   Three selectors, and that is load-bearing: `.is-ready .hero-in` sets opacity
+   on these same elements at 0-2-0 and sits LATER in this file, so at equal
+   specificity it wins on source order and the furniture never fades. Exactly
+   the tie that pinned the monogram open. */
+.hero-track .hero .next-race,
+.hero-track .hero .lock {
+  opacity: var(--hero-furniture, 1);
+  /* The entrance transition must not fight a scrubbed value. */
+  transition: none;
 }
 
 .hero__stage canvas {
@@ -1147,27 +1290,29 @@
  * right-hand row justified to its end so it fills from the correct side.
  * ------------------------------------------------------------------ */
 
-/* Second screen of the hero track. Full height so the shrunken portrait, which
-   lands dead centre of the viewport, sits in the middle of it. */
-.narrative {
-  position: relative;
-  min-block-size: 100dvh;
-  display: grid;
-  place-items: center;
-  overflow: clip;
+/* Two bands, two colours — Rosso Corsa over Giallo Modena, the same pairing the
+   wordmark and the monogram use, so the revealed screen reads as the same
+   system rather than as a new palette. */
+.hero-back [data-marquee='left'] {
+  color: var(--rosso-corsa);
 }
 
-/* The looping rows sit BEHIND the portrait and the mark. */
-.narrative__marquee {
-  position: absolute;
-  inset-block: 0;
-  inset-inline: 0;
-  z-index: 0;
-  display: grid;
-  gap: 0.1em;
-  align-content: center;
-  overflow: clip;
-  pointer-events: none;
+/* Giallo Modena on cream is about 1.06:1 — effectively invisible, and it WAS
+   invisible on first build. The colour is kept because the pairing is the
+   point; legibility comes from outlining the letterforms in the page's dark
+   ink instead of from the fill. */
+.hero-back [data-marquee='right'] {
+  color: var(--giallo-modena);
+}
+
+.hero-back [data-marquee='right'] .marquee__item {
+  -webkit-text-stroke: 1.5px var(--dark);
+}
+
+/* The outline variant has no fill to carry the colour, so on this band it
+   would vanish for the same reason. Give it the ink outright. */
+.hero-back [data-marquee='right'] .marquee__item.is-outline {
+  -webkit-text-stroke: 1.5px var(--dark);
 }
 
 /* Both are declared AND read on .marquee__row itself, so `inherits: false` is
@@ -1225,39 +1370,8 @@
   justify-content: flex-end;
 }
 
-.narrative.is-running .marquee__track {
+.hero-back.is-running .marquee__track {
   animation-play-state: running;
-}
-
-/* ---------------------------------------------- Narrative mark (44) */
-
-.narrative__mark {
-  position: relative;
-  z-index: 2;
-  display: grid;
-  justify-items: center;
-  gap: 0.9rem;
-  /* Sits above the shrunken portrait, which lands centred. */
-  align-self: start;
-  margin-block-start: clamp(3rem, 7vh, 6rem);
-}
-
-.mark-44 {
-  inline-size: clamp(4.4rem, 7vw, 6.6rem);
-  block-size: auto;
-  color: var(--accent);
-  overflow: visible;
-}
-
-.narrative__eyebrow {
-  font-size: var(--text-eyebrow, 0.72rem);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: var(--fg);
-  margin: 0;
-  /* Rises into place behind a clip, per line, like the reference's eyebrow. */
-  overflow: hidden;
 }
 
 @keyframes marquee-left {
@@ -1279,14 +1393,16 @@
   line-height: 0.9;
   text-transform: uppercase;
   letter-spacing: -0.03em;
-  color: var(--text);
+  /* currentColor, so the band's own colour reaches the words — the two rows
+     are set to Rosso and Giallo on the row itself. */
+  color: currentColor;
 }
 
 /* Alternating outline type. The counter-scrolling rows read as one object
    rather than two lists when the emphasis alternates across them. */
 .marquee__item.is-outline {
   color: transparent;
-  -webkit-text-stroke: 1px var(--text-faint);
+  -webkit-text-stroke: 1px currentColor;
 }
 
 .marquee__sep {
@@ -1319,7 +1435,7 @@
    carries the content, so nothing is lost. */
 @media (prefers-reduced-motion: reduce) {
   .marquee__track,
-  .narrative.is-running .marquee__track {
+  .hero-back.is-running .marquee__track {
     animation: none;
   }
   .marquee__row {
@@ -1329,37 +1445,26 @@
     transform: none;
   }
 
-  /* Unpin the portrait. With the shrink timeline never built, a sticky stage
-     would park a full-bleed portrait behind the narrative plate for two whole
-     screens with no way to get past it. Absolute puts it back in the hero
-     where it belongs and lets the page scroll normally. */
+  /* The shrink timeline is never built in this mode, so the plate would sit
+     full-bleed and pinned over the revealed screen for two whole viewport
+     heights with no way past it. Drop the runway and unpin both layers: the
+     hero reads as one static screen, the bands follow it, and the page scrolls
+     normally. */
+  .hero-track {
+    min-block-size: 0;
+  }
+
+  .hero-back,
   .hero__stage {
     position: absolute;
     inset-block-start: 0;
     margin-block-end: 0;
   }
 
-  /* The plate no longer has a portrait landing in it, so it does not need to
-     reserve a screen for one. */
-  .narrative {
-    min-block-size: 0;
-    padding-block: var(--padding--med);
-  }
-
-  .narrative__mark {
-    align-self: center;
-    margin-block-start: 0;
-  }
-
-  /* Both are scrubbed into view by the timeline that this mode skips. */
-  .mark-44 path {
-    stroke-dasharray: none !important;
-    stroke-dashoffset: 0 !important;
-  }
-  .narrative__eyebrow {
-    transform: none !important;
-    opacity: 1 !important;
-    visibility: visible !important;
+  .hero__stage {
+    /* Both are scrubbed by the timeline this mode skips — pin them at rest. */
+    transform: none;
+    opacity: 1;
   }
 }
 
