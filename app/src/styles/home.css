@@ -441,8 +441,10 @@
  * plate shrank — which is exactly the "it is still scrolling" everything else
  * was measured against. With all three pinned, nothing on screen moves for the
  * first viewport height: the only thing that changes is the plate's size. */
+.hero-bg,
 .hero-back,
 .hero__stage,
+.hero-sign,
 .hero {
   position: sticky;
   top: 0;
@@ -450,79 +452,39 @@
   margin-bottom: -100dvh;
 }
 
+.hero-bg,
 .hero-back,
-.hero__stage {
+.hero__stage,
+.hero-sign {
   pointer-events: none;
 }
 
-.hero-back {
+/* Bottom of the stack. Four pinned layers, and DOM order is paint order:
+   field, then text, then plate, then furniture. */
+.hero-bg {
   z-index: 0;
+}
+
+.hero-bg canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hero-back {
+  z-index: 1;
   display: grid;
   align-content: center;
   gap: 0.1em;
   overflow: clip;
 }
 
-/* The revealed screen carries the same topography as the hero, inverted: red
-   lines on cream rather than red on black.
- *
- * Two layers, both red, at different scales so the sets cross rather than trace
- * each other — a second copy at the same size would only thicken the first.
- *
- * Reuses the generated contour asset as a MASK, so the colour stays a token:
- * the file itself is flat white geometry with no palette baked in. */
-.hero-back::before,
-.hero-back::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-color: var(--rosso-corsa);
-  mask-image: url('/assets/menu/contours.svg');
-  mask-position: center;
-  mask-repeat: no-repeat;
-}
-
-/* The field drifts rather than sitting still. Two layers at different sizes
-   travelling at different speeds and along different axes, so the sets slide
-   THROUGH one another and the interference keeps changing — which is what reads
-   as a live field rather than as one image being panned.
-
-   Deliberately not a second WebGL context: a live ContourField here would mean
-   a second continuously-rendering canvas behind an already-expensive hero, and
-   the reference itself ships a static asset in this slot. Drifting masks buy
-   most of the motion for none of the frame budget. */
-.hero-back::before {
-  mask-size: 160%;
-  opacity: 0.55;
-  animation: contour-drift-a 90s linear infinite;
-}
-
-.hero-back::after {
-  mask-size: 210%;
-  opacity: 0.3;
-  animation: contour-drift-b 140s linear infinite;
-}
-
-/* Both return to their start position so the loop closes with no jump. */
-@keyframes contour-drift-a {
-  from {
-    mask-position: 0% 40%;
-  }
-  to {
-    mask-position: 100% 60%;
-  }
-}
-
-@keyframes contour-drift-b {
-  from {
-    mask-position: 100% 70%;
-  }
-  to {
-    mask-position: 0% 30%;
-  }
-}
+/* The revealed screen's topography used to be two drifting copies of a static
+   contour asset, masked and tinted. That was a lookalike, and it was wrong:
+   the reference's own parameter surface shows a `backgroundScene` sharing
+   `headScene`'s THICKNESS and OUTLINE and differing ONLY in its four colours —
+   the same live two-pass field, inverted. It is now exactly that. See
+   BackgroundField, and `.hero-bg` above for why it needs its own canvas. */
 
 /* The whole rendered screen scales as one plate — backdrop, contours and
    portrait together — which is the thing I had wrong before: it is not the
@@ -533,7 +495,7 @@
  * scaling up would resample and blur. So there is nothing to gain from
  * rebuilding this inside the GL. */
 .hero__stage {
-  z-index: 1;
+  z-index: 2;
   /* Muted, not faded. Opacity dissolves the plate into the page behind it and
      turns the portrait grey; desaturating drains the colour while the image
      stays solid and readable. */
@@ -560,7 +522,7 @@
      shows through its transparent pixels and gets clipped along with it, which
      leaves the flat plate the reference lands on — face on a solid ground, no
      contours inside the box. */
-  background: var(--dark);
+  background: var(--gl-bg);
   transform: scale(var(--hero-zoom, 1));
   /* Top and bottom are separate, not one symmetric inset: the zoom pushes in
      on the face, and the head sits above centre, so an even crop would trim
@@ -572,8 +534,43 @@
   will-change: transform, clip-path;
 }
 
+/* Above the plate, and deliberately WIDER than it. On the reference the
+   signature overhangs the box on both sides by a long way — it is written
+   across the composition, not inside the frame — so this is sized off the
+   viewport rather than off the plate. */
+.hero-sign {
+  z-index: 3;
+  display: grid;
+  place-items: center;
+}
+
+.hero-sign svg {
+  /* Sized against the PLATE, not picked. The plate lands at 32.75vw, and the
+     reference's signature spans about 1.25 times its box — measured across its
+     own end state at 775px against a 625px plate. 32.75 x 1.25 is 41. */
+  inline-size: min(41vw, 52rem);
+  block-size: auto;
+  overflow: visible;
+}
+
+.hero-sign path {
+  /* The trace arrives from potrace as a FILLED outline with no stroke. Filling
+     it would drop the whole signature in at once; stroking the same geometry is
+     what gives DrawSVG a length to run along. The shape is a skeleton, so its
+     two sides are within a hair of each other and stroking it reads as one
+     pen line rather than as an outline. */
+  fill: none;
+  stroke: var(--rosso-corsa);
+  /* In the path's own units, which the trace's <g> then scales by 0.1 — so this
+     is about 2px on screen at the size above. Raised in step with the box being
+     made smaller, or the line thins out as the signature does. */
+  stroke-width: 21;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .hero {
-  z-index: 2;
+  z-index: 4;
   isolation: isolate;
   /* No background of its own: the pinned canvas behind it IS the background
      now, and painting over it would hide the portrait entirely. */
@@ -1364,6 +1361,19 @@
   color: var(--rosso-corsa);
 }
 
+/* The two bands are set in DIFFERENT typefaces, and that is the reference's own
+   pairing rather than a decoration of mine: screenshotted at full scroll, its
+   top band is a serif and its bottom band a bold grotesque, so the pair reads
+   as two voices crossing rather than as one ribbon cut in half. Ours takes the
+   same shape — Playfair over Archivo Narrow. */
+.hero-back [data-marquee='left'] .marquee__item {
+  font-family: var(--font-serif);
+  /* A serif carries its contrast in the letterforms. At the display weight the
+     band inherits, the thins fill in and it stops reading as a serif at all. */
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
 /* Giallo Modena on cream is about 1.06:1 — effectively invisible, and it WAS
    invisible on first build. The colour is kept because the pairing is the
    point; legibility comes from outlining the letterforms in the page's dark
@@ -1373,12 +1383,6 @@
 }
 
 .hero-back [data-marquee='right'] .marquee__item {
-  -webkit-text-stroke: 1.5px var(--dark);
-}
-
-/* The outline variant has no fill to carry the colour, so on this band it
-   would vanish for the same reason. Give it the ink outright. */
-.hero-back [data-marquee='right'] .marquee__item.is-outline {
   -webkit-text-stroke: 1.5px var(--dark);
 }
 
@@ -1444,10 +1448,6 @@
 
 /* Alternating outline type. The counter-scrolling rows read as one object
    rather than two lists when the emphasis alternates across them. */
-.marquee__item.is-outline {
-  color: transparent;
-  -webkit-text-stroke: 1px currentColor;
-}
 
 .marquee__sep {
   color: var(--accent);
@@ -1478,12 +1478,10 @@
 /* Motion off: the rows stop dead and the visually-hidden paragraph is what
    carries the content, so nothing is lost. */
 @media (prefers-reduced-motion: reduce) {
-  /* The bands' own loop is a GSAP tween that is never built in this mode; only
-     the drifting field is a CSS animation, so only it needs stopping here. */
-  .hero-back::before,
-  .hero-back::after {
-    animation: none;
-  }
+  /* Nothing to stop here any more. The bands' loop is a GSAP tween that is
+     never built in this mode, and the field behind them is now GL rather than
+     a CSS animation — main.ts skips constructing it entirely, so there is no
+     declaration left to override. */
   .marquee__row {
     overflow-x: auto;
     /* The cursor parallax is never wired up in this mode, but the declaration
@@ -1500,6 +1498,7 @@
     min-block-size: 0;
   }
 
+  .hero-bg,
   .hero-back,
   .hero__stage {
     position: absolute;

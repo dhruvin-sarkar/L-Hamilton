@@ -93,7 +93,7 @@ const noiseChunk = /* glsl */ `
 // served. Pass one now uses real simplex (see ContourField) rather than a
 // gradient-noise stand-in, and the portrait below only ever wanted the 2D fbm.
 
-const quadVertex = /* glsl */ `
+export const quadVertex = /* glsl */ `
   varying vec2 vUv;
   void main() {
     vUv = uv;
@@ -115,7 +115,7 @@ const quadVertex = /* glsl */ `
  * texel of a boundary bilinear filtering puts them on a ramp and `!=` is true.
  * A tolerance would only widen the line — badly, and non-uniformly.
  */
-const fieldFragment = /* glsl */ `
+export const fieldFragment = /* glsl */ `
   precision highp float;
 
   uniform sampler2D tBackgroundNoise;
@@ -501,6 +501,9 @@ export class HeadScene {
    * background, and the helmet's wipe sweeps across. They share a clock because
    * on the reference they visibly resolve together.
    */
+  /** True once the plate has collapsed to a still picture. See `set inert`. */
+  private still = false;
+
   private reveal = 0;
   /** Seconds. The reference's REVEAL_DURATION, read off its live params. */
   private readonly revealDuration = 1.1;
@@ -1124,6 +1127,35 @@ export class HeadScene {
     this.fieldMesh.visible = v;
   }
 
+  /**
+   * Collapse the plate to a still picture.
+   *
+   * This is the end state the reference lands on, and it is worth being precise
+   * about how little is left. Screenshotted at the midpoint of its own shrink,
+   * its plate is a flat ground with the face on it: no contour lines inside the
+   * box, no helmet, no cursor blob, nothing moving. Everything that made the
+   * full-bleed hero a live scene is simply gone, and what remains reads as a
+   * photograph that happens to have been rendered.
+   *
+   * So this is one switch rather than three, because it is one idea. Setting it
+   * piecemeal from the timeline invites the plate to end up half-alive — a
+   * helmet still drifting over a field that stopped, say — which is exactly the
+   * kind of state nobody notices until it ships.
+   *
+   * It also stops the two offscreen stages. Those are the expensive half of the
+   * frame (a fluid solve with 20 pressure iterations, plus a fullscreen simplex
+   * evaluation), and neither has any observable effect once the field is hidden
+   * and the helmet mask is not being sampled. Freezing them is not an
+   * optimisation bolted on top of the visual change — it IS the visual change,
+   * stated honestly: a still picture is one that is not being simulated.
+   */
+  set inert(v: boolean) {
+    if (this.still === v) return;
+    this.still = v;
+    this.fieldMesh.visible = !v;
+    if (this.helmet) this.helmet.visible = !v;
+  }
+
   set helmetOpacity(v: number) {
     this.baseHelmetOpacity = v;
     if (this.helmetMat) this.helmetMat.uniforms.uOpacity!.value = v;
@@ -1202,6 +1234,18 @@ export class HeadScene {
      * while, it is a gap, and a gap should not be integrated. */
     const dt = Math.min(this.clock.getDelta(), 1 / 15);
     const t = this.clock.getElapsedTime();
+
+    /* A still picture is one that is not being simulated. Everything below this
+       line either steps a simulation or reads one, and none of it is observable
+       once the plate has collapsed — the field is hidden, the helmet is hidden,
+       and the portrait's own parallax is driven by a pointer that stopped being
+       fed at t=0.25. Returning here holds the last drawn frame exactly.
+
+       getDelta() is still called above, deliberately. It has the side effect of
+       resetting the clock's internal mark, so leaving it out would let the gap
+       accumulate and hand a huge dt to the first frame after the plate reopens
+       on a scroll back up — the same class of bug the clamp above exists for. */
+    if (this.still) return;
 
     // Both offscreen stages step before the scene draws. Each binds and
     // restores its own render target, so neither may run mid-draw.

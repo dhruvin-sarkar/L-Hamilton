@@ -152,6 +152,12 @@
            negative margin, so the two sections below stack on top of it rather
            than being pushed down by it. -->
       <div class="hero-track" data-hero-track>
+        <!-- The revealed screen's contour field. Its own canvas, because the
+             two marquee bands have to sit BETWEEN this and the hero plate, and
+             a DOM element cannot interleave with a single canvas. Full-bleed
+             and never transformed — only the plate above it moves. -->
+        <div class="hero-bg" id="bg-stage" aria-hidden="true"></div>
+
         <!-- The screen BEHIND the hero. Already fully in place at scroll zero
              and never animated in — it is uncovered as the hero screen pulls
              away from the edges, which is what makes the inversion read as
@@ -171,6 +177,12 @@
         </div>
 
         <div class="hero__stage" id="stage" aria-hidden="true"></div>
+
+        <!-- Signature, drawn on over the closed plate. Empty here: the trace is
+             fetched and injected by main.ts so the 8KB of path data stays out of
+             the document, and the draw tween is built once it lands. Decorative,
+             so aria-hidden — his name is already in the wordmark. -->
+        <div class="hero-sign" id="signature" aria-hidden="true"></div>
 
       <section class="hero" data-era="ferrari">
 

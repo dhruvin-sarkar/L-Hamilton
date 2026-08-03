@@ -1,9 +1,11 @@
 import './styles/main.css';
 import * as THREE from 'three';
 import gsap from 'gsap';
+import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
+import { BackgroundField } from './BackgroundField';
 import { HeadScene } from './HeadScene';
 import {
   age,
@@ -44,7 +46,7 @@ const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matc
  * scroll velocity, and it is built further down this file.
  * ------------------------------------------------------------------ */
 
-gsap.registerPlugin(MorphSVGPlugin, ScrollTrigger);
+gsap.registerPlugin(DrawSVGPlugin, MorphSVGPlugin, ScrollTrigger);
 
 /** The smooth-scroll instance, so the marquee can read scroll velocity. */
 let lenis: Lenis | null = null;
@@ -245,26 +247,35 @@ if (marquee) {
     // rather than sliding as one slab — the same reason they counter-scroll.
     row.style.setProperty('--marquee-dir', row.dataset.marquee === 'right' ? '-1' : '1');
 
-    /* Several identical copies side by side. Translating the track by -100%
-       then lands copy 2 exactly where copy 1 started, which is the only reason
-       the loop has no visible seam.
+    /* Several identical copies side by side, and the loop shifts by exactly ONE
+       of them — so copy 2 lands precisely where copy 1 was and the seam cannot
+       be seen.
      *
-     * The count is measured, not fixed. A fixed four copies is plenty for the
-     * 19 championship years but nowhere near enough for the three team names —
-     * that track came out NARROWER than the viewport, so translating it by a
-     * full 100% swung it clean off screen and the band vanished for half of
-     * every cycle. Keep adding copies until there is at least a viewport in
-     * hand, then the -100% always lands on populated text. */
-    let copy = 0;
+     * ONE copy, not the whole track. Shifting a single track by its own full
+     * width walks it completely out of the viewport and the band goes blank
+     * until the tween restarts; that is what put the yellow row at x=9455, a
+     * clear 7500px past the right edge, with nothing on screen at all. The
+     * period of this pattern is one copy, so one copy is the only distance that
+     * can be travelled without the content changing phase.
+     *
+     * The count is measured rather than fixed, because the shift has to leave a
+     * populated track spanning the viewport at every point in the cycle: total
+     * width has to cover the viewport PLUS the copy that gets shifted out. */
+    let copies = 0;
     do {
-      words.forEach((word, i) => {
-        const item = el('span', 'marquee__item', word);
-        // Alternate solid and outline so the two rows read as one object.
-        if ((copy * words.length + i) % 2 === 1) item.classList.add('is-outline');
-        track.append(item, el('span', 'marquee__sep', '/'));
-      });
-      copy++;
-    } while (copy < MARQUEE_COPIES || track.scrollWidth < window.innerWidth * 2);
+      // Solid throughout. The alternating outline treatment that used to be here
+      // was mine, not the reference's — screenshotted at three points along its
+      // own sequence, both of its bands are solid fills the whole way across.
+      // The two rows are told apart by colour and typeface, which is enough.
+      for (const word of words) {
+        track.append(el('span', 'marquee__item', word), el('span', 'marquee__sep', '/'));
+      }
+      copies++;
+    } while (copies < MARQUEE_COPIES || track.scrollWidth < window.innerWidth * 2);
+
+    // Read back by the tween below. Stored on the element rather than passed,
+    // because the two loops are built in separate passes over the same rows.
+    track.dataset.copies = String(copies);
   }
 
   // The visible rows are aria-hidden because they repeat themselves several
@@ -282,23 +293,38 @@ if (marquee) {
        the reference's own mechanic: one linear repeating tween per band with
        timeScale coupled to scroll.
 
-       xPercent -100 lands copy 2 exactly where copy 1 began, which is what
-       makes the seam invisible, and `ease: none` holds the speed constant so
-       the joint never shows up as a hesitation. */
+       `ease: none` holds the speed constant so the joint never shows up as a
+       hesitation. */
     const loops = [...marquee.querySelectorAll<HTMLElement>('[data-marquee]')].map((row) => {
       const track = row.querySelector<HTMLElement>('[data-marquee-track]')!;
-      const dir = row.dataset.marquee === 'right' ? -1 : 1;
+      const rightward = row.dataset.marquee === 'right';
+
+      /* One copy's width, as a percentage of the whole track. This is the
+         pattern's period, and therefore the ONLY distance the track can travel
+         without changing phase — land on it and the loop is seamless, miss it
+         and the text jumps at every repeat. */
+      const step = 100 / Number(track.dataset.copies ?? MARQUEE_COPIES);
+
       // Duration derived from WIDTH rather than fixed, or the two bands travel
       // at visibly different speeds whenever their copy differs in length.
-      const tween = gsap.to(track, {
-        xPercent: -100 * dir,
-        duration: track.scrollWidth / 90,
-        ease: 'none',
-        repeat: -1,
-      });
-      // Start mid-cycle so neither band opens sitting on its own seam.
-      tween.totalProgress(0.5);
-      return tween;
+      // scrollWidth is the whole track, so scale it to the distance actually
+      // covered, otherwise a one-copy shift over a whole-track duration crawls.
+      const duration = (track.scrollWidth * (step / 100)) / 90;
+
+      /* The two bands travel opposite ways, and the rightward one has to START
+         shifted left by a copy — animating it from 0 to +step would drag empty
+         space in behind it from the left edge. Same distance, same period,
+         opposite phase. */
+      return gsap.fromTo(
+        track,
+        { xPercent: rightward ? -step : 0 },
+        {
+          xPercent: rightward ? 0 : -step,
+          duration,
+          ease: 'none',
+          repeat: -1,
+        },
+      );
     });
 
     /* Scroll couples into the bands: scrolling faster drives them faster, and
@@ -1098,9 +1124,40 @@ if (stage) {
   // portrait is bottom-anchored, so scale is what drives the top edge up.
   const head = new HeadScene(renderer, { subjectScale: 0.88 });
 
+  /* The revealed screen behind the plate: the SAME two-pass contour field, in
+     the inverse palette. Its own renderer because the marquee bands sit between
+     the two layers and are DOM text — see BackgroundField for the full note.
+
+     Skipped entirely under reduced motion. In that mode the hero never shrinks,
+     so the screen behind it is never uncovered, and a second continuously
+     rendering context would burn a frame budget on something no one can see. */
+  const bgStage = document.querySelector<HTMLDivElement>('#bg-stage');
+  let background: BackgroundField | null = null;
+  let bgRenderer: THREE.WebGLRenderer | null = null;
+
+  if (bgStage && !reducedMotion) {
+    // No alpha: this is the bottom layer and paints every pixel, so an alpha
+    // buffer would only add a blend the compositor then has to resolve.
+    bgRenderer = new THREE.WebGLRenderer({ antialias: false, alpha: false });
+    // Capped at 1.5 rather than the hero's 2. The field is flat colour and
+    // hairline contours with no photographic detail to preserve, and this is a
+    // whole second fullscreen context — the pixels cost the same as the hero's
+    // and buy far less.
+    bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    // The ELEMENT's box, not the window's. They differ by the scrollbar, and
+    // sizing a canvas to the window inside a narrower element stretches every
+    // pixel horizontally — which on a field of thin contour lines shows up as
+    // the background's topography not quite lining up with the hero's.
+    bgRenderer.setSize(bgStage.clientWidth, bgStage.clientHeight);
+    bgStage.appendChild(bgRenderer.domElement);
+    background = new BackgroundField(bgRenderer);
+  }
+
   const resize = () => {
     renderer.setSize(stage.clientWidth, stage.clientHeight);
     head.resize();
+    if (bgStage) bgRenderer?.setSize(bgStage.clientWidth, bgStage.clientHeight);
+    background?.resize();
   };
   window.addEventListener('resize', resize);
 
@@ -1117,17 +1174,23 @@ if (stage) {
     'pointermove',
     (e) => {
       if (locked) return;
-      /* Stop feeding the scene once the portrait has mostly shrunk. The fluid's
+      // -1..1, y flipped: screen y grows downward, the shader assumes y up.
+      const nx = (e.clientX / window.innerWidth) * 2 - 1;
+      const ny = -((e.clientY / window.innerHeight) * 2 - 1);
+
+      /* The screen behind takes the pointer for the WHOLE sequence, and takes
+         it first. Once the hero has closed to a plate this field is the only
+         thing on screen still answering the cursor, so gating it the way the
+         hero is gated would leave the finished composition completely dead. */
+      background?.setPointer(nx, ny);
+
+      /* Stop feeding the HERO once the portrait has mostly shrunk. The fluid's
          dye is advected and dissipates on its own, so cutting the input lets
          the reveal decay out rather than snapping — and it stops a cursor over
          the narrative plate painting a blob across a composition the pointer is
          no longer part of. Same intent as the reference's uFilter ramp. */
       if (shrunk > 0.25) return;
-      // -1..1, y flipped: screen y grows downward, the shader assumes y up.
-      head.setPointer(
-        (e.clientX / window.innerWidth) * 2 - 1,
-        -((e.clientY / window.innerHeight) * 2 - 1),
-      );
+      head.setPointer(nx, ny);
     },
     { passive: true },
   );
@@ -1154,35 +1217,154 @@ if (stage) {
    * The sides come in noticeably faster than the top, so a 2.06 viewport aspect
    * resolves toward a 1.55 near-square. A single uniform scale holds the aspect
    * fixed and reads as a plain zoom-out. */
-  /* The plate ends at the reference's 625x404 box. Everything below derives
-     from those two numbers plus one decision: how far to push IN on the face
-     while the box closes. */
-  const BOX_W = 625;
-  const BOX_H = 404;
-  const REF_W = 1908;
-  const REF_H = 926;
+  /* The landing box, as a RULE rather than as two numbers.
+   *
+   * Measured off the running reference: its box is 624.95 x 404.13 in a 1908px
+   * viewport, which is 32.75% of the width at an aspect of 1.546. Checked
+   * against a second viewport width to confirm it tracks width rather than
+   * being a fixed pixel size, and it is centred on both axes.
+   *
+   * This matters more than it looks. The previous version of this code hard-
+   * coded 625x404 against a hardcoded 1908x926 — so it landed on the reference's
+   * box only on a viewport the exact size of the one I measured it on, and drifted
+   * everywhere else. Nothing about that would have shown up in a side-by-side
+   * at the size I was testing. */
+  const BOX_WIDTH_FRACTION = 0.3275;
+  const BOX_ASPECT = 1.546;
 
   /* Zoom past a plain fit, so the face grows inside the frame while the frame
      shrinks around it. Without this the portrait just recedes and the landing
      is a wide shot; the reference lands on a much tighter crop than a straight
-     contain would give. */
+     contain would give. Confirmed in its screenshots — the face occupies a far
+     larger share of the plate at the end than it does of the full screen. */
   const FACE_ZOOM = 1.35;
-  const PLATE_ZOOM = (BOX_H / REF_H) * FACE_ZOOM;
 
-  /* What the zoom overshoots on each axis is what gets cropped away. Solved
-     rather than tuned: whatever the zoom is, these keep the box exactly
-     625x404, so the two can be adjusted independently without drift. */
-  const CROP_X = (1 - BOX_W / (REF_W * PLATE_ZOOM)) / 2;
-  const CROP_Y_TOTAL = 1 - BOX_H / (REF_H * PLATE_ZOOM);
+  /**
+   * Solve the plate's frame at eased progress `e`, for the CURRENT viewport.
+   *
+   * SOLVED FOR THE FRAME, not for the two levers. That distinction is the whole
+   * point of this function and it was wrong before.
+   *
+   * The plate is driven by two CSS properties — a uniform scale and a clip
+   * inset — and the obvious thing is to ramp each of them linearly from 0 to
+   * its landing value. That is what this did, and it is subtly but visibly
+   * wrong: the width you actually SEE is the product of the two, and a product
+   * of two linear ramps is a quadratic. It leaves and arrives in the right
+   * places and sags everywhere in between. Measured at the midpoint it put the
+   * plate at 1168px where the reference's is proportionally 1267 — about 7%
+   * small, which is exactly the sort of thing that reads as "close, but the
+   * timing feels off" and cannot be fixed by adjusting the easing.
+   *
+   * So invert it. Decide where the FRAME should be at `e` — linear between the
+   * viewport and the landing box, which is what the reference measures as — and
+   * then solve the scale and the crop that put it there. Confirmed against the
+   * reference at a quarter through: its plate is 1746px wide, and a frame
+   * linear in eased progress predicts 1748.
+   *
+   * Recomputed per frame rather than cached, because a cache here has to be
+   * invalidated on resize, on orientation change, and on the mobile URL bar
+   * showing and hiding — three chances to be wrong in exchange for saving a
+   * dozen divisions next to a WebGL frame.
+   */
+  const plateGeometry = (e: number) => {
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
 
-  /* Split unevenly, taking more off the BOTTOM. The subject's head sits above
-     centre, so cropping symmetrically would trim the top of it while leaving
-     empty chest. A quarter/three-quarters split holds the face centred. */
-  const CROP_TOP = CROP_Y_TOTAL * 0.25;
-  const CROP_BOTTOM = CROP_Y_TOTAL * 0.75;
+    // Where the frame is now: straight line from full-bleed to the landing box.
+    const frameW = vw + (vw * BOX_WIDTH_FRACTION - vw) * e;
+    const frameH = vh + ((vw * BOX_WIDTH_FRACTION) / BOX_ASPECT - vh) * e;
+
+    /* How far in on the face we have pushed so far. Ramped separately from the
+       frame, because it is a separate idea — the frame closing is the sequence,
+       the push-in is what stops the portrait merely receding as it does. */
+    const faceZoom = 1 + (FACE_ZOOM - 1) * e;
+
+    /* Scale satisfies the HEIGHT, and the crop takes the sides in on top. That
+       ordering is forced: a clip inset can only ever remove, so whichever axis
+       is NOT cropped has to be the one the scale lands exactly. */
+    const zoom = (frameH / vh) * faceZoom;
+
+    /* Whatever the zoom overshoots is what gets cropped away. At e=0 both fall
+       out as zero without being special-cased — frameH is vh and faceZoom is 1,
+       so zoom is 1 and there is nothing to trim. */
+    const cropX = (1 - frameW / (vw * zoom)) / 2;
+    const cropYTotal = 1 - frameH / (vh * zoom);
+
+    return {
+      zoom,
+      cropX,
+      /* Split unevenly, taking more off the BOTTOM. The subject's head sits
+         above centre, so cropping symmetrically would trim the top of it while
+         leaving empty chest. A quarter/three-quarters split holds the face
+         centred in the box. */
+      cropTop: cropYTotal * 0.25,
+      cropBottom: cropYTotal * 0.75,
+    };
+  };
 
   /** How far the shrink has run, 0..1. Read by the pointer wiring below. */
   let shrunk = 0;
+
+  /* ---------------------------------------------------------------- *
+   * Signature
+   *
+   * Built as a PAUSED tween whose progress the shrink timeline sets, rather
+   * than as a second ScrollTrigger over a sub-range. One scroll driver means
+   * the signature cannot drift out of step with the plate it is written across,
+   * and there is no second trigger to keep in sync on refresh.
+   *
+   * The trace is a potrace outline of a SKELETON — a thinned centreline, so the
+   * two sides of every stroke sit within a hair of each other. Stroking it
+   * therefore reads as a single pen line, and DrawSVG has a real length to walk
+   * along. Filling it, which is what the file is actually set up for, would drop
+   * the whole signature in at once.
+   *
+   * Loaded rather than inlined: it is 8KB of path data that would otherwise sit
+   * in the document on every page load for something first seen halfway through
+   * a scroll.
+   * ---------------------------------------------------------------- */
+
+  /* When the signature starts writing, as a fraction of the shrink.
+     Read off the reference: at its midpoint there is no signature on screen at
+     all, and by the time the plate has landed it is fully drawn. So it belongs
+     to the back half of the sequence, not to the whole of it. */
+  const SIGN_FROM = 0.55;
+
+  const signatureHost = document.querySelector<HTMLElement>('#signature');
+  let signatureDraw: gsap.core.Tween | null = null;
+
+  if (signatureHost && !reducedMotion) {
+    fetch('/assets/brand/signature.svg')
+      .then((res) => {
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        return res.text();
+      })
+      .then((markup) => {
+        signatureHost.innerHTML = markup;
+        const path = signatureHost.querySelector('path');
+        if (!path) throw new Error('no <path> in signature trace');
+
+        // The file carries width/height in pt, which would pin it to that size
+        // and ignore the CSS. viewBox is what it needs to keep.
+        const svg = signatureHost.querySelector('svg');
+        svg?.removeAttribute('width');
+        svg?.removeAttribute('height');
+
+        signatureDraw = gsap.fromTo(
+          path,
+          { drawSVG: '0%' },
+          { drawSVG: '100%', ease: 'none', paused: true },
+        );
+        // Catch up to wherever the scroll already is — a reload partway down the
+        // sequence must not leave the signature unwritten under a closed plate.
+        signatureDraw.progress(gsap.utils.clamp(0, 1, (shrunk - SIGN_FROM) / (1 - SIGN_FROM)));
+      })
+      .catch((err: unknown) => {
+        // Decorative, and the sequence is complete without it. Fail visibly to
+        // us and invisibly to the visitor.
+        console.error('[hero] signature trace failed to load', err);
+      });
+  }
 
   if (heroTrack && !reducedMotion) {
     const p = { t: 0 };
@@ -1191,13 +1373,31 @@ if (stage) {
       ease: 'power1.inOut', // the reference's own curve on this scrub
       onUpdate: () => {
         shrunk = p.t;
-        stage.style.setProperty('--hero-zoom', String(1 + (PLATE_ZOOM - 1) * p.t));
-        stage.style.setProperty('--hero-crop-x', `${CROP_X * 100 * p.t}%`);
-        stage.style.setProperty('--hero-crop-top', `${CROP_TOP * 100 * p.t}%`);
-        stage.style.setProperty('--hero-crop-bottom', `${CROP_BOTTOM * 100 * p.t}%`);
-        /* The field has no job inside the plate — the revealed screen carries
-           the topography now. Cut once the box is most of the way closed. */
-        head.fieldVisible = p.t < 0.75;
+        /* Note there is no second ramp here. plateGeometry already returns the
+           values FOR this progress — multiplying them by p.t again is what
+           produced the quadratic sag described there. */
+        const box = plateGeometry(p.t);
+        stage.style.setProperty('--hero-zoom', String(box.zoom));
+        stage.style.setProperty('--hero-crop-x', `${box.cropX * 100}%`);
+        stage.style.setProperty('--hero-crop-top', `${box.cropTop * 100}%`);
+        stage.style.setProperty('--hero-crop-bottom', `${box.cropBottom * 100}%`);
+
+        /* The plate stops being a scene and becomes a picture.
+         *
+         * 0.4, not the 0.75 this used to be, and that came out of the reference
+         * rather than out of taste: screenshotted at the midpoint of its own
+         * shrink, its plate is ALREADY flat — no contours inside the box, no
+         * helmet, nothing moving — while at a quarter through both are still
+         * plainly there. So the handover happens somewhere in between, and it
+         * is a switch rather than a fade. */
+        head.inert = p.t >= 0.4;
+
+        /* The signature writes itself across the back half of the shrink. It is
+           a progress SET rather than a tween of its own, so scrubbing backwards
+           un-writes it exactly the way it was written. */
+        signatureDraw?.progress(
+          gsap.utils.clamp(0, 1, (p.t - SIGN_FROM) / (1 - SIGN_FROM)),
+        );
         // Muted, not faded. Draining saturation keeps the plate solid; dropping
         // opacity would dissolve it into the screen behind and grey the
         // portrait out. Stops at 0.2 rather than 0 — a fully grey plate reads
@@ -1267,6 +1467,17 @@ if (stage) {
   const frame = () => {
     requestAnimationFrame(frame);
     if (!heroVisible || document.documentElement.hasAttribute('data-menu-open')) return;
+
+    /* Background first: it is the bottom layer, and on its own canvas, so this
+       is ordering for readability rather than for correctness — the compositor
+       stacks the two by z-index whatever order they were drawn in.
+
+       It keeps drawing for the whole sequence. The hero above it is what
+       shrinks away; this is what is left, so stopping it at any point would
+       freeze the finished screen. */
+    background?.update();
+    background?.render();
+
     head.update();
     renderer.render(head.scene, head.camera);
   };

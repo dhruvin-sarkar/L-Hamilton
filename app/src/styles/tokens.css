@@ -85,6 +85,22 @@ html {
      oversight — this is the value that reads. */
   --gl-outline: #9c6a71;
 
+  /* The REVEALED screen — the field behind the hero once it shrinks to a plate.
+     Same two-pass field, inverted palette, which is exactly what the reference
+     does: its backgroundScene shares headScene's THICKNESS and OUTLINE and
+     differs only in colour. Ours inverts the other way round, because our hero
+     is the dark one: light ground, red line. See BackgroundField. */
+  --gl-rev-bg: #f7f3f1;
+  /* Separated from its ground mostly in CHROMA rather than in luminance — about
+     7/255 in red against 64 and 77 in green and blue. That is a deliberate
+     shape, not a colour picked and left: the reference's own background pair is
+     a near-tonal ~15/255, which works there because lime-on-olive is a hue
+     shift the eye reads even when the values match. A red that separated by
+     luminance instead would draw the field forward as a graphic element and
+     start competing with the two marquee bands crossing it. Tuned down from a
+     first pass that did exactly that. */
+  --gl-rev-outline: #f0b3a4;
+
   /* The alternate palette painted inside a cursor blob. The reference carries
      three of these (COLOR_CURSOR_BACKGROUND / _FOREGROUND / _OUTLINE) and its
      values are instructive: on a #F8F8F3 ground the blob is #E8E8DF, and its
