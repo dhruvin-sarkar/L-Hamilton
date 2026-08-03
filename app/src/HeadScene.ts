@@ -179,20 +179,15 @@ export const fieldFragment = /* glsl */ `
 
     /* Cursor blob.
      *
-     * The inset is the reference's own "gap fix on bottom and top": the fluid
-     * solve has no boundary conditions, so its outermost texels carry garbage
-     * that would otherwise paint a frame around the viewport. Sampling the
-     * inner 95% steps past it.
+     * The 0.025/0.95 inset is the reference's gap fix: the fluid solve has no
+     * boundary conditions, so its outermost texels carry garbage that would
+     * paint a frame around the viewport.
      *
-     * The inversion is required. tCursorEffect is the fluid's velocity field
-     * rendered to colour, which rests at WHITE and darkens where the fluid
-     * moves — so "how white" means "how still". Sampling it the same way round
-     * as a dye buffer lights up the entire frame.
+     * The inversion is required — tCursorEffect rests at WHITE and darkens
+     * where the fluid moves, so "how white" means "how still".
      *
-     * step, not smoothstep. A hard threshold is what gives the blob a crisp,
-     * liquid edge — feathering it is exactly what made the effect read as
-     * "nothing is happening" before, because a soft ramp over a small opacity
-     * range is indistinguishable from a uniform haze.
+     * step, not smoothstep. The hard threshold is what gives the blob its
+     * crisp, liquid edge; a soft ramp reads as a uniform haze.
      */
     vec2 cursorUv = vec2(0.025) + vUv * 0.95;
     float cursorEffect = step(0.1, 1.0 - texture2D(tCursorEffect, cursorUv).r);
@@ -246,25 +241,20 @@ const helmetFragment = /* glsl */ `
      *
      *     mix(base, helmet.rgb, cursorEffect * helmet.a)
      *
-     * so the shell has a crisp, liquid-edged boundary that swims across it. I
-     * had smoothstep(0.03, 0.4, dye) feeding a narrow opacity range, which is a
-     * soft gradient over a small delta — perceptually a uniform haze, and no
-     * amount of tuning the endpoints turns a gradient into a blob. The edge IS
-     * the effect.
+     * so the shell has a crisp, liquid-edged boundary that swims across it.
+     * A smoothstep feeding a narrow opacity range gives a uniform haze instead
+     * — the edge is the effect.
      */
     // Inverted: tCursorEffect is the velocity field rendered to colour, resting
     // at white and darkening where the fluid moves. See the field shader.
     float cursorEffect = step(0.1, 1.0 - texture2D(tCursorEffect, uv).r);
 
     /* Hover wipe, from the reference's head shader. A band sweeps up the frame,
-     * bowed by sin(x * PI) so it crests in the middle rather than crossing dead
-     * level — the helmet arrives as a curve, not a rising horizon.
+     * bowed by sin(x * PI) so the helmet arrives as a curve, not a flat horizon.
      *
-     * Rests at 0, and deliberately is NOT driven by the intro clock. It adds
-     * into the mask and saturates it, so anything that parks it at 1 pins the
-     * shell fully visible and makes blob masking structurally impossible. It is
-     * a hover input on the reference, not an intro one; wiring it to the intro
-     * was my error and cost the entire effect. */
+     * A hover input, not an intro one. It adds into the mask and saturates it,
+     * so anything holding it at 1 pins the shell visible and blob masking stops
+     * working entirely. Rests at 0. */
     float hoverTransition = vScreenUv.y
       + sin(vScreenUv.x * 3.141592) * sin(uHelmetHover * 3.141592) * 0.2;
     cursorEffect += step(1.0 - hoverTransition, uHelmetHover);
@@ -511,16 +501,14 @@ export class HeadScene {
   /* ---------------------------------------------------------------- *
    * Idle auto-swipe
    *
-   * The reference sweeps the helmet by itself when the pointer goes quiet. It
-   * is NOT a shader animation — instrumenting its WebGL uniform traffic over a
-   * 22s idle window showed uHelmetHover, uIsWireframeAnimating and
-   * uHelmetTransition all completely static, while the FLUID's own `center` and
-   * `force` uniforms kept animating. In other words the site simply feeds the
-   * fluid a synthetic pointer path, and the ordinary cursor mask does the rest.
-   * That is a much better mechanism than a bespoke animation: the auto-swipe is
-   * automatically identical in character to a real one.
+   * The reference sweeps the helmet when the pointer goes quiet, and not with a
+   * shader animation: over a 22s idle capture its uHelmetHover,
+   * uIsWireframeAnimating and uHelmetTransition stayed static while the fluid's
+   * own `center` and `force` kept moving. It feeds the fluid a synthetic pointer
+   * path and lets the ordinary cursor mask do the rest, so an auto-swipe is
+   * identical in character to a real one.
    *
-   * Every number below is measured off that capture rather than guessed:
+   * Numbers measured off that capture:
    *   - swipe duration ~2.47s (samples: 2469, 2492, 2467, 2467, 2468ms)
    *   - swipe STARTS alternate 4.00s and 5.50s apart
    *   - travel is clamped within x [-0.75, 0.75], y [-0.5, 0.5] of centre
@@ -1128,26 +1116,14 @@ export class HeadScene {
   }
 
   /**
-   * Collapse the plate to a still picture.
+   * Collapse the plate to a still picture — the end state the reference lands
+   * on: flat ground, face on it, no contours, no helmet, nothing moving.
    *
-   * This is the end state the reference lands on, and it is worth being precise
-   * about how little is left. Screenshotted at the midpoint of its own shrink,
-   * its plate is a flat ground with the face on it: no contour lines inside the
-   * box, no helmet, no cursor blob, nothing moving. Everything that made the
-   * full-bleed hero a live scene is simply gone, and what remains reads as a
-   * photograph that happens to have been rendered.
+   * One switch rather than three, so the plate cannot end up half-alive with a
+   * helmet drifting over a field that already stopped.
    *
-   * So this is one switch rather than three, because it is one idea. Setting it
-   * piecemeal from the timeline invites the plate to end up half-alive — a
-   * helmet still drifting over a field that stopped, say — which is exactly the
-   * kind of state nobody notices until it ships.
-   *
-   * It also stops the two offscreen stages. Those are the expensive half of the
-   * frame (a fluid solve with 20 pressure iterations, plus a fullscreen simplex
-   * evaluation), and neither has any observable effect once the field is hidden
-   * and the helmet mask is not being sampled. Freezing them is not an
-   * optimisation bolted on top of the visual change — it IS the visual change,
-   * stated honestly: a still picture is one that is not being simulated.
+   * It also stops both offscreen stages, which are the expensive half of the
+   * frame and have no observable effect once the field and helmet are hidden.
    */
   set inert(v: boolean) {
     if (this.still === v) return;
@@ -1292,20 +1268,10 @@ export class HeadScene {
     this.pointerPx.lerp(this.pointerPxTarget, this.ease);
 
     if (this.helmet && this.helmetMat) {
-      // The helmet does NOT track the pointer. It sits on the head and is only
-      // ever masked — the cursor drives the fluid field, and the field decides
-      // per fragment where the shell survives. Rotating it to follow the pointer
-      // was my own addition and is not what the reference does.
-      //
-      // It is not static either: the reference runs its wireframe with
-      // IS_WIREFRAME_ANIMATING true. This is that — a slow idle drift, on its
-      // own clock, independent of input.
-      // Idle drift removed. It was reasoned from the reference exposing
-      // IS_WIREFRAME_ANIMATING, but that flag animates the WIREFRAME, not the
-      // object's transform — the shell is meant to sit dead still on the head
-      // and be animated only by the mask deciding where it survives. The drift
-      // also fought the portrait's own pointer parallax, since the helmet is a
-      // child of that plane and inherited its motion on top of its own.
+      // The helmet does not track the pointer and does not drift. It sits still
+      // on the head; the cursor drives the fluid field and the field decides per
+      // fragment where the shell survives. The reference's IS_WIREFRAME_ANIMATING
+      // animates the wireframe, not the object's transform.
       this.helmet.rotation.set(0, 0, 0);
 
       this.helmetMat.uniforms.tCursorEffect!.value = this.fluid.texture;

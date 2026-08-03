@@ -4,43 +4,21 @@ import { ContourField } from './ContourField';
 import { fieldFragment, quadVertex } from './HeadScene';
 
 /**
- * The revealed screen behind the shrinking hero.
+ * The screen revealed behind the hero once it shrinks to a plate.
  *
- * This is the SAME contour field the hero draws, in the inverse palette — the
- * reference confirms it directly. Read off the running site, its
- * `landoGL.params` carries a `backgroundScene` whose THICKNESS and OUTLINE are
- * identical to `headScene`'s, and whose only differences are the four colours:
+ * Same two-pass contour field as the hero, in the inverse palette. The
+ * reference does the same: its `backgroundScene` shares `headScene`'s THICKNESS
+ * and OUTLINE and differs only in colour.
  *
- *     headScene        BACKGROUND #F8F8F3  OUTLINE #CBCBB9    (light ground)
- *     backgroundScene  BACKGROUND #282c20  FOREGROUND #363B25 (dark ground)
+ * It needs its own canvas because the marquee bands sit between this and the
+ * plate, and they are DOM text. One canvas cannot interleave with a DOM
+ * element. (The reference draws its marquee in GL instead, which costs it text
+ * a screen reader can reach.)
  *
- * So this is not a lookalike built to sit behind the hero. It is pass two of
- * the same two-pass field, pointed at its own noise and given the other set of
- * colours — which is why the topography reads as continuous when the hero
- * closes over it.
- *
- * WHY IT IS ITS OWN CANVAS
- *
- * The two marquee bands sit BETWEEN this field and the hero plate: the plate
- * occludes them, they occlude this. Three layers, and the middle one is DOM
- * text — which has to stay DOM text, because it is real copy a screen reader
- * has to reach. A single canvas cannot interleave with a DOM element, so the
- * sandwich forces two compositing layers. The reference dodges this by drawing
- * its marquee in GL too (`landoGL.params.carouselScene` carries TEXT_TOP and
- * TEXT_BOTTOM as strings), and pays for it with text no assistive technology
- * can reach. Not a trade worth copying.
- *
- * WHAT IT DELIBERATELY DOES NOT DO
- *
- * No fluid. The hero's cursor blob is a full fluid solve with 20 pressure
- * iterations per frame, and running a second one for a background layer would
- * roughly double the per-frame GPU cost of the page to add an effect that is,
- * on the reference's own near-tonal background palette, close to invisible.
- * The field still answers the pointer — ContourField distorts its own noise by
- * cursor position and pace, so the topography swims under the cursor — it just
- * does not carry the second, blob-shaped palette on top. `tCursorEffect` is fed
- * a flat white texel, which is the fluid's REST value, so the blob term in the
- * shader resolves to exactly zero rather than being branched around.
+ * No fluid here. The hero's cursor blob is a full fluid solve; a second one for
+ * a background layer would roughly double the page's per-frame GPU cost for an
+ * effect that is barely visible on a near-tonal palette. The field still
+ * answers the pointer through ContourField's own noise distortion.
  */
 export class BackgroundField {
   readonly scene = new THREE.Scene();
@@ -51,11 +29,9 @@ export class BackgroundField {
   private readonly material: THREE.ShaderMaterial;
   private readonly mesh: THREE.Mesh;
   private readonly clock = new THREE.Clock();
-
-  /** The fluid's resting value. See the class note on tCursorEffect. */
   private readonly restTexture: THREE.DataTexture;
 
-  /** Seconds between noise steps — 30Hz. See `update`. */
+  /** Noise steps at 30Hz. See update(). */
   private static readonly NOISE_INTERVAL = 1 / 30;
   private lastNoiseStep = -Infinity;
 
@@ -63,15 +39,13 @@ export class BackgroundField {
     this.renderer = renderer;
     this.contour = new ContourField(renderer);
 
-    // Pass one is already fully revealed here. The hero earns its topography
-    // with an intro wipe; this screen is uncovered mid-scroll and has to be
-    // complete the instant it is first seen behind the shrinking plate.
+    // No intro wipe. This screen is uncovered mid-scroll and has to be complete
+    // the first time it is seen.
     this.contour.reveal = 1;
 
-    // 1x1 white. The fluid's velocity-to-colour target RESTS at white and
-    // darkens where it moves, so white means "perfectly still" — the shader's
-    // step(0.1, 1.0 - sampled) then returns 0 and the blob contributes nothing.
-    // Feeding black here would light the entire screen with the cursor palette.
+    /* The fluid's colour target rests at WHITE and darkens where it moves, so a
+       white texel means "still" and the shader's blob term resolves to zero.
+       Black here would light the whole screen with the cursor palette. */
     this.restTexture = new THREE.DataTexture(
       new Uint8Array([255, 255, 255, 255]),
       1,
@@ -95,20 +69,17 @@ export class BackgroundField {
         tCursorEffect: { value: this.restTexture },
 
         OUTLINE: { value: true },
-        // The reference's epsilon, unchanged, and shared with the hero. This is
-        // not a line width — see ContourField.
+        // The reference's epsilon. Not a line width — see ContourField.
         THICKNESS: { value: 0.000005 },
 
         COLOR_BACKGROUND: { value: ground },
-        // Unused while OUTLINE is on: the outline branch REPLACES the filled
-        // colouring rather than adding to it. Set to the line colour anyway, so
-        // toggling OUTLINE off from the console shows filled contours in the
-        // right hue rather than a flat screen.
+        // Unused while OUTLINE is on, since the outline branch replaces the
+        // filled colouring. Set anyway so toggling OUTLINE off from the console
+        // gives the right hue.
         COLOR_FOREGROUND: { value: line },
         COLOR_OUTLINE: { value: line },
 
-        // No fluid, so the blob term is dead. Matched to the base palette so
-        // that if one is ever wired up it starts from a sane place.
+        // No fluid, so the blob term is dead. Matched to the base palette.
         COLOR_CURSOR_BACKGROUND: { value: ground },
         COLOR_CURSOR_FOREGROUND: { value: line },
         COLOR_CURSOR_OUTLINE: { value: line },
@@ -121,41 +92,31 @@ export class BackgroundField {
     });
 
     this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.material);
-    // The quad IS the viewport by construction, so culling it can only ever be
-    // wrong — and is, on the frame the camera bounds are recomputed.
+    // The quad is the viewport, so culling it is never right.
     this.mesh.frustumCulled = false;
     this.scene.add(this.mesh);
   }
 
-  /** Pointer in -1..1, y up — the same convention `HeadScene.setPointer` takes. */
+  /** Pointer in -1..1, y up. Same convention as HeadScene.setPointer. */
   setPointer(nx: number, ny: number): void {
     this.contour.setPointer(nx, ny);
   }
 
   resize(): void {
-    // CSS pixels, not device pixels, and for the same reason as the hero's:
-    // line weight IS this target's texel size. See ContourField.setSize.
+    // CSS pixels, not device pixels: line weight is this target's texel size.
+    // See ContourField.setSize.
     this.contour.setSize(window.innerWidth, window.innerHeight);
   }
 
   /**
-   * Step the noise.
+   * Step the noise, at 30Hz rather than every frame.
    *
-   * THROTTLED, and this is the single biggest saving available on this layer.
-   * Pass one evaluates a three-octave simplex over every pixel of the viewport —
-   * around 1.9 million of them at this size — and it is the most expensive
-   * thing either canvas does per frame after the hero's fluid.
+   * Pass one evaluates a three-octave simplex over the whole viewport and is
+   * the most expensive thing on this layer. The field drifts at SPEED 0.1 — ten
+   * seconds to travel one noise cell — so halving its rate is not perceivable.
+   * Pass two still traces every frame, so nothing judders.
    *
-   * It also does not need 60Hz. The field's SPEED is 0.1, meaning the pattern
-   * takes about ten seconds to travel its own noise cell; halving its update
-   * rate changes what is on screen by an amount no one can perceive. Pass two,
-   * which traces the contours out of whatever pass one last wrote, still runs
-   * every frame — so the layer never drops a frame or judders, it just stops
-   * recomputing a texture that has barely moved.
-   *
-   * Deliberately NOT applied to the hero's own field. That one is the living
-   * surface of the opening screen and sits under a cursor the visitor is
-   * actively moving; throttling it is visible in a way this is not.
+   * Not applied to the hero's field, which sits under a moving cursor.
    */
   update(): void {
     const now = this.clock.getElapsedTime();

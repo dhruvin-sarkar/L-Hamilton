@@ -1,49 +1,27 @@
 /**
  * The signature, drawn on as the plate closes.
  *
- * WHY THIS IS A CANVAS AND NOT AN SVG MASK
+ * Canvas rather than an SVG mask. The mask version looked identical but cost
+ * ~9ms a frame: Blink re-rasterises the whole mask layer every time the dash
+ * changes, and this is a thousand-segment path stroked 520 units wide. A canvas
+ * does the same compositing in ~1ms with two draws and a blit.
  *
- * It was an SVG `<mask>`: the outline trace filled, uncovered by the skeleton
- * trace stroked wide and animated through its dash. Visually right, and far too
- * expensive. Measured while scrubbing the back half of the sequence, the median
- * frame went from 7.4ms with the signature hidden to 16.4ms with it shown —
- * more than the rest of the page put together, including both WebGL scenes.
- *
- * Isolating it further: filling the same complex path with NO mask cost 9.1ms,
- * and masking a trivial four-point rectangle still cost 14.5ms. So it was not
- * the letterforms, it was the mask. Every frame the dash changes Blink
- * re-rasterises the whole mask layer, and this one is a thousand-odd segment
- * path stroked 520 units wide across a 780x620 box at device resolution.
- *
- * A canvas does the same compositing with two draws and a blit.
- *
- * WHY IT CALIBRATES ITSELF
- *
- * The skeleton trace is potrace's OUTLINE of a thinned line, not a centreline.
- * A one-pixel-wide stroke traced as a boundary comes back along its other side,
- * so the pen walks every stroke twice — and because the nib is 520 units wide
- * against a gap of about one, the return pass uncovers nothing the outward pass
- * did not already. Three subpaths, three out-and-back trips, so a dash animated
- * evenly along the path spends roughly half its time doing nothing visible, in
- * three separate stretches. That is exactly the "bursts of progress and then
- * nothing" this is meant to avoid.
- *
- * Rather than trying to reconstruct a true centreline from a trace that does not
- * contain one, this measures the problem away: at construction it renders the
- * reveal at a series of points, counts how much ink each one actually uncovers,
- * and builds the inverse mapping. Scroll then drives COVERAGE evenly, and the
- * pen speeds up over the stretches that were repeating themselves. The dead
- * passes disappear without the path being touched.
+ * It also calibrates its own pacing. The skeleton trace is potrace's outline of
+ * a thinned line, not a centreline, so the pen walks every stroke out and back
+ * — and with a 520-unit nib the return pass uncovers nothing new. Three
+ * subpaths means three dead stretches, which read as bursts of ink separated by
+ * nothing. Instead of reconstructing a centreline the trace does not contain,
+ * calibrate() measures how much ink each part of the path actually uncovers and
+ * inverts that curve, so scroll drives coverage rather than path length.
  */
 
-/** Nib width, in path units. Matches the asset's own generator. */
+/** Nib width, in path units. Matches the asset's generator. */
 const NIB = 520;
 
 /** Samples taken when learning the coverage curve. */
 const CALIBRATION_STEPS = 48;
 
-/** Width of the offscreen used for calibration. Small on purpose — this is
- *  measuring a ratio, and a ratio does not need resolution. */
+/** Offscreen width for calibration. Small — this measures a ratio. */
 const CALIBRATION_WIDTH = 180;
 
 interface Trace {
@@ -152,11 +130,10 @@ export class Signature {
   }
 
   /**
-   * Learn how much ink each share of the pen path actually uncovers.
+   * Measure how much ink each share of the pen path uncovers.
    *
-   * Renders the reveal alone — no letterforms — at a series of points and counts
-   * covered pixels. What comes back is a curve that climbs where the pen is
-   * opening new ground and flattens where it is retracing.
+   * Renders the reveal alone at a series of points and counts covered pixels.
+   * The curve climbs where the pen opens new ground, flattens where it retraces.
    */
   private calibrate(): void {
     const w = CALIBRATION_WIDTH;
@@ -217,8 +194,7 @@ export class Signature {
       const hi = c[i]!;
       if (hi >= target) {
         const span = hi - lo;
-        /* A flat step means the pen was retracing there. Jump to the end of it
-           rather than dividing by nothing — that skip IS the fix. */
+        // A flat step means the pen was retracing. Skip to the end of it.
         const within = span > 1e-6 ? (target - lo) / span : 1;
         return (i - 1 + within) / (c.length - 1);
       }

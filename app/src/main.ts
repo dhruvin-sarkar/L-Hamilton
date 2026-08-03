@@ -32,18 +32,15 @@ const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matc
 /* ------------------------------------------------------------------ *
  * Smooth scroll
  *
- * Config read off the reference rather than picked: duration 1.2, lerp 0.1,
- * smoothWheel and syncTouch on, wheelMultiplier 1, and an easing that is
- * power1.inOut — the SAME curve its scroll-scrubbed camera uses. Sharing one
- * curve between the scroll itself and what the scroll drives is most of why its
- * motion feels like one system rather than several.
+ * Config read off the reference: duration 1.2, lerp 0.1, smoothWheel and
+ * syncTouch on, wheelMultiplier 1, easing power1.inOut — the same curve its
+ * scroll-scrubbed camera uses.
  *
- * ScrollTrigger has to be driven from Lenis rather than from the native scroll
- * event, and Lenis has to be stepped from gsap's ticker, or the two keep
- * separate clocks and every scrubbed value lags the page by a frame.
+ * ScrollTrigger is driven from Lenis rather than the native scroll event, and
+ * Lenis is stepped from gsap's ticker. Otherwise the two keep separate clocks
+ * and every scrubbed value lags a frame.
  *
- * Set up HERE, before anything that reads it: the marquee couples its loop to
- * scroll velocity, and it is built further down this file.
+ * Set up before anything that reads it — the marquee couples to scroll velocity.
  * ------------------------------------------------------------------ */
 
 gsap.registerPlugin(MorphSVGPlugin, ScrollTrigger);
@@ -247,35 +244,16 @@ if (marquee) {
     // rather than sliding as one slab — the same reason they counter-scroll.
     row.style.setProperty('--marquee-dir', row.dataset.marquee === 'right' ? '-1' : '1');
 
-    /* Several identical copies side by side, and the loop shifts by exactly ONE
-       of them — so copy 2 lands precisely where copy 1 was and the seam cannot
-       be seen.
+    /* Identical copies side by side. The loop shifts by exactly one of them, so
+       copy 2 lands where copy 1 was and the seam is invisible — one copy is the
+       pattern's period and the only distance that keeps its phase.
      *
-     * ONE copy, not the whole track. Shifting a single track by its own full
-     * width walks it completely out of the viewport and the band goes blank
-     * until the tween restarts; that is what put the yellow row at x=9455, a
-     * clear 7500px past the right edge, with nothing on screen at all. The
-     * period of this pattern is one copy, so one copy is the only distance that
-     * can be travelled without the content changing phase.
-     *
-     * The count is measured rather than fixed, because the shift has to leave a
-     * populated track spanning the viewport at every point in the cycle: total
-     * width has to cover the viewport PLUS the copy that gets shifted out. */
-    /* Build ONE copy, measure it, then work out how many are actually needed.
-     *
-     * The rule here used to be "keep adding until the track is two viewports
-     * wide, and never fewer than four", which on this copy produced a track
-     * 14,535px across — a composited layer seven and a half viewports wide
-     * carrying nothing but repeats of itself, and a second one beside it.
-     *
-     * What the loop actually requires is only that shifting by one copy still
-     * leaves the viewport covered: copyWidth * (copies - 1) >= viewport. Solving
-     * that runs the same seamless loop in a fraction of the raster memory. */
+     * Build one, measure it, then take only as many as the shift needs:
+     * copyWidth * (copies - 1) >= viewport. A fixed count overshoots badly —
+     * four copies of this text made a 14,535px composited layer. */
     const addCopy = () => {
-      // Solid throughout. The alternating outline treatment that used to be here
-      // was mine, not the reference's — screenshotted at three points along its
-      // own sequence, both of its bands are solid fills the whole way across.
-      // The two rows are told apart by colour and typeface, which is enough.
+      // Solid throughout. Both of the reference's bands are solid fills; the
+      // rows are told apart by colour and typeface.
       for (const word of words) {
         track.append(el('span', 'marquee__item', word), el('span', 'marquee__sep', '/'));
       }
@@ -345,24 +323,13 @@ if (marquee) {
       );
     });
 
-    /* Scroll couples into the bands: scrolling faster drives them faster, and
-       reversing direction reverses them, so the text reads as attached to the
-       page rather than playing beside it.
-
-       Clamped, because an unclamped flick sends the type past legibility, and
-       Lenis reports velocity in the hundreds on a fast wheel.
-
-       EASED IN THE TICKER rather than written on the scroll event, which is the
-       whole difference between this reading as coupled and as twitchy. Scroll
-       events arrive irregularly and their velocity is noisy, so assigning
-       timeScale directly stepped the bands from one speed to another several
-       times a second. Worse, a rate written on an event has no way back: stop
-       scrolling and no further event arrives, so whatever the last one happened
-       to say is where the bands stay.
-
-       So the event only moves a TARGET, the target falls back toward rest on its
-       own, and the actual rate chases the target. Flicks still register; the
-       steps between them do not. */
+    /* Scroll drives the bands: faster scrolling speeds them up, reversing
+       reverses them. Clamped, or a flick sends the type past legibility.
+     *
+     * The event only moves a target; the rate chases it in the ticker. Writing
+     * timeScale straight from the event stepped the bands between speeds several
+     * times a second, and left them stuck at the last value once scrolling
+     * stopped and no further event arrived. */
     let rateTarget = 1;
     let rate = 1;
 
@@ -1209,18 +1176,10 @@ if (stage) {
     signature?.resize();
   };
 
-  /* Coalesced to one call per frame.
-   *
-   * Every one of those is expensive in a different way: two WebGL renderers
-   * reallocate their drawing buffers, both contour fields reallocate a
-   * fullscreen render target, and the signature re-rasterises its ink cache.
-   * The resize event fires on every pixel of a window drag, so running this
-   * per event means dozens of buffer reallocations a second while the window
-   * is moving — and dragging a window edge was visibly the jerkiest thing on
-   * the page.
-   *
-   * rAF rather than a timeout, so it lands on a frame boundary and the new
-   * buffers are ready for the very next paint instead of a beat after it. */
+  /* One call per frame. Each one reallocates two WebGL drawing buffers, two
+     fullscreen render targets and the signature's ink cache, and the resize
+     event fires on every pixel of a window drag. rAF rather than a timeout, so
+     the new buffers are ready for the next paint. */
   let resizePending = 0;
   const onResize = () => {
     if (resizePending) return;
@@ -1248,10 +1207,8 @@ if (stage) {
       const nx = (e.clientX / window.innerWidth) * 2 - 1;
       const ny = -((e.clientY / window.innerHeight) * 2 - 1);
 
-      /* The screen behind takes the pointer for the WHOLE sequence, and takes
-         it first. Once the hero has closed to a plate this field is the only
-         thing on screen still answering the cursor, so gating it the way the
-         hero is gated would leave the finished composition completely dead. */
+      /* The screen behind takes the pointer for the whole sequence. Once the
+         hero closes it is the only thing still answering the cursor. */
       background?.setPointer(nx, ny);
 
       /* Stop feeding the HERO once the portrait has mostly shrunk. The fluid's
@@ -1287,54 +1244,30 @@ if (stage) {
    * The sides come in noticeably faster than the top, so a 2.06 viewport aspect
    * resolves toward a 1.55 near-square. A single uniform scale holds the aspect
    * fixed and reads as a plain zoom-out. */
-  /* The landing box, as a RULE rather than as two numbers.
+  /* The landing box, as a rule rather than two numbers.
    *
-   * Measured off the running reference: its box is 624.95 x 404.13 in a 1908px
-   * viewport, which is 32.75% of the width at an aspect of 1.546. Checked
-   * against a second viewport width to confirm it tracks width rather than
-   * being a fixed pixel size, and it is centred on both axes.
-   *
-   * This matters more than it looks. The previous version of this code hard-
-   * coded 625x404 against a hardcoded 1908x926 — so it landed on the reference's
-   * box only on a viewport the exact size of the one I measured it on, and drifted
-   * everywhere else. Nothing about that would have shown up in a side-by-side
-   * at the size I was testing. */
+   * Measured off the reference: 624.95 x 404.13 in a 1908px viewport, which is
+   * 32.75% of the width at an aspect of 1.546, centred on both axes. Checked at
+   * a second viewport width to confirm it tracks width rather than being fixed
+   * pixels. */
   const BOX_WIDTH_FRACTION = 0.3275;
   const BOX_ASPECT = 1.546;
 
-  /* Zoom past a plain fit, so the face grows inside the frame while the frame
-     shrinks around it. Without this the portrait just recedes and the landing
-     is a wide shot; the reference lands on a much tighter crop than a straight
-     contain would give. Confirmed in its screenshots — the face occupies a far
-     larger share of the plate at the end than it does of the full screen. */
+  /* Push past a plain fit, so the face grows while the frame closes around it.
+     Without it the portrait just recedes and the landing is a wide shot. */
   const FACE_ZOOM = 1.35;
 
   /**
-   * Solve the plate's frame at eased progress `e`, for the CURRENT viewport.
+   * Where the plate's frame sits at eased progress `e`, for the current viewport.
    *
-   * SOLVED FOR THE FRAME, not for the two levers. That distinction is the whole
-   * point of this function and it was wrong before.
+   * Solves for the frame, then derives the scale and crop from it — not the
+   * other way round. Ramping the two levers independently makes the visible
+   * width their product, and a product of two linear ramps is a quadratic: it
+   * hits both endpoints and sags between them (1168px at the midpoint against
+   * the reference's 1267).
    *
-   * The plate is driven by two CSS properties — a uniform scale and a clip
-   * inset — and the obvious thing is to ramp each of them linearly from 0 to
-   * its landing value. That is what this did, and it is subtly but visibly
-   * wrong: the width you actually SEE is the product of the two, and a product
-   * of two linear ramps is a quadratic. It leaves and arrives in the right
-   * places and sags everywhere in between. Measured at the midpoint it put the
-   * plate at 1168px where the reference's is proportionally 1267 — about 7%
-   * small, which is exactly the sort of thing that reads as "close, but the
-   * timing feels off" and cannot be fixed by adjusting the easing.
-   *
-   * So invert it. Decide where the FRAME should be at `e` — linear between the
-   * viewport and the landing box, which is what the reference measures as — and
-   * then solve the scale and the crop that put it there. Confirmed against the
-   * reference at a quarter through: its plate is 1746px wide, and a frame
-   * linear in eased progress predicts 1748.
-   *
-   * Recomputed per frame rather than cached, because a cache here has to be
-   * invalidated on resize, on orientation change, and on the mobile URL bar
-   * showing and hiding — three chances to be wrong in exchange for saving a
-   * dozen divisions next to a WebGL frame.
+   * Recomputed per frame. A cache would need invalidating on resize, on
+   * orientation change and on the mobile URL bar, to save a dozen divisions.
    */
   const plateGeometry = (e: number) => {
     const vw = window.innerWidth;
@@ -1380,37 +1313,20 @@ if (stage) {
   /* ---------------------------------------------------------------- *
    * Signature
    *
-   * Built as a PAUSED tween whose progress the shrink timeline sets, rather
-   * than as a second ScrollTrigger over a sub-range. One scroll driver means
-   * the signature cannot drift out of step with the plate it is written across,
-   * and there is no second trigger to keep in sync on refresh.
+   * Driven off the shrink timeline rather than its own ScrollTrigger, so it
+   * cannot drift out of step with the plate it is written across.
    *
-   * The trace is a potrace outline of a SKELETON — a thinned centreline, so the
-   * two sides of every stroke sit within a hair of each other. Stroking it
-   * therefore reads as a single pen line, and DrawSVG has a real length to walk
-   * along. Filling it, which is what the file is actually set up for, would drop
-   * the whole signature in at once.
-   *
-   * Loaded rather than inlined: it is 8KB of path data that would otherwise sit
-   * in the document on every page load for something first seen halfway through
-   * a scroll.
+   * The asset is fetched rather than inlined — 17KB of path data for something
+   * first seen halfway through a scroll. Rendering lives in Signature.
    * ---------------------------------------------------------------- */
 
-  /* When the signature writes, as a fraction of RAW scroll through the pin.
+  /* Writing window, as a fraction of raw scroll through the pin.
    *
-   * Measured off the reference at ten increments by counting its drawn pixels:
-   * nothing through the third, a first mark around the fourth, barely under way
-   * at the fifth, then a steady climb that lands on the tenth.
+   * The reference, counted over ten increments: nothing through the third, a
+   * first mark around the fourth, then a steady climb landing on the tenth.
    *
-   * Opened out to 0.28 from 0.42, which spreads the writing across seven of the
-   * ten increments rather than six. Pace is the other half of this and it is
-   * handled in Signature: the pen path retraces itself, so an evenly advancing
-   * DASH produced bursts of ink separated by stretches where nothing appeared.
-   * That is now calibrated out, and the two together are what make it read as
-   * gradual rather than merely slower.
-   *
-   * Both bounds are raw, not eased. That is the difference between a signature
-   * that writes at a constant speed and one that lurches through the middle. */
+   * Raw, not eased — an eased bound starts the pen where the curve is moving
+   * fastest and it lurches. Even pacing within the window is Signature's job. */
   const SIGN_FROM = 0.28;
   const SIGN_TO = 1;
 
@@ -1457,17 +1373,13 @@ if (stage) {
        * inherited the plate's acceleration on top of its own. */
       ease: 'none',
       onUpdate: () => {
-        /* Two clocks, deliberately named apart:
-             p.t    raw scroll through the pin, 0..1, even
-             eased  the plate's curve, slow at both ends
-           Anything that belongs to the SHRINK reads `eased`. Anything that
+        /* Two clocks: p.t is raw scroll through the pin, eased is the plate's
+           curve. Anything belonging to the shrink reads `eased`; anything that
            should advance evenly with the wheel reads `p.t`. */
         const eased = p.t < 0.5 ? 2 * p.t * p.t : 1 - Math.pow(-2 * p.t + 2, 2) / 2;
 
         shrunk = eased;
-        /* Note there is no second ramp here. plateGeometry already returns the
-           values FOR this progress — multiplying them by eased again is what
-           produced the quadratic sag described there. */
+        // plateGeometry already returns values for this progress — no second ramp.
         const box = plateGeometry(eased);
         stage.style.setProperty('--hero-zoom', String(box.zoom));
         stage.style.setProperty('--hero-crop-x', `${box.cropX * 100}%`);
@@ -1507,29 +1419,20 @@ if (stage) {
           '--hero-furniture',
           String(Math.max(0, 1 - eased / 0.3)),
         );
-        /* The nav does not travel — it is already fixed in the corners. It just
-           settles to a slightly smaller size as the screen behind it changes,
-           so the chrome reads as belonging to the new screen rather than to the
-           hero it came from. */
+        // The nav does not travel; it is already fixed in the corners. It just
+        // settles smaller as the screen behind it changes.
         const root = document.documentElement.style;
         root.setProperty('--nav-shrink', String(1 - 0.18 * eased));
-        /* Present in the hero, absent through the middle, back at the end.
-           It belongs to BOTH screens but not to the transition between them —
-           carrying it across would tie the two together when the whole point is
-           that one replaces the other. Out fast, back late. */
+
+        // Monogram belongs to both screens but not to the transition between
+        // them. Out fast, back late.
         const mono = eased < 0.15 ? 1 - eased / 0.15 : Math.max(0, (eased - 0.9) / 0.1);
         root.setProperty('--mono-in', String(mono));
 
-        /* The wordmark crosses from the hero's palette to the revealed screen's.
-           Lewis in Rosso over HAMILTON in Giallo works on the dark hero and is
-           close to unreadable on cream — Giallo on that ground measures about
-           1.06:1. So it inverts along with everything else behind it, into ink
-           and red, and back again on the way up.
-
-           Tied to `eased` rather than to the raw clock on purpose: it is a
-           property of the SCREEN changing, so it has to move when the screen
-           does. A linear ramp here would have the wordmark half-inverted while
-           the hero still filled the frame. */
+        /* Wordmark crosses to the revealed screen's palette. Giallo on that
+           cream measures about 1.06:1, so it has to. Eased, not raw — it tracks
+           the screen changing, and a linear ramp would leave it half-inverted
+           while the hero still filled the frame. */
         root.setProperty('--nav-invert', String(gsap.utils.clamp(0, 1, (eased - 0.1) / 0.5)));
       },
       scrollTrigger: {
@@ -1551,6 +1454,8 @@ if (stage) {
   (window as unknown as Record<string, unknown>).hamiltonGL = {
     head,
     renderer,
+    background,
+    bgRenderer,
     ScrollTrigger,
   };
 
@@ -1578,30 +1483,18 @@ if (stage) {
     requestAnimationFrame(frame);
     if (!heroVisible || document.documentElement.hasAttribute('data-menu-open')) return;
 
-    /* Background first: it is the bottom layer, and on its own canvas, so this
-       is ordering for readability rather than for correctness — the compositor
-       stacks the two by z-index whatever order they were drawn in.
-
-       Skipped entirely while the plate still covers the viewport. At rest at the
-       top of the page the hero is full-bleed and paints an opaque ground, so
-       this layer is behind a wall — and that is where visitors who never scroll
-       spend all of their time. It is not a saving in the middle of the sequence
-       where the frame budget is tightest; it is a saving on the state the page
-       sits in by default.
-
-       The threshold has to be a hair above zero rather than a strict equality:
-       the scrub settles on values like 1e-7 rather than landing on 0. */
+    /* Skipped while the plate still covers the viewport — the hero is full-bleed
+       and opaque there, which is where anyone who never scrolls stays. The
+       threshold is above zero because the scrub settles on values like 1e-7. */
     if (shrunk > 0.001) {
       background?.update();
       background?.render();
     }
 
-    /* The hero keeps rendering even after it has gone inert, and deliberately.
-       Its canvas has no preserveDrawingBuffer, so the drawing buffer is not
-       guaranteed to survive compositing — skip the draw and the plate can blank
-       out. The saving is already banked inside update(), which returns before
-       the fluid solve and the contour pass once the plate is still. What is
-       left is a single textured quad. */
+    /* The hero keeps drawing after it goes inert. No preserveDrawingBuffer, so
+       skipping the draw can blank the plate. The saving is inside update(),
+       which returns before the fluid and contour passes; what is left is one
+       textured quad. */
     head.update();
     renderer.render(head.scene, head.camera);
   };

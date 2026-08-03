@@ -514,8 +514,7 @@
    BackgroundField, and `.hero-bg` above for why it needs its own canvas. */
 
 /* The whole rendered screen scales as one plate — backdrop, contours and
-   portrait together — which is the thing I had wrong before: it is not the
-   subject shrinking inside a full-bleed frame.
+   portrait together, not the subject shrinking inside a full-bleed frame.
  *
  * A transform is the right tool and not a shortcut. Scaling DOWN a
  * full-resolution canvas is minification: it downsamples and stays crisp. Only
@@ -1380,11 +1379,9 @@
   color: var(--rosso-corsa);
 }
 
-/* The two bands are set in DIFFERENT typefaces, and that is the reference's own
-   pairing rather than a decoration of mine: screenshotted at full scroll, its
-   top band is a serif and its bottom band a bold grotesque, so the pair reads
-   as two voices crossing rather than as one ribbon cut in half. Ours takes the
-   same shape — Playfair over Archivo Narrow. */
+/* The bands use different typefaces, following the reference: a serif on top,
+   a bold grotesque below, so the pair reads as two voices crossing rather than
+   one ribbon cut in half. Playfair over Archivo Narrow. */
 .hero-back [data-marquee='left'] .marquee__item {
   font-family: var(--font-serif);
   /* A serif carries its contrast in the letterforms. At the display weight the

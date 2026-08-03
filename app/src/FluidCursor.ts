@@ -54,10 +54,9 @@ const PRESSURE_ITERATIONS = 20;
 /**
  * Fixed timestep, from the reference. Deliberately NOT the frame delta.
  *
- * The whole scheme is tuned around this number — force magnitude, dissipation
- * and the dt terms in the divergence and projection passes all assume it. Using
- * real frame time makes the fluid change character with the frame rate, which
- * is exactly the sort of thing that reads as "it feels different on my machine".
+ * Force magnitude, dissipation and the dt terms in the divergence and
+ * projection passes all assume it. Real frame time makes the fluid change
+ * character with the frame rate.
  */
 const DT = 0.014;
 

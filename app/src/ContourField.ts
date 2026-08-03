@@ -8,8 +8,7 @@ import * as THREE from 'three';
  * because those names are the specification. Its live values, read off
  * `window.landoGL.params.headScene`, are the defaults below.
  *
- * Why two passes at all — this is the part that is easy to get wrong, and I did
- * get it wrong before measuring:
+ * Why two passes:
  *
  *   The output here is `step(0.5, fract(noise * NOISE_DETAIL))`, i.e. every
  *   texel is exactly 0.0 or 1.0. There are no contour LINES in this target at
