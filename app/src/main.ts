@@ -261,8 +261,17 @@ if (marquee) {
      * The count is measured rather than fixed, because the shift has to leave a
      * populated track spanning the viewport at every point in the cycle: total
      * width has to cover the viewport PLUS the copy that gets shifted out. */
-    let copies = 0;
-    do {
+    /* Build ONE copy, measure it, then work out how many are actually needed.
+     *
+     * The rule here used to be "keep adding until the track is two viewports
+     * wide, and never fewer than four", which on this copy produced a track
+     * 14,535px across — a composited layer seven and a half viewports wide
+     * carrying nothing but repeats of itself, and a second one beside it.
+     *
+     * What the loop actually requires is only that shifting by one copy still
+     * leaves the viewport covered: copyWidth * (copies - 1) >= viewport. Solving
+     * that runs the same seamless loop in a fraction of the raster memory. */
+    const addCopy = () => {
       // Solid throughout. The alternating outline treatment that used to be here
       // was mine, not the reference's — screenshotted at three points along its
       // own sequence, both of its bands are solid fills the whole way across.
@@ -270,8 +279,17 @@ if (marquee) {
       for (const word of words) {
         track.append(el('span', 'marquee__item', word), el('span', 'marquee__sep', '/'));
       }
-      copies++;
-    } while (copies < MARQUEE_COPIES || track.scrollWidth < window.innerWidth * 2);
+    };
+
+    addCopy();
+    const copyWidth = track.scrollWidth;
+    /* +1 for the copy that gets shifted out, and never fewer than two — with a
+       single copy there is no second one to hand over to at the seam. */
+    const copies =
+      copyWidth > 0
+        ? Math.max(2, Math.ceil(window.innerWidth / copyWidth) + 1)
+        : MARQUEE_COPIES;
+    for (let i = 1; i < copies; i++) addCopy();
 
     // Read back by the tween below. Stored on the element rather than passed,
     // because the two loops are built in separate passes over the same rows.
@@ -332,9 +350,34 @@ if (marquee) {
        page rather than playing beside it.
 
        Clamped, because an unclamped flick sends the type past legibility, and
-       Lenis reports velocity in the hundreds on a fast wheel. */
+       Lenis reports velocity in the hundreds on a fast wheel.
+
+       EASED IN THE TICKER rather than written on the scroll event, which is the
+       whole difference between this reading as coupled and as twitchy. Scroll
+       events arrive irregularly and their velocity is noisy, so assigning
+       timeScale directly stepped the bands from one speed to another several
+       times a second. Worse, a rate written on an event has no way back: stop
+       scrolling and no further event arrives, so whatever the last one happened
+       to say is where the bands stay.
+
+       So the event only moves a TARGET, the target falls back toward rest on its
+       own, and the actual rate chases the target. Flicks still register; the
+       steps between them do not. */
+    let rateTarget = 1;
+    let rate = 1;
+
     lenis?.on('scroll', ({ velocity }: { velocity: number }) => {
-      const rate = gsap.utils.clamp(-5, 5, 1 + velocity * 0.06);
+      rateTarget = gsap.utils.clamp(-5, 5, 1 + velocity * 0.06);
+    });
+
+    gsap.ticker.add(() => {
+      // Target decays to rest, so the bands always return to their base speed
+      // even if the last scroll event left the target somewhere else.
+      rateTarget += (1 - rateTarget) * 0.08;
+      rate += (rateTarget - rate) * 0.15;
+      // Below a thousandth of base speed the difference is not observable, and
+      // skipping it keeps three tween timeScale writes out of an idle frame.
+      if (Math.abs(rate - 1) < 0.001 && Math.abs(rateTarget - 1) < 0.001) return;
       for (const t of loops) t.timeScale(rate);
     });
 
@@ -1118,10 +1161,6 @@ if (stage) {
   renderer.setClearColor(0x000000, 0);
   stage.appendChild(renderer.domElement);
 
-  // Sized so the top of his head sits just under the monogram, which is where
-  // the reference puts its subject: measured on the running reference at
-  // 1908x926, its monogram ends at y=79 and the hair starts at ~y=110. The
-  // portrait is bottom-anchored, so scale is what drives the top edge up.
   /* 1.012, which is 0.88 raised by 15%.
    *
    * Written as the product rather than as the result so the two halves stay
@@ -1169,7 +1208,28 @@ if (stage) {
     // changes it, and the cached ink has to be re-rendered at the new scale.
     signature?.resize();
   };
-  window.addEventListener('resize', resize);
+
+  /* Coalesced to one call per frame.
+   *
+   * Every one of those is expensive in a different way: two WebGL renderers
+   * reallocate their drawing buffers, both contour fields reallocate a
+   * fullscreen render target, and the signature re-rasterises its ink cache.
+   * The resize event fires on every pixel of a window drag, so running this
+   * per event means dozens of buffer reallocations a second while the window
+   * is moving — and dragging a window edge was visibly the jerkiest thing on
+   * the page.
+   *
+   * rAF rather than a timeout, so it lands on a frame boundary and the new
+   * buffers are ready for the very next paint instead of a beat after it. */
+  let resizePending = 0;
+  const onResize = () => {
+    if (resizePending) return;
+    resizePending = requestAnimationFrame(() => {
+      resizePending = 0;
+      resize();
+    });
+  };
+  window.addEventListener('resize', onResize);
 
   // "Tap to lock" freezes the reveal where it is, so the composition can be
   // read without the cursor dragging it around.
