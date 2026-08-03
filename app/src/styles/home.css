@@ -496,7 +496,8 @@
  * plate pinned over two viewport heights of dead scroll with nothing animating
  * it. One source of truth now, and it covers every reason the timeline might be
  * absent rather than only this one. */
-[data-hero-pinned] .hero-bg,
+/* .hero-bg is deliberately not in this group. It is FIXED — see below — because
+   the contour field is the ground for the whole page, not just for the hero. */
 [data-hero-pinned] .hero-back,
 [data-hero-pinned] .hero__stage,
 [data-hero-pinned] .hero-sign,
@@ -505,7 +506,26 @@
   /* Sticky is in flow, so the horizontal offset the static layout needs has to
      go back to auto or it constrains where the layer may stick. */
   inset-inline-start: auto;
-  margin-block-end: -100dvh;
+}
+
+/* Every layer after the first is pulled back onto it, so the five stack in one
+   place instead of queueing down a 500dvh track.
+ *
+ * On margin-block-START, not END, and the difference is not cosmetic. A sticky
+ * box's constraint rectangle is its container's content box inset by that box's
+ * own margins, so a negative BOTTOM margin also extends how far the layer may
+ * travel — by exactly its own height. Every layer then came to rest a full
+ * viewport below the track and painted over the top of the next section. It was
+ * invisible while the hero was the whole document and there was nothing under
+ * it to cover.
+ *
+ * A negative TOP margin stacks them the same way and extends the rectangle
+ * upwards instead, where there is nothing to get wrong: above the track the
+ * layer is already at its flow position. */
+[data-hero-pinned] .hero__stage,
+[data-hero-pinned] .hero-sign,
+[data-hero-pinned] .hero {
+  margin-block-start: -100dvh;
 }
 
 .hero-bg,
@@ -517,7 +537,19 @@
 
 /* Bottom of the stack. Four pinned layers, and DOM order is paint order:
    field, then text, then plate, then furniture. */
+/* FIXED, not sticky or absolute, and that is the point: the contour field is
+ * the page's ground, not the hero's backdrop. Sticky inside .hero-track meant
+ * it scrolled away with the track and every section below it fell back to flat
+ * cream, with a hard seam where the lines stopped.
+ *
+ * Fixed also costs nothing extra to composite — it was already pinned to the
+ * viewport for the whole of the hero. It just stops being un-pinned at the end.
+ *
+ * z-index 0 rather than a negative value so it stays inside the normal flow of
+ * the stacking context: the hero's four layers sit at 1-4 above it, and any
+ * section below the hero opts in with `position: relative; z-index: 1`. */
 .hero-bg {
+  position: fixed;
   z-index: 0;
 }
 
@@ -525,6 +557,15 @@
   width: 100%;
   height: 100%;
   display: block;
+}
+
+/* The ground beneath the field. Non-positioned, so it paints under the fixed
+   canvas and only shows if the GL context is missing or the scene failed to
+   load. It is the field's own background colour rather than the site's dark
+   one, because everything from the hero down is dark ink on light — degrading
+   to --bg would leave the wall unreadable. */
+#main {
+  background: var(--gl-rev-bg);
 }
 
 .hero-back {
@@ -1685,6 +1726,149 @@
     grid-template-columns: 10rem minmax(0, 22rem) minmax(0, 1fr);
     align-items: baseline;
     gap: var(--padding--small);
+  }
+}
+
+/* ======================================================= Impact wall
+ *
+ * Measured off the reference at a 1908px viewport, converted to rem:
+ *
+ *   wrapper   80rem wide, centred, 6rem above and 12rem below
+ *   gap       3.75rem between the crest block and the text
+ *   crest     6.06 x 3.19rem, 1.25rem above its eyebrow
+ *   text      7.9375rem on a 0.9 line, uppercase, -0.0625rem tracking
+ *
+ * It sits on the revealed screen's ground rather than the page's, because that
+ * is the screen the hero lands on and this is the next thing down. Our
+ * revealed screen is the light one — the reference's is dark — so the whole
+ * block inverts: dark ink and a rosso accent, not off-white and lime.
+ * ------------------------------------------------------------------- */
+
+.impact {
+  /* No background of its own: the fixed contour field IS the ground here, the
+     same one the hero lands on, and painting over it would put a flat cream
+     panel below a topographic one with a seam across the join. Positioned so it
+     paints above the field rather than under it. */
+  position: relative;
+  z-index: 1;
+  color: var(--dark);
+  /* The crest's visor is a knockout, so it has to match the ground it is on
+     rather than the page's. See the <use> target in index.html. */
+  --crest-ground: var(--gl-rev-bg);
+}
+
+.impact__inner {
+  max-inline-size: 80rem;
+  margin-inline: auto;
+  padding-block: 6rem 12rem;
+  /* No horizontal padding at desktop, which is the reference's own rule: 80rem
+     always fits inside the fluid root above 992px, so a gutter here would only
+     narrow the measured column and add a line to the wall. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(3 * var(--gap));
+  text-align: center;
+}
+
+.impact__icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap);
+}
+
+.impact__crest {
+  inline-size: 6.06rem;
+  block-size: 3.19rem;
+}
+
+.impact__eyebrow {
+  font-size: var(--text--eyebrow);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.impact__text {
+  font-family: var(--font-display);
+  font-size: var(--text--impact);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.0625rem;
+  line-height: 0.9;
+  /* No text-wrap: balance here. It looks like the right call for a wall of
+     type, but Chrome only balances blocks of six lines or fewer — this one is
+     seven, so the property was doing nothing while still reading as though the
+     ragging had been dealt with. Length of the copy is what controls it. */
+}
+
+/* The accents are a second voice, not a highlight. The reference sets a Didone
+   against its grotesque here and takes the accent slightly larger to reconcile
+   the two cap heights — 1.04x, measured. Ours does the same with Playfair
+   against Archivo Narrow. */
+.impact__text strong {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: 1.04em;
+  letter-spacing: -0.023em;
+  color: var(--rosso-corsa);
+}
+
+/* --------------------------------------------------- BlurText units
+ * One span per word, written by mountBlurText. inline-block so a transform and
+ * a filter apply at all — neither does anything on a plain inline box — while
+ * the words still lay out as text rather than as flex items. */
+
+.blur-text__unit {
+  display: inline-block;
+}
+
+/* On for the length of the run, off after. Promotion is worth it while the
+   filter is changing every frame and is dead weight once the words have
+   landed — see mountBlurText for why this is a class and not per-word. */
+.is-blurring .blur-text__unit {
+  will-change: filter, transform, opacity;
+}
+
+/* The reference's own two steps down, at its own breakpoints. Below 992px the
+   fluid root locks at 16px, so 80rem stops scaling with the viewport and the
+   gutter has to come back. */
+
+@media (max-width: 991px) {
+  .impact__inner {
+    padding-inline: 3vw;
+  }
+
+  .impact__text {
+    font-size: 7rem;
+  }
+
+  /* Below 992px the fluid root locks at 16px, so the type is a fixed pixel size
+     against a viewport that still varies — and one long word at 7rem is wider
+     than a phone. `anywhere` rather than `break-word`: only `anywhere` lowers
+     an element's min-content width, and every word here is an inline-block
+     that would otherwise shrink-to-fit its full length and hang off the side.
+     It engages only when a word cannot fit a line on its own, so ordinary copy
+     is untouched. */
+  .impact__text,
+  .impact__text .blur-text__unit {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 479px) {
+  .impact__inner {
+    padding-inline: 0;
+  }
+
+  .impact__text {
+    font-size: 3.5rem;
+  }
+
+  .impact__crest {
+    inline-size: 4.7rem;
+    block-size: auto;
   }
 }
 

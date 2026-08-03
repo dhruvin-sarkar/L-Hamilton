@@ -245,9 +245,14 @@
                 <path
                   d="M32 9c-6.1 0-11 4.9-11 11v6.3c0 1.9 1.5 3.4 3.4 3.4h15.2c1.9 0 3.4-1.5 3.4-3.4V20c0-6.1-4.9-11-11-11Z"
                 />
+                <!-- The visor is knocked out, not drawn, so it has to be the
+                     colour of whatever the crest is sitting on. --bg is right
+                     for the hero and the menu and wrong for anything on the
+                     light ground, where it painted dark on dark and the helmet
+                     came out a solid blob. Each context overrides the token. -->
                 <path
                   d="M23.6 19.6c1.7-3.4 4.8-5.3 8.4-5.3s6.7 1.9 8.4 5.3v2.7h-16.8Z"
-                  fill="var(--bg)"
+                  fill="var(--crest-ground, var(--bg))"
                 />
               </g>
               <!-- Left branch: stem plus five leaves placed along the curve. -->
@@ -313,6 +318,48 @@
         <p class="sr-only" id="marquee-text"></p>
       </div>
       <!-- /.hero-track -->
+
+      <!-- ================================================ Impact wall
+           The first thing under the hero. The plate scrolls up and away and
+           this arrives from below — the reference's own arrangement, and it
+           falls out of the sticky layout rather than needing a second pin.
+
+           Geometry measured off the reference at 1908x982: 80rem wide,
+           6rem/12rem padding, 3.75rem between the crest block and the text,
+           and the paragraph at 7.9375rem on a 0.9 line.
+
+           The accent words are <strong> and pick up a different typeface, not
+           just a colour — the reference sets a Didone against its grotesque
+           there, and losing that reads as a highlighter pass rather than as
+           two voices in one sentence. -->
+      <section class="impact" aria-labelledby="impact-h">
+        <h2 class="sr-only" id="impact-h">What he stands for</h2>
+        <div class="impact__inner">
+          <div class="impact__icon">
+            <!-- Same mark as the next-race card and the menu, by reference
+                 rather than by copy, so the three cannot drift apart. -->
+            <svg class="impact__crest" viewBox="0 0 64 44" aria-hidden="true">
+              <use href="#nr-crest" />
+            </svg>
+            <p class="impact__eyebrow">Scuderia Ferrari since 2025</p>
+          </div>
+
+          <!-- PLACEHOLDER, same footing as the marquee bands. Deliberately not
+               real career copy: this is the loudest thing on the page after the
+               hero, and filling it with a line nobody has signed off makes the
+               page look decided when it is not. What is being built here is the
+               shape — one long sentence, three accents spread across it. -->
+          <!-- Length matters as much as wording. The reference runs seven
+               lines; our display face is wider than its Mona Sans, so the same
+               word count came out at nine. Sized to land on seven here — keep
+               replacements to about this length. -->
+          <p class="impact__text" data-impact-text>
+            <strong>Placeholder</strong> copy standing in until the real line is
+            written — three <strong>accent</strong> words in one long
+            <strong>sentence</strong>.
+          </p>
+        </div>
+      </section>
     </main>
 
     <!-- ===================================================== Menu panel

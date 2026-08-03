@@ -5,6 +5,7 @@ import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 import { BackgroundField } from './BackgroundField';
+import { mountBlurText } from './BlurText';
 import { HeadScene } from './HeadScene';
 import { Signature } from './Signature';
 import {
@@ -404,6 +405,30 @@ if (marquee) {
       { passive: true },
     );
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * Impact wall
+ *
+ * The first block under the hero. Words rise and sharpen one after another as
+ * it comes into view; see BlurText for the timing, which is the React Bits
+ * component's unchanged.
+ *
+ * Paced well under the component's 200ms default. At 200 a sentence this long
+ * takes the better part of ten seconds, and the last words are still arriving
+ * after the reader has moved on. 55ms across seventeen words puts the whole
+ * wall down in about 1.6s, which is roughly one unhurried scroll — the point is
+ * that the text reads as arriving, not as something to wait for.
+ * ------------------------------------------------------------------ */
+
+const impactText = document.querySelector<HTMLElement>('[data-impact-text]');
+if (impactText) {
+  mountBlurText(impactText, {
+    delay: 55,
+    stepDuration: 0.3,
+    animateBy: 'words',
+    direction: 'bottom',
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -1512,17 +1537,27 @@ if (stage) {
 
   const frame = () => {
     requestAnimationFrame(frame);
-    if (!heroVisible || document.documentElement.hasAttribute('data-menu-open')) return;
+    // Nothing on screen is worth a frame: the panel is opaque over both canvases.
+    if (document.documentElement.hasAttribute('data-menu-open')) return;
 
-    /* Skipped while the plate still covers the viewport — the hero is full-bleed
-       and opaque there, which is where anyone who never scrolls stays. The
-       threshold is above zero because the scrub settles on values like 1e-7. */
-    if (shrunk > 0.001) {
+    /* The field is the page's ground now, so it is on screen for the whole
+       document and cannot be gated on the hero being visible. Two things still
+       gate it:
+         - the plate covering the viewport, which is where anyone who never
+           scrolls stays. The threshold is above zero because the scrub settles
+           on values like 1e-7.
+         - a backgrounded tab. rAF already throttles hard there, but not always
+           to zero, and this is the one pass that now runs the whole page. */
+    if (shrunk > 0.001 && !document.hidden) {
       background?.update();
       background?.render();
     }
 
-    /* The hero keeps drawing after it goes inert. No preserveDrawingBuffer, so
+    // The portrait is the opposite case: it is a fixed-size plate that leaves
+    // the viewport for good, so it stops as soon as it is gone.
+    if (!heroVisible) return;
+
+    /* It keeps drawing after it goes inert, though. No preserveDrawingBuffer, so
        skipping the draw can blank the plate. The saving is inside update(),
        which returns before the fluid and contour passes; what is left is one
        textured quad. */
