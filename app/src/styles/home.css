@@ -395,8 +395,17 @@
  * instant rather than as a crossfade. */
 .hero-track {
   position: relative;
-  min-block-size: 200dvh;
+  /* One screen by default; the runway only exists when there is a sequence to
+     run along it. A 200dvh track with nothing animating is a viewport height of
+     dead scroll. */
+  min-block-size: 100dvh;
   background: var(--white);
+}
+
+/* Two viewport heights: the first is the shrink, the second is what a sticky
+   layer needs behind it to stay pinned for the whole of it. */
+[data-hero-pinned] .hero-track {
+  min-block-size: 200dvh;
 }
 
 /* Written by one scrubbed timeline in main.ts. Registered because an
@@ -462,15 +471,41 @@
  * plate shrank — which is exactly the "it is still scrolling" everything else
  * was measured against. With all three pinned, nothing on screen moves for the
  * first viewport height: the only thing that changes is the plate's size. */
+/* The layers overlap and the track is one screen tall. This is the layout with
+   NO shrink sequence: a single static hero that scrolls past like any section.
+   It is the default because it is the one that is always safe — if the timeline
+   is not built, for any reason, the page still reads. */
 .hero-bg,
 .hero-back,
 .hero__stage,
 .hero-sign,
 .hero {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 100%;
+  block-size: 100dvh;
+}
+
+/* The pinned layout, switched on by main.ts once the shrink timeline exists.
+ *
+ * Keyed off that rather than off `prefers-reduced-motion`, because what this
+ * layout actually depends on is whether the animation was BUILT — and the media
+ * query only guesses at that. The two used to be able to disagree: JS reads the
+ * setting through matchMedia and CSS through @media, and any divergence left the
+ * plate pinned over two viewport heights of dead scroll with nothing animating
+ * it. One source of truth now, and it covers every reason the timeline might be
+ * absent rather than only this one. */
+[data-hero-pinned] .hero-bg,
+[data-hero-pinned] .hero-back,
+[data-hero-pinned] .hero__stage,
+[data-hero-pinned] .hero-sign,
+[data-hero-pinned] .hero {
   position: sticky;
-  top: 0;
-  height: 100dvh;
-  margin-bottom: -100dvh;
+  /* Sticky is in flow, so the horizontal offset the static layout needs has to
+     go back to auto or it constrains where the layer may stick. */
+  inset-inline-start: auto;
+  margin-block-end: -100dvh;
 }
 
 .hero-bg,
@@ -888,12 +923,25 @@
  * the text is behind it when it retreats. Not a fade — the bar is the event.
  * ------------------------------------------------------------------ */
 
+/* VISIBLE by default, and hidden only once main.ts has said it intends to
+   animate these lines. The bar and the hidden start are the animation's
+   business, so they belong behind the same switch that builds it.
+ *
+ * The other way round — hidden by default, revealed by a reduced-motion media
+ * query — is how this used to work, and it puts the content one disagreement
+ * away from being lost. JS reads the setting once through matchMedia and CSS
+ * tracks it live, so a visitor turning motion ON mid-session left the media
+ * query no longer matching while no script would ever add the class. Three
+ * lines of the next-race card would simply never appear. */
 .reveal-text {
   position: relative;
+}
+
+[data-reveal-animated] .reveal-text {
   opacity: 0;
 }
 
-.reveal-text::after {
+[data-reveal-animated] .reveal-text::after {
   content: '';
   position: absolute;
   /* Slightly larger than the text box so the bar covers descenders and the
@@ -949,14 +997,8 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .reveal-text {
-    opacity: 1;
-  }
-  .reveal-text::after {
-    display: none;
-  }
-}
+/* No reduced-motion override needed: the lines are visible unless
+   [data-reveal-animated] says otherwise, and that is never set in this mode. */
 
 /* ============================================================== Menu
  *
@@ -1499,27 +1541,15 @@
     transform: none;
   }
 
-  /* The shrink timeline is never built in this mode, so the plate would sit
-     full-bleed and pinned over the revealed screen for two whole viewport
-     heights with no way past it. Drop the runway and unpin both layers: the
-     hero reads as one static screen, the bands follow it, and the page scrolls
-     normally. */
-  .hero-track {
-    min-block-size: 0;
-  }
+  /* No unpinning here any more. The pinned layout is opt-in on
+     [data-hero-pinned], which main.ts sets only once it has actually built the
+     timeline, so this mode gets the static layout without needing to undo
+     anything. */
 
-  .hero-bg,
-  .hero-back,
-  .hero__stage {
-    position: absolute;
-    inset-block-start: 0;
-    margin-block-end: 0;
-  }
-
-  .hero__stage {
-    /* Both are scrubbed by the timeline this mode skips — pin them at rest. */
+  .hero__stage canvas {
+    /* Scrubbed by the timeline this mode skips — pin them at rest. */
     transform: none;
-    opacity: 1;
+    clip-path: none;
   }
 }
 

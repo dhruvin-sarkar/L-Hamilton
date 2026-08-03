@@ -450,6 +450,10 @@ setTimeout(markReady, 1200);
  * ------------------------------------------------------------------ */
 
 if (!reducedMotion) {
+  /* Hides the lines so they can be swept in. Set here rather than in the
+     stylesheet so the hidden state cannot outlive the code that reveals it. */
+  document.documentElement.dataset.revealAnimated = '';
+
   const lines = [...document.querySelectorAll<HTMLElement>('.reveal-text')];
   const delayFor = (el: HTMLElement) => `${lines.indexOf(el) * 90}ms`;
 
@@ -1387,6 +1391,11 @@ if (stage) {
   }
 
   if (heroTrack && !reducedMotion) {
+    /* Switches the hero's four layers from the static overlap to the pinned
+       layout. Set here, inside the branch that builds the timeline, so the CSS
+       cannot end up describing a sequence that was never constructed. */
+    document.documentElement.dataset.heroPinned = '';
+
     const p = { t: 0 };
     gsap.to(p, {
       t: 1,
