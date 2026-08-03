@@ -1,12 +1,12 @@
 import './styles/main.css';
 import * as THREE from 'three';
 import gsap from 'gsap';
-import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 import { BackgroundField } from './BackgroundField';
 import { HeadScene } from './HeadScene';
+import { Signature } from './Signature';
 import {
   age,
   careerTotals,
@@ -46,7 +46,7 @@ const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matc
  * scroll velocity, and it is built further down this file.
  * ------------------------------------------------------------------ */
 
-gsap.registerPlugin(DrawSVGPlugin, MorphSVGPlugin, ScrollTrigger);
+gsap.registerPlugin(MorphSVGPlugin, ScrollTrigger);
 
 /** The smooth-scroll instance, so the marquee can read scroll velocity. */
 let lenis: Lenis | null = null;
@@ -1122,7 +1122,14 @@ if (stage) {
   // the reference puts its subject: measured on the running reference at
   // 1908x926, its monogram ends at y=79 and the hair starts at ~y=110. The
   // portrait is bottom-anchored, so scale is what drives the top edge up.
-  const head = new HeadScene(renderer, { subjectScale: 0.88 });
+  /* 1.012, which is 0.88 raised by 15%.
+   *
+   * Written as the product rather than as the result so the two halves stay
+   * legible: 0.88 was measured against the reference's own framing — its
+   * monogram ends at y=79 and its subject's hair starts at ~y=110 — and the
+   * 1.15 is the requested lift on top of the new portrait, which crops tighter
+   * than the one that number was set against. */
+  const head = new HeadScene(renderer, { subjectScale: 0.88 * 1.15 });
 
   /* The revealed screen behind the plate: the SAME two-pass contour field, in
      the inverse palette. Its own renderer because the marquee bands sit between
@@ -1158,6 +1165,9 @@ if (stage) {
     head.resize();
     if (bgStage) bgRenderer?.setSize(bgStage.clientWidth, bgStage.clientHeight);
     background?.resize();
+    // Its canvas is sized off the host box, which is sized in vw — so a resize
+    // changes it, and the cached ink has to be re-rendered at the new scale.
+    signature?.resize();
   };
   window.addEventListener('resize', resize);
 
@@ -1302,8 +1312,10 @@ if (stage) {
     };
   };
 
-  /** How far the shrink has run, 0..1. Read by the pointer wiring below. */
+  /** How far the shrink has run, 0..1, EASED. Read by the pointer wiring. */
   let shrunk = 0;
+  /** Raw scroll through the pin, 0..1. What the signature is paced against. */
+  let rawProgress = 0;
 
   /* ---------------------------------------------------------------- *
    * Signature
@@ -1328,17 +1340,22 @@ if (stage) {
    *
    * Measured off the reference at ten increments by counting its drawn pixels:
    * nothing through the third, a first mark around the fourth, barely under way
-   * at the fifth, then a steady climb through the sixth, seventh and eighth that
-   * lands on the tenth. Starting at 0.42 puts our first mark in the same place;
-   * ending at 1 lands it on the same notch.
+   * at the fifth, then a steady climb that lands on the tenth.
    *
-   * Both are raw, not eased. That is the difference between a signature that
-   * writes at a constant speed and one that lurches through the middle. */
-  const SIGN_FROM = 0.42;
+   * Opened out to 0.28 from 0.42, which spreads the writing across seven of the
+   * ten increments rather than six. Pace is the other half of this and it is
+   * handled in Signature: the pen path retraces itself, so an evenly advancing
+   * DASH produced bursts of ink separated by stretches where nothing appeared.
+   * That is now calibrated out, and the two together are what make it read as
+   * gradual rather than merely slower.
+   *
+   * Both bounds are raw, not eased. That is the difference between a signature
+   * that writes at a constant speed and one that lurches through the middle. */
+  const SIGN_FROM = 0.28;
   const SIGN_TO = 1;
 
   const signatureHost = document.querySelector<HTMLElement>('#signature');
-  let signatureDraw: gsap.core.Tween | null = null;
+  let signature: Signature | null = null;
 
   if (signatureHost && !reducedMotion) {
     fetch('/assets/brand/signature.svg')
@@ -1347,33 +1364,20 @@ if (stage) {
         return res.text();
       })
       .then((markup) => {
-        signatureHost.innerHTML = markup;
-        /* The NIB, not the ink. The visible letterforms are a filled outline;
-           what animates is the mask stroke that uncovers them. */
-        const path = signatureHost.querySelector('[data-signature-nib]');
-        if (!path) throw new Error('no [data-signature-nib] in signature asset');
-
-        // The file carries width/height in pt, which would pin it to that size
-        // and ignore the CSS. viewBox is what it needs to keep.
-        const svg = signatureHost.querySelector('svg');
-        svg?.removeAttribute('width');
-        svg?.removeAttribute('height');
-
-        signatureDraw = gsap.fromTo(
-          path,
-          { drawSVG: '0%' },
-          { drawSVG: '100%', ease: 'none', paused: true },
-        );
+        // The ink colour comes from the cascade rather than from a constant, so
+        // the signature stays tied to the palette the rest of the page uses.
+        const colour = getComputedStyle(document.documentElement)
+          .getPropertyValue('--rosso-corsa')
+          .trim();
+        signature = new Signature(signatureHost, markup, colour || '#ff2800');
         // Catch up to wherever the scroll already is — a reload partway down the
         // sequence must not leave the signature unwritten under a closed plate.
-        signatureDraw.progress(
-          gsap.utils.clamp(0, 1, (shrunk - SIGN_FROM) / (SIGN_TO - SIGN_FROM)),
-        );
+        signature.progress = (rawProgress - SIGN_FROM) / (SIGN_TO - SIGN_FROM);
       })
       .catch((err: unknown) => {
         // Decorative, and the sequence is complete without it. Fail visibly to
         // us and invisibly to the visitor.
-        console.error('[hero] signature trace failed to load', err);
+        console.error('[hero] signature failed to load', err);
       });
   }
 
@@ -1428,9 +1432,10 @@ if (stage) {
 
            A progress SET rather than a tween of its own, so scrubbing backwards
            un-writes it exactly the way it was written. */
-        signatureDraw?.progress(
-          gsap.utils.clamp(0, 1, (p.t - SIGN_FROM) / (SIGN_TO - SIGN_FROM)),
-        );
+        rawProgress = p.t;
+        if (signature) {
+          signature.progress = (p.t - SIGN_FROM) / (SIGN_TO - SIGN_FROM);
+        }
         // Muted, not faded. Draining saturation keeps the plate solid; dropping
         // opacity would dissolve it into the screen behind and grey the
         // portrait out. Stops at 0.2 rather than 0 — a fully grey plate reads

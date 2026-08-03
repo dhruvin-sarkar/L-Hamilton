@@ -571,26 +571,21 @@
   place-items: center;
 }
 
-.hero-sign svg {
-  /* Sized against the PLATE, not picked. The plate lands at 32.75vw, and the
-     reference's signature spans about 1.25 times its box — measured across its
-     own end state at 775px against a 625px plate. 32.75 x 1.25 is 41. */
+/* The HOST is what CSS sizes; the canvas inside it is matched to this box in
+   script, because a canvas needs a backing store measured in pixels and only
+   script can set that.
+
+   Sized against the PLATE rather than picked: the plate lands at 32.75vw, and
+   the reference's signature spans about 1.25 times its box — measured across its
+   own end state at 775px against a 625px plate. 32.75 x 1.25 is 41.
+
+   The ink is drawn into a canvas rather than composited through an SVG mask.
+   The mask version looked identical and cost more per frame than both WebGL
+   scenes put together; the measurements are in Signature. */
+.hero-sign canvas {
+  display: block;
   inline-size: min(41vw, 52rem);
   block-size: auto;
-  overflow: visible;
-}
-
-/* The visible ink is the OUTLINE trace — the real letterforms, filled, with the
-   weight and the swelling of an actual pen. Stroking the skeleton directly (the
-   first attempt) put the pen on the right path but drew it as a hairline, which
-   reads as a scribble rather than as a signature.
-
-   It is uncovered by a mask whose content is the SKELETON trace stroked wide,
-   animated by DrawSVG. So the reveal still follows the order the pen moved in,
-   while what actually appears is the full letterform. See the generator note in
-   the asset itself. */
-.hero-sign [data-signature-ink] {
-  fill: var(--rosso-corsa);
 }
 
 .hero {

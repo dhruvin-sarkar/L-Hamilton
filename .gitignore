@@ -24,3 +24,7 @@ app/.vite/
 
 .DS_Store
 Thumbs.db
+
+# Full-resolution exports. The build only ever loads the .webp versions;
+# anything left in app/public/ is copied verbatim into dist/.
+app/asset-sources/
