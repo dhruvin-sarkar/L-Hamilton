@@ -384,7 +384,7 @@
 .hero-track {
   position: relative;
   min-block-size: 200dvh;
-  background: var(--cream);
+  background: var(--white);
 }
 
 /* Written by one scrubbed timeline in main.ts. Registered because an
@@ -472,15 +472,44 @@
   mask-repeat: no-repeat;
 }
 
+/* The field drifts rather than sitting still. Two layers at different sizes
+   travelling at different speeds and along different axes, so the sets slide
+   THROUGH one another and the interference keeps changing — which is what reads
+   as a live field rather than as one image being panned.
+
+   Deliberately not a second WebGL context: a live ContourField here would mean
+   a second continuously-rendering canvas behind an already-expensive hero, and
+   the reference itself ships a static asset in this slot. Drifting masks buy
+   most of the motion for none of the frame budget. */
 .hero-back::before {
-  mask-size: cover;
+  mask-size: 160%;
   opacity: 0.55;
+  animation: contour-drift-a 90s linear infinite;
 }
 
 .hero-back::after {
-  mask-size: 150%;
-  mask-position: 30% 60%;
+  mask-size: 210%;
   opacity: 0.3;
+  animation: contour-drift-b 140s linear infinite;
+}
+
+/* Both return to their start position so the loop closes with no jump. */
+@keyframes contour-drift-a {
+  from {
+    mask-position: 0% 40%;
+  }
+  to {
+    mask-position: 100% 60%;
+  }
+}
+
+@keyframes contour-drift-b {
+  from {
+    mask-position: 100% 70%;
+  }
+  to {
+    mask-position: 0% 30%;
+  }
 }
 
 /* The whole rendered screen scales as one plate — backdrop, contours and
@@ -1457,7 +1486,9 @@
    carries the content, so nothing is lost. */
 @media (prefers-reduced-motion: reduce) {
   .marquee__track,
-  .hero-back.is-running .marquee__track {
+  .hero-back.is-running .marquee__track,
+  .hero-back::before,
+  .hero-back::after {
     animation: none;
   }
   .marquee__row {
