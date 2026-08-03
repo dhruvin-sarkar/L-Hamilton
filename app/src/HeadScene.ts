@@ -366,6 +366,7 @@ const headFragment = /* glsl */ `
   uniform float uTime;
   uniform float uIntro;
   uniform int   uOctaves;
+  uniform float uSaturation;
 
   varying vec2 vUv;
 
@@ -403,6 +404,15 @@ const headFragment = /* glsl */ `
     // HELMET over the face; the face itself never fades.
 
     if (alpha < 0.004) discard;
+
+    /* Mute, applied here rather than as a CSS filter on the wrapper.
+       filter: saturate() on a full-viewport element makes the compositor
+       rasterise the layer, run a filter pass over it and composite the result,
+       every frame the value changes. Integrated GPUs feel that. Rec. 709 luma,
+       the same weighting the CSS filter uses, so the look is unchanged. */
+    float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    color = mix(vec3(luma), color, uSaturation);
+
     gl_FragColor = vec4(color, alpha);
   }
 `;
@@ -635,6 +645,7 @@ export class HeadScene {
         uTime: { value: 0 },
         uIntro: { value: 0 },
         uOctaves: { value: 3 },
+        uSaturation: { value: 1 },
       },
     });
 
@@ -1130,6 +1141,18 @@ export class HeadScene {
     this.still = v;
     this.fieldMesh.visible = !v;
     if (this.helmet) this.helmet.visible = !v;
+  }
+
+  /**
+   * Drain the portrait's colour as the plate closes, 1 down to 0.
+   *
+   * In the shader rather than as a CSS filter on the wrapper. The plate's
+   * ground is a flat near-neutral colour that saturation barely touches, so
+   * only the portrait needs it, and this saves a full-viewport filter pass
+   * every frame of the scrub.
+   */
+  set saturation(v: number) {
+    this.head.uniforms.uSaturation!.value = v;
   }
 
   set helmetOpacity(v: number) {

@@ -1149,14 +1149,18 @@ if (stage) {
   let bgRenderer: THREE.WebGLRenderer | null = null;
 
   if (bgStage && !reducedMotion) {
-    // No alpha: this is the bottom layer and paints every pixel, so an alpha
-    // buffer would only add a blend the compositor then has to resolve.
+    /* No alpha: this is the bottom layer and paints every pixel, so an alpha
+       buffer only adds a blend the compositor then has to resolve. No antialias
+       either — the scene is one fullscreen quad, and there is no geometry edge
+       for MSAA to find. Neither is a downgrade from the hero; both are settings
+       the hero needs and this does not. */
     bgRenderer = new THREE.WebGLRenderer({ antialias: false, alpha: false });
-    // Capped at 1.5 rather than the hero's 2. The field is flat colour and
-    // hairline contours with no photographic detail to preserve, and this is a
-    // whole second fullscreen context — the pixels cost the same as the hero's
-    // and buy far less.
-    bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+    /* The SAME cap as the hero. This was 1.5, on the reasoning that a field of
+       flat colour needs fewer pixels than a portrait — but the field is thin
+       contour lines, which is exactly what undersampling shows up on, and on a
+       HiDPI display it put softer lines behind a crisply drawn plate. The whole
+       layer costs 0.015ms a frame; there was nothing to save. */
+    bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     // The ELEMENT's box, not the window's. They differ by the scrollbar, and
     // sizing a canvas to the window inside a narrower element stretches every
     // pixel horizontally — which on a field of thin contour lines shows up as
@@ -1409,10 +1413,9 @@ if (stage) {
           signature.progress = (p.t - SIGN_FROM) / (SIGN_TO - SIGN_FROM);
         }
         // Muted, not faded. Draining saturation keeps the plate solid; dropping
-        // opacity would dissolve it into the screen behind and grey the
-        // portrait out. Stops at 0.2 rather than 0 — a fully grey plate reads
-        // as broken rather than as receding.
-        stage.style.setProperty('--hero-mute', String(1 - 0.8 * eased));
+        // opacity would dissolve it into the screen behind. Stops at 0.2 — a
+        // fully grey plate reads as broken rather than as receding.
+        head.saturation = 1 - 0.8 * eased;
         // The furniture belongs to the full-bleed screen, so it clears early —
         // gone by the time the plate is a third of the way in.
         heroTrack.style.setProperty(

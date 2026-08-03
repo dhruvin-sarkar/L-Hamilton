@@ -431,12 +431,6 @@
   inherits: true;
 }
 
-@property --hero-mute {
-  syntax: '<number>';
-  initial-value: 1;
-  inherits: false;
-}
-
 /* How far the nav has crossed from the hero's palette to the revealed screen's.
    0 on the dark hero, 1 on the cream screen behind it.
 
@@ -522,11 +516,11 @@
  * rebuilding this inside the GL. */
 .hero__stage {
   z-index: 2;
-  /* Muted, not faded. Opacity dissolves the plate into the page behind it and
-     turns the portrait grey; desaturating drains the colour while the image
-     stays solid and readable. */
-  filter: saturate(var(--hero-mute, 1));
-  will-change: filter;
+  /* The mute lives in the portrait's shader now, not in a filter here. A
+     filter on a full-viewport element makes the compositor rasterise the
+     layer, run a pass over it and composite the result on every frame the
+     value changes, which on integrated graphics is the most expensive thing
+     in the sequence. See HeadScene's saturation setter. */
 }
 
 /* The frame narrows faster than it shortens WITHOUT distorting what is inside

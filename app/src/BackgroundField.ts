@@ -31,10 +31,6 @@ export class BackgroundField {
   private readonly clock = new THREE.Clock();
   private readonly restTexture: THREE.DataTexture;
 
-  /** Noise steps at 30Hz. See update(). */
-  private static readonly NOISE_INTERVAL = 1 / 30;
-  private lastNoiseStep = -Infinity;
-
   constructor(renderer: THREE.WebGLRenderer) {
     this.renderer = renderer;
     this.contour = new ContourField(renderer);
@@ -109,20 +105,15 @@ export class BackgroundField {
   }
 
   /**
-   * Step the noise, at 30Hz rather than every frame.
+   * Step the noise, every frame, exactly as the hero's field does.
    *
-   * Pass one evaluates a three-octave simplex over the whole viewport and is
-   * the most expensive thing on this layer. The field drifts at SPEED 0.1 — ten
-   * seconds to travel one noise cell — so halving its rate is not perceivable.
-   * Pass two still traces every frame, so nothing judders.
-   *
-   * Not applied to the hero's field, which sits under a moving cursor.
+   * This was throttled to 30Hz. Both passes together measure 0.015ms, so the
+   * throttle bought 0.008ms and cost the field half its frame rate — visible as
+   * stutter in the drift and lag in the cursor response, on the layer that
+   * carries the whole screen once the hero has closed.
    */
   update(): void {
-    const now = this.clock.getElapsedTime();
-    if (now - this.lastNoiseStep < BackgroundField.NOISE_INTERVAL) return;
-    this.lastNoiseStep = now;
-    this.contour.update(now);
+    this.contour.update(this.clock.getElapsedTime());
   }
 
   render(): void {
