@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import gsap from 'gsap';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import Lenis from 'lenis';
 import { HeadScene } from './HeadScene';
 import {
   age,
@@ -661,6 +662,37 @@ mountRollingText();
 
 gsap.registerPlugin(MorphSVGPlugin, ScrollTrigger);
 
+/* ------------------------------------------------------------------ *
+ * Smooth scroll
+ *
+ * Config read off the reference rather than picked: duration 1.2, lerp 0.1,
+ * smoothWheel and syncTouch on, wheelMultiplier 1, and an easing that is
+ * power1.inOut — the SAME curve its scroll-scrubbed camera uses. Sharing one
+ * curve between the scroll itself and what the scroll drives is most of why its
+ * motion feels like one system rather than several.
+ *
+ * ScrollTrigger has to be driven from Lenis rather than from the native scroll
+ * event, and Lenis has to be stepped from gsap's ticker, or the two keep
+ * separate clocks and every scrubbed value lags the page by a frame.
+ * ------------------------------------------------------------------ */
+
+if (!reducedMotion) {
+  const lenis = new Lenis({
+    duration: 1.2,
+    easing: (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2),
+    lerp: 0.1,
+    smoothWheel: true,
+    syncTouch: true,
+    wheelMultiplier: 1,
+  });
+
+  lenis.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add((time) => lenis.raf(time * 1000));
+  // gsap's ticker drops a frame's worth of time after a stall; Lenis integrates
+  // that gap and lurches. Its own rAF already handles the tab-switch case.
+  gsap.ticker.lagSmoothing(0);
+}
+
 /** Every generated path uses this many cubic segments. See the note above. */
 const PATH_SEGMENTS = 4;
 
@@ -1080,8 +1112,14 @@ if (stage) {
    * The sides come in noticeably faster than the top, so a 2.06 viewport aspect
    * resolves toward a 1.55 near-square. A single uniform scale holds the aspect
    * fixed and reads as a plain zoom-out. */
-  const PLATE_X = 625 / 1908;
-  const PLATE_Y = 404 / 926;
+  /* Uniform, so the portrait keeps its proportions. Taken from the VERTICAL
+     ratio, which makes the height an exact fit and leaves the width over. */
+  const PLATE_ZOOM = 404 / 926;
+
+  /* The leftover width is what gets cropped. At the landing zoom the canvas is
+     1908 x 0.436 = 832 across but the box is 625, so 75.1% survives and 12.4%
+     comes off each side. That is the crop doing the squaring — not a squash. */
+  const PLATE_CROP = (1 - 625 / (1908 * PLATE_ZOOM)) / 2;
 
   /** How far the shrink has run, 0..1. Read by the pointer wiring below. */
   let shrunk = 0;
@@ -1093,8 +1131,8 @@ if (stage) {
       ease: 'power1.inOut', // the reference's own curve on this scrub
       onUpdate: () => {
         shrunk = p.t;
-        stage.style.setProperty('--hero-shrink-x', String(1 + (PLATE_X - 1) * p.t));
-        stage.style.setProperty('--hero-shrink-y', String(1 + (PLATE_Y - 1) * p.t));
+        stage.style.setProperty('--hero-zoom', String(1 + (PLATE_ZOOM - 1) * p.t));
+        stage.style.setProperty('--hero-crop', `${PLATE_CROP * 100 * p.t}%`);
         // Muted, not faded. Draining saturation keeps the plate solid; dropping
         // opacity would dissolve it into the screen behind and grey the
         // portrait out. Stops at 0.2 rather than 0 — a fully grey plate reads
@@ -1112,11 +1150,12 @@ if (stage) {
            hero it came from. */
         const root = document.documentElement.style;
         root.setProperty('--nav-shrink', String(1 - 0.18 * p.t));
-        /* The monogram is absent for the whole sequence and returns only once
-           the plate has landed. Held at 0 until the last tenth rather than
-           fading across the whole scrub, so it reads as arriving on the new
-           screen instead of hanging around through the transition. */
-        root.setProperty('--mono-in', String(Math.max(0, (p.t - 0.9) / 0.1)));
+        /* Present in the hero, absent through the middle, back at the end.
+           It belongs to BOTH screens but not to the transition between them —
+           carrying it across would tie the two together when the whole point is
+           that one replaces the other. Out fast, back late. */
+        const mono = p.t < 0.15 ? 1 - p.t / 0.15 : Math.max(0, (p.t - 0.9) / 0.1);
+        root.setProperty('--mono-in', String(mono));
       },
       scrollTrigger: {
         trigger: heroTrack,

@@ -470,16 +470,17 @@
       </div>
     </div>
 
-    <!-- ========================================================= Footer -->
-    <footer class="footer">
-      <div class="shell footer__inner">
-        <p class="footer__mark display">44</p>
-        <p class="muted">
-          An independent tribute project. Not affiliated with Lewis Hamilton, Scuderia Ferrari or
-          Formula 1.
-        </p>
-      </div>
-    </footer>
+    <!-- ========================================================= Footer
+         Hidden while the opening sequence is the only thing on the page.
+         Its height is what let the page keep scrolling past the end of the
+         sequence: the hero track's pin lasts exactly as long as the page can
+         scroll, so ANY content after it re-opens the scroll and drags the
+         pinned layers away. Restored once the sections below the hero exist.
+
+         Kept in the markup rather than deleted — the attribution has to ship
+         with the site, and it is easier to get that wrong by deleting it now
+         and forgetting than by hiding it behind one attribute. -->
+    <footer class="footer" hidden>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

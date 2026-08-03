@@ -152,7 +152,9 @@
 
      Over-qualified deliberately: `.is-ready .hero-in` sets opacity at the same
      0-2-0 specificity later in this file and would otherwise win the tie. */
-  opacity: var(--mono-in, 0);
+  /* Falls back to 1, not 0: before the scroll timeline has run once the
+     variable is unset, and a 0 fallback hides the mark on the hero at rest. */
+  opacity: var(--mono-in, 1);
   transition-property: visibility;
 }
 
@@ -388,16 +390,21 @@
 /* Written by one scrubbed timeline in main.ts. Registered because an
    unregistered custom property inside scale() fails to parse and takes the
    whole declaration down with it. */
-@property --hero-shrink-x {
+/* BOTH inherit, and that is required rather than incidental: main.ts writes
+   them on #stage while the rules that read them live on the canvas INSIDE it.
+   A non-inheriting custom property is substituted on the element that declares
+   it, so on a child it would silently resolve to its initial value and the
+   plate would never move. Same trap that killed the menu's tile crossfade. */
+@property --hero-zoom {
   syntax: '<number>';
   initial-value: 1;
-  inherits: false;
+  inherits: true;
 }
 
-@property --hero-shrink-y {
-  syntax: '<number>';
-  initial-value: 1;
-  inherits: false;
+@property --hero-crop {
+  syntax: '<percentage>';
+  initial-value: 0%;
+  inherits: true;
 }
 
 @property --hero-mute {
@@ -444,12 +451,14 @@
   overflow: clip;
 }
 
-/* The revealed screen carries the same topography as the hero, inverted: dark
-   ink on cream rather than red on black. Two layers at different scales and
-   opacities so it reads as depth rather than as one flat pattern.
-
-   Reuses the generated contour asset as a MASK, so the colour stays a token —
-   the file itself is flat white geometry, no palette baked in. */
+/* The revealed screen carries the same topography as the hero, inverted: red
+   lines on cream rather than red on black.
+ *
+ * Two layers, both red, at different scales so the sets cross rather than trace
+ * each other — a second copy at the same size would only thicken the first.
+ *
+ * Reuses the generated contour asset as a MASK, so the colour stays a token:
+ * the file itself is flat white geometry with no palette baked in. */
 .hero-back::before,
 .hero-back::after {
   content: '';
@@ -457,25 +466,21 @@
   inset: 0;
   z-index: -1;
   pointer-events: none;
+  background-color: var(--rosso-corsa);
   mask-image: url('/assets/menu/contours.svg');
   mask-position: center;
   mask-repeat: no-repeat;
 }
 
-/* Black lines, the wider of the two. */
 .hero-back::before {
-  background-color: var(--dark);
   mask-size: cover;
-  opacity: 0.28;
+  opacity: 0.55;
 }
 
-/* Red lines, offset and scaled up so the two sets cross rather than trace each
-   other — a second copy at the same size would just thicken the first. */
 .hero-back::after {
-  background-color: var(--rosso-corsa);
   mask-size: 150%;
   mask-position: 30% 60%;
-  opacity: 0.4;
+  opacity: 0.3;
 }
 
 /* The whole rendered screen scales as one plate — backdrop, contours and
@@ -488,16 +493,30 @@
  * rebuilding this inside the GL. */
 .hero__stage {
   z-index: 1;
-  /* NON-UNIFORM, and that is the whole character of the move: the plate goes
-     from a 2.06 viewport aspect to a 1.55 landing box, so the sides have to
-     come in faster than the top and it resolves toward a square. A single
-     uniform scale keeps the aspect fixed and reads as a zoom-out instead. */
-  transform: scale(var(--hero-shrink-x, 1), var(--hero-shrink-y, 1));
   /* Muted, not faded. Opacity dissolves the plate into the page behind it and
      turns the portrait grey; desaturating drains the colour while the image
      stays solid and readable. */
   filter: saturate(var(--hero-mute, 1));
-  will-change: transform, filter;
+  will-change: filter;
+}
+
+/* The frame narrows faster than it shortens WITHOUT distorting what is inside
+ * it, which a non-uniform scale cannot do — that squashed Lewis horizontally.
+ *
+ * Two separate levers instead:
+ *   --hero-zoom  uniform scale, so the portrait keeps its proportions
+ *   --hero-crop  a horizontal inset, so the sides come in on top of the zoom
+ *
+ * clip-path resolves in the element's own box BEFORE the transform maps it to
+ * screen, so the inset is a percentage of the full canvas width and the two
+ * compose cleanly. At the landing values: 1908 cropped to 1432, scaled by
+ * 0.436, lands at 625 across and 404 down — the reference's box exactly. */
+.hero__stage canvas {
+  width: 100%;
+  height: 100%;
+  transform: scale(var(--hero-zoom, 1));
+  clip-path: inset(0 var(--hero-crop, 0%));
+  will-change: transform, clip-path;
 }
 
 .hero {
@@ -520,11 +539,6 @@
   opacity: var(--hero-furniture, 1);
   /* The entrance transition must not fight a scrubbed value. */
   transition: none;
-}
-
-.hero__stage canvas {
-  width: 100%;
-  height: 100%;
 }
 
 /* ------------------------------------------- Next race (bottom-left) */
@@ -1380,9 +1394,17 @@
   }
 }
 
+/* Starts a full copy to the LEFT and travels back to zero, rather than starting
+   at zero and travelling right. Both end on a seam-free loop, but the naive
+   version leaves the row empty on entry and — once the track is several
+   viewports wide, which it now is — carries it clean off screen for most of the
+   cycle. That is why this band kept disappearing. */
 @keyframes marquee-right {
+  from {
+    transform: translateX(-100%);
+  }
   to {
-    transform: translateX(100%);
+    transform: translateX(0);
   }
 }
 
