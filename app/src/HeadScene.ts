@@ -1109,6 +1109,21 @@ export class HeadScene {
     this.head.uniforms.uRevealPx!.value = v * this.dpr;
   }
 
+  /**
+   * Draw the contour field behind the portrait, or don't.
+   *
+   * Once the hero has minimised into its plate the field has no job left: the
+   * revealed screen behind carries the topography now, and a second set of
+   * contours inside a 625px box just reads as noise. The reference's plate is
+   * a plain backdrop with the face on it for the same reason.
+   *
+   * Toggling `visible` skips the draw entirely rather than blending a
+   * transparent one, so it also gives the frame budget back.
+   */
+  set fieldVisible(v: boolean) {
+    this.fieldMesh.visible = v;
+  }
+
   set helmetOpacity(v: number) {
     this.baseHelmetOpacity = v;
     if (this.helmetMat) this.helmetMat.uniforms.uOpacity!.value = v;

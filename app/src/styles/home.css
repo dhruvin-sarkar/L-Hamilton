@@ -401,7 +401,19 @@
   inherits: true;
 }
 
-@property --hero-crop {
+@property --hero-crop-x {
+  syntax: '<percentage>';
+  initial-value: 0%;
+  inherits: true;
+}
+
+@property --hero-crop-top {
+  syntax: '<percentage>';
+  initial-value: 0%;
+  inherits: true;
+}
+
+@property --hero-crop-bottom {
   syntax: '<percentage>';
   initial-value: 0%;
   inherits: true;
@@ -543,8 +555,20 @@
 .hero__stage canvas {
   width: 100%;
   height: 100%;
+  /* The portrait is a cutout, so once the contour field stops drawing there is
+     nothing behind it and it floats on the page. A CSS background on the canvas
+     shows through its transparent pixels and gets clipped along with it, which
+     leaves the flat plate the reference lands on — face on a solid ground, no
+     contours inside the box. */
+  background: var(--dark);
   transform: scale(var(--hero-zoom, 1));
-  clip-path: inset(0 var(--hero-crop, 0%));
+  /* Top and bottom are separate, not one symmetric inset: the zoom pushes in
+     on the face, and the head sits above centre, so an even crop would trim
+     the top of it while leaving empty chest below. */
+  clip-path: inset(
+    var(--hero-crop-top, 0%) var(--hero-crop-x, 0%) var(--hero-crop-bottom, 0%)
+      var(--hero-crop-x, 0%)
+  );
   will-change: transform, clip-path;
 }
 

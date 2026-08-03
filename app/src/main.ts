@@ -1112,14 +1112,32 @@ if (stage) {
    * The sides come in noticeably faster than the top, so a 2.06 viewport aspect
    * resolves toward a 1.55 near-square. A single uniform scale holds the aspect
    * fixed and reads as a plain zoom-out. */
-  /* Uniform, so the portrait keeps its proportions. Taken from the VERTICAL
-     ratio, which makes the height an exact fit and leaves the width over. */
-  const PLATE_ZOOM = 404 / 926;
+  /* The plate ends at the reference's 625x404 box. Everything below derives
+     from those two numbers plus one decision: how far to push IN on the face
+     while the box closes. */
+  const BOX_W = 625;
+  const BOX_H = 404;
+  const REF_W = 1908;
+  const REF_H = 926;
 
-  /* The leftover width is what gets cropped. At the landing zoom the canvas is
-     1908 x 0.436 = 832 across but the box is 625, so 75.1% survives and 12.4%
-     comes off each side. That is the crop doing the squaring — not a squash. */
-  const PLATE_CROP = (1 - 625 / (1908 * PLATE_ZOOM)) / 2;
+  /* Zoom past a plain fit, so the face grows inside the frame while the frame
+     shrinks around it. Without this the portrait just recedes and the landing
+     is a wide shot; the reference lands on a much tighter crop than a straight
+     contain would give. */
+  const FACE_ZOOM = 1.35;
+  const PLATE_ZOOM = (BOX_H / REF_H) * FACE_ZOOM;
+
+  /* What the zoom overshoots on each axis is what gets cropped away. Solved
+     rather than tuned: whatever the zoom is, these keep the box exactly
+     625x404, so the two can be adjusted independently without drift. */
+  const CROP_X = (1 - BOX_W / (REF_W * PLATE_ZOOM)) / 2;
+  const CROP_Y_TOTAL = 1 - BOX_H / (REF_H * PLATE_ZOOM);
+
+  /* Split unevenly, taking more off the BOTTOM. The subject's head sits above
+     centre, so cropping symmetrically would trim the top of it while leaving
+     empty chest. A quarter/three-quarters split holds the face centred. */
+  const CROP_TOP = CROP_Y_TOTAL * 0.25;
+  const CROP_BOTTOM = CROP_Y_TOTAL * 0.75;
 
   /** How far the shrink has run, 0..1. Read by the pointer wiring below. */
   let shrunk = 0;
@@ -1132,7 +1150,12 @@ if (stage) {
       onUpdate: () => {
         shrunk = p.t;
         stage.style.setProperty('--hero-zoom', String(1 + (PLATE_ZOOM - 1) * p.t));
-        stage.style.setProperty('--hero-crop', `${PLATE_CROP * 100 * p.t}%`);
+        stage.style.setProperty('--hero-crop-x', `${CROP_X * 100 * p.t}%`);
+        stage.style.setProperty('--hero-crop-top', `${CROP_TOP * 100 * p.t}%`);
+        stage.style.setProperty('--hero-crop-bottom', `${CROP_BOTTOM * 100 * p.t}%`);
+        /* The field has no job inside the plate — the revealed screen carries
+           the topography now. Cut once the box is most of the way closed. */
+        head.fieldVisible = p.t < 0.75;
         // Muted, not faded. Draining saturation keeps the plate solid; dropping
         // opacity would dissolve it into the screen behind and grey the
         // portrait out. Stops at 0.2 rather than 0 — a fully grey plate reads
