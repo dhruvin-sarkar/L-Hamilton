@@ -1311,8 +1311,22 @@ export class HeadScene {
     this.headMesh.position.y = this.headBase.y + this.pointer.y * this.imageShift * 0.6;
   }
 
+  /**
+   * Release everything this scene owns.
+   *
+   * Nothing calls it yet — the page never tears the hero down — so this is for
+   * the point where navigating between the four pages starts swapping scenes.
+   * Kept complete rather than approximately complete, because a half-written
+   * dispose is worse than none: it looks handled.
+   */
   dispose(): void {
     this.fieldMesh.geometry.dispose();
+    this.headMesh.geometry.dispose();
+    // Merged at load, so these are geometries this class created rather than
+    // ones the loader still holds a reference to.
+    this.helmet?.traverse((o) => {
+      if (o instanceof THREE.Mesh) o.geometry.dispose();
+    });
     for (const key of ['uDiffuse', 'uDepth', 'uAlpha', 'uShadow'] as const) {
       (this.head.uniforms[key]!.value as THREE.Texture | null)?.dispose();
     }

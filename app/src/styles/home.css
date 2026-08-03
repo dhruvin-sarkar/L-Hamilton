@@ -818,6 +818,28 @@
   }
 }
 
+/* The nav is a wordmark on the left and a store/menu cluster on the right, and
+   at the lockup's full size the two stop fitting side by side. Measured at
+   360px: the wordmark takes ~250px of a 360px line, which pushed the cluster
+   166px off the right edge — taking the menu button, the primary navigation,
+   with it. Nothing overflowed the document, so it failed silently.
+
+   The lockup is sized off one number, so bringing that down brings both lines
+   with it and the pair keeps its ratio. */
+@media (max-width: 26rem) {
+  .wordmark {
+    /* Solved, not eyeballed. At 360px the line has 360 - 2*12 = 336px. The menu
+       button is 63 and the store button 118, which leaves ~145 for the lockup
+       and the gaps between the three. 1.5rem measures ~138. */
+    --wordmark-size: 1.5rem;
+  }
+
+  .nav-inner {
+    padding-inline: 0.75rem;
+    gap: 0.5rem;
+  }
+}
+
 /* ================================================== Hero entrance
  * The furniture settles in around the portrait rather than being there from
  * the first frame. Staggered by --in-delay, which main.ts assigns in document

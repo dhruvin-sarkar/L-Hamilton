@@ -132,6 +132,28 @@ a {
   border: 0;
 }
 
+/* A focusable .sr-only element has to become visible when it is focused, or a
+   keyboard user's first Tab moves focus to something they cannot see. That is
+   the skip link, and it is the first thing in the document. */
+.sr-only:focus-visible {
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+  z-index: 200;
+  inset-block-start: var(--padding--container);
+  inset-inline-start: var(--padding--container);
+  padding: 0.6rem 1rem;
+  background: var(--rosso-corsa);
+  color: var(--white);
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  border-radius: 0.25rem;
+}
+
 /* ---------------------------------------------------------------- *
  * Reveal — clip-path, not opacity.
  * This is why the reference's entrances read as material being uncovered
