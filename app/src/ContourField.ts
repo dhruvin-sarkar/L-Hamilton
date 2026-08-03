@@ -217,6 +217,26 @@ export const REFERENCE_PARAMS: ContourParams = {
   REVEAL_SIZE: 25,
 };
 
+/** The params, one uniform each, keyed the same so `syncParams` can pair them. */
+type ParamUniforms = { [K in keyof ContourParams]: THREE.IUniform<number> };
+
+/**
+ * Every uniform in the noise pass, by name and type.
+ *
+ * The class keeps these objects rather than reading them back off
+ * `material.uniforms`, where each one is `IUniform | undefined` and so needs a
+ * `!` at every write. That assertion is what makes a misspelt uniform name
+ * type-check: it writes to nothing, the shader quietly keeps its constructor
+ * value, and there is no error anywhere to follow. Here it does not compile.
+ */
+type NoiseUniforms = ParamUniforms & {
+  uAspect: THREE.IUniform<number>;
+  uTime: THREE.IUniform<number>;
+  uMousePace: THREE.IUniform<number>;
+  uReveal: THREE.IUniform<number>;
+  uMouseCoords: THREE.IUniform<THREE.Vector2>;
+};
+
 export class ContourField {
   /** The binary noise map. Sample `.r` for regions, `.g` for the raw value. */
   get texture(): THREE.Texture {
@@ -228,6 +248,7 @@ export class ContourField {
   private readonly renderer: THREE.WebGLRenderer;
   private readonly target: THREE.WebGLRenderTarget;
   private readonly material: THREE.ShaderMaterial;
+  private readonly u: NoiseUniforms;
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   private readonly quad: THREE.Mesh;
@@ -257,21 +278,26 @@ export class ContourField {
       stencilBuffer: false,
     });
 
-    const uniforms: Record<string, THREE.IUniform> = {
+    // Built from the params object rather than listed again, so the two cannot
+    // drift apart. The cast is the one place the key-by-key correspondence is
+    // asserted instead of checked; every use of it after this is typed.
+    const params = Object.fromEntries(
+      Object.entries(this.params).map(([key, value]) => [key, { value }]),
+    ) as ParamUniforms;
+
+    this.u = {
       uAspect: { value: 1 },
       uTime: { value: 0 },
       uMousePace: { value: 0 },
       uReveal: { value: 0 },
       uMouseCoords: { value: this.pointer },
+      ...params,
     };
-    for (const [key, value] of Object.entries(this.params)) {
-      uniforms[key] = { value };
-    }
 
     this.material = new THREE.ShaderMaterial({
       vertexShader: noiseVertex,
       fragmentShader: noiseFragment,
-      uniforms,
+      uniforms: this.u,
       depthTest: false,
       depthWrite: false,
     });
@@ -293,7 +319,7 @@ export class ContourField {
    */
   setSize(cssWidth: number, cssHeight: number): void {
     this.target.setSize(Math.max(1, Math.round(cssWidth)), Math.max(1, Math.round(cssHeight)));
-    this.material.uniforms.uAspect!.value = cssWidth / cssHeight;
+    this.u.uAspect.value = cssWidth / cssHeight;
   }
 
   /** Pointer in -1..1, y up — the same convention `HeadScene.setPointer` takes. */
@@ -303,14 +329,13 @@ export class ContourField {
 
   /** Intro wipe, 0..1. Drives the UV window down over REVEAL_DURATION. */
   set reveal(v: number) {
-    this.material.uniforms.uReveal!.value = v;
+    this.u.uReveal.value = v;
   }
 
   /** Push a parameter change through to the GPU. For live tuning from console. */
   syncParams(): void {
-    for (const [key, value] of Object.entries(this.params)) {
-      const uniform = this.material.uniforms[key];
-      if (uniform) uniform.value = value;
+    for (const key of Object.keys(this.params) as (keyof ContourParams)[]) {
+      this.u[key].value = this.params[key];
     }
   }
 
@@ -341,9 +366,9 @@ export class ContourField {
     // Still asymmetric — it climbs faster than it falls, so a flick registers
     // and then relaxes — but both are gentler now, so nothing snaps.
     this.pace += (impulse - this.pace) * (impulse > this.pace ? 0.12 : 0.03);
-    this.material.uniforms.uMousePace!.value = this.pace;
+    this.u.uMousePace.value = this.pace;
 
-    this.material.uniforms.uTime!.value = time;
+    this.u.uTime.value = time;
 
     const previous = this.renderer.getRenderTarget();
     this.renderer.setRenderTarget(this.target);

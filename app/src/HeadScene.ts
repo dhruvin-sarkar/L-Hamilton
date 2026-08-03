@@ -432,18 +432,109 @@ const headFragment = /* glsl */ `
  */
 const tokenColor = (css: string) => new THREE.Color(css);
 
+/* ------------------------------------------------------------------ *
+ * Uniforms
+ *
+ * Each material's uniforms are built by a factory so the scene can hold the
+ * objects themselves rather than reaching back through `material.uniforms`.
+ * There, every entry is `IUniform | undefined`, so every write needs a `!` —
+ * and that assertion is what lets a misspelt name compile: it writes to
+ * nothing, the shader keeps its constructor value, and no error is raised
+ * anywhere. `ReturnType` gives the class a type for each set without naming
+ * every uniform twice.
+ * ------------------------------------------------------------------ */
+
+const makeFieldUniforms = (
+  noise: THREE.Texture,
+  cursor: THREE.Texture,
+  token: (name: string, fallback: string) => THREE.Color,
+) => ({
+  tBackgroundNoise: { value: noise },
+  tCursorEffect: { value: cursor },
+
+  OUTLINE: { value: true },
+  // The reference's epsilon, unchanged. See ContourField: this is not a width,
+  // and 0.0001 is already dramatic.
+  THICKNESS: { value: 0.000005 },
+
+  COLOR_BACKGROUND: { value: token('--gl-bg', '#241b1e') },
+  COLOR_OUTLINE: { value: token('--gl-outline', '#9c6a71') },
+  COLOR_FOREGROUND: { value: token('--gl-outline', '#9c6a71') },
+  COLOR_CURSOR_BACKGROUND: { value: token('--gl-cursor-bg', '#33262a') },
+  COLOR_CURSOR_FOREGROUND: { value: token('--gl-cursor-fg', '#ff2800') },
+  COLOR_CURSOR_OUTLINE: { value: token('--gl-cursor-outline', '#ff2800') },
+
+  uReveal: { value: 0 },
+  // 1.0, so the blob REPLACES the field rather than tinting it. Anything below
+  // full leaves a percentage of the black-ground/red-line pass showing through
+  // the red-ground/black-line one, which reads as the fluid sitting behind the
+  // contours instead of in front of them.
+  uCursorIntensity: { value: 1.0 },
+});
+type FieldUniforms = ReturnType<typeof makeFieldUniforms>;
+
+const makeHeadUniforms = (pointer: THREE.Vector2, pointerPx: THREE.Vector2, parallax: number) => ({
+  uDiffuse: { value: null as THREE.Texture | null },
+  uDepth: { value: null as THREE.Texture | null },
+  uAlpha: { value: null as THREE.Texture | null },
+  uShadow: { value: null as THREE.Texture | null },
+  uHasShadow: { value: false },
+  uPointer: { value: pointer },
+  uPointerPx: { value: pointerPx },
+  uParallax: { value: parallax },
+  uShadowAmount: { value: 0.65 },
+  uRevealPx: { value: 220 },
+  uCursorIntensity: { value: 0.15 },
+  uCursorScale: { value: 3 },
+  uTime: { value: 0 },
+  uIntro: { value: 0 },
+  uOctaves: { value: 3 },
+  uSaturation: { value: 1 },
+});
+type HeadUniforms = ReturnType<typeof makeHeadUniforms>;
+
+const makeHelmetUniforms = (
+  cursor: THREE.Texture,
+  viewportPx: THREE.Vector2,
+  opacity: number,
+) => ({
+  tCursorEffect: { value: cursor },
+  // The live viewport vector, not a copy — see viewportPx.
+  uResolution: { value: viewportPx },
+  uOpacity: { value: opacity },
+  // What a blob lifts the shell to. The gap between these two is the whole
+  // effect — too close and the fluid has nothing to show.
+  uRevealOpacity: { value: 0.92 },
+  // Intro wipe progress. Shared by reference, so one write in update() reaches
+  // every per-colour variant.
+  uHelmetHover: { value: 0 },
+  uTime: { value: 0 },
+  // The helmet's view-space y range, filled in by fitHelmet. One scan period
+  // spans exactly this, so exactly one pulse exists at a time.
+  uScanBounds: { value: new THREE.Vector2(-0.5, 0.5) },
+  // Cycles per second. One pulse, top to bottom, every second.
+  uScanSpeed: { value: 1.0 },
+  uScanAnimating: { value: true },
+  uColor: { value: new THREE.Color(0xffffff) },
+});
+type HelmetUniforms = ReturnType<typeof makeHelmetUniforms>;
+
 export class HeadScene {
   readonly scene = new THREE.Scene();
   readonly camera: THREE.OrthographicCamera;
 
   private readonly field: THREE.ShaderMaterial;
   private readonly head: THREE.ShaderMaterial;
+  private readonly fieldU: FieldUniforms;
+  private readonly headU: HeadUniforms;
   private readonly fieldMesh: THREE.Mesh;
   private readonly headMesh: THREE.Mesh;
 
   /** Wireframe helmet, parented so it scales with the portrait. */
   private helmet: THREE.Group | null = null;
   private helmetMat: THREE.ShaderMaterial | null = null;
+  /** Set with helmetMat, and the handle everything else writes through. */
+  private helmetU: HelmetUniforms | null = null;
   /** Livery sheets, held only so dispose() can release their GPU memory. */
   private helmetMaps: THREE.Texture[] = [];
   /** Opacity the helmet returns to when the cursor is clear of it. */
@@ -586,67 +677,22 @@ export class HeadScene {
     // material is pass two, and does nothing but trace what that wrote.
     this.contour = new ContourField(renderer);
 
+    this.fieldU = makeFieldUniforms(this.contour.texture, this.fluid.texture, token);
     this.field = new THREE.ShaderMaterial({
       vertexShader: quadVertex,
       fragmentShader: fieldFragment,
-      uniforms: {
-        tBackgroundNoise: { value: this.contour.texture },
-        tCursorEffect: { value: this.fluid.texture },
-
-        OUTLINE: { value: true },
-        // The reference's epsilon, unchanged. See ContourField: this is not a
-        // width, and 0.0001 is already dramatic.
-        THICKNESS: { value: 0.000005 },
-
-        COLOR_BACKGROUND: { value: token('--gl-bg', '#241b1e') },
-        COLOR_OUTLINE: { value: token('--gl-outline', '#9c6a71') },
-        COLOR_FOREGROUND: { value: token('--gl-outline', '#9c6a71') },
-        COLOR_CURSOR_BACKGROUND: { value: token('--gl-cursor-bg', '#33262a') },
-        COLOR_CURSOR_FOREGROUND: { value: token('--gl-cursor-fg', '#ff2800') },
-        COLOR_CURSOR_OUTLINE: { value: token('--gl-cursor-outline', '#ff2800') },
-
-        uReveal: { value: 0 },
-        /* How strongly a blob repaints the background under it.
-         *
-         * The reference's blob is a very small tonal step — its cursor colours
-         * sit within ~16/255 of its background, so what you see is a patch of
-         * slightly different tone drifting over the topography, with the
-         * contour lines running straight through it. Ours has to work on a dark
-         * ground where that ratio would vanish, so the colours are further
-         * apart; this pulls the blend back so the result stays a tint rather
-         * than a flood. The blob COLOURS the field — it does not replace it. */
-        // 1.0, so the blob REPLACES the field rather than tinting it. Anything
-        // below full leaves a percentage of the black-ground/red-line pass
-        // showing through the red-ground/black-line one, which reads as the
-        // fluid sitting behind the contours instead of in front of them.
-        uCursorIntensity: { value: 1.0 },
-      },
+      uniforms: this.fieldU,
     });
 
+    // Parallax is subtle by default: the depth map is strong enough that
+    // anything higher reads as the photo sliding rather than the head having
+    // volume.
+    this.headU = makeHeadUniforms(this.pointer, this.pointerPx, opts.parallax ?? 0.011);
     this.head = new THREE.ShaderMaterial({
       vertexShader: quadVertex,
       fragmentShader: headFragment,
       transparent: true,
-      uniforms: {
-        uDiffuse: { value: null },
-        uDepth: { value: null },
-        uAlpha: { value: null },
-        uShadow: { value: null },
-        uHasShadow: { value: false },
-        uPointer: { value: this.pointer },
-        uPointerPx: { value: this.pointerPx },
-        // Subtle. The depth map is strong enough that anything higher reads as
-        // the photo sliding rather than the head having volume.
-        uParallax: { value: opts.parallax ?? 0.011 },
-        uShadowAmount: { value: 0.65 },
-        uRevealPx: { value: 220 },
-        uCursorIntensity: { value: 0.15 },
-        uCursorScale: { value: 3 },
-        uTime: { value: 0 },
-        uIntro: { value: 0 },
-        uOctaves: { value: 3 },
-        uSaturation: { value: 1 },
-      },
+      uniforms: this.headU,
     });
 
     const quad = new THREE.PlaneGeometry(1, 1);
@@ -682,12 +728,12 @@ export class HeadScene {
       get('alpha-map.webp'),
     ]);
 
-    this.head.uniforms.uDiffuse!.value = diffuse;
-    this.head.uniforms.uDepth!.value = depth;
-    this.head.uniforms.uAlpha!.value = alpha;
+    this.headU.uDiffuse.value = diffuse;
+    this.headU.uDepth.value = depth;
+    this.headU.uAlpha.value = alpha;
     // No shadow pass yet. The shader branches on this rather than sampling a
     // missing texture, which would render the face black.
-    this.head.uniforms.uHasShadow!.value = false;
+    this.headU.uHasShadow.value = false;
 
     const img = diffuse.image as { width: number; height: number };
     this.aspect = img.width / img.height;
@@ -711,6 +757,8 @@ export class HeadScene {
     // The decoder holds a worker pool; nothing else loads Draco, so release it.
     draco.dispose();
 
+    const helmetU = makeHelmetUniforms(this.fluid.texture, this.viewportPx, this.baseHelmetOpacity);
+    this.helmetU = helmetU;
     this.helmetMat = new THREE.ShaderMaterial({
       vertexShader: helmetVertex,
       fragmentShader: helmetFragment,
@@ -721,26 +769,7 @@ export class HeadScene {
       // lines, so only the shell facing the viewer contributes.
       depthWrite: true,
       depthTest: true,
-      uniforms: {
-        tCursorEffect: { value: this.fluid.texture },
-        // The live viewport vector, not a copy — see viewportPx.
-        uResolution: { value: this.viewportPx },
-        uOpacity: { value: this.baseHelmetOpacity },
-        // What a blob lifts the shell to. The gap between these two is the
-        // whole effect — too close and the fluid has nothing to show.
-        uRevealOpacity: { value: 0.92 },
-        // Intro wipe progress. Shared by reference, so one write in update()
-        // reaches every per-colour variant.
-        uHelmetHover: { value: 0 },
-        uTime: { value: 0 },
-        // The helmet's view-space y range, filled in by fitHelmet. One scan
-        // period spans exactly this, so exactly one pulse exists at a time.
-        uScanBounds: { value: new THREE.Vector2(-0.5, 0.5) },
-        // Cycles per second. One pulse, top to bottom, every second.
-        uScanSpeed: { value: 1.0 },
-        uScanAnimating: { value: true },
-        uColor: { value: new THREE.Color(0xffffff) },
-      },
+      uniforms: helmetU,
     });
 
     /* ---------------------------------------------------------------- *
@@ -801,7 +830,7 @@ export class HeadScene {
       return maps.shell;
     };
 
-    const shared = this.helmetMat.uniforms;
+    const shared = helmetU;
     const byVariant = new Map<string, THREE.ShaderMaterial>();
     const variantFor = (colour: THREE.Color, map: THREE.Texture | null): THREE.ShaderMaterial => {
       // Keyed on both, since two regions can share a base colour but take
@@ -1001,10 +1030,10 @@ export class HeadScene {
      * World y is used directly as view y: the camera is orthographic, unrotated
      * and looking down -z, so the view matrix contributes only a z offset.
      */
-    if (this.helmetMat) {
+    if (this.helmetU) {
       this.helmet.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(this.helmet);
-      (this.helmetMat.uniforms.uScanBounds!.value as THREE.Vector2).set(box.min.y, box.max.y);
+      this.helmetU.uScanBounds.value.set(box.min.y, box.max.y);
     }
   }
 
@@ -1100,7 +1129,7 @@ export class HeadScene {
   }
 
   set parallax(v: number) {
-    this.head.uniforms.uParallax!.value = v;
+    this.headU.uParallax.value = v;
   }
 
   /** Reveal radius, in CSS pixels. */
@@ -1108,7 +1137,7 @@ export class HeadScene {
     // Portrait only. The field's cursor response is no longer a pixel radius —
     // it is CURSOR_SCALE against an aspect-corrected UV distance, which lives
     // in ContourField's params alongside the rest of the reference's names.
-    this.head.uniforms.uRevealPx!.value = v * this.dpr;
+    this.headU.uRevealPx.value = v * this.dpr;
   }
 
   /**
@@ -1152,12 +1181,12 @@ export class HeadScene {
    * every frame of the scrub.
    */
   set saturation(v: number) {
-    this.head.uniforms.uSaturation!.value = v;
+    this.headU.uSaturation.value = v;
   }
 
   set helmetOpacity(v: number) {
     this.baseHelmetOpacity = v;
-    if (this.helmetMat) this.helmetMat.uniforms.uOpacity!.value = v;
+    if (this.helmetU) this.helmetU.uOpacity.value = v;
   }
 
   /**
@@ -1254,11 +1283,11 @@ export class HeadScene {
     // frame rate. It no longer takes a delta.
     this.fluid.update();
     this.contour.update(t);
-    this.head.uniforms.uTime!.value = t;
+    this.headU.uTime.value = t;
 
     if (this.intro < 1) {
       this.intro = Math.min(this.intro + 0.012, 1);
-      this.head.uniforms.uIntro!.value = this.intro;
+      this.headU.uIntro.value = this.intro;
     }
 
     // The reference's REVEAL_DURATION is in seconds, so this is driven off the
@@ -1272,7 +1301,7 @@ export class HeadScene {
       // has barely changed and then snaps.
       const eased = 1 - Math.pow(1 - this.reveal, 3);
       this.contour.reveal = eased;
-      this.field.uniforms.uReveal!.value = eased;
+      this.fieldU.uReveal.value = eased;
     }
 
     /* The fluid's dye is a PING-PONG pair, and `fluid.texture` is a getter that
@@ -1282,7 +1311,7 @@ export class HeadScene {
      * writing half the time, and sampling a target mid-write returns velocity
      * and pressure data rather than dye. Thresholded, that lights up most of
      * the frame. */
-    this.field.uniforms.tCursorEffect!.value = this.fluid.texture;
+    this.fieldU.tCursorEffect.value = this.fluid.texture;
     this.runAutoSwipe(dt);
 
     // Exponential smoothing. Frame-rate dependent, fine at 60fps and the first
@@ -1290,17 +1319,17 @@ export class HeadScene {
     this.pointer.lerp(this.pointerTarget, this.ease);
     this.pointerPx.lerp(this.pointerPxTarget, this.ease);
 
-    if (this.helmet && this.helmetMat) {
+    if (this.helmet && this.helmetU) {
       // The helmet does not track the pointer and does not drift. It sits still
       // on the head; the cursor drives the fluid field and the field decides per
       // fragment where the shell survives. The reference's IS_WIREFRAME_ANIMATING
       // animates the wireframe, not the object's transform.
       this.helmet.rotation.set(0, 0, 0);
 
-      this.helmetMat.uniforms.tCursorEffect!.value = this.fluid.texture;
+      this.helmetU.tCursorEffect.value = this.fluid.texture;
       // Drives the travelling scan band. Shared uniform object, so this one
       // write reaches every per-colour variant.
-      this.helmetMat.uniforms.uTime!.value = t;
+      this.helmetU.uTime.value = t;
     }
 
     // The whole portrait drifts with the pointer, on top of the per-pixel depth
@@ -1327,8 +1356,8 @@ export class HeadScene {
     this.helmet?.traverse((o) => {
       if (o instanceof THREE.Mesh) o.geometry.dispose();
     });
-    for (const key of ['uDiffuse', 'uDepth', 'uAlpha', 'uShadow'] as const) {
-      (this.head.uniforms[key]!.value as THREE.Texture | null)?.dispose();
+    for (const map of [this.headU.uDiffuse, this.headU.uDepth, this.headU.uAlpha, this.headU.uShadow]) {
+      map.value?.dispose();
     }
     this.helmetMat?.dispose();
     // ~11MB of compressed livery, so worth releasing explicitly rather than

@@ -371,6 +371,69 @@ export class FluidCursor {
   private readonly force: THREE.ShaderMaterial;
   private readonly outputMat: THREE.ShaderMaterial;
 
+  /** One texel in UV. Shared by every pass that samples its neighbours. */
+  private readonly px = new THREE.Vector2(1 / SIM_HEIGHT, 1 / SIM_HEIGHT);
+  /** Buffer size in texels, for advection's anisotropy correction. */
+  private readonly fboSize = new THREE.Vector2(SIM_HEIGHT, SIM_HEIGHT);
+  /** Where the pointer pushes, how hard, and over how wide a spot. */
+  private readonly forceCentre = new THREE.Vector2(0.5, 0.5);
+  private readonly forceVector = new THREE.Vector2();
+  private readonly forceScale = new THREE.Vector2(0.1, 0.1);
+
+  /**
+   * Uniforms held by reference, not looked up by name every frame.
+   *
+   * Through `material.uniforms` each write needs a `!`, and that assertion is
+   * what lets a misspelt name compile: it writes to nothing and the pass keeps
+   * its constructor value, with no error anywhere to follow. These are also
+   * where the vectors above are shared from — several passes point at the same
+   * `px`, so a resize sets it once.
+   */
+  private readonly u = {
+    advect: {
+      velocity: { value: null as THREE.Texture | null },
+      dt: { value: DT },
+      // Velocity decay. Close to 1 so the field keeps drifting after the
+      // pointer stops — but this is velocity, not dye, so it still dies quickly
+      // enough that the blob tracks the cursor rather than trailing behind it.
+      dissipation: { value: 0.991 },
+      fboSize: { value: this.fboSize },
+    },
+    viscous: {
+      velocity: { value: null as THREE.Texture | null },
+      velocityNew: { value: null as THREE.Texture | null },
+      v: { value: this.viscosity },
+      dt: { value: DT },
+      px: { value: this.px },
+    },
+    divergence: {
+      velocity: { value: null as THREE.Texture | null },
+      dt: { value: DT },
+      px: { value: this.px },
+    },
+    pressure: {
+      pressure: { value: null as THREE.Texture | null },
+      divergence: { value: null as THREE.Texture | null },
+      straightness: { value: 0.1 },
+      px: { value: this.px },
+    },
+    project: {
+      pressure: { value: null as THREE.Texture | null },
+      velocity: { value: null as THREE.Texture | null },
+      dt: { value: DT },
+      px: { value: this.px },
+    },
+    force: {
+      velocity: { value: null as THREE.Texture | null },
+      center: { value: this.forceCentre },
+      force: { value: this.forceVector },
+      scale: { value: this.forceScale },
+    },
+    output: {
+      velocity: { value: null as THREE.Texture | null },
+    },
+  };
+
   private readonly pointer = new THREE.Vector2(0.5, 0.5);
   private readonly lastPointer = new THREE.Vector2(0.5, 0.5);
   private moved = false;
@@ -410,8 +473,6 @@ export class FluidCursor {
       generateMipmaps: false,
     });
 
-    const px = new THREE.Vector2(1 / w, 1 / h);
-    const fboSize = new THREE.Vector2(w, h);
     const shader = (fragmentShader: string, uniforms: Record<string, THREE.IUniform>) =>
       new THREE.ShaderMaterial({
         vertexShader: quadVertex,
@@ -421,46 +482,13 @@ export class FluidCursor {
         depthWrite: false,
       });
 
-    this.advect = shader(advectFragment, {
-      velocity: { value: null },
-      dt: { value: DT },
-      // Velocity decay. Close to 1 so the field keeps drifting after the
-      // pointer stops — but this is velocity, not dye, so it still dies quickly
-      // enough that the blob tracks the cursor rather than trailing behind it.
-      dissipation: { value: 0.991 },
-      fboSize: { value: fboSize },
-    });
-    this.viscousMat = shader(viscousFragment, {
-      velocity: { value: null },
-      velocityNew: { value: null },
-      v: { value: this.viscosity },
-      dt: { value: DT },
-      px: { value: px },
-    });
-    this.divergenceMat = shader(divergenceFragment, {
-      velocity: { value: null },
-      dt: { value: DT },
-      px: { value: px },
-    });
-    this.pressureMat = shader(pressureFragment, {
-      pressure: { value: null },
-      divergence: { value: null },
-      straightness: { value: 0.1 },
-      px: { value: px },
-    });
-    this.projectMat = shader(projectFragment, {
-      pressure: { value: null },
-      velocity: { value: null },
-      dt: { value: DT },
-      px: { value: px },
-    });
-    this.force = shader(forceFragment, {
-      velocity: { value: null },
-      center: { value: new THREE.Vector2(0.5, 0.5) },
-      force: { value: new THREE.Vector2() },
-      scale: { value: new THREE.Vector2(0.1, 0.1) },
-    });
-    this.outputMat = shader(outputFragment, { velocity: { value: null } });
+    this.advect = shader(advectFragment, this.u.advect);
+    this.viscousMat = shader(viscousFragment, this.u.viscous);
+    this.divergenceMat = shader(divergenceFragment, this.u.divergence);
+    this.pressureMat = shader(pressureFragment, this.u.pressure);
+    this.projectMat = shader(projectFragment, this.u.project);
+    this.force = shader(forceFragment, this.u.force);
+    this.outputMat = shader(outputFragment, this.u.output);
 
     this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.advect);
     // Written in clip space by the vertex shader, so it must never be culled.
@@ -495,10 +523,9 @@ export class FluidCursor {
     this.divergence.setSize(w, h);
     this.output.setSize(w, h);
 
-    for (const m of [this.viscousMat, this.divergenceMat, this.pressureMat, this.projectMat]) {
-      (m.uniforms.px!.value as THREE.Vector2).set(1 / w, 1 / h);
-    }
-    (this.advect.uniforms.fboSize!.value as THREE.Vector2).set(w, h);
+    // One write each: every pass that needs these points at the same vector.
+    this.px.set(1 / w, 1 / h);
+    this.fboSize.set(w, h);
     /* Keep the push round ON SCREEN, not in UV.
      *
      * A given UV distance covers more pixels horizontally on a wide viewport,
@@ -507,10 +534,7 @@ export class FluidCursor {
      * actually seen — and a circular seed is what lets the direction of travel,
      * rather than the shape of the brush, decide which way the teardrop points.
      */
-    (this.force.uniforms.scale!.value as THREE.Vector2).set(
-      CURSOR_RADIUS / aspect,
-      CURSOR_RADIUS,
-    );
+    this.forceScale.set(CURSOR_RADIUS / aspect, CURSOR_RADIUS);
   }
 
   private pass(material: THREE.ShaderMaterial, target: THREE.WebGLRenderTarget): void {
@@ -524,9 +548,9 @@ export class FluidCursor {
     if (this.moved) {
       const dx = this.pointer.x - this.lastPointer.x;
       const dy = this.pointer.y - this.lastPointer.y;
-      this.force.uniforms.center!.value.copy(this.pointer);
-      (this.force.uniforms.force!.value as THREE.Vector2).set(dx * MOUSE_FORCE, dy * MOUSE_FORCE);
-      this.force.uniforms.velocity!.value = this.velocity.read.texture;
+      this.forceCentre.copy(this.pointer);
+      this.forceVector.set(dx * MOUSE_FORCE, dy * MOUSE_FORCE);
+      this.u.force.velocity.value = this.velocity.read.texture;
       this.pass(this.force, this.velocity.write);
       this.velocity.swap();
       this.lastPointer.copy(this.pointer);
@@ -534,7 +558,7 @@ export class FluidCursor {
     }
 
     // Advect velocity through itself.
-    this.advect.uniforms.velocity!.value = this.velocity.read.texture;
+    this.u.advect.velocity.value = this.velocity.read.texture;
     this.pass(this.advect, this.velocity.write);
     this.velocity.swap();
 
@@ -547,10 +571,10 @@ export class FluidCursor {
      * advected velocity passes straight through. */
     let working = this.velocity.read.texture;
     if (this.viscousIterations > 0) {
-      this.viscousMat.uniforms.v!.value = this.viscosity;
-      this.viscousMat.uniforms.velocity!.value = this.velocity.read.texture;
+      this.u.viscous.v.value = this.viscosity;
+      this.u.viscous.velocity.value = this.velocity.read.texture;
       for (let i = 0; i < this.viscousIterations; i++) {
-        this.viscousMat.uniforms.velocityNew!.value =
+        this.u.viscous.velocityNew.value =
           i === 0 ? this.velocity.read.texture : this.viscous.read.texture;
         this.pass(this.viscousMat, this.viscous.write);
         this.viscous.swap();
@@ -559,23 +583,23 @@ export class FluidCursor {
     }
 
     // Project to divergence-free.
-    this.divergenceMat.uniforms.velocity!.value = working;
+    this.u.divergence.velocity.value = working;
     this.pass(this.divergenceMat, this.divergence);
 
-    this.pressureMat.uniforms.divergence!.value = this.divergence.texture;
+    this.u.pressure.divergence.value = this.divergence.texture;
     for (let i = 0; i < PRESSURE_ITERATIONS; i++) {
-      this.pressureMat.uniforms.pressure!.value = this.pressure.read.texture;
+      this.u.pressure.pressure.value = this.pressure.read.texture;
       this.pass(this.pressureMat, this.pressure.write);
       this.pressure.swap();
     }
 
-    this.projectMat.uniforms.pressure!.value = this.pressure.read.texture;
-    this.projectMat.uniforms.velocity!.value = working;
+    this.u.project.pressure.value = this.pressure.read.texture;
+    this.u.project.velocity.value = working;
     this.pass(this.projectMat, this.velocity.write);
     this.velocity.swap();
 
     // Velocity -> colour, the texture everything else samples.
-    this.outputMat.uniforms.velocity!.value = this.velocity.read.texture;
+    this.u.output.velocity.value = this.velocity.read.texture;
     this.pass(this.outputMat, this.output);
 
     // Hand the default framebuffer back — the caller renders the scene next,
