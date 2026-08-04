@@ -444,7 +444,7 @@
    0 on the dark hero, 1 on the cream screen behind it.
 
    inherits: TRUE, and that is load-bearing rather than incidental. This is set
-   on the document element by the shrink timeline and read two levels down on
+   on .nav-inner by the shrink timeline and read two levels down on
    .wordmark__first and .wordmark__last. A non-inheriting custom property is
    substituted on the element that declares it, so read from a child it silently
    resolves to its initial value — the wordmark would simply never change colour,

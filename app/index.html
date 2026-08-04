@@ -12,6 +12,36 @@
          browser otherwise asks for /favicon.ico on every load and logs a 404 —
          the only error left in the console. -->
     <link rel="icon" href="/assets/brand/lh-monogram.svg" type="image/svg+xml" />
+
+    <!-- Only the two faces that paint before anything is scrolled: the display
+         grotesque, which sets the wordmark's surname and every large heading,
+         and the Didone italic that sets the given name beside it.
+
+         Without these the first paint is Arial and the swap reflows the lockup
+         and the whole impact wall — Archivo Narrow is far narrower than Arial,
+         so it is not a subtle shift. Playfair upright and Inter are not
+         preloaded on purpose: they set the wall's accents and body copy, both
+         below the fold, and preloading everything just makes the four files
+         compete for the same first-paint bandwidth.
+
+         crossorigin is required even though these are same-origin. Fonts are
+         fetched in CORS mode, and a preload without it is a different request
+         to the one the CSS makes — so the file downloads twice and the preload
+         achieves nothing. -->
+    <link
+      rel="preload"
+      href="/assets/fonts/archivo-narrow-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/assets/fonts/playfair-display-latin-wght-italic.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
   </head>
   <body>
     <a class="sr-only" href="#main">Skip to content</a>
@@ -349,14 +379,14 @@
                hero, and filling it with a line nobody has signed off makes the
                page look decided when it is not. What is being built here is the
                shape — one long sentence, three accents spread across it. -->
-          <!-- Length matters as much as wording. The reference runs seven
-               lines; our display face is wider than its Mona Sans, so the same
-               word count came out at nine. Sized to land on seven here — keep
-               replacements to about this length. -->
+          <!-- Length matters as much as wording: the reference runs seven
+               lines, and a stand-in of a different length makes the block a
+               different height from the one being matched. Keep replacements
+               to about this word count. -->
           <p class="impact__text" data-impact-text>
-            <strong>Placeholder</strong> copy standing in until the real line is
-            written — three <strong>accent</strong> words in one long
-            <strong>sentence</strong>.
+            <strong>Placeholder</strong> copy standing in here until the real
+            line is written — three <strong>accent</strong> words across one
+            long <strong>sentence</strong>.
           </p>
         </div>
       </section>

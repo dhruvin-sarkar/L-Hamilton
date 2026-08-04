@@ -46,9 +46,21 @@ declare global {
 /* ------------------------------------------------------------------ *
  * Smooth scroll
  *
- * Config read off the reference: duration 1.2, lerp 0.1, smoothWheel and
- * syncTouch on, wheelMultiplier 1, easing power1.inOut — the same curve its
- * scroll-scrubbed camera uses.
+ * Config read off the reference, which sets duration 1.2, lerp 0.1, easing
+ * power1.inOut, smoothWheel and syncTouch on, wheelMultiplier 1.
+ *
+ * `duration` and `easing` are NOT set here, and their absence is deliberate.
+ * Lenis runs in one of two modes: given a `lerp` it damps toward the target
+ * every frame and never looks at duration or easing; without one it plays a
+ * fixed-length eased tween. Setting all three, as the reference does, means two
+ * of them are decoration — they were being carried here as though they shaped
+ * the feel, and nothing in this codebase calls lenis.scrollTo(), which is the
+ * only other thing that would read them.
+ *
+ * So `lerp` is the entire scroll feel, and 0.1 was too loose: it takes about
+ * 22 frames to cover 90% of a wheel movement, which is a third of a second of
+ * the page still catching up after the input stopped. That reads as latency
+ * rather than as smoothness. 0.14 halves the settle without making it snap.
  *
  * ScrollTrigger is driven from Lenis rather than the native scroll event, and
  * Lenis is stepped from gsap's ticker. Otherwise the two keep separate clocks
@@ -64,9 +76,7 @@ let lenis: Lenis | null = null;
 
 if (!reducedMotion) {
   const instance = new Lenis({
-    duration: 1.2,
-    easing: (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2),
-    lerp: 0.1,
+    lerp: 0.14,
     smoothWheel: true,
     syncTouch: true,
     wheelMultiplier: 1,
@@ -1295,6 +1305,10 @@ if (stage) {
 
   const heroTrack = document.querySelector<HTMLElement>('[data-hero-track]');
 
+  /* Resolved once. The scrub writes to it every frame, and a querySelector per
+     frame is a lookup the shrink does not need to repeat. */
+  const navStyle = document.querySelector<HTMLElement>('.nav-inner')?.style;
+
   /* End scale of the plate, per axis. Measured, not chosen: the reference's
      landing box is 625x404 in a 1908x926 viewport.
    *
@@ -1481,21 +1495,32 @@ if (stage) {
           '--hero-furniture',
           String(Math.max(0, 1 - eased / 0.3)),
         );
+        /* These three go on the NAV, not on the document element.
+         *
+         * A custom property set on :root invalidates style for every element
+         * that could inherit it, which is all of them — so writing three of
+         * them per frame was scheduling three whole-document style recalcs on
+         * every frame of the shrink. Every consumer of all three lives inside
+         * .nav-inner (the wordmark, its two halves, the monogram, the topbar),
+         * so scoping the write there confines the recalc to about a dozen
+         * elements. Nothing about the rendered result changes. */
         // The nav does not travel; it is already fixed in the corners. It just
         // settles smaller as the screen behind it changes.
-        const root = document.documentElement.style;
-        root.setProperty('--nav-shrink', String(1 - 0.18 * eased));
+        navStyle?.setProperty('--nav-shrink', String(1 - 0.18 * eased));
 
         // Monogram belongs to both screens but not to the transition between
         // them. Out fast, back late.
         const mono = eased < 0.15 ? 1 - eased / 0.15 : Math.max(0, (eased - 0.9) / 0.1);
-        root.setProperty('--mono-in', String(mono));
+        navStyle?.setProperty('--mono-in', String(mono));
 
         /* Wordmark crosses to the revealed screen's palette. Giallo on that
            cream measures about 1.06:1, so it has to. Eased, not raw — it tracks
            the screen changing, and a linear ramp would leave it half-inverted
            while the hero still filled the frame. */
-        root.setProperty('--nav-invert', String(gsap.utils.clamp(0, 1, (eased - 0.1) / 0.5)));
+        navStyle?.setProperty(
+          '--nav-invert',
+          String(gsap.utils.clamp(0, 1, (eased - 0.1) / 0.5)),
+        );
       },
       scrollTrigger: {
         trigger: heroTrack,

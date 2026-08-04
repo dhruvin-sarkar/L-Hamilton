@@ -1,0 +1,61 @@
+/* The three faces the design has always named. Until now they were only names:
+ * none was installed, so every stack fell through to Arial and the whole site
+ * was set in it — measured, not guessed. "Archivo Narrow" came out exactly as
+ * wide as a deliberately bogus font name.
+ *
+ * All three are SIL Open Font License, so they ship with the site. Licences sit
+ * beside the files in public/assets/fonts/. Taken from the fontsource packages
+ * at v5.3.0:
+ *
+ *   @fontsource-variable/archivo-narrow
+ *   @fontsource-variable/playfair-display
+ *   @fontsource-variable/inter
+ *
+ * Latin subsets only, and variable rather than static: one file per family
+ * covers the whole weight axis, which is smaller than three static cuts and
+ * lets the type hold weights the static cuts do not have.
+ *
+ * Self-hosted on fixed paths rather than imported from node_modules, because a
+ * bundled font gets a hashed filename and cannot be named in a preload tag —
+ * and preloading is the point here. Swapping Arial for a genuinely narrow face
+ * reflows every line of the impact wall.
+ *
+ * font-display: swap rather than `optional`, deliberately. `optional` would
+ * drop the face altogether on a slow first load, which for a site whose display
+ * type IS the design is worse than a brief flash. The preload in index.html is
+ * what stops that flash happening. */
+
+@font-face {
+  font-family: 'Archivo Narrow Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 700;
+  src: url('/assets/fonts/archivo-narrow-latin-wght-normal.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Playfair Display Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 900;
+  src: url('/assets/fonts/playfair-display-latin-wght-normal.woff2') format('woff2-variations');
+}
+
+/* The wordmark's given name is italic. Shipped rather than synthesised: a
+   slanted Didone is not its italic — the letterforms are drawn differently —
+   and an obliqued one reads as a rendering fault. */
+@font-face {
+  font-family: 'Playfair Display Variable';
+  font-style: italic;
+  font-display: swap;
+  font-weight: 400 900;
+  src: url('/assets/fonts/playfair-display-latin-wght-italic.woff2') format('woff2-variations');
+}
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('/assets/fonts/inter-latin-wght-normal.woff2') format('woff2-variations');
+}
