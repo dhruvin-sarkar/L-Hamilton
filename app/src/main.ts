@@ -563,7 +563,15 @@ if (impactText) {
 const gallery = document.querySelector<HTMLElement>('[data-gallery]');
 const galleryTrack = document.querySelector<HTMLElement>('[data-gallery-track]');
 
-if (gallery && galleryTrack && !reducedMotion) {
+/* Below 992px the gallery is a column, not a sideways track — see home.css for
+   why, and note the reference makes the same call. The breakpoint is checked
+   here as well as in CSS because the two have to agree: the pin only works if
+   main.ts has written a travel height, and the column layout only works if it
+   has not. A media query in one place and a guess in the other is how a section
+   ends up half-pinned. */
+const galleryIsSideways = window.matchMedia('(min-width: 992px)').matches;
+
+if (gallery && galleryTrack && galleryIsSideways && !reducedMotion) {
   /** The nav's own style, so the wordmark can cross back with the ground. */
   const navInk = document.querySelector<HTMLElement>('.nav-inner')?.style;
 

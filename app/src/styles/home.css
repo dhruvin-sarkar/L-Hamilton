@@ -64,7 +64,7 @@
   color: var(--text);
   /* Settles smaller through the opening sequence. Anchored top-left so it holds
      its corner while it scales. */
-  transform: scale(var(--nav-shrink, 1));
+  transform: scale(calc(var(--nav-shrink, 1) * var(--nav-scale, 1)));
   transform-origin: 0 0;
   /* Optical, not metric: the serif's own side bearing already indents it, so
      the two lines only align by eye once that is pulled back out. */
@@ -214,7 +214,7 @@
   gap: 0.75rem;
   /* Settles smaller as the screen behind changes. Anchored at the right edge so
      it stays pinned to its corner while it scales. */
-  transform: scale(var(--nav-shrink, 1));
+  transform: scale(calc(var(--nav-shrink, 1) * var(--nav-scale, 1)));
   transform-origin: 100% 50%;
 }
 
@@ -2075,6 +2075,100 @@
   block-size: auto;
   /* The ink is rosso on both grounds, so it does not cross with the text. */
   opacity: 0.9;
+}
+
+/* On a phone the gallery stops being sideways and becomes a column.
+ *
+ * This is the reference's own call, not a simplification of it: at 390px its
+ * track carries no transform, its sticky is the same height as its section, and
+ * the pictures stack. Converting vertical scroll into horizontal is a gesture
+ * that needs room — on a 390px screen it means a 4000px pin and a 292px lead-in
+ * before the first picture, and the thing being converted, a long deliberate
+ * scroll, is the one gesture a phone makes hardest.
+ *
+ * Keyed at 992px because that is where the fluid root locks and the whole
+ * layout stops scaling with the viewport. */
+/* The nav, on a phone.
+ *
+ * Everything in it is sized in rem, and below 992px the fluid root stops
+ * scaling and locks at 16px — so the lockup and the two buttons keep their full
+ * desktop size on a 390px screen and the STORE pill ends up two thirds of the
+ * way across it. A factor rather than an override: .wordmark and .topbar are
+ * already scaled by the hero's scroll shrink, and replacing that transform
+ * would drop the settle as the plate closes. The two multiply. */
+@media (max-width: 991px) {
+  .nav-inner {
+    --nav-scale: 0.6;
+    --nav-height: 4.4rem;
+  }
+
+  .wordmark {
+    --wordmark-size: 2.2rem;
+  }
+
+  /* Anchored to their own corners so the pair stays pinned to the edges as it
+     scales, instead of drifting toward the middle. */
+  .topbar {
+    transform-origin: 100% 0;
+  }
+}
+
+@media (max-width: 991px) {
+  .gallery {
+    /* main.ts writes a pixel height for the travel; there is no travel here. */
+    block-size: auto !important;
+  }
+
+  .gallery__pin {
+    position: static;
+    block-size: auto;
+    overflow: visible;
+    display: block;
+  }
+
+  .gallery__track {
+    flex-direction: column;
+    align-items: stretch;
+    padding-inline: var(--padding--container);
+    padding-block: var(--padding--xlarge);
+    gap: 3rem;
+    transform: none;
+  }
+
+  .gallery__col {
+    inline-size: 100%;
+    gap: 3rem;
+  }
+
+  /* The spacers were horizontal gaps between column groups. Vertically the
+     column's own gap does that job, so they would just be dead space. */
+  .gallery__spacer {
+    display: none;
+  }
+
+  .gallery__item,
+  .gallery__callout {
+    /* Keeps the size variety the desktop layout has — a 36rem picture still
+       reads bigger than an 11rem one — while stopping anything overflowing. */
+    inline-size: min(var(--w), 86%);
+    margin-block-start: 0;
+  }
+
+  /* Alternating alignment, so a column of pictures has a rhythm instead of
+     sitting in one stack down the left edge. */
+  .gallery__col:nth-child(4n + 3) .gallery__item,
+  .gallery__col:nth-child(4n + 3) .gallery__callout {
+    align-self: flex-end;
+  }
+
+  .gallery__item.is-out {
+    margin-inline-start: 0;
+  }
+
+  .gallery__frame img {
+    inline-size: 100%;
+    transform: none;
+  }
 }
 
 /* Reduced motion gets the same pictures as an ordinary scrolling row. There is
