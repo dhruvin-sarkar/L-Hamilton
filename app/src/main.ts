@@ -569,15 +569,34 @@ const galleryTrack = document.querySelector<HTMLElement>('[data-gallery-track]')
    is; deciding it twice is how they drift apart. */
 const otot = document.querySelector<HTMLElement>('[data-otot]');
 
-/* Below 992px the gallery is a column, not a sideways track — see home.css for
-   why, and note the reference makes the same call. The breakpoint is checked
-   here as well as in CSS because the two have to agree: the pin only works if
-   main.ts has written a travel height, and the column layout only works if it
-   has not. A media query in one place and a guess in the other is how a section
-   ends up half-pinned. */
-const galleryIsSideways = window.matchMedia('(min-width: 992px)').matches;
+/**
+ * The scroll-driven sections, bound to the breakpoint rather than to whatever
+ * it happened to be at load.
+ *
+ * Below 992px the gallery is a column and On/Off Track is a stack — see
+ * home.css, and note the reference makes the same call. The condition has to
+ * be checked here as well as in CSS because the two must agree: the pin only
+ * works if a travel height has been written, and the column only works if it
+ * has not.
+ *
+ * This is a gsap.matchMedia context and not a one-time `matchMedia().matches`
+ * read, because that read is only true of the window as it was when the page
+ * loaded. Opening devtools or dragging the window across 992px left the two
+ * halves disagreeing, and in the worst direction silently: a page loaded
+ * narrow and then widened had no travel height and no --gallery-x, so the
+ * track sat overflowing a sticky pin with no scroll distance to move it —
+ * three and a half thousand pixels of photographs unreachable.
+ *
+ * A context sets up on entering the query and REVERTS on leaving, which is the
+ * half that hand-rolled resize listeners usually miss. Reduced motion rides
+ * the same mechanism, so toggling it mid-session is handled too rather than
+ * being frozen at load.
+ */
+const mm = gsap.matchMedia();
+const WIDE_AND_ANIMATED = '(min-width: 992px) and (prefers-reduced-motion: no-preference)';
 
-if (gallery && galleryTrack && galleryIsSideways && !reducedMotion) {
+mm.add(WIDE_AND_ANIMATED, () => {
+  if (!gallery || !galleryTrack) return;
   /** The nav's own style, so the wordmark can cross back with the ground. */
   const navInk = document.querySelector<HTMLElement>('.nav-inner')?.style;
 
@@ -675,7 +694,12 @@ if (gallery && galleryTrack && galleryIsSideways && !reducedMotion) {
        screen back to black the wordmark has to return to Rosso and Giallo, or
        it is dark ink on a dark field. Same variable the hero drives, and the
        two ranges never overlap, so whichever is being scrubbed owns it. */
-    navInk?.setProperty('--nav-invert', String(1 - ink));
+    /* Its OWN signal, not the hero's. Both used to write --nav-invert and the
+       hero won, because a scrub holds at its end value past its range — right
+       for the cream screen it uncovers, wrong once this section paints that
+       screen black. The nav combines the two in CSS instead, so neither has to
+       know about the other. */
+    navInk?.setProperty('--nav-ground-dark', String(ink));
   };
 
   gsap.to(
@@ -697,7 +721,23 @@ if (gallery && galleryTrack && galleryIsSideways && !reducedMotion) {
       },
     },
   );
-}
+
+  /* The context reverts its own tweens and ScrollTriggers, but not the marks
+     they left on the DOM. Every one of these would otherwise survive into the
+     column layout: a stale travel height, a track shifted off to the left, and
+     — the one that actually loses content — a dark field with dark ink on it,
+     because the ground is a GL uniform that nothing else resets. */
+  return () => {
+    gallery.style.removeProperty('height');
+    gallery.style.removeProperty('--gallery-dark');
+    gallery.style.removeProperty('--gallery-ink');
+    galleryTrack.style.removeProperty('--gallery-x');
+    for (const { img } of panes) img?.style.removeProperty('--pan');
+    otot?.style.removeProperty('--otot-ink');
+    navInk?.removeProperty('--nav-ground-dark');
+    if (background) background.darkness = 0;
+  };
+});
 
 /* ------------------------------------------------------------------ *
  * On Track / Off Track — the two cutouts closing in, and the riser.
@@ -716,12 +756,11 @@ if (gallery && galleryTrack && galleryIsSideways && !reducedMotion) {
  * as depth. The reference does exactly this and it is worth not smoothing out.
  * ------------------------------------------------------------------ */
 
-/* Same breakpoint and the same reasoning as the gallery: below 992px the
-   section is a static stack, and the CSS that makes it one only holds if no
-   transform is being written underneath it. */
-const ototIsWide = window.matchMedia('(min-width: 992px)').matches;
-
-if (otot && ototIsWide && !reducedMotion) {
+/* Same breakpoint and the same reasoning as the gallery, on the same context
+   mechanism: below 992px the section is a static stack, and the CSS that makes
+   it one only holds if no transform is being written underneath it. */
+mm.add(WIDE_AND_ANIMATED, () => {
+  if (!otot) return;
   const ototEnd = otot.querySelector<HTMLElement>('.otot__end');
 
   gsap.to(
@@ -780,7 +819,17 @@ if (otot && ototIsWide && !reducedMotion) {
       },
     );
   }
-}
+
+  /* Same reasoning as the gallery's: the offsets are our own inline writes, so
+     the context will not clear them. Left behind, the cutouts would stay parked
+     at whatever offset the last frame wrote while the stacked layout expects
+     them at rest. */
+  return () => {
+    otot.style.removeProperty('--otot-cut');
+    otot.style.removeProperty('--otot-txt');
+    otot.style.removeProperty('--otot-rise');
+  };
+});
 
 /* ------------------------------------------------------------------ *
  * Hero entrance.

@@ -29,6 +29,10 @@
 /* =============================================================== Nav */
 
 .nav-inner {
+  /* Invert for the light screen, then undo it exactly as far as the ground
+     goes back to black. See the note on --nav-ink for why this is combined
+     here rather than fought over by two writers. */
+  --nav-ink: calc(var(--nav-invert, 0) * (1 - var(--nav-ground-dark, 0)));
   /* Fixed, and a sibling of <main> rather than a child of the hero — see the
      note in index.html. The reference's nav is fixed too, so this also stops
      ours scrolling away with the hero. */
@@ -87,7 +91,7 @@
   color: color-mix(
     in oklab,
     var(--rosso-corsa),
-    var(--dark) calc(var(--nav-invert, 0) * 35%)
+    var(--dark) calc(var(--nav-ink, 0) * 35%)
   );
   font-size: calc(var(--wordmark-size) * 0.616);
   line-height: 1;
@@ -105,7 +109,7 @@
      about 1.06:1, which is not "a bit low" — it is the same colour. The mix runs
      in oklab so the midpoint stays a believable ochre instead of dipping through
      the muddy grey an sRGB interpolation gives between yellow and near-black. */
-  color: color-mix(in oklab, var(--giallo-modena), var(--dark) calc(var(--nav-invert, 0) * 100%));
+  color: color-mix(in oklab, var(--giallo-modena), var(--dark) calc(var(--nav-ink, 0) * 100%));
   font-size: var(--wordmark-size);
   line-height: 0.84;
   text-transform: uppercase;
@@ -458,6 +462,34 @@
    resolves to its initial value — the wordmark would simply never change colour,
    with nothing in the console to say why. */
 @property --nav-invert {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: true;
+}
+
+/* How dark the ground under the nav has gone, 0..1. Written by applyGround as
+   the gallery takes the screen back to black, and left at 0 everywhere else. */
+@property --nav-ground-dark {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: true;
+}
+
+/* What the wordmark actually reads, and the only thing the colours below
+   consult.
+ *
+ * Two systems have an opinion about the nav: the hero, which inverts it as it
+ * uncovers the cream screen, and the gallery, which takes that screen back to
+ * black. They used to write the same variable and the hero won — its scrub
+ * holds at 1 past the end of its range, which is right for the light screen
+ * but meant the mark stayed inverted over the dark field, and .wordmark__last
+ * mixes to 100% --dark at that value. Near-black type on a near-black ground.
+ *
+ * So each owns its own signal and CSS combines them: invert for the light
+ * screen, then undo that exactly as far as the ground goes dark. On the
+ * gallery and On/Off Track this lands back at 0, which is Rosso and Giallo at
+ * full strength. */
+@property --nav-ink {
   syntax: '<number>';
   initial-value: 0;
   inherits: true;
@@ -2447,17 +2479,27 @@
   overflow: clip;
 }
 
-/* Taller than its frame so there is room to drift inside the crop. Measured
-   on the reference: 120% of the frame, climbing 10vh and growing 5% across
-   the rise — enough to feel like the camera moved, not the card. */
+/* A slow push-in, and deliberately NOT the reference's climb.
+ *
+ * The reference runs its riser at 120% height and lifts it 10vh, which works
+ * for a photograph with dead space at the top. This one has content hard
+ * against every edge — raised hands just below the top, a mark in one corner
+ * and a signature in the other — so a lift of that size crops the hands off,
+ * and the extra height only exists to be cropped.
+ *
+ * Scaling from the centre instead can never expose an edge, because the image
+ * covers the frame at every value of the tween, and it holds the composition
+ * centred the whole way. 4% is enough to read as movement and keeps the top
+ * crop inside what `cover` was already taking. */
 .otot__end-img {
   position: absolute;
   inset: 0;
   inline-size: 100%;
-  block-size: 120%;
+  block-size: 100%;
   object-fit: cover;
-  transform: translate3d(0, calc(var(--otot-rise, 0) * -10vh), 0)
-    scale(calc(1 + var(--otot-rise, 0) * 0.05));
+  object-position: center;
+  transform: scale(calc(1 + var(--otot-rise, 0) * 0.04));
+  transform-origin: center;
   will-change: transform;
 }
 
@@ -2500,9 +2542,14 @@
     opacity: 0.22;
   }
 
+  /* The frame takes the picture's own shape rather than a slice of it. A
+     phone-width frame at any useful height is portrait while the image is
+     16:9, so `cover` would discard roughly two thirds of its width — both
+     raised arms included — and leave a meaningless crop of the middle. */
   .otot__end,
   .otot__end-frame {
-    block-size: 70dvh;
+    block-size: auto;
+    aspect-ratio: 16 / 9;
   }
 }
 
