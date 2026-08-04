@@ -2755,12 +2755,19 @@
   transition: transform var(--animation-default);
 }
 
-/* The wearing shot IS a tile — it fills the card when revealed. It starts
-   fractionally scaled up and settles to 1, so it comes to rest as the wipe
-   finishes instead of sitting still behind a moving edge. */
+/* contain, so the whole photograph is visible rather than a centre crop of it.
+   The background matters as much as the fit: `contain` leaves bare bands above
+   and below a landscape shot, and without a ground of its own the helmet
+   sitting at z-index 1 would show through them and read as two pictures at
+   once. Filling with the section's own ground makes the bands disappear into
+   the card.
+
+   It still starts fractionally scaled up and settles to 1, so it comes to rest
+   as the wipe finishes instead of sitting still behind a moving edge. */
 .hof__reveal {
   z-index: 2;
-  object-fit: cover;
+  object-fit: contain;
+  background: var(--gl-bg);
   clip-path: ellipse(100% 0% at 50% 0);
   transform: scale(1.05);
   transition:
@@ -2867,11 +2874,12 @@
   flex-direction: column;
   align-items: center;
   gap: 2rem;
-  /* Clear of the grid by more than the 24rem the even columns hang below it at
-     their furthest, so the two never collide mid-scroll. The reference leaves
-     404px between the foot of its grid and its button; this is that, plus the
-     extra our deeper travel needs. */
-  margin-block-start: 14rem;
+  /* Clear of the grid by more than the 36rem the trailing columns hang below it
+     at their furthest, so the two can never collide mid-scroll. The reference
+     leaves 404px between the foot of its grid and its button; this is that plus
+     the extra our deeper travel needs, and it has to be raised whenever the
+     travel in main.ts is. */
+  margin-block-start: 22rem;
   text-align: center;
 }
 

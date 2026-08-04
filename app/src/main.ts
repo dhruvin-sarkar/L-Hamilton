@@ -937,11 +937,13 @@ mm.add(WIDE_AND_ANIMATED, () => {
 
   /* The reference's own travel is 5rem and 15rem. Both are scaled by the same
      factor here, deliberately, so the wall drifts further than the reference's
-     does while the 3:1 relationship that produces the stagger is untouched. */
+     does while the 3:1 relationship that produces the stagger is untouched.
+     Currently 2.4x, which puts the trailing columns most of a card lower than
+     their neighbours as the wall comes onto the screen. */
   const apply = (progress: number) => {
     const rest = 1 - progress;
-    hof.style.setProperty('--hof-lead', `${8 * rest}rem`);
-    hof.style.setProperty('--hof-lag', `${24 * rest}rem`);
+    hof.style.setProperty('--hof-lead', `${12 * rest}rem`);
+    hof.style.setProperty('--hof-lag', `${36 * rest}rem`);
   };
 
   gsap.to(
