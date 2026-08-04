@@ -1931,6 +1931,165 @@
   }
 }
 
+/* ===================================================== Gallery (sideways)
+ *
+ * Vertical scroll drives horizontal travel while the section is pinned. All of
+ * it measured off the reference at 1908x982 — see index.html for the numbers.
+ *
+ * The section's HEIGHT is written by main.ts, because it has to equal the
+ * track's horizontal overflow for scroll and travel to run 1:1, and the track's
+ * width depends on its content.
+ * --------------------------------------------------------------------- */
+
+/* How far through the darkening we are, 0..1. Registered so it can be
+   interpolated and read in calc(); inherits, because every caption and rule in
+   the section reads it. */
+@property --gallery-dark {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: true;
+}
+
+.gallery {
+  /* Above the fixed contour field, like .impact. */
+  position: relative;
+  z-index: 1;
+  /* Replaced by main.ts once the track can be measured. Until then the section
+     is one screen tall, so a failure to measure costs the travel and not the
+     images. */
+  block-size: 100dvh;
+}
+
+.gallery__pin {
+  position: sticky;
+  inset-block-start: 0;
+  block-size: 100dvh;
+  /* The track is wider than the viewport by design; without this it would widen
+     the document and produce a horizontal scrollbar alongside the fake one. */
+  overflow: clip;
+  display: flex;
+  align-items: center;
+}
+
+.gallery__track {
+  display: flex;
+  align-items: flex-start;
+  /* The lead-in. 75vw, measured: the first column enters from off-screen right
+     as the section arrives rather than already sitting there. */
+  padding-inline: 75vw var(--padding--container);
+  /* Written per frame by main.ts. */
+  transform: translate3d(var(--gallery-x, 0px), 0, 0);
+  will-change: transform;
+}
+
+.gallery__col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex: none;
+}
+
+/* The gaps between column groups. Two sizes, both measured. */
+.gallery__spacer {
+  flex: none;
+  inline-size: 17.5rem;
+}
+
+.gallery__spacer.is-half {
+  inline-size: 8.75rem;
+}
+
+.gallery__item,
+.gallery__callout {
+  flex: none;
+  inline-size: var(--w);
+  margin-block-start: var(--top, 0);
+  /* Ink crosses with the ground: dark on the light screen, cream once the field
+     has gone back to black. Same mechanism the wordmark uses across the hero. */
+  color: color-mix(in oklab, var(--dark), var(--cream) calc(var(--gallery-dark, 0) * 100%));
+}
+
+/* Pokes left into the gap beside it, exactly half a spacer. The reference does
+   this to break the column grid so the wall of images does not read as a table. */
+.gallery__item.is-out {
+  margin-inline-start: -8.75rem;
+}
+
+.gallery__cap {
+  font-size: var(--text--eyebrow);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-block-end: 1.25rem;
+}
+
+.gallery__frame {
+  inline-size: 100%;
+  aspect-ratio: var(--ar);
+  /* The crop the photo slides inside. */
+  overflow: clip;
+}
+
+.gallery__frame img {
+  /* FOUR REM WIDER than the frame, and that is the whole effect: the overflow
+     is what the photo has to travel. Measured off the reference, where every
+     image — from the 210px frames to the 643px one — carries the same constant
+     71px of slack rather than a proportional amount. */
+  inline-size: calc(100% + 4rem);
+  block-size: 100%;
+  max-inline-size: none;
+  object-fit: cover;
+  /* 0 at the right edge of the viewport, 4rem by the time the frame has left on
+     the other side. Written per item by main.ts. */
+  transform: translate3d(calc(var(--pan, 0) * -4rem), 0, 0);
+}
+
+.gallery__callout {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.25rem;
+}
+
+.gallery__quote {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  line-height: 0.94;
+  letter-spacing: 0.05rem;
+}
+
+.gallery__sign {
+  inline-size: 4.2rem;
+  block-size: auto;
+  /* The ink is rosso on both grounds, so it does not cross with the text. */
+  opacity: 0.9;
+}
+
+/* Reduced motion gets the same pictures as an ordinary scrolling row. There is
+   no pin, no sideways conversion and no per-image pan — the content is what
+   matters and all of it is still reachable. */
+@media (prefers-reduced-motion: reduce) {
+  .gallery {
+    block-size: auto !important;
+  }
+
+  .gallery__pin {
+    position: static;
+    block-size: auto;
+    overflow-x: auto;
+  }
+
+  .gallery__track {
+    transform: none;
+    padding-inline: var(--padding--container);
+  }
+
+  .gallery__frame img {
+    inline-size: 100%;
+    transform: none;
+  }
+}
+
 /* ============================================================ Footer */
 
 .footer {

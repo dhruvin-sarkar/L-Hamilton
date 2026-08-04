@@ -3,6 +3,15 @@ import * as THREE from 'three';
 import { ContourField } from './ContourField';
 import { fieldFragment, quadVertex } from './HeadScene';
 
+/** Straight sRGB components, 0..1. See the palette fields for why not a Color. */
+type RGB = readonly [number, number, number];
+
+/** Pull a Color's components back out in sRGB, undoing three's linear working space. */
+function srgb(c: THREE.Color): RGB {
+  const out = c.clone().convertLinearToSRGB();
+  return [out.r, out.g, out.b];
+}
+
 /**
  * The screen revealed behind the hero once it shrinks to a plate.
  *
@@ -31,6 +40,14 @@ export class BackgroundField {
   private readonly clock = new THREE.Clock();
   private readonly restTexture: THREE.DataTexture;
 
+  /** Ground and line, at each end of the darkening. sRGB components, 0..1. */
+  private readonly lightPalette: [RGB, RGB];
+  private readonly darkPalette: [RGB, RGB];
+  /** The live uniforms, held by reference so a write lands in the shader. */
+  private groundUniform!: THREE.Color;
+  private lineUniform!: THREE.Color;
+  private darkAmount = 0;
+
   constructor(renderer: THREE.WebGLRenderer) {
     this.renderer = renderer;
     this.contour = new ContourField(renderer);
@@ -56,6 +73,21 @@ export class BackgroundField {
 
     const ground = token('--gl-rev-bg', '#f7f3f1');
     const line = token('--gl-rev-outline', '#f08d78');
+
+    /* The two ends of the darkening, stored as sRGB components rather than as
+     * Colors.
+     *
+     * three converts a hex into its linear working space, and lerping there
+     * takes a different path between two colours than lerping the channels you
+     * can read off a screen. The reference interpolates in plain sRGB — checked
+     * against its own mid-transition values, where all three channels agree on
+     * the same t — so this matches it by keeping the raw components and writing
+     * back through setRGB with an explicit colour space. */
+    this.lightPalette = [srgb(ground), srgb(line)];
+    this.darkPalette = [
+      srgb(token('--gl-bg', '#241b1e')),
+      srgb(token('--gl-outline', '#9c6a71')),
+    ];
 
     this.material = new THREE.ShaderMaterial({
       vertexShader: quadVertex,
@@ -87,10 +119,50 @@ export class BackgroundField {
       depthWrite: false,
     });
 
+    /* These two ARE the uniform values — the map above assigns the Color
+       objects themselves, not copies — so writing into them lands in the
+       shader. Held from the consts rather than dug back out of
+       material.uniforms, which would need a cast and a non-null assertion to
+       say something already known here.
+
+       One object covers several uniforms: `ground` is both COLOR_BACKGROUND and
+       COLOR_CURSOR_BACKGROUND, and `line` is the foreground, the outline and
+       both cursor equivalents. That is deliberate — the whole palette should
+       cross together, not just the parts that happen to be visible. */
+    this.groundUniform = ground;
+    this.lineUniform = line;
+
     this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.material);
     // The quad is the viewport, so culling it is never right.
     this.mesh.frustumCulled = false;
     this.scene.add(this.mesh);
+  }
+
+  /**
+   * How far the field has crossed back to the hero's dark palette, 0..1.
+   *
+   * The gallery scrolls sideways over this layer and takes the ground with it,
+   * light back to black and red. A fade rather than a switch, and it is the
+   * FIELD that changes rather than something painted over it — so the contour
+   * lines cross with their own ground and the topography never disappears
+   * behind a tint.
+   */
+  set darkness(t: number) {
+    const clamped = t < 0 ? 0 : t > 1 ? 1 : t;
+    if (clamped === this.darkAmount) return;
+    this.darkAmount = clamped;
+
+    const mix = (from: RGB, to: RGB, target: THREE.Color) => {
+      target.setRGB(
+        from[0] + (to[0] - from[0]) * clamped,
+        from[1] + (to[1] - from[1]) * clamped,
+        from[2] + (to[2] - from[2]) * clamped,
+        THREE.SRGBColorSpace,
+      );
+    };
+
+    mix(this.lightPalette[0], this.darkPalette[0], this.groundUniform);
+    mix(this.lightPalette[1], this.darkPalette[1], this.lineUniform);
   }
 
   /** Pointer in -1..1, y up. Same convention as HeadScene.setPointer. */

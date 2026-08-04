@@ -413,6 +413,166 @@
           </p>
         </div>
       </section>
+
+      <!-- ============================================== Gallery (sideways)
+           Vertical scroll drives horizontal travel while the section is pinned,
+           and the contour field behind it fades from the light screen back to
+           the hero's dark one.
+
+           Everything here is measured off the reference at 1908x982:
+
+             track lead-in   75vw of padding, so the first column enters from
+                             off-screen right rather than being there already
+             spacers         17.5rem between column groups, 8.75rem for a half
+             travel          1:1 with scroll, starting when the section's top
+                             reaches the bottom of the viewport
+             image frames    each photo is 4rem WIDER than its frame and slides
+                             that overflow as it crosses — a parallax inside the
+                             crop, not a still
+
+           Captions are placeholders. Real ones need provenance for each shot,
+           and a guessed circuit and year is invented data. -->
+      <section class="gallery" data-gallery aria-labelledby="gallery-h">
+        <h2 class="sr-only" id="gallery-h">Gallery</h2>
+
+        <div class="gallery__pin">
+          <div class="gallery__track" data-gallery-track>
+            <!-- 1 -->
+            <div class="gallery__col">
+              <figure class="gallery__item" style="--w: 15rem; --top: 3.9rem">
+                <figcaption class="gallery__cap">Caption to come</figcaption>
+                <div class="gallery__frame" style="--ar: 0.806">
+                  <img src="/assets/gallery/gallery-01.webp" alt="" width="1121" height="1400"
+                    loading="lazy" decoding="async" />
+                </div>
+              </figure>
+              <figure class="gallery__item" style="--w: 16.3rem; --top: 5.8rem">
+                <figcaption class="gallery__cap">Caption to come</figcaption>
+                <div class="gallery__frame" style="--ar: 1">
+                  <img src="/assets/gallery/gallery-02.webp" alt="" width="1120" height="1400"
+                    loading="lazy" decoding="async" />
+                </div>
+              </figure>
+            </div>
+
+            <div class="gallery__spacer"></div>
+
+            <!-- 2 — the first big one, with a callout above it -->
+            <div class="gallery__col">
+              <div class="gallery__callout" style="--w: 17.4rem; --top: 4.8rem">
+                <p class="gallery__quote">
+                  Placeholder callout, real copy to come.
+                </p>
+                <img class="gallery__sign" src="/assets/brand/signature.svg" alt=""
+                  loading="lazy" decoding="async" />
+              </div>
+              <figure class="gallery__item" style="--w: 36.4rem; --top: 6rem">
+                <figcaption class="gallery__cap">Caption to come</figcaption>
+                <div class="gallery__frame" style="--ar: 1.101">
+                  <img src="/assets/gallery/gallery-03.webp" alt="" width="1050" height="1400"
+                    loading="lazy" decoding="async" />
+                </div>
+              </figure>
+            </div>
+
+            <div class="gallery__spacer"></div>
+
+            <!-- 3 -->
+            <div class="gallery__col">
+              <figure class="gallery__item is-out" style="--w: 12.2rem; --top: 3.9rem">
+                <figcaption class="gallery__cap">Caption to come</figcaption>
+                <div class="gallery__frame" style="--ar: 1.048">
+                  <img src="/assets/gallery/gallery-04.webp" alt="" width="1050" height="1400"
+                    loading="lazy" decoding="async" />
+                </div>
+              </figure>
+              <figure class="gallery__item" style="--w: 17.7rem; --top: 9.6rem">
+                <figcaption class="gallery__cap">Caption to come</figcaption>
+                <div class="gallery__frame" style="--ar: 0.897">
+                  <img src="/assets/gallery/gallery-05.webp" alt="" width="1050" height="1400"
+                    loading="lazy" decoding="async" />
+                </div>
+              </figure>
+            </div>
+
+            <div class="gallery__spacer is-half"></div>
+
+            <!-- 4 — a low one and a high one, side by side -->
+            <div class="gallery__col">
+              <figure class="gallery__item" style="--w: 11.9rem; --top: 35.8rem">
+                <figcaption class="gallery__cap">Caption to come</figcaption>
+                <div class="gallery__frame" style="--ar: 0.808">
+                  <img src="/assets/gallery/gallery-06.webp" alt="" width="1050" height="1400"
+                    loading="lazy" decoding="async" />
+                </div>
+              </figure>
+            </div>
+            <div class="gallery__col">
+              <figure class="gallery__item" style="--w: 11.5rem; --top: 8.3rem">
+                <figcaption class="gallery__cap">Caption to come</figcaption>
+                <div class="gallery__frame" style="--ar: 1">
+                  <img src="/assets/gallery/gallery-07.webp" alt="" width="1050" height="1400"
+                    loading="lazy" decoding="async" />
+                </div>
+              </figure>
+            </div>
+
+            <div class="gallery__spacer is-half"></div>
+
+            <!-- 5 — the second big one, callout beneath it -->
+            <div class="gallery__col">
+              <figure class="gallery__item" style="--w: 33.9rem; --top: 5rem">
+                <figcaption class="gallery__cap">Caption to come</figcaption>
+                <div class="gallery__frame" style="--ar: 1">
+                  <img src="/assets/gallery/gallery-08.webp" alt="" width="1050" height="1400"
+                    loading="lazy" decoding="async" />
+                </div>
+              </figure>
+              <div class="gallery__callout" style="--w: 30rem; --top: 3.5rem">
+                <p class="gallery__quote">
+                  Second placeholder callout, sitting under the picture rather
+                  than over it.
+                </p>
+                <img class="gallery__sign" src="/assets/brand/signature.svg" alt=""
+                  loading="lazy" decoding="async" />
+              </div>
+            </div>
+
+            <div class="gallery__spacer"></div>
+
+            <!-- 6 -->
+            <div class="gallery__col">
+              <figure class="gallery__item" style="--w: 17.6rem; --top: 12.2rem">
+                <figcaption class="gallery__cap">Caption to come</figcaption>
+                <div class="gallery__frame" style="--ar: 1.023">
+                  <img src="/assets/gallery/gallery-09.webp" alt="" width="1055" height="1400"
+                    loading="lazy" decoding="async" />
+                </div>
+              </figure>
+              <figure class="gallery__item is-out" style="--w: 15.2rem; --top: 3.6rem">
+                <figcaption class="gallery__cap">Caption to come</figcaption>
+                <div class="gallery__frame" style="--ar: 1.098">
+                  <img src="/assets/gallery/gallery-10.webp" alt="" width="1050" height="1400"
+                    loading="lazy" decoding="async" />
+                </div>
+              </figure>
+            </div>
+
+            <div class="gallery__spacer is-half"></div>
+
+            <!-- 7 — the one landscape frame, to close on a different shape -->
+            <div class="gallery__col">
+              <figure class="gallery__item" style="--w: 21rem; --top: 20rem">
+                <figcaption class="gallery__cap">Caption to come</figcaption>
+                <div class="gallery__frame" style="--ar: 1.4">
+                  <img src="/assets/gallery/gallery-11.webp" alt="" width="1024" height="682"
+                    loading="lazy" decoding="async" />
+                </div>
+              </figure>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <!-- ===================================================== Menu panel

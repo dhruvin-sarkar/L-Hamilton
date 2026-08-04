@@ -39,6 +39,7 @@ declare global {
       background: BackgroundField | null;
       bgRenderer: THREE.WebGLRenderer | null;
       ScrollTrigger: typeof ScrollTrigger;
+      lenis: Lenis | null;
     };
   }
 }
@@ -73,6 +74,12 @@ gsap.registerPlugin(MorphSVGPlugin, ScrollTrigger);
 
 /** The smooth-scroll instance, so the marquee can read scroll velocity. */
 let lenis: Lenis | null = null;
+
+/* Module scope for the same reason as lenis: it is built far below, inside the
+   branch that sets up the scene, but the gallery has to reach it to cross the
+   ground back to black. Null whenever there is no GL context or motion is
+   reduced, and every caller has to cope with that. */
+let background: BackgroundField | null = null;
 
 if (!reducedMotion) {
   const instance = new Lenis({
@@ -531,6 +538,129 @@ if (impactText) {
     animateBy: 'words',
     direction: 'bottom',
   });
+}
+
+/* ------------------------------------------------------------------ *
+ * Gallery — vertical scroll drives horizontal travel
+ *
+ * Two things move on their own clocks, both measured off the reference:
+ *
+ *   travel  1:1 with scroll, and it starts when the section's TOP reaches the
+ *           BOTTOM of the viewport — a viewport earlier than the pin. That is
+ *           what the track's 75vw lead-in is for: the first column is still
+ *           off-screen right when travel begins, so it slides in as the section
+ *           arrives rather than sitting there waiting.
+ *
+ *   ground  the contour field crossing back to the hero's dark palette, eased
+ *           out across the PINNED range. Sampling the reference mid-transition
+ *           against easeOutQuad matched every channel to within half a percent.
+ *
+ * The section's height is written here rather than in CSS because it has to
+ * equal the track's horizontal overflow for the two to run 1:1, and that
+ * depends on how wide the content turns out to be.
+ * ------------------------------------------------------------------ */
+
+const gallery = document.querySelector<HTMLElement>('[data-gallery]');
+const galleryTrack = document.querySelector<HTMLElement>('[data-gallery-track]');
+
+if (gallery && galleryTrack && !reducedMotion) {
+  /** The nav's own style, so the wordmark can cross back with the ground. */
+  const navInk = document.querySelector<HTMLElement>('.nav-inner')?.style;
+
+  /** Every photo, with the frame it slides inside. Resolved once. */
+  const panes = [...galleryTrack.querySelectorAll<HTMLElement>('.gallery__frame')].map(
+    (frame) => ({ frame, img: frame.querySelector('img') }),
+  );
+
+  /** How far the track has to travel: everything past one screenful. */
+  let travel = 0;
+
+  const measure = () => {
+    travel = Math.max(0, galleryTrack.scrollWidth - window.innerWidth);
+    // Scroll distance and travel distance are the same number, which is what
+    // makes the mapping 1:1 rather than a ratio that changes with the content.
+    gallery.style.height = `${travel}px`;
+  };
+
+  /**
+   * Slide each photo inside its own frame.
+   *
+   * 0 while the frame is still off the right edge, 1 once it has left past the
+   * left — so a photo pans across its crop exactly once per pass, and two
+   * frames of different widths travel the same 4rem at different rates.
+   */
+  const pan = () => {
+    const vw = window.innerWidth;
+    for (const { frame, img } of panes) {
+      if (!img) continue;
+      const box = frame.getBoundingClientRect();
+      const t = (vw - box.left) / (vw + box.width);
+      img.style.setProperty('--pan', String(gsap.utils.clamp(0, 1, t)));
+    }
+  };
+
+  measure();
+
+  gsap.to(
+    {},
+    {
+      ease: 'none',
+      scrollTrigger: {
+        trigger: gallery,
+        start: 'top bottom',
+        end: 'bottom bottom',
+        scrub: true,
+        invalidateOnRefresh: true,
+        onRefresh: measure,
+        onUpdate: (self) => {
+          galleryTrack.style.setProperty('--gallery-x', `${-travel * self.progress}px`);
+          pan();
+        },
+      },
+    },
+  );
+
+  /**
+   * Put the ground, the section's ink and the nav at `progress` through the
+   * darkening.
+   *
+   * easeOutQuad: most of the change happens early, so the ground has settled by
+   * the time the last pictures come through rather than still shifting under
+   * them. Measured off the reference, whose own mid-transition values match
+   * this curve on every channel.
+   */
+  const applyGround = (progress: number) => {
+    const t = 1 - (1 - progress) * (1 - progress);
+    gallery.style.setProperty('--gallery-dark', String(t));
+    if (background) background.darkness = t;
+
+    /* The nav crosses back with the ground it is sitting on. The hero inverted
+       it for the light screen and left it there; as the gallery takes that
+       screen back to black the wordmark has to return to Rosso and Giallo, or
+       it is dark ink on a dark field. Same variable the hero drives, and the
+       two ranges never overlap, so whichever is being scrubbed owns it. */
+    navInk?.setProperty('--nav-invert', String(1 - t));
+  };
+
+  gsap.to(
+    {},
+    {
+      ease: 'none',
+      scrollTrigger: {
+        trigger: gallery,
+        start: 'top top',
+        end: 'bottom bottom',
+        scrub: true,
+        invalidateOnRefresh: true,
+        onUpdate: (self) => applyGround(self.progress),
+        /* Also on refresh, not only on update. A load that lands inside the
+           gallery — a reload partway down, a deep link — fires no update until
+           something moves, and until then the ground would be dark under a nav
+           still inverted for the light screen. */
+        onRefresh: (self) => applyGround(self.progress),
+      },
+    },
+  );
 }
 
 /* ------------------------------------------------------------------ *
@@ -1301,7 +1431,6 @@ if (stage) {
      so the screen behind it is never uncovered, and a second continuously
      rendering context would burn a frame budget on something no one can see. */
   const bgStage = document.querySelector<HTMLDivElement>('#bg-stage');
-  let background: BackgroundField | null = null;
   let bgRenderer: THREE.WebGLRenderer | null = null;
 
   if (bgStage && !reducedMotion) {
@@ -1640,7 +1769,10 @@ if (stage) {
      progress can be read directly. Typed rather than cast, so a rename here is
      a compile error rather than a console session that quietly returns
      undefined. */
-  window.hamiltonGL = { head, renderer, background, bgRenderer, ScrollTrigger };
+  // lenis too: without it there is no way to put the page at an exact scroll
+  // position from the console. window.scrollTo fights the smoothing and the
+  // page drifts somewhere else entirely, which makes every measurement a lie.
+  window.hamiltonGL = { head, renderer, background, bgRenderer, ScrollTrigger, lenis };
 
   /* Every frame of this scene is a fluid simulation with 20 pressure
      iterations, a two-pass contour field and a Three.js draw. None of it is
