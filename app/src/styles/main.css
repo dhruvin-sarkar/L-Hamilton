@@ -86,6 +86,16 @@ a {
   border-radius: 2px;
 }
 
+/* Dragging a cursor over text highlights it in Rosso, not the browser's blue.
+   --rosso-corsa rather than --era: the era tokens re-theme with the content
+   underneath, and a selection that changed colour depending on which season a
+   paragraph was about would read as a bug. Cream ink over it, because the raw
+   red is dark enough that black text on it fails to separate. */
+::selection {
+  background: var(--rosso-corsa);
+  color: var(--cream);
+}
+
 /* ---------------------------------------------------------------- *
  * Typography
  * ---------------------------------------------------------------- */

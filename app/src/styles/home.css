@@ -2563,3 +2563,440 @@
     transform: none;
   }
 }
+
+/* ==================================================================== *
+ * Helmets hall of fame
+ *
+ * Every helmet of the career on one wall. Measured off the reference at
+ * 1728x1080 and reproduced here at the same proportions:
+ *
+ *   grid      4 columns, 20px gap, cards 406.89 x 411 (aspect 0.990)
+ *   shape     rounded rect whose bottom edge steps UP on the right, so the
+ *             label can sit in the notch instead of over the photograph
+ *   hover     three things at once, all on the house curve — the wearing
+ *             shot wipes down through a growing ellipse, the helmet pushes
+ *             in behind it, and an accent copy of the outline fades up
+ *   parallax  columns 1 and 3 travel 5rem, columns 2 and 4 travel 15rem —
+ *             exactly three times as far, verified against the reference to
+ *             three decimals. Both move the same direction; it is the
+ *             DIFFERENCE that reads as the even columns hanging back.
+ *
+ * Unlike everything since the hero, this section does not let the contour
+ * field show through: it carries the menu's own ground, which is what the
+ * brief asked for.
+ * ==================================================================== */
+
+/* Written by main.ts each frame. Registered so they interpolate as lengths and
+   so a missing write resolves to rest rather than to an invalid value. */
+@property --hof-lead {
+  syntax: '<length>';
+  initial-value: 0px;
+  inherits: true;
+}
+@property --hof-lag {
+  syntax: '<length>';
+  initial-value: 0px;
+  inherits: true;
+}
+
+.hof {
+  position: relative;
+  /* Above the riser, which is z-index 2 and scrolls up behind this. */
+  z-index: 3;
+  /* --gl-bg is the menu panel's ground. The brief asked for "the same colour
+     of red used in the menu screen", and this is literally that token rather
+     than a second red mixed to look like it. */
+  background: var(--gl-bg);
+  padding-block: 8rem 10rem;
+  /* The gutter lives here rather than on a .shell wrapper, so the grid runs
+     almost the full width of the page. Measured off the reference: 20px each
+     side at a 1728 viewport, which is exactly --padding--container. */
+  padding-inline: var(--padding--container);
+  color: var(--cream);
+}
+
+.hof__inner {
+  inline-size: 100%;
+}
+
+/* ---- the standfirst ---- */
+
+.hof__head {
+  display: grid;
+  /* Two equal halves. The reference starts its paragraph at 855 of 1728 — just
+     under the midpoint — which is what a 1fr 1fr split produces. */
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+  /* 272px between the top of the title and the top of the grid at 1728, less
+     the two lines of title above it. */
+  margin-block-end: 9rem;
+}
+
+.hof__title {
+  margin: 0;
+  font-size: var(--text--h2); /* 72px at the design width */
+  /* 64px between line tops at a 72px size. */
+  line-height: 0.89;
+  text-transform: uppercase;
+}
+
+.hof__title-line {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  /* The sweep bar behind .reveal-text spans its element, so the line has to be
+     as wide as its words rather than as wide as the column — otherwise the bar
+     runs on across empty space. Same fix the gallery captions needed. */
+  inline-size: fit-content;
+}
+
+/* The second line drops to the Didone in the accent, mirroring the wordmark's
+   own pairing of a serif given name against the block capitals. The reference
+   makes the same move with its own accent on this exact line. */
+.hof__title-line.is-serif {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  text-transform: none;
+  color: var(--accent);
+}
+
+.hof__blurb {
+  /* 398px of measure at the design width, and the paragraph sits at the top of
+     its column rather than centred against the title. */
+  max-inline-size: 25rem;
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* Carries the clipPath and nothing else. Zero-sized rather than display:none,
+   because a display:none SVG takes its definitions out of play with it in some
+   engines and every card would lose its clip. */
+.hof__defs {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+  pointer-events: none;
+}
+
+.hof__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--gap);
+  list-style: none;
+}
+
+.hof__item {
+  position: relative;
+  aspect-ratio: 407 / 411;
+  /* Columns 1 and 3 — the leaders. */
+  transform: translate3d(0, var(--hof-lead, 0px), 0);
+  will-change: transform;
+}
+
+/* Columns 2 and 4. Three times the travel of their neighbours, which is what
+   makes the wall breathe as it passes rather than arriving as one block. */
+.hof__item:nth-child(4n + 2),
+.hof__item:nth-child(4n + 4) {
+  transform: translate3d(0, var(--hof-lag, 0px), 0);
+}
+
+/* Focusable because the wearing shot is content, and hover is the only other
+   way to reach it. Without this a sighted keyboard-only visitor gets 26 cards
+   whose second photograph simply does not exist for them. */
+.hof__item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+/* Clipped to the card shape — the same outline the frame strokes, so the
+   photograph stops exactly where the line does and the notch stays empty for
+   the label. objectBoundingBox units, so one definition serves all 26 at any
+   width. */
+.hof__media {
+  position: absolute;
+  inset: 0;
+  clip-path: url(#hof-card);
+}
+
+.hof__reveal {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+/* Inset, where the reveal is full-bleed. The reference's helmets are cut-outs
+   with their own transparent margin baked into the file, so they sit off the
+   card edge without any CSS saying so; ours were trimmed hard to the silhouette
+   during keying, so the margin has to be put back here. Deeper at the foot,
+   where the label sits in the notch. */
+/* Sized explicitly rather than by a four-sided `inset`. An absolutely
+   positioned REPLACED element resolves `width: auto` to the image's intrinsic
+   width and then drops the `right` offset as over-constrained — so `inset: 6%
+   6% 11%` sized every helmet to the full card and shunted it 6% off to the
+   right, under the clip where it was easy to miss. */
+.hof__helmet {
+  position: absolute;
+  inset-inline-start: 6%;
+  inset-block-start: 6%;
+  inline-size: 88%; /* 100 - 6 - 6 */
+  block-size: 83%; /* 100 - 6 - 11, the deeper foot clearing the label */
+}
+
+/* contain, not cover: the helmet is a subject standing on the ground rather
+   than a tile filling the card, and cropping the chin bar off would be worse
+   than the letterboxing. */
+.hof__helmet {
+  z-index: 1;
+  object-fit: contain;
+  transform: scale(1);
+  transition: transform var(--animation-default);
+}
+
+/* The wearing shot IS a tile — it fills the card when revealed. It starts
+   fractionally scaled up and settles to 1, so it comes to rest as the wipe
+   finishes instead of sitting still behind a moving edge. */
+.hof__reveal {
+  z-index: 2;
+  object-fit: cover;
+  clip-path: ellipse(100% 0% at 50% 0);
+  transform: scale(1.05);
+  transition:
+    clip-path var(--animation-default),
+    transform var(--animation-default);
+}
+
+.hof__item:hover .hof__reveal,
+.hof__item:focus-visible .hof__reveal {
+  /* 120%, not 100%: the ellipse has to overshoot the bottom edge, or its curve
+     is still readable as a dome across the foot of the card at the end. */
+  clip-path: ellipse(100% 120% at 50% 0);
+  transform: scale(1);
+}
+
+.hof__item:hover .hof__helmet,
+.hof__item:focus-visible .hof__helmet {
+  transform: scale(1.1);
+}
+
+/* ---- the outline ---- */
+
+.hof__frame-w {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  /* The outline sits over the card, so without this it would eat the hover it
+     exists to respond to. */
+  pointer-events: none;
+}
+
+.hof__frame {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.hof__frame path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  /* The path is drawn in the 407x411 viewBox and scales with the card, so the
+     stroke has to be told not to scale with it, or the line thickens on wide
+     screens and thins on narrow ones. */
+  vector-effect: non-scaling-stroke;
+}
+
+/* Giallo, not the reference's grey.
+ *
+ * Worth recording that this is a deliberate departure and not a mismeasure:
+ * the reference carries BOTH strokes, #535450 at rest and its lime accent on
+ * hover, and that pairing was reproduced here first. Yellow at rest was asked
+ * for directly, so the two states now separate by weight rather than by hue —
+ * a calm line that comes up to full strength under the pointer. */
+.hof__frame--base {
+  color: var(--giallo-modena);
+  opacity: 0.45;
+}
+
+/* A second copy rather than a transition on the first: animating opacity on a
+   single stroke would fade the whole card outline out and back, where fading a
+   second line up over the first only ever adds. */
+.hof__frame--on {
+  color: var(--giallo-modena);
+  opacity: 0;
+  transition: opacity var(--animation-default);
+}
+
+.hof__item:hover .hof__frame--on,
+.hof__item:focus-visible .hof__frame--on {
+  opacity: 1;
+}
+
+/* ---- the label, in the notch ---- */
+
+.hof__label {
+  position: absolute;
+  inset: auto 0 0 auto;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  block-size: 2rem;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.hof__name {
+  font-weight: 600;
+  color: var(--cream);
+}
+
+.hof__year {
+  margin-inline-start: 0.8rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ---- the closing callout ---- */
+
+.hof__cta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  /* Clear of the grid by more than the 24rem the even columns hang below it at
+     their furthest, so the two never collide mid-scroll. The reference leaves
+     404px between the foot of its grid and its button; this is that, plus the
+     extra our deeper travel needs. */
+  margin-block-start: 14rem;
+  text-align: center;
+}
+
+.hof__cta-crest {
+  inline-size: 5.5rem;
+  block-size: 3.8rem;
+  color: var(--accent);
+  /* The crest draws its visor as a KNOCKOUT filled with --bg, so on any ground
+     that is not --bg the helmet loses its shape into the surround. This section
+     sits on --gl-bg, so the token is rebound for the mark rather than the mark
+     being redrawn — the same override the crest's own comment calls for. */
+  --bg: var(--gl-bg);
+}
+
+/* The Didone again, and large enough to carry the section out — this is the
+   last thing on the page before the footer, so it reads as a closing line
+   rather than as a caption on the button below it. */
+.hof__cta-line {
+  max-inline-size: 30rem;
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--text--h3);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--cream);
+}
+
+.hof__cta-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.9rem;
+  block-size: 3.5rem;
+  padding-inline: 2rem;
+  border-radius: var(--radius--btn);
+  /* No font-family override. The condensed display face was wrong here — the
+     nav's store button is the pattern every other button on the site follows,
+     and it sets weight and case on the inherited body face rather than
+     switching to Archivo Narrow. */
+  font-size: var(--text--btn-primary);
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 1;
+  /* The same liquid fill as the store, menu and On/Off Track buttons, and the
+     same declaration rather than a lookalike. main.ts drives --liquid-level. */
+  background: linear-gradient(
+    to top,
+    var(--giallo-modena) calc(var(--liquid-level) * 100%),
+    var(--rosso-corsa) calc((var(--liquid-level) + var(--liquid-gap)) * 100%)
+  );
+  color: var(--dark);
+}
+
+.hof__cta-arrow {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  flex: none;
+}
+
+/* ---- narrow screens ----
+ *
+ * Two columns, and no parallax: the effect needs four columns side by side to
+ * read as a stagger at all, and on a phone it would just be two lists sliding
+ * past each other at different speeds. */
+@media (max-width: 991px) {
+  .hof {
+    padding-block: 4rem 5rem;
+  }
+
+  /* The standfirst stacks: at this width the paragraph column is too narrow to
+     hold a readable measure beside a 72px title. */
+  .hof__head {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    margin-block-end: 3rem;
+  }
+
+  .hof__title {
+    font-size: var(--text--h3);
+  }
+
+  .hof__blurb {
+    max-inline-size: none;
+    font-size: 1rem;
+  }
+
+  .hof__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Matched to the nth-child specificity of the rule it undoes — a bare
+     .hof__item here would lose to .hof__item:nth-child(4n + 2), and the reset
+     would look applied while doing nothing. */
+  .hof__item,
+  .hof__item:nth-child(4n + 2),
+  .hof__item:nth-child(4n + 4) {
+    transform: none;
+  }
+
+  .hof__cta {
+    margin-block-start: 4rem;
+  }
+
+  .hof__cta-line {
+    font-size: var(--text--h4);
+  }
+}
+
+/* No drift and no wipe. The reveal still swaps on hover — an instant swap is
+   not motion — so the content stays reachable rather than being removed along
+   with the animation. */
+@media (prefers-reduced-motion: reduce) {
+  .hof__item,
+  .hof__item:nth-child(4n + 2),
+  .hof__item:nth-child(4n + 4) {
+    transform: none;
+  }
+
+  .hof__helmet,
+  .hof__reveal,
+  .hof__frame--on {
+    transition: none;
+  }
+
+  .hof__item:hover .hof__helmet,
+  .hof__item:focus-visible .hof__helmet {
+    transform: none;
+  }
+}

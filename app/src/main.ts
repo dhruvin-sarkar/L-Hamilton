@@ -15,6 +15,14 @@ import {
   eras,
   seasonsRacing,
 } from './content/hamilton';
+import {
+  helmetAlt,
+  helmetSrc,
+  helmets,
+  pendingHelmets,
+  revealAlt,
+  revealSrc,
+} from './content/helmets';
 
 /** The era he is in now — the one with no end date. */
 const currentEra = eras.find((e) => e.to === null);
@@ -592,6 +600,79 @@ const otot = document.querySelector<HTMLElement>('[data-otot]');
  * the same mechanism, so toggling it mid-session is handled too rather than
  * being frozen at load.
  */
+/* ------------------------------------------------------------------ *
+ * Helmets hall of fame — the wall itself.
+ *
+ * Built here rather than written into index.html: 26 entries times two
+ * photographs times a label is a lot of markup to keep in step by hand, and
+ * every value in it already lives in src/content/helmets.ts. Done before any
+ * ScrollTrigger is created, so the page is its final height when they measure.
+ * ------------------------------------------------------------------ */
+
+const hof = document.querySelector<HTMLElement>('[data-hof]');
+
+/* The card silhouette, stroked. Inset half a pixel so a 1px line lands inside
+   the 407x411 viewBox rather than straddling its edge. The bottom edge steps up
+   on the right and returns on a diagonal, and the notch that opens up is where
+   the label sits — which is why the shape is not simply a rounded rectangle.
+
+   The #hof-card clipPath in index.html is this same outline normalised to the
+   0..1 box, and clips each photograph to it. Change one and the other has to
+   follow, or the pictures will stop where the line does not. */
+const HOF_CARD_PATH =
+  'M8 0.5 H399 A7.5 7.5 0 0 1 406.5 8 V364.5 A7.5 7.5 0 0 1 399 372 ' +
+  'H263 L211 410.5 H8 A7.5 7.5 0 0 1 0.5 403 V8 A7.5 7.5 0 0 1 8 0.5 Z';
+
+/** Attribute-safe text. The data is ours, but a name carrying a quote would
+    otherwise close the attribute it sits in and swallow the rest of the tag. */
+function attr(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+}
+
+function hofFrame(variant: 'base' | 'on'): string {
+  return (
+    `<svg class="hof__frame hof__frame--${variant}" viewBox="0 0 407 411" ` +
+    `preserveAspectRatio="none" aria-hidden="true"><path d="${HOF_CARD_PATH}" /></svg>`
+  );
+}
+
+const hofGrid = document.querySelector<HTMLElement>('[data-hof-grid]');
+
+if (hofGrid) {
+  hofGrid.innerHTML = helmets
+    .map(
+      (helmet) => `
+      <li class="hof__item" tabindex="0">
+        <div class="hof__media">
+          <img class="hof__helmet" src="${helmetSrc(helmet)}"
+            alt="${attr(helmetAlt(helmet))}" loading="lazy" decoding="async" />
+          <img class="hof__reveal" src="${revealSrc(helmet)}"
+            alt="${attr(revealAlt(helmet))}" loading="lazy" decoding="async" />
+        </div>
+        <div class="hof__frame-w">${hofFrame('base')}${hofFrame('on')}</div>
+        <p class="hof__label">
+          <span class="hof__name">${helmet.name ? attr(helmet.name) : '&mdash;'}</span>
+          <span class="hof__year">${helmet.year ?? ''}</span>
+        </p>
+      </li>`,
+    )
+    .join('');
+}
+
+/* Loud in dev, silent in production. Thrown, this would take the whole page
+   down over content that is known to be outstanding; left unsaid, 26 em-dashes
+   look like a rendering fault rather than a queue of data still to come. */
+if (import.meta.env.DEV) {
+  const pending = pendingHelmets();
+  if (pending.length > 0) {
+    console.warn(
+      `[content] ${pending.length} of ${helmets.length} helmets are still missing a ` +
+        `name or year — fill them in at src/content/helmets.ts. Ids: ` +
+        pending.map((h) => h.id).join(', '),
+    );
+  }
+}
+
 const mm = gsap.matchMedia();
 const WIDE_AND_ANIMATED = '(min-width: 992px) and (prefers-reduced-motion: no-preference)';
 
@@ -828,6 +909,68 @@ mm.add(WIDE_AND_ANIMATED, () => {
     otot.style.removeProperty('--otot-cut');
     otot.style.removeProperty('--otot-txt');
     otot.style.removeProperty('--otot-rise');
+  };
+});
+
+/* ------------------------------------------------------------------ *
+ * Hall of fame — the columns drifting past each other.
+ *
+ * Two offsets, both easing to nothing as the wall crosses the screen, and both
+ * moving the same direction: columns 1 and 3 travel 5rem, columns 2 and 4
+ * travel 15rem. Measured off the reference, where the ratio is exactly 3 and
+ * the scrub is linear rather than eased.
+ *
+ * That every column moves UP is worth stating plainly, because the effect
+ * reads as the even ones moving DOWN — they are simply further behind at every
+ * point in the scroll, and it is the gap between the two that the eye picks up
+ * rather than either offset on its own. Give them the same travel and the wall
+ * arrives as one flat block.
+ *
+ * There is no static offset underneath this. Parked past the end of the range
+ * all four columns settle to the identical top with no margin between them; the
+ * whole stagger is the transform, and adding a resting offset "to match the
+ * screenshot" would double it.
+ * ------------------------------------------------------------------ */
+
+mm.add(WIDE_AND_ANIMATED, () => {
+  if (!hof || !hofGrid) return;
+
+  /* The reference's own travel is 5rem and 15rem. Both are scaled by the same
+     factor here, deliberately, so the wall drifts further than the reference's
+     does while the 3:1 relationship that produces the stagger is untouched. */
+  const apply = (progress: number) => {
+    const rest = 1 - progress;
+    hof.style.setProperty('--hof-lead', `${8 * rest}rem`);
+    hof.style.setProperty('--hof-lag', `${24 * rest}rem`);
+  };
+
+  gsap.to(
+    {},
+    {
+      ease: 'none',
+      scrollTrigger: {
+        // The grid, not the section: the callout below it is not part of the
+        // drift, and triggering on the section would stretch the range past
+        // where the columns have already settled.
+        trigger: hofGrid,
+        start: 'top bottom',
+        end: 'bottom top',
+        scrub: true,
+        invalidateOnRefresh: true,
+        onUpdate: (self) => apply(self.progress),
+        // As everywhere else on the page: a reload landing inside this section
+        // fires no update until something moves, and the columns would sit at
+        // whatever offset the markup implies rather than at the scroll position.
+        onRefresh: (self) => apply(self.progress),
+      },
+    },
+  );
+
+  /* Our own inline writes, so the context will not clear them. Left behind,
+     every even column would stay parked 15rem low in the two-column layout. */
+  return () => {
+    hof.style.removeProperty('--hof-lead');
+    hof.style.removeProperty('--hof-lag');
   };
 });
 
@@ -1145,22 +1288,24 @@ function mountStoreFill(): void {
 }
 
 /**
- * The two On Track / Off Track arrows.
+ * Every Rosso button below the nav: the two On Track / Off Track arrows and the
+ * hall of fame's closing callout.
  *
  * Same fill as the store button, mounted the same way — these are the only
  * other Rosso buttons on the page, so they should answer the pointer the way
- * the nav does rather than with a hover of their own invention. Both get their
- * own state, so hovering one never moves the other.
+ * the nav does rather than with a hover of their own invention. Each gets its
+ * own state, so hovering one never moves another.
  */
-function mountOtotFills(): void {
-  for (const link of document.querySelectorAll<HTMLAnchorElement>('.otot__link')) {
+function mountSectionFills(): void {
+  const buttons = document.querySelectorAll<HTMLAnchorElement>('.otot__link, .hof__cta-link');
+  for (const link of buttons) {
     mountLiquidFill(link, (level) => link.style.setProperty('--liquid-level', String(level)));
   }
 }
 
 mountMonogram();
 mountStoreFill();
-mountOtotFills();
+mountSectionFills();
 
 /* ------------------------------------------------------------------ *
  * Rolling button text
