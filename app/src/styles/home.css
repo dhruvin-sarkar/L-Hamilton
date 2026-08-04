@@ -2069,6 +2069,15 @@
      wide as its picture, so the reveal bar would sweep a stretch of empty space
      past the end of a short caption. */
   inline-size: fit-content;
+  /* Giallo rather than the cream the rest of the item inherits, on the same
+     crossfade — dark while the screen is still light, yellow once it is black.
+     Set here and not on .gallery__item so only the captions take the colour and
+     the callout copy beside them stays cream. */
+  color: color-mix(
+    in oklab,
+    var(--dark),
+    var(--giallo-modena) calc(var(--gallery-ink, 0) * 100%)
+  );
 }
 
 .gallery__frame {
@@ -2399,16 +2408,29 @@
 .otot__head {
   display: flex;
   flex-direction: column;
+  /* Centred rather than stretched, so each line is only as wide as its own word.
+     The reveal bar behind .reveal-text spans its element, and a stretched line
+     would sweep the full column width past the end of a short word like "On". */
+  align-items: center;
   margin: 0 0 1.5rem;
   text-transform: uppercase;
   line-height: 0.9;
-  color: color-mix(in oklab, var(--dark), var(--cream) calc(var(--otot-ink, 0) * 100%));
+  /* Giallo at the dark end of the crossfade, not cream. The mechanism is
+     unchanged — dark ink while the ground is still the light screen, full
+     colour once the gallery has taken it back to black. */
+  color: color-mix(
+    in oklab,
+    var(--dark),
+    var(--giallo-modena) calc(var(--otot-ink, 0) * 100%)
+  );
 }
 
 .otot__head-line {
   font-family: var(--font-display);
   font-size: clamp(2.5rem, 4.6vw, 5rem);
   font-weight: 700;
+  /* Shrink to the word — see the note on align-items above. */
+  inline-size: fit-content;
 }
 
 /* The lighter serif on the first word, the way the reference splits its own
