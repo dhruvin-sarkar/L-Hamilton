@@ -831,7 +831,22 @@ if (!reducedMotion) {
   document.documentElement.dataset.revealAnimated = '';
 
   const lines = [...document.querySelectorAll<HTMLElement>('.reveal-text')];
-  const delayFor = (el: HTMLElement) => `${lines.indexOf(el) * 90}ms`;
+
+  /**
+   * The stagger, counted within a section rather than across the document.
+   *
+   * It used to be the element's global index, which quietly punished anything
+   * far down the page: the On Track and Off Track blurbs came out at 1260ms and
+   * 1350ms and visibly trailed the section they belong to. The stagger exists to
+   * make one group read top to bottom, so it has to restart at each group —
+   * otherwise it is not a stagger, it is an accumulating delay.
+   */
+  const groupOf = (el: HTMLElement): Element => el.closest('section') ?? document.body;
+  const delayFor = (el: HTMLElement) => {
+    const group = groupOf(el);
+    const peers = lines.filter((line) => groupOf(line) === group);
+    return `${peers.indexOf(el) * 90}ms`;
+  };
 
   /**
    * Hero lines fire with the entrance, NOT on intersection.
