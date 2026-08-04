@@ -2033,6 +2033,10 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-block-end: 1.25rem;
+  /* Shrink to the words. A figcaption is block-level and would otherwise be as
+     wide as its picture, so the reveal bar would sweep a stretch of empty space
+     past the end of a short caption. */
+  inline-size: fit-content;
 }
 
 .gallery__frame {
@@ -2217,4 +2221,282 @@
 .footer__mark {
   font-size: var(--text--h3);
   color: var(--accent);
+}
+
+/* ==================================================== On Track / Off Track
+ *
+ * Two screens. The first pins while the cutouts close in from the outer
+ * edges; the second is a photograph that rises over it.
+ *
+ * Measured off the reference at 1728x1080: the closing runs from the track's
+ * top hitting the viewport bottom through to its bottom hitting the viewport
+ * bottom — two screens of scroll — with the cutouts easing in over the whole
+ * range and the type settling in the first 60%. main.ts owns those curves;
+ * this file owns the geometry they move.
+ */
+
+/* Written per frame by main.ts. Registered so they are typed rather than
+   re-parsed as strings on every write. They live on .otot, NOT on :root —
+   a custom property on the root invalidates style for every element that
+   could inherit it, which measured 4.5x the cost of a scoped write. */
+@property --otot-cut {
+  syntax: '<length>';
+  initial-value: 0px;
+  inherits: true;
+}
+
+@property --otot-txt {
+  syntax: '<length>';
+  initial-value: 0px;
+  inherits: true;
+}
+
+@property --otot-rise {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: true;
+}
+
+/* How far the ink has crossed to the light end, 0..1. Set by the same
+   applyGround that drives the gallery, so this section picks up whatever the
+   gallery left rather than deciding a colour of its own.
+
+   Defaults to 0 — dark ink — because that is correct on the light field,
+   which is what a reduced-motion visitor gets: the gallery's darkening lives
+   inside the motion branch, so it never runs for them. Defaulting to light
+   ink would leave cream text on a cream field. */
+@property --otot-ink {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: true;
+}
+
+.otot {
+  /* Above the fixed contour field, like .gallery and .impact. No background:
+     the field behind the page is the background here. */
+  position: relative;
+  z-index: 1;
+  /* Two screens: one to pin, one for the riser to climb through. */
+  block-size: 200dvh;
+}
+
+.otot__pin {
+  position: sticky;
+  inset-block-start: 0;
+  block-size: 100dvh;
+  /* The cutouts bleed past both edges by design. */
+  overflow: clip;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---- the cutouts ---- */
+
+.otot__cut {
+  position: absolute;
+  /* Planted on the section floor with a fixed gap above, both viewport-
+     relative: measured 9.33vh / 90.67vh on the reference and confirmed to
+     scale with viewport height rather than with the root font size. */
+  inset-block: 9.33vh 0;
+  /* Narrower than the artwork, so the far side of each cutout runs off the
+     edge instead of sitting fully in frame. */
+  inline-size: min(26vw, 30rem);
+  overflow: clip;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.otot__cut img {
+  position: absolute;
+  inset-block-start: 0;
+  /* Full height, natural width — never squashed to the wrapper. */
+  block-size: 100%;
+  inline-size: auto;
+  max-inline-size: none;
+}
+
+/* Each cutout is anchored by the edge that faces the centre, so the crop eats
+   the outer side and the subject keeps looking inward. */
+.otot__cut.is-on {
+  inset-inline-start: 0;
+  transform: translate3d(calc(var(--otot-cut, 0px) * -1), 0, 0);
+}
+
+.otot__cut.is-on img {
+  inset-inline-end: 0;
+}
+
+.otot__cut.is-off {
+  inset-inline-end: 0;
+  transform: translate3d(var(--otot-cut, 0px), 0, 0);
+}
+
+.otot__cut.is-off img {
+  inset-inline-start: 0;
+}
+
+/* ---- the type ---- */
+
+.otot__layout {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  gap: 3.75rem;
+  inline-size: min(46.25rem, 44vw);
+}
+
+.otot__col {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.otot__col.is-on {
+  transform: translate3d(calc(var(--otot-txt, 0px) * -1), 0, 0);
+}
+
+.otot__col.is-off {
+  transform: translate3d(var(--otot-txt, 0px), 0, 0);
+}
+
+.otot__head {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 1.5rem;
+  text-transform: uppercase;
+  line-height: 0.9;
+  color: color-mix(in oklab, var(--dark), var(--cream) calc(var(--otot-ink, 0) * 100%));
+}
+
+.otot__head-line {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 4.6vw, 5rem);
+  font-weight: 700;
+}
+
+/* The lighter serif on the first word, the way the reference splits its own
+   two-word headings. */
+.otot__head-line.is-thin {
+  font-family: var(--font-serif);
+  font-weight: 400;
+}
+
+.otot__blurb {
+  margin: 0 0 2rem;
+  font-size: var(--text--body-small, 0.95rem);
+  line-height: 1.4;
+  /* The column already sets the measure. An extra ch cap on top of it broke
+     this into four ragged lines where the reference gets two. */
+  color: color-mix(in oklab, var(--dark), var(--cream) calc(var(--otot-ink, 0) * 100%));
+}
+
+.otot__link {
+  display: grid;
+  place-items: center;
+  inline-size: 3rem;
+  block-size: 3rem;
+  border-radius: 0.5rem;
+  background: var(--accent);
+  color: var(--cream);
+  transition: transform var(--duration-fast, 160ms) var(--cubic-default, ease);
+}
+
+.otot__link:hover,
+.otot__link:focus-visible {
+  transform: translate3d(0, -2px, 0);
+}
+
+.otot__arrow {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+}
+
+/* ---- the riser ---- */
+
+.otot__end {
+  position: relative;
+  /* Above the pinned screen, so it covers it as it climbs. */
+  z-index: 2;
+  block-size: 100dvh;
+}
+
+.otot__end-frame {
+  position: relative;
+  block-size: 100dvh;
+  overflow: clip;
+}
+
+/* Taller than its frame so there is room to drift inside the crop. Measured
+   on the reference: 120% of the frame, climbing 10vh and growing 5% across
+   the rise — enough to feel like the camera moved, not the card. */
+.otot__end-img {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 120%;
+  object-fit: cover;
+  transform: translate3d(0, calc(var(--otot-rise, 0) * -10vh), 0)
+    scale(calc(1 + var(--otot-rise, 0) * 0.05));
+  will-change: transform;
+}
+
+/* ---- narrow screens ----
+ *
+ * The same call the gallery makes: the closing needs two screens of scroll
+ * and a wide frame to read at all, and a phone has neither. The section
+ * becomes one stacked screen with the cutouts held back behind the type. */
+@media (max-width: 991px) {
+  .otot {
+    block-size: auto;
+  }
+
+  .otot__pin {
+    position: static;
+    block-size: auto;
+    padding-block: var(--padding--xlarge, 5rem);
+  }
+
+  .otot__layout {
+    inline-size: 100%;
+    flex-direction: column;
+    gap: 4rem;
+    padding-inline: var(--padding--container);
+  }
+
+  /* Matched to the .is-on/.is-off specificity of the rules they undo — a bare
+     .otot__cut here would lose to .otot__cut.is-on and the reset would look
+     applied while doing nothing. */
+  .otot__col.is-on,
+  .otot__col.is-off,
+  .otot__cut.is-on,
+  .otot__cut.is-off {
+    transform: none;
+  }
+
+  .otot__cut {
+    inline-size: 42vw;
+    /* Behind the type rather than beside it — there is no room for both. */
+    opacity: 0.22;
+  }
+
+  .otot__end,
+  .otot__end-frame {
+    block-size: 70dvh;
+  }
+}
+
+/* No closing, no drift: the section still reads, it just arrives assembled. */
+@media (prefers-reduced-motion: reduce) {
+  .otot__cut.is-on,
+  .otot__cut.is-off,
+  .otot__col.is-on,
+  .otot__col.is-off,
+  .otot__end-img {
+    transform: none;
+  }
 }

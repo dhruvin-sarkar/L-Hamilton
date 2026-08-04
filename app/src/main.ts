@@ -563,6 +563,12 @@ if (impactText) {
 const gallery = document.querySelector<HTMLElement>('[data-gallery]');
 const galleryTrack = document.querySelector<HTMLElement>('[data-gallery-track]');
 
+/* Declared up here rather than beside its own block because applyGround, below,
+   has to hand this section the same ink the gallery ends on. The two sit on one
+   continuous field and there is only one right answer for what colour the type
+   is; deciding it twice is how they drift apart. */
+const otot = document.querySelector<HTMLElement>('[data-otot]');
+
 /* Below 992px the gallery is a column, not a sideways track — see home.css for
    why, and note the reference makes the same call. The breakpoint is checked
    here as well as in CSS because the two have to agree: the pin only works if
@@ -658,6 +664,12 @@ if (gallery && galleryTrack && galleryIsSideways && !reducedMotion) {
     const ink = x * x * (3 - 2 * x);
     gallery.style.setProperty('--gallery-ink', String(ink));
 
+    /* On/Off Track sits on the same continuous field and inherits nothing from
+       here — it is a sibling, not a child — so it is told directly. Without
+       this its type would default to dark ink on the black ground the gallery
+       just finished laying down. */
+    otot?.style.setProperty('--otot-ink', String(ink));
+
     /* The nav crosses back with the ground it is sitting on. The hero inverted
        it for the light screen and left it there; as the gallery takes that
        screen back to black the wordmark has to return to Rosso and Giallo, or
@@ -685,6 +697,89 @@ if (gallery && galleryTrack && galleryIsSideways && !reducedMotion) {
       },
     },
   );
+}
+
+/* ------------------------------------------------------------------ *
+ * On Track / Off Track — the two cutouts closing in, and the riser.
+ *
+ * Three curves over one section, all measured off the reference at
+ * 1728x1080 and each verified by predicting values at scroll positions that
+ * were not used to fit them:
+ *
+ *   cutouts   20rem -> 0, power3.out, across the whole two-screen range
+ *   type       5rem -> 0, LINEAR, finishing at 60% of that range
+ *   riser      climbs 10vh and grows 5% as its frame covers the screen
+ *
+ * The type settling well before the cutouts do is the whole effect. Run both
+ * on one curve and the section arrives all at once; staggered, the words come
+ * to rest and the images are still closing behind them, which is what reads
+ * as depth. The reference does exactly this and it is worth not smoothing out.
+ * ------------------------------------------------------------------ */
+
+/* Same breakpoint and the same reasoning as the gallery: below 992px the
+   section is a static stack, and the CSS that makes it one only holds if no
+   transform is being written underneath it. */
+const ototIsWide = window.matchMedia('(min-width: 992px)').matches;
+
+if (otot && ototIsWide && !reducedMotion) {
+  const ototEnd = otot.querySelector<HTMLElement>('.otot__end');
+
+  gsap.to(
+    {},
+    {
+      ease: 'none',
+      scrollTrigger: {
+        trigger: otot,
+        // The closing starts the moment the section shows and ends as it
+        // finishes passing — 'bottom bottom', not 'bottom top', so it is
+        // settled while still on screen rather than completing off it.
+        start: 'top bottom',
+        end: 'bottom bottom',
+        scrub: true,
+        invalidateOnRefresh: true,
+        onUpdate: (self) => {
+          const p = self.progress;
+          const rest = 1 - p;
+          // power3.out: most of the distance is covered early, so the cutouts
+          // arrive with weight and then ease the last few pixels shut.
+          otot.style.setProperty('--otot-cut', `${20 * rest * rest * rest}rem`);
+          // Linear, and done at 60%.
+          const t = gsap.utils.clamp(0, 1, p / 0.6);
+          otot.style.setProperty('--otot-txt', `${5 * (1 - t)}rem`);
+        },
+        /* Also on refresh: a reload landing inside this section fires no update
+           until something moves, which would leave the cutouts parked at their
+           opening offset with the type already settled. */
+        onRefresh: (self) => {
+          const p = self.progress;
+          const rest = 1 - p;
+          otot.style.setProperty('--otot-cut', `${20 * rest * rest * rest}rem`);
+          const t = gsap.utils.clamp(0, 1, p / 0.6);
+          otot.style.setProperty('--otot-txt', `${5 * (1 - t)}rem`);
+        },
+      },
+    },
+  );
+
+  if (ototEnd) {
+    gsap.to(
+      {},
+      {
+        ease: 'none',
+        scrollTrigger: {
+          trigger: ototEnd,
+          // Exactly the span in which the riser covers the screen: from its
+          // top entering at the bottom to its top reaching the top.
+          start: 'top bottom',
+          end: 'top top',
+          scrub: true,
+          invalidateOnRefresh: true,
+          onUpdate: (self) => otot.style.setProperty('--otot-rise', String(self.progress)),
+          onRefresh: (self) => otot.style.setProperty('--otot-rise', String(self.progress)),
+        },
+      },
+    );
+  }
 }
 
 /* ------------------------------------------------------------------ *
@@ -749,7 +844,14 @@ if (!reducedMotion) {
    * never ran.
    */
   const heroLines = lines.filter((el) => el.closest('.hero'));
-  const scrollLines = lines.filter((el) => !el.closest('.hero'));
+
+  /* Gallery captions enter sideways, not from below, so the bottom margin that
+     holds back a normal reveal is on the wrong axis for them — it would do
+     nothing at all. They also arrive one at a time under the horizontal scrub,
+     which already staggers them; a document-order delay on top of that would
+     fire a caption long after its own picture had gone past. */
+  const galleryLines = lines.filter((el) => el.closest('.gallery'));
+  const scrollLines = lines.filter((el) => !el.closest('.hero') && !el.closest('.gallery'));
 
   for (const line of heroLines) line.style.setProperty('--reveal-delay', delayFor(line));
   onReady(() => {
@@ -769,6 +871,22 @@ if (!reducedMotion) {
     { rootMargin: '0px 0px -8% 0px' },
   );
   for (const line of scrollLines) textRevealer.observe(line);
+
+  /* Inset on the RIGHT, which is the edge a caption actually crosses. A caption
+     fires once it is properly inside the frame rather than the instant it clips
+     the boundary, so the sweep reads as part of the picture arriving instead of
+     something that already happened off-screen. */
+  const galleryRevealer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        entry.target.classList.add('is-in');
+        galleryRevealer.unobserve(entry.target);
+      }
+    },
+    { rootMargin: '0px -14% 0px 0px' },
+  );
+  for (const line of galleryLines) galleryRevealer.observe(line);
 }
 
 /* ------------------------------------------------------------------ *
