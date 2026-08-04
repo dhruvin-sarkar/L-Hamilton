@@ -88,6 +88,98 @@ if (!reducedMotion) {
   // that gap and lurches. Its own rAF already handles the tab-switch case.
   gsap.ticker.lagSmoothing(0);
   lenis = instance;
+
+  /* Everything that scrolls has to go through Lenis, not just the wheel.
+   *
+   * Lenis intercepts wheel and touch and nothing else, so an in-page anchor and
+   * every scrolling key were still moving the document natively — instantly,
+   * and behind Lenis's back. The skip link was the worst of them: it is the
+   * first thing in the document and it jumped. */
+
+  /* Anchors. preventDefault stops the native jump AND stops the hash being
+     written, which is what was yanking the page to the top. Focus still has to
+     move, or "skip to content" skips nothing for the person who needs it. */
+  document.addEventListener('click', (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey) return;
+    const link = (event.target as Element | null)?.closest?.('a[href^="#"]');
+    const id = link?.getAttribute('href')?.slice(1);
+    const target = id ? document.getElementById(id) : null;
+    if (!target) return;
+
+    event.preventDefault();
+    instance.scrollTo(target);
+    // Not focusable by default — <main> and section wrappers are not — so it is
+    // made focusable for the move. preventScroll because Lenis owns the travel.
+    if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
+    target.focus({ preventScroll: true });
+  });
+
+  /** How far each scrolling key moves, given the viewport height. */
+  const keyStep = (key: string, vh: number): number | null => {
+    switch (key) {
+      case 'ArrowDown':
+        return vh * 0.12;
+      case 'ArrowUp':
+        return -vh * 0.12;
+      case 'PageDown':
+        return vh * 0.9;
+      case 'PageUp':
+        return -vh * 0.9;
+      default:
+        return null;
+    }
+  };
+
+  window.addEventListener(
+    'keydown',
+    (event) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+
+      /* Never steal a key from something that wants it. A field is obvious; a
+         button or a link matters just as much, because Space and the arrows
+         activate and move between them. With nothing focused, activeElement is
+         <body>, and the key is the page's to handle.
+       *
+       * tabindex="-1" is deliberately NOT in that list. It marks a programmatic
+       * focus target — a scroll destination, a panel — not a control, and the
+       * anchor handler above puts it on whatever the skip link points at.
+       * Treating it as a control meant that using the skip link switched off
+       * keyboard scrolling for the rest of the visit, which is precisely the
+       * person who needed the skip link in the first place. */
+      const active = document.activeElement;
+      if (active && active !== document.body) {
+        if (
+          active.closest(
+            'input, textarea, select, [contenteditable=""], [contenteditable="true"]',
+          )
+        ) {
+          return;
+        }
+        if (active.closest('a[href], button, summary, [role="button"]')) return;
+        // In the tab order on purpose, so it is a control someone chose to make.
+        const tabindex = active.getAttribute('tabindex');
+        if (tabindex !== null && Number(tabindex) >= 0) return;
+      }
+      // The menu runs its own focus trap and should not scroll the page behind it.
+      if (document.documentElement.hasAttribute('data-menu-open')) return;
+
+      if (event.key === 'Home' || event.key === 'End') {
+        event.preventDefault();
+        instance.scrollTo(event.key === 'Home' ? 0 : document.documentElement.scrollHeight);
+        return;
+      }
+
+      // Space pages down, Shift+Space pages up — the browser's own convention.
+      const key = event.key === ' ' ? (event.shiftKey ? 'PageUp' : 'PageDown') : event.key;
+      const step = keyStep(key, window.innerHeight);
+      if (step === null) return;
+
+      event.preventDefault();
+      instance.scrollTo(instance.scroll + step);
+    },
+    // Not passive: preventDefault is the whole point, or the page scrolls twice.
+    { passive: false },
+  );
 }
 
 /* ------------------------------------------------------------------ *
@@ -1508,10 +1600,20 @@ if (stage) {
         // settles smaller as the screen behind it changes.
         navStyle?.setProperty('--nav-shrink', String(1 - 0.18 * eased));
 
-        // Monogram belongs to both screens but not to the transition between
-        // them. Out fast, back late.
-        const mono = eased < 0.15 ? 1 - eased / 0.15 : Math.max(0, (eased - 0.9) / 0.1);
-        navStyle?.setProperty('--mono-in', String(mono));
+        /* The nav's monogram clears early and does NOT come back. It used to
+           return over the last tenth of the shrink, but the nav is fixed — so
+           the mark it brought back then hung over every section below the hero
+           instead of belonging to the plate. The copy in .hero-mark takes that
+           job over and travels with the plate. */
+        navStyle?.setProperty('--mono-in', String(Math.max(0, 1 - eased / 0.15)));
+
+        /* And here it is, arriving as the plate settles. Late and quick, so it
+           lands WITH the plate rather than drifting in alongside it. Set on the
+           track rather than the root, for the same reason as the nav's. */
+        heroTrack.style.setProperty(
+          '--hero-mark',
+          String(gsap.utils.clamp(0, 1, (eased - 0.82) / 0.18)),
+        );
 
         /* Wordmark crosses to the revealed screen's palette. Giallo on that
            cream measures about 1.06:1, so it has to. Eased, not raw — it tracks

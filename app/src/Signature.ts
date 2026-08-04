@@ -252,9 +252,23 @@ export class Signature {
   /** Scroll progress, 0..1. Remapped so INK grows evenly, not path length. */
   set progress(p: number) {
     const clamped = p < 0 ? 0 : p > 1 ? 1 : p;
-    // Sub-half-a-thousandth changes cannot show up on screen, and skipping them
-    // means a settling scrub stops re-stroking a thousand-segment path.
-    if (Math.abs(clamped - this.lastDrawn) < 0.0005) return;
+    if (clamped === this.lastDrawn) return;
+
+    /* Sub-half-a-thousandth changes cannot show up on screen, and skipping them
+       means a settling scrub stops re-stroking a thousand-segment path.
+     *
+     * Blank and complete are exempt, and that exemption is the point. They are
+     * STATES, not increments. Coming to rest just above the start of the
+     * writing window, the scrub would land progress on something like 0.0003
+     * and then clamp to 0 — a step smaller than the epsilon, so it was dropped,
+     * and every 0 after it was dropped for the same reason, because the delta
+     * never grew. The canvas kept a dab of ink that no further scrolling in
+     * that direction could clear. Through a 520-unit nib that dab is plainly
+     * visible over the portrait, and the only way out was to scroll well away
+     * and come back. */
+    const atEnd = clamped === 0 || clamped === 1;
+    if (!atEnd && Math.abs(clamped - this.lastDrawn) < 0.0005) return;
+
     this.lastDrawn = clamped;
     this.render();
   }

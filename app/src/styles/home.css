@@ -189,6 +189,14 @@
   overflow: visible;
 }
 
+/* The liquid fill, put back on the nav's copy only.
+   The mark itself carries fill="currentColor" so a <use> clone elsewhere can
+   take a plain colour; a CSS rule beats that presentation attribute, and it
+   reaches this original rather than any clone. */
+.monogram__svg > #lh-mark {
+  fill: url(#lh-fill);
+}
+
 /* The two gradient stops. Their OFFSETS are animated from main.ts; only their
    colours live here, so the palette stays in one place. */
 .monogram__stop-fill {
@@ -479,6 +487,7 @@
 .hero-back,
 .hero__stage,
 .hero-sign,
+.hero-mark,
 .hero {
   position: absolute;
   inset-block-start: 0;
@@ -501,6 +510,7 @@
 [data-hero-pinned] .hero-back,
 [data-hero-pinned] .hero__stage,
 [data-hero-pinned] .hero-sign,
+[data-hero-pinned] .hero-mark,
 [data-hero-pinned] .hero {
   position: sticky;
   /* Sticky is in flow, so the horizontal offset the static layout needs has to
@@ -524,6 +534,7 @@
  * layer is already at its flow position. */
 [data-hero-pinned] .hero__stage,
 [data-hero-pinned] .hero-sign,
+[data-hero-pinned] .hero-mark,
 [data-hero-pinned] .hero {
   margin-block-start: -100dvh;
 }
@@ -655,6 +666,54 @@
   display: block;
   inline-size: min(41vw, 52rem);
   block-size: auto;
+}
+
+/* ------------------------------------------- Monogram above the plate
+ *
+ * Arrives as the plate lands and leaves with it. Placed off the reference's own
+ * end state: its mark is 38px tall at y 94 in a 982 viewport, with the plate
+ * starting at 289 — so this sits well clear of the plate rather than tight
+ * above it. Both numbers in rem so they scale with the fluid root.
+ *
+ * Above everything else in the hero: the furniture it might otherwise collide
+ * with has already faded out by the time this appears. */
+
+@property --hero-mark {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: true;
+}
+
+.hero-mark {
+  z-index: 5;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  padding-block-start: 5.32rem;
+}
+
+.hero-mark__svg {
+  inline-size: auto;
+  block-size: 2.15rem;
+  color: var(--rosso-corsa);
+  opacity: var(--hero-mark, 0);
+  /* Uncovered from the bottom up rather than faded in, which is the entrance
+     this site already uses everywhere else — and here it reads as the same
+     liquid level that fills the nav's copy of the mark, without needing a
+     second gradient to keep in sync. */
+  clip-path: inset(calc((1 - var(--hero-mark, 0)) * 100%) 0 0 0);
+  /* A short rise under the wipe. Small on purpose: the mark is settling into
+     place, not flying in. */
+  transform: translateY(calc((1 - var(--hero-mark, 0)) * 0.75rem));
+  will-change: clip-path, transform, opacity;
+}
+
+/* No motion path still gets the mark, just already in place. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-mark__svg {
+    clip-path: none;
+    transform: none;
+  }
 }
 
 .hero {
