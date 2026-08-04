@@ -2401,19 +2401,35 @@
   inline-size: 3rem;
   block-size: 3rem;
   border-radius: 0.5rem;
-  background: var(--accent);
-  color: var(--cream);
-  transition: transform var(--duration-fast, 160ms) var(--cubic-default, ease);
-}
+  /* The same liquid fill the store and menu buttons carry, and deliberately
+     the same declaration rather than a lookalike — Giallo rises through Rosso
+     behind a meniscus as the level climbs. These buttons already sat at Rosso
+     at rest, so they take the treatment unchanged.
 
-.otot__link:hover,
-.otot__link:focus-visible {
-  transform: translate3d(0, -2px, 0);
+     main.ts drives --liquid-level through mountLiquidFill, which is where the
+     curve and the fill/drain asymmetry live; nothing about the physics is
+     restated here. */
+  background: linear-gradient(
+    to top,
+    var(--giallo-modena) calc(var(--liquid-level) * 100%),
+    var(--rosso-corsa) calc((var(--liquid-level) + var(--liquid-gap)) * 100%)
+  );
+  /* Dark ink, not cream — the same call the store button makes. Cream reads on
+     Rosso but not on the Giallo that rises over it, so the arrow would fade out
+     at exactly the moment the hover completes. */
+  color: var(--dark);
 }
 
 .otot__arrow {
   inline-size: 1.25rem;
   block-size: 1.25rem;
+}
+
+/* On Track points back, Off Track points on — the two face away from each
+   other, mirroring the cutouts they sit under. One drawing, flipped, rather
+   than a second path to keep in sync with the first. */
+.otot__col.is-on .otot__arrow {
+  scale: -1 1;
 }
 
 /* ---- the riser ---- */

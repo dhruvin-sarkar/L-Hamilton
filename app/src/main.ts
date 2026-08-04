@@ -1080,8 +1080,23 @@ function mountStoreFill(): void {
   mountLiquidFill(store, (level) => store.style.setProperty('--liquid-level', String(level)));
 }
 
+/**
+ * The two On Track / Off Track arrows.
+ *
+ * Same fill as the store button, mounted the same way — these are the only
+ * other Rosso buttons on the page, so they should answer the pointer the way
+ * the nav does rather than with a hover of their own invention. Both get their
+ * own state, so hovering one never moves the other.
+ */
+function mountOtotFills(): void {
+  for (const link of document.querySelectorAll<HTMLAnchorElement>('.otot__link')) {
+    mountLiquidFill(link, (level) => link.style.setProperty('--liquid-level', String(level)));
+  }
+}
+
 mountMonogram();
 mountStoreFill();
+mountOtotFills();
 
 /* ------------------------------------------------------------------ *
  * Rolling button text
