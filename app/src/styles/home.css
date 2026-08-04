@@ -2720,19 +2720,13 @@
   clip-path: url(#hof-card);
 }
 
-.hof__reveal {
-  position: absolute;
-  inset: 0;
-  inline-size: 100%;
-  block-size: 100%;
-}
+/* Inset from the card, where the reveal is full-bleed — the helmet is a subject
+   standing on the ground rather than a tile filling the frame, so it needs air
+   around it, and more at the foot where the label sits in the notch.
+   `contain` for the same reason: cropping the chin bar off would be worse than
+   the letterboxing.
 
-/* Inset, where the reveal is full-bleed. The reference's helmets are cut-outs
-   with their own transparent margin baked into the file, so they sit off the
-   card edge without any CSS saying so; ours were trimmed hard to the silhouette
-   during keying, so the margin has to be put back here. Deeper at the foot,
-   where the label sits in the notch. */
-/* Sized explicitly rather than by a four-sided `inset`. An absolutely
+   Sized explicitly rather than by a four-sided `inset`. An absolutely
    positioned REPLACED element resolves `width: auto` to the image's intrinsic
    width and then drops the `right` offset as over-constrained — so `inset: 6%
    6% 11%` sized every helmet to the full card and shunted it 6% off to the
@@ -2743,30 +2737,31 @@
   inset-block-start: 6%;
   inline-size: 88%; /* 100 - 6 - 6 */
   block-size: 83%; /* 100 - 6 - 11, the deeper foot clearing the label */
-}
-
-/* contain, not cover: the helmet is a subject standing on the ground rather
-   than a tile filling the card, and cropping the chin bar off would be worse
-   than the letterboxing. */
-.hof__helmet {
   z-index: 1;
   object-fit: contain;
   transform: scale(1);
   transition: transform var(--animation-default);
 }
 
-/* contain, so the whole photograph is visible rather than a centre crop of it.
-   The background matters as much as the fit: `contain` leaves bare bands above
-   and below a landscape shot, and without a ground of its own the helmet
-   sitting at z-index 1 would show through them and read as two pictures at
-   once. Filling with the section's own ground makes the bands disappear into
-   the card.
-
-   It still starts fractionally scaled up and settles to 1, so it comes to rest
-   as the wipe finishes instead of sitting still behind a moving edge. */
-.hof__reveal {
+/* The wearing shot, in two layers.
+ *
+ * Filling the card and showing the whole photograph are in direct conflict:
+ * these are landscape frames at about 1.78, the card is 0.99, and `cover`
+ * throws away 44% of the width. The helmet is rarely dead centre, so that crop
+ * loses the subject often enough to be a real problem — and `contain` on its
+ * own leaves dead bands top and bottom.
+ *
+ * So both. A blurred, darkened `cover` copy fills the card and carries the
+ * setting, and the sharp `contain` copy sits over it holding the helmet whole.
+ * Same src for both, so it is one download.
+ *
+ * The wipe lives on the wrapper rather than on either image, so the two layers
+ * are revealed as one thing. */
+.hof__reveal-w {
+  position: absolute;
+  inset: 0;
   z-index: 2;
-  object-fit: contain;
+  /* Behind both layers, for the moment before the images decode. */
   background: var(--gl-bg);
   clip-path: ellipse(100% 0% at 50% 0);
   transform: scale(1.05);
@@ -2775,12 +2770,38 @@
     transform var(--animation-default);
 }
 
-.hof__item:hover .hof__reveal,
-.hof__item:focus-visible .hof__reveal {
+.hof__item:hover .hof__reveal-w,
+.hof__item:focus-visible .hof__reveal-w {
   /* 120%, not 100%: the ellipse has to overshoot the bottom edge, or its curve
      is still readable as a dome across the foot of the card at the end. */
   clip-path: ellipse(100% 120% at 50% 0);
   transform: scale(1);
+}
+
+/* The context layer. Scaled past the edges on purpose: a blur samples beyond
+   the element's own box, so at 1:1 the outer ring of the card would fade into
+   transparency and let the helmet behind bleed through the border. */
+.hof__reveal-bg {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  /* Enough blur and knock-down that it never competes with the sharp copy, but
+     not so much that it stops being the photograph's own setting — at half
+     brightness under a 22px blur it read as plain dark padding rather than as
+     context, which defeats the point of having the layer at all. */
+  filter: blur(0.85rem) brightness(0.62) saturate(0.9);
+  transform: scale(1.15);
+}
+
+/* The subject layer, whole and sharp. */
+.hof__reveal {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
 }
 
 .hof__item:hover .hof__helmet,
@@ -2998,9 +3019,15 @@
   }
 
   .hof__helmet,
-  .hof__reveal,
+  .hof__reveal-w,
   .hof__frame--on {
     transition: none;
+  }
+
+  /* The wipe is the motion; the layering is not. Held at rest the wrapper would
+     stay scaled up, so it is put back to 1 and only the clip does the work. */
+  .hof__reveal-w {
+    transform: none;
   }
 
   .hof__item:hover .hof__helmet,

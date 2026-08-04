@@ -646,8 +646,12 @@ if (hofGrid) {
         <div class="hof__media">
           <img class="hof__helmet" src="${helmetSrc(helmet)}"
             alt="${attr(helmetAlt(helmet))}" loading="lazy" decoding="async" />
-          <img class="hof__reveal" src="${revealSrc(helmet)}"
-            alt="${attr(revealAlt(helmet))}" loading="lazy" decoding="async" />
+          <span class="hof__reveal-w">
+            <img class="hof__reveal-bg" src="${revealSrc(helmet)}" alt="" aria-hidden="true"
+              loading="lazy" decoding="async" />
+            <img class="hof__reveal" src="${revealSrc(helmet)}"
+              alt="${attr(revealAlt(helmet))}" loading="lazy" decoding="async" />
+          </span>
         </div>
         <div class="hof__frame-w">${hofFrame('base')}${hofFrame('on')}</div>
         <p class="hof__label">
