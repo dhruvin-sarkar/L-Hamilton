@@ -634,12 +634,28 @@ if (gallery && galleryTrack && !reducedMotion) {
     gallery.style.setProperty('--gallery-dark', String(t));
     if (background) background.darkness = t;
 
+    /* The ink flips on its OWN curve, far steeper than the ground's, and that
+     * is the difference between readable and not.
+     *
+     * Crossing both on the same ramp seems obvious and is wrong: halfway
+     * through, the text is exactly as mid-grey as the field behind it and the
+     * captions disappear. Side by side at the same point in the sequence, the
+     * reference's captions are still fully light while its ground is already
+     * halfway across — it holds the contrast and then flips late.
+     *
+     * A smoothstep over a narrow band around the midpoint does that: dark ink
+     * for as long as the ground is light, cream once it is dark, and the moment
+     * where the two match reduced to a crossing rather than a long stretch. */
+    const x = gsap.utils.clamp(0, 1, (t - 0.38) / 0.24);
+    const ink = x * x * (3 - 2 * x);
+    gallery.style.setProperty('--gallery-ink', String(ink));
+
     /* The nav crosses back with the ground it is sitting on. The hero inverted
        it for the light screen and left it there; as the gallery takes that
        screen back to black the wordmark has to return to Rosso and Giallo, or
        it is dark ink on a dark field. Same variable the hero drives, and the
        two ranges never overlap, so whichever is being scrubbed owns it. */
-    navInk?.setProperty('--nav-invert', String(1 - t));
+    navInk?.setProperty('--nav-invert', String(1 - ink));
   };
 
   gsap.to(

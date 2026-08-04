@@ -1950,6 +1950,14 @@
   inherits: true;
 }
 
+/* How far the INK has crossed, which is a steeper ramp than the ground's and
+   deliberately so. See applyGround in main.ts. */
+@property --gallery-ink {
+  syntax: '<number>';
+  initial-value: 0;
+  inherits: true;
+}
+
 .gallery {
   /* Above the fixed contour field, like .impact. */
   position: relative;
@@ -2005,8 +2013,12 @@
   inline-size: var(--w);
   margin-block-start: var(--top, 0);
   /* Ink crosses with the ground: dark on the light screen, cream once the field
-     has gone back to black. Same mechanism the wordmark uses across the hero. */
-  color: color-mix(in oklab, var(--dark), var(--cream) calc(var(--gallery-dark, 0) * 100%));
+     has gone back to black. Same mechanism the wordmark uses across the hero.
+
+     Driven by --gallery-ink rather than --gallery-dark, and the two are NOT the
+     same ramp — see applyGround. Sharing one would put the text at exactly the
+     mid-grey of the field behind it halfway through. */
+  color: color-mix(in oklab, var(--dark), var(--cream) calc(var(--gallery-ink, 0) * 100%));
 }
 
 /* Pokes left into the gap beside it, exactly half a spacer. The reference does
