@@ -3090,3 +3090,347 @@
     transform: none;
   }
 }
+
+/* ==================================================================== *
+ * Store callout
+ *
+ * The closing section, back on the light screen. Measured off the
+ * reference at 1908x884 with a 17.6667px root, so every value below is
+ * that measurement expressed in rem:
+ *
+ *   section     1202       68rem
+ *   visor        141        8rem
+ *   column      1519 @194  86rem, centred
+ *   eyebrow      @321      18.17rem down, 19.875px type
+ *   headline     @375      123.667px / 100.912 / -4.41667
+ *   body         @713      22.083px / 27.604, 573 wide
+ *   button       @829      191 x 53, radius 9.54
+ *
+ * The ground here is the field in its light state, which main.ts crosses
+ * back on the approach. Ink is therefore --dark throughout rather than a
+ * crossfaded value: by the time any of this is on screen the crossing has
+ * finished, and the visor covers the seam where it has not.
+ * ==================================================================== */
+
+.shop {
+  position: relative;
+  block-size: 68rem;
+  /* Its own stacking context, so the art cannot escape over the nav. */
+  isolation: isolate;
+  color: var(--dark);
+  /* Two frames run off an edge by design — the patch off the left and the side
+     shot off the right, both as the reference places them. Left overflow costs
+     nothing, but the right one extended the document to 1962px and gave the
+     whole page a horizontal scrollbar. `clip` rather than `hidden` so the axes
+     stay independent: `hidden` on one axis forces the other to `auto`, which
+     would have made this a scroll container and broken the sticky sections
+     above it. */
+  overflow-x: clip;
+}
+
+/* The dark ground above, domed down over the seam.
+ *
+ * clip-path ellipse(70% p at 50% 0), exactly the reference's. The radii are
+ * what make it read as a dome rather than an arch: 70% horizontally means the
+ * curve has not returned to zero by either edge, so it meets the sides at
+ * about 70 per cent of its depth instead of tapering to a point. p is driven
+ * from scroll and runs 0 to 100%, which is the straight line bending open. */
+.shop__visor {
+  position: absolute;
+  inset-block-start: -1px;
+  inset-inline: 0;
+  block-size: 8rem;
+  background: var(--gl-bg);
+  clip-path: ellipse(70% calc(var(--store-visor, 0) * 100%) at 50% 0%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.shop__inner {
+  position: relative;
+  /* Above the art, which is itself above the visor. The order is visor 2, art
+     3, type 4: the big frame has to paint over the dome, and the type has to
+     paint over both. */
+  z-index: 4;
+  max-inline-size: 86rem;
+  margin-inline: auto;
+  padding-block-start: 18.17rem;
+  padding-inline: var(--gutter);
+}
+
+.shop__text {
+  inline-size: 41.8rem;
+  max-inline-size: 100%;
+}
+
+/* ---- eyebrow ---- */
+
+.shop__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.62rem;
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1;
+  letter-spacing: -0.009em;
+  text-transform: uppercase;
+  color: var(--dark);
+}
+
+.shop__eyebrow-icon {
+  inline-size: 1.02rem;
+  block-size: 1.19rem;
+  flex: none;
+}
+
+/* ---- headline ---- */
+
+.shop__title {
+  margin: 3.05rem 0 0;
+  font-size: 7rem;
+  line-height: 0.816;
+  letter-spacing: -0.0357em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.shop__title-line {
+  display: block;
+  /* The sweep bar spans its element, so each word is its own line or the bar
+     would travel the whole column. Same reasoning as the On/Off Track heads. */
+  inline-size: fit-content;
+}
+
+/* The third line only. Same size and same tracking as the two above it: the
+   reference switches the FACE and nothing else, which is what keeps the three
+   reading as one block rather than as a heading with a flourish under it. */
+.shop__title-line.is-serif {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* ---- body ---- */
+
+.shop__body {
+  margin: 1.87rem 0 0;
+  inline-size: 32.43rem;
+  max-inline-size: 100%;
+  font-size: 1.25rem;
+  line-height: 1.25;
+  color: var(--dark);
+}
+
+/* ---- button ----
+ *
+ * The same liquid fill and the same rolling label as the store pill in the nav,
+ * the On/Off Track arrows and the hall of fame callout. Declared the same way
+ * rather than as a lookalike: main.ts drives --liquid-level through
+ * mountLiquidFill and splits the label through [data-split-chars]. */
+
+.store-cta__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-block-start: 3.28rem;
+  block-size: 3rem;
+  padding-inline: 1rem;
+  border-radius: var(--radius--btn);
+  font-size: var(--text--btn-primary);
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 1;
+  background: linear-gradient(
+    to top,
+    var(--giallo-modena) calc(var(--liquid-level) * 100%),
+    var(--rosso-corsa) calc((var(--liquid-level) + var(--liquid-gap)) * 100%)
+  );
+  color: var(--dark);
+  text-decoration: none;
+}
+
+/* ---- the art ----
+ *
+ * Positioned against the section rather than the column, because the reference
+ * places these against the viewport: its big frame starts at exactly 50% and
+ * two of them run off an edge. Percentages where the placement is proportional,
+ * rem where it is a measured size. */
+
+/* Above the visor, so the big frame overlaps the dome the way the reference's
+   does — the photograph crossing the seam is what ties the two grounds
+   together, and behind it the dome just reads as a band. */
+.shop__art {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* Every frame carries its SOURCE aspect ratio, and the picture is contained
+   rather than covered.
+ *
+ * The reference clips a taller image inside a shorter frame and travels the
+ * overflow, which is free for it: its art is shot to be cropped. Ours is
+ * product photography where the crop costs the product — at the reference's
+ * proportions the patch lost a third of its width and the print lost its
+ * title. So the frame takes the picture's own shape and the parallax moves the
+ * WHOLE frame instead of sliding an image inside it. Same drift, nothing
+ * thrown away. */
+.shop__frame {
+  position: absolute;
+  transform: translateY(calc(var(--store-parallax, 0) * -2.83rem));
+  will-change: transform;
+}
+
+.shop__img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+}
+
+.shop__frame--hero {
+  inset-inline-start: 50%;
+  inset-block-start: 4.02rem;
+  inline-size: 39.4rem;
+  aspect-ratio: 1400 / 1820;
+}
+
+.shop__frame--side {
+  inset-inline-start: 80.34%;
+  inset-block-start: 12rem;
+  inline-size: 25rem;
+  aspect-ratio: 900 / 1170;
+}
+
+/* Moved out of the reference's bottom-centre slot. That position sits directly
+   under the big frame, and with the print at its own full height the two
+   overlapped and the title was the part that went. It reads better in the open
+   ground between the button and the big frame. */
+/* Clear of the body copy, which ends at 46.13rem and runs 32.4rem wide, and
+   clear of the button beside it. Placed against its TRAVELLED position rather
+   than its static one: the parallax lifts every frame by up to 2.83rem, so a
+   gap measured at rest closes to nothing by the time the section has passed. */
+.shop__frame--print {
+  inset-inline-start: 31rem;
+  inset-block-start: 49.5rem;
+  inline-size: 14.2rem;
+  aspect-ratio: 620 / 804;
+}
+
+/* Runs off the left edge, as the reference fourth frame does. */
+.shop__frame--patch {
+  inset-inline-start: -3rem;
+  inset-block-start: 46.02rem;
+  inline-size: 16.36rem;
+  aspect-ratio: 640 / 325;
+}
+
+/* Stickers are flat on the ground: no frame, no clip, no parallax. They read as
+   applied to the page rather than as photographs of it, which is the same
+   distinction the reference draws between its scrolling frames and its flat
+   LN1 mark. */
+.shop__sticker {
+  position: absolute;
+  block-size: auto;
+}
+
+.shop__sticker--keyring {
+  inset-inline-start: 67.19%;
+  inset-block-start: 50.55rem;
+  inline-size: 15.17rem;
+  rotate: -4deg;
+}
+
+.shop__sticker--roundel {
+  inset-inline-start: 40rem;
+  inset-block-start: 15.5rem;
+  inline-size: 5.5rem;
+  rotate: 9deg;
+}
+
+/* Out of the body copy's way now that the print has taken the ground beside
+   the button. */
+.shop__sticker--oval {
+  inset-inline-start: 46.5rem;
+  inset-block-start: 37rem;
+  inline-size: 7rem;
+  rotate: -7deg;
+}
+
+.shop__sticker--silverstone {
+  inset-inline-start: 10.98rem;
+  inset-block-start: 54.5rem;
+  inline-size: 12rem;
+  rotate: 3deg;
+}
+
+/* ---- narrow screens ----
+ *
+ * The same call every other section here makes: the composition depends on a
+ * wide frame and there is not one. The art becomes a plain two-column strip
+ * under the type instead of an arrangement placed against the viewport, and
+ * the section takes its height from its content. */
+@media (max-width: 991px) {
+  .shop {
+    block-size: auto;
+    padding-block-end: 5rem;
+  }
+
+  .shop__visor {
+    block-size: 4rem;
+  }
+
+  .shop__inner {
+    padding-block-start: 7rem;
+  }
+
+  .shop__title {
+    font-size: clamp(3rem, 15vw, 5.5rem);
+  }
+
+  .shop__art {
+    position: static;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-block-start: 3rem;
+    padding-inline: var(--gutter);
+  }
+
+  /* Each keeps its own source ratio here too — no forced shape, so nothing is
+     cropped on a phone either. The parallax goes with the placement: sliding a
+     frame inside a static column reads as a misalignment, not as depth. */
+  .shop__frame {
+    position: relative;
+    inset: auto;
+    inline-size: auto;
+    block-size: auto;
+    transform: none;
+    align-self: start;
+  }
+
+  /* The big one takes the full width; the rest pair up beneath it. */
+  .shop__frame--hero {
+    grid-column: 1 / -1;
+  }
+
+  /* Off-canvas placement and rotation are both viewport composition, so the
+     stickers simply go. Nothing is lost: they carry no content. */
+  .shop__sticker {
+    display: none;
+  }
+}
+
+/* The parallax and the bend are the motion here. Without them the frames still
+   hold their pictures and the visor still separates the two grounds, so the
+   section arrives assembled rather than absent. */
+@media (prefers-reduced-motion: reduce) {
+  .shop__img {
+    transform: none;
+  }
+
+  .shop__visor {
+    clip-path: ellipse(70% 100% at 50% 0%);
+  }
+}

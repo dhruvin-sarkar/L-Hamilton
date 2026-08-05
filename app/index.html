@@ -730,6 +730,100 @@
           </div>
         </div>
       </section>
+
+      <!-- ================================================ Store callout
+           The closing section, on the light screen the gallery took away.
+
+           Measured off the reference at 1908x884, root 17.6667px:
+
+             section    1908 x 1202          68rem tall
+             visor      1908 x 141           8rem, clip-path ellipse(70% p 50% 0)
+             column     1519 wide at x194    86rem, centred
+             headline   123.667px / 100.912  7rem on a 0.816 line, ls -0.0357em
+             body       22.083px / 27.604    1.25rem on 1.25
+             button     191 x 53             10.8 x 3rem, radius 0.54rem
+
+           The visor is the dark ground above, domed down over the seam, and it
+           grows from flat as the section comes up. See --store-visor in main.ts.
+
+           Copy is site copy in the third person, and every claim in it is
+           printed on the products in the photographs themselves - seven stars,
+           +44, and "still we rise / since 2007". Nothing here is presented as
+           something he said. -->
+      <section class="shop" data-store aria-labelledby="store-h">
+        <!-- The dark ground above, carried over the seam as a dome. Decorative:
+             it is the previous section's colour, not content of its own. -->
+        <div class="shop__visor" aria-hidden="true"></div>
+
+        <div class="shop__inner">
+          <div class="shop__text">
+            <p class="shop__eyebrow">
+              <svg class="shop__eyebrow-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 8h12l-1 12H7L6 8Zm3 0V6a3 3 0 0 1 6 0v2" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
+              <span>Hamilton Store</span>
+            </p>
+
+            <!-- Two lines of the condensed face, the third in the serif - the
+                 reference's own arrangement, both at the same size. -->
+            <h2 class="shop__title" id="store-h">
+              <span class="shop__title-line reveal-text">Still</span>
+              <span class="shop__title-line reveal-text">We</span>
+              <span class="shop__title-line is-serif reveal-text">Rise</span>
+            </h2>
+
+            <p class="shop__body reveal-text">
+              Seven stars, one number, and the line he has carried since 2007.
+              The +44 collection, for anyone who counted every one of them.
+            </p>
+
+            <a class="store-cta__link" href="https://store.lewishamilton.com"
+              rel="noopener noreferrer" target="_blank">
+              <span class="sr-only">Visit the Store</span>
+              <span class="btn-text" aria-hidden="true" data-split-chars>Visit the Store</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- The art. Every frame clips an image taller than itself, and the
+             overflow is what travels as the section passes - the reference's
+             own mechanic, measured at 70px of headroom for 50px of travel. -->
+        <div class="shop__art" aria-hidden="true">
+          <div class="shop__frame shop__frame--hero">
+            <img class="shop__img" src="/assets/store/store-hero.webp" width="1400"
+              height="1820" alt="" loading="lazy" decoding="async" />
+          </div>
+          <div class="shop__frame shop__frame--side">
+            <img class="shop__img" src="/assets/store/store-side.webp" width="900"
+              height="1170" alt="" loading="lazy" decoding="async" />
+          </div>
+          <div class="shop__frame shop__frame--print">
+            <img class="shop__img" src="/assets/store/store-print.webp" width="620"
+              height="804" alt="" loading="lazy" decoding="async" />
+          </div>
+          <div class="shop__frame shop__frame--patch">
+            <img class="shop__img" src="/assets/store/store-patch.webp" width="640"
+              height="325" alt="" loading="lazy" decoding="async" />
+          </div>
+
+          <!-- Stickers sit flat on the ground rather than in a clipping frame,
+               so they read as applied to the page rather than as photographs. -->
+          <img class="shop__sticker shop__sticker--keyring"
+            src="/assets/store/store-keyring.webp" width="640" height="168" alt=""
+            loading="lazy" decoding="async" />
+          <img class="shop__sticker shop__sticker--roundel"
+            src="/assets/store/store-roundel.webp" width="520" height="511" alt=""
+            loading="lazy" decoding="async" />
+          <img class="shop__sticker shop__sticker--oval"
+            src="/assets/store/store-oval.webp" width="560" height="341" alt=""
+            loading="lazy" decoding="async" />
+          <img class="shop__sticker shop__sticker--silverstone"
+            src="/assets/store/store-silverstone.webp" width="600" height="174" alt=""
+            loading="lazy" decoding="async" />
+        </div>
+      </section>
     </main>
 
     <!-- ===================================================== Menu panel

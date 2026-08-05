@@ -981,6 +981,89 @@ mm.add(WIDE_AND_ANIMATED, () => {
 });
 
 /* ------------------------------------------------------------------ *
+ * Store callout — the visor bending open, and the ground coming back.
+ *
+ * Two curves, both measured off the reference at 1908x884:
+ *
+ *   visor      clip-path ellipse(70% p at 50% 0), p from 0 to 100%, LINEAR.
+ *              Sampled at three points relative to the section top: 0% with
+ *              the section 900px below the scroll position, 48.8% at 600 and
+ *              100% at 300. So it opens as the section top crosses the fold
+ *              and is fully bent a third of a viewport before it lands.
+ *
+ *   parallax   every framed image travels 0 to -50px, evenly, across a range
+ *              a good deal longer than the visor's — sampled -10px per 300px
+ *              of scroll from the same start.
+ *
+ * The ground crossing is ours rather than the reference's. Its store section
+ * sits on a field that was never darkened: the wall above it is a separate
+ * WebGL scene with its own black. Ours is one continuous field that the
+ * gallery took to black, so it has to come back, and it does it on the visor's
+ * own range — under the dome, which is the one part of the frame still dark
+ * while it happens.
+ * ------------------------------------------------------------------ */
+
+const store = document.querySelector<HTMLElement>('[data-store]');
+
+if (store && !reducedMotion) {
+  const navGround = document.querySelector<HTMLElement>('.nav-inner')?.style ?? null;
+
+  /* Ground and nav ink, from the visor's progress.
+   *
+   * `background.darkness` has two writers now — the gallery taking it to black
+   * and this taking it back. They never overlap: a scrub holds at its end value
+   * and stops calling onUpdate once past its range, so the gallery is silent by
+   * the time this starts. On a refresh both fire, and this one is later in the
+   * document, so it lands last. Same for --nav-ground-dark. */
+  const applyGround = (p: number): void => {
+    if (background) background.darkness = 1 - p;
+    navGround?.setProperty('--nav-ground-dark', String(1 - p));
+  };
+
+  gsap.to(
+    {},
+    {
+      ease: 'none',
+      scrollTrigger: {
+        trigger: store,
+        // Opens as the section top crosses the fold, shut a third of a
+        // viewport later — the reference's 900px and 300px at its own height.
+        start: 'top bottom',
+        end: 'top 34%',
+        scrub: true,
+        invalidateOnRefresh: true,
+        onUpdate: (self) => {
+          store.style.setProperty('--store-visor', String(self.progress));
+          applyGround(self.progress);
+        },
+        onRefresh: (self) => {
+          store.style.setProperty('--store-visor', String(self.progress));
+          applyGround(self.progress);
+        },
+      },
+    },
+  );
+
+  gsap.to(
+    {},
+    {
+      ease: 'none',
+      scrollTrigger: {
+        trigger: store,
+        start: 'top bottom',
+        end: 'bottom top',
+        scrub: true,
+        invalidateOnRefresh: true,
+        onUpdate: (self) =>
+          store.style.setProperty('--store-parallax', String(self.progress)),
+        onRefresh: (self) =>
+          store.style.setProperty('--store-parallax', String(self.progress)),
+      },
+    },
+  );
+}
+
+/* ------------------------------------------------------------------ *
  * Hero entrance.
  *
  * Delays are assigned here rather than written into CSS so the order follows
@@ -1319,7 +1402,9 @@ function mountStoreFill(): void {
  * own state, so hovering one never moves another.
  */
 function mountSectionFills(): void {
-  const buttons = document.querySelectorAll<HTMLAnchorElement>('.otot__link, .hof__cta-link');
+  const buttons = document.querySelectorAll<HTMLAnchorElement>(
+    '.otot__link, .hof__cta-link, .store-cta__link',
+  );
   for (const link of buttons) {
     mountLiquidFill(link, (level) => link.style.setProperty('--liquid-level', String(level)));
   }
