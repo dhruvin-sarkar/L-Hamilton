@@ -3640,6 +3640,20 @@
   margin: 5.7rem auto 0;
 }
 
+/* The card composes THREE independent signals into one transform:
+ *
+ *   --spread  0 to 1, the deal. At 0 every card sits exactly on the centre
+ *             card's box - same place, same angle, same size - so the fan
+ *             starts as a single stack and opens into the measured
+ *             arrangement. Multiplying the offsets is what makes that work
+ *             without a second set of numbers to keep in sync.
+ *   --pop     0 to 1, hover. Lifts and enlarges the card under the pointer.
+ *   --fan-*   the measured rest position, untouched by either.
+ *
+ * Written as one transform rather than as competing rules, because two rules
+ * setting transform on the same element means the later one wins outright and
+ * the other silently does nothing.
+ */
 .socials__card {
   position: absolute;
   inset-block-start: 0;
@@ -3648,12 +3662,33 @@
   block-size: 35rem;
   /* -50% takes the card off its own left edge; the measured x applies on top
      of that, so a step of 0 genuinely means centred. */
-  transform: translate(-50%, 0) translate(var(--fan-x, 0), var(--fan-y, 0))
-    rotate(var(--fan-rot, 0deg)) scale(var(--fan-scale, 1));
-  z-index: var(--fan-z, 1);
+  transform: translate(-50%, 0)
+    translate(
+      calc(var(--fan-x, 0rem) * var(--spread, 1)),
+      calc(var(--fan-y, 0rem) * var(--spread, 1) - var(--pop, 0) * 1.6rem)
+    )
+    rotate(calc(var(--fan-rot, 0deg) * var(--spread, 1)))
+    scale(
+      calc(
+        (1 + (var(--fan-scale, 1) - 1) * var(--spread, 1)) * (1 + var(--pop, 0) * 0.07)
+      )
+    );
+  z-index: calc(var(--fan-z, 1) + var(--pop, 0) * 20);
   border-radius: 1.4rem;
   overflow: clip;
   background: var(--dark);
+}
+
+/* The hover transition is added only once the deal has finished. While the
+   spread is running GSAP rewrites --spread every frame, and a transition on
+   transform would treat each of those frames as a new destination — the cards
+   would lag behind their own animation and arrive soft. */
+.socials__fan.is-settled .socials__card {
+  transition: transform 0.45s var(--cubic-default);
+}
+
+.socials__fan.is-settled .socials__card:hover {
+  --pop: 1;
 }
 
 .socials__card img {

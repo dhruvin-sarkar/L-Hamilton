@@ -1214,23 +1214,80 @@ if (collabs) {
       }
     };
 
-    gsap.to(
-      {},
-      {
-        ease: 'none',
-        scrollTrigger: {
-          trigger: collabs,
-          // Writes across the approach and lands as the block settles, which is
-          // where the reference's own scroll-triggered Rive artboard finishes.
-          start: 'top bottom',
-          end: 'top 30%',
-          scrub: true,
-          invalidateOnRefresh: true,
-          onUpdate: (self) => draw(self.progress),
-          onRefresh: (self) => draw(self.progress),
-        },
+    draw(0);
+
+    /* Plays itself once, rather than being scrubbed.
+     *
+     * The reference's artboard is scroll-triggered but not scroll-SCRUBBED: it
+     * is a state machine that runs on entry at its own pace. Scrubbing it ties
+     * the pen to the wheel, so a slow reader writes the word slowly and a fast
+     * one never sees it written at all. On a one-shot the hand always moves at
+     * the speed of a hand.
+     *
+     * power1.inOut over 1.9s: a linear pen starts and stops dead, which reads
+     * as a plotter. `once` because a word that rewrites itself every time it
+     * scrolls back into view is a distraction, not a flourish. */
+    const pen = { t: 0 };
+    ScrollTrigger.create({
+      trigger: collabs,
+      start: 'top 75%',
+      once: true,
+      onEnter: () => {
+        gsap.to(pen, {
+          t: 1,
+          duration: 1.9,
+          ease: 'power1.inOut',
+          onUpdate: () => draw(pen.t),
+        });
       },
-    );
+    });
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Socials — the deal.
+ *
+ * The cards start stacked exactly on the centre card and open into the
+ * measured fan. CSS composes it: every offset is multiplied by --spread, so
+ * zero puts all seven in one place without a second set of coordinates to
+ * keep in step with the first.
+ *
+ * Staggered from the CENTRE OUT rather than left to right, which is what makes
+ * it read as a deal rather than as a queue — the middle card is already home
+ * while the outer pair is still travelling.
+ * ------------------------------------------------------------------ */
+
+const fan = document.querySelector<HTMLElement>('.socials__fan');
+
+if (fan) {
+  const cards = [...fan.querySelectorAll<HTMLElement>('.socials__card')];
+
+  if (reducedMotion || !cards.length) {
+    // The arrangement is the content here; only the travel to it is motion.
+    fan.classList.add('is-settled');
+  } else {
+    for (const card of cards) card.style.setProperty('--spread', '0');
+
+    ScrollTrigger.create({
+      trigger: fan,
+      start: 'top 80%',
+      once: true,
+      onEnter: () => {
+        gsap.to(cards, {
+          '--spread': 1,
+          duration: 1.1,
+          ease: 'power3.out',
+          // Distance from the middle drives the delay, so the pair furthest out
+          // leaves last and lands last.
+          delay: 0.1,
+          stagger: {
+            each: 0.075,
+            from: 'center',
+          },
+          onComplete: () => fan.classList.add('is-settled'),
+        });
+      },
+    });
   }
 }
 
