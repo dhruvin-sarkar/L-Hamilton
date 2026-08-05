@@ -1107,30 +1107,37 @@
   pointer-events: none;
 }
 
-/* --dur-base, NOT --duration-default. 0.75s is the reference's house value for
-   a transition; 0.5s is its house value for an entrance, and this is an
-   entrance. The distinction matters more here than anywhere else on the site
-   because the bar is opaque: the text is unreadable for the first 48% of
-   whatever duration is set, so 0.75s cost 360ms of blank line before a single
-   glyph appeared. 0.5s costs 240ms. */
+/* 1.5s, a full second longer than it was, and the split inside it is what makes
+   that affordable.
+ *
+ * The bar is opaque, so the line is unreadable until the bar has covered it and
+ * started to retract. That cover phase used to be 48% of the duration, which is
+ * fine at 0.5s (240ms) and unusable at 1.5s (720ms of blank line) — stretching
+ * the old curve would have put back exactly the lateness this was tuned out of.
+ *
+ * So the cover is compressed to the first 20% and the RETRACT is stretched
+ * across the remaining 80%. Blank time stays at ~300ms, near where it already
+ * was, while the half worth watching — the bar pulling off finished
+ * letterforms — runs four times longer than before. */
 .reveal-text.is-in {
-  animation: text-in var(--dur-base) var(--cubic-default) both;
+  animation: text-in var(--dur-reveal) var(--cubic-default) both;
   animation-delay: var(--reveal-delay, 0ms);
 }
 
 .reveal-text.is-in::after {
-  animation: bar-sweep var(--dur-base) var(--cubic-default) both;
+  animation: bar-sweep var(--dur-reveal) var(--cubic-default) both;
   animation-delay: var(--reveal-delay, 0ms);
 }
 
 /* Stepped, not eased: the text must be fully hidden until the bar has covered
-   it, then fully present. A cross-fade under a moving bar reads as a mistake. */
+   it, then fully present. A cross-fade under a moving bar reads as a mistake.
+   The step sits at 19/20% rather than 48/49% — see the note on --dur-reveal. */
 @keyframes text-in {
   0%,
-  48% {
+  19% {
     opacity: 0;
   }
-  49%,
+  20%,
   100% {
     opacity: 1;
   }
@@ -1143,11 +1150,11 @@
     transform: scaleX(0);
     transform-origin: left;
   }
-  48% {
+  19% {
     transform: scaleX(1);
     transform-origin: left;
   }
-  52% {
+  21% {
     transform: scaleX(1);
     transform-origin: right;
   }
@@ -3640,15 +3647,21 @@
   margin: 5.7rem auto 0;
 }
 
-/* The card composes THREE independent signals into one transform:
+/* The card composes FOUR independent signals into one transform:
  *
+ *   --rise    1 to 0, the entrance. Each card climbs from below the fold into
+ *             the stack, one after another, before anything spreads.
  *   --spread  0 to 1, the deal. At 0 every card sits exactly on the centre
  *             card's box - same place, same angle, same size - so the fan
  *             starts as a single stack and opens into the measured
  *             arrangement. Multiplying the offsets is what makes that work
  *             without a second set of numbers to keep in sync.
- *   --pop     0 to 1, hover. Lifts and enlarges the card under the pointer.
- *   --fan-*   the measured rest position, untouched by either.
+ *   --pop     0 to 1, the hovered card. Lifts and enlarges it.
+ *   --push    the OTHER cards, in rem, signed. The hovered card's neighbours
+ *             lean away to give it room, nearer ones further than far ones, so
+ *             the row behaves like one connected object rather than seven
+ *             independent tiles.
+ *   --fan-*   the measured rest position, untouched by any of them.
  *
  * Written as one transform rather than as competing rules, because two rules
  * setting transform on the same element means the later one wins outright and
@@ -3664,8 +3677,11 @@
      of that, so a step of 0 genuinely means centred. */
   transform: translate(-50%, 0)
     translate(
-      calc(var(--fan-x, 0rem) * var(--spread, 1)),
-      calc(var(--fan-y, 0rem) * var(--spread, 1) - var(--pop, 0) * 1.6rem)
+      calc(var(--fan-x, 0rem) * var(--spread, 1) + var(--push, 0rem)),
+      calc(
+        var(--fan-y, 0rem) * var(--spread, 1) - var(--pop, 0) * 1.6rem + var(--rise, 0) *
+          26rem
+      )
     )
     rotate(calc(var(--fan-rot, 0deg) * var(--spread, 1)))
     scale(
@@ -3673,22 +3689,29 @@
         (1 + (var(--fan-scale, 1) - 1) * var(--spread, 1)) * (1 + var(--pop, 0) * 0.07)
       )
     );
+  opacity: calc(1 - var(--rise, 0));
   z-index: calc(var(--fan-z, 1) + var(--pop, 0) * 20);
   border-radius: 1.4rem;
   overflow: clip;
   background: var(--dark);
 }
 
-/* The hover transition is added only once the deal has finished. While the
-   spread is running GSAP rewrites --spread every frame, and a transition on
-   transform would treat each of those frames as a new destination — the cards
-   would lag behind their own animation and arrive soft. */
-.socials__fan.is-settled .socials__card {
-  transition: transform 0.45s var(--cubic-default);
+/* Hover is driven from main.ts, not from a :hover rule with a transition.
+ *
+ * Two reasons. The spring wanted here is an overshoot-and-settle, and CSS has
+ * no easing that does it — a cubic-bezier can overshoot once but cannot ring
+ * down. And the push is a RELATIONSHIP: entering one card has to move the other
+ * six by an amount that depends on their distance from it, which a rule
+ * attached to :hover on a single element cannot express.
+ *
+ * The cards are only made interactive once the deal has finished, so a pointer
+ * resting where they will land cannot start pushing them mid-flight. */
+.socials__fan .socials__card {
+  pointer-events: none;
 }
 
-.socials__fan.is-settled .socials__card:hover {
-  --pop: 1;
+.socials__fan.is-settled .socials__card {
+  pointer-events: auto;
 }
 
 .socials__card img {

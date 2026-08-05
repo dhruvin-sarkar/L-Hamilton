@@ -90,7 +90,11 @@ html {
      does: its backgroundScene shares headScene's THICKNESS and OUTLINE and
      differs only in colour. Ours inverts the other way round, because our hero
      is the dark one: light ground, red line. See BackgroundField. */
-  --gl-rev-bg: #f7f3f1;
+  /* Cream, not white. This is the one value that decides the colour of every
+     light surface on the site at once — the field's own ground, the screen the
+     hero uncovers, the impact wall, the store, the partners row and the socials
+     — because all six read this token rather than each naming a hex. */
+  --gl-rev-bg: var(--cream);
   /* Separated from its ground mostly in CHROMA rather than in luminance — about
      7/255 in red against 64 and 77 in green and blue. That is a deliberate
      shape, not a colour picked and left: the reference's own background pair is
@@ -199,6 +203,10 @@ html {
 
   --dur-micro: 0.25s;
   --dur-base: 0.5s;
+  /* The text reveal only. A full second longer than an ordinary entrance, which
+     it can afford because the bar's covering phase is held to the first fifth
+     of it rather than scaling with it — see .reveal-text in home.css. */
+  --dur-reveal: 1.5s;
   --stagger: 20ms;
 }
 

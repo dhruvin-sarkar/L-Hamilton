@@ -1266,28 +1266,84 @@ if (fan) {
     // The arrangement is the content here; only the travel to it is motion.
     fan.classList.add('is-settled');
   } else {
-    for (const card of cards) card.style.setProperty('--spread', '0');
+    for (const card of cards) {
+      card.style.setProperty('--rise', '1');
+      card.style.setProperty('--spread', '0');
+      card.style.setProperty('--push', '0rem');
+    }
 
     ScrollTrigger.create({
       trigger: fan,
       start: 'top 80%',
       once: true,
       onEnter: () => {
-        gsap.to(cards, {
-          '--spread': 1,
-          duration: 1.1,
-          ease: 'power3.out',
-          // Distance from the middle drives the delay, so the pair furthest out
-          // leaves last and lands last.
-          delay: 0.1,
-          stagger: {
-            each: 0.075,
-            from: 'center',
-          },
-          onComplete: () => fan.classList.add('is-settled'),
-        });
+        gsap
+          .timeline({ onComplete: () => fan.classList.add('is-settled') })
+          /* One at a time, and quickly. They arrive in document order rather
+             than from the centre, because this is a stack being built: each
+             card lands on the one before it. 55ms apart is fast enough that the
+             seven read as one gesture and slow enough to see them arrive
+             separately. */
+          .to(cards, {
+            '--rise': 0,
+            duration: 0.5,
+            ease: 'power3.out',
+            stagger: 0.055,
+          })
+          /* Then the stack opens. From the CENTRE OUT this time — the middle
+             card is already home while the outer pair is still travelling,
+             which is what reads as a deal rather than as a queue.
+           *
+             Overlapped by 0.15s so the last card has not quite settled when the
+             spread begins. Waiting for a full stop puts a beat between the two
+             halves and they stop reading as one move. */
+          .to(
+            cards,
+            {
+              '--spread': 1,
+              duration: 1.1,
+              ease: 'power3.out',
+              stagger: { each: 0.075, from: 'center' },
+            },
+            '-=0.15',
+          );
       },
     });
+
+    /* ---- hover: the card pops, its neighbours lean away ----
+     *
+     * The push falls off as 1/distance, so the cards either side move most and
+     * the far pair barely at all. That falloff is what makes the row feel
+     * connected: a constant push would slide the whole side across as a block,
+     * and no push at all leaves the popped card growing straight through its
+     * neighbours.
+     *
+     * back.out overshoots once and settles. elastic rings several times, which
+     * on seven cards at once reads as a wobble rather than as give. */
+    const SPRING = 'back.out(2.2)';
+    const REACH = 2.6;
+
+    const settle = (hovered: number | null): void => {
+      cards.forEach((card, i) => {
+        const isHovered = hovered === i;
+        const gap = hovered === null ? 0 : i - hovered;
+        const push = gap === 0 ? 0 : (Math.sign(gap) * REACH) / Math.abs(gap);
+        gsap.to(card, {
+          '--pop': isHovered ? 1 : 0,
+          '--push': `${push}rem`,
+          duration: isHovered || hovered === null ? 0.55 : 0.7,
+          ease: SPRING,
+          overwrite: 'auto',
+        });
+      });
+    };
+
+    cards.forEach((card, i) => {
+      card.addEventListener('pointerenter', () => settle(i));
+    });
+    // On the FAN, not on each card: leaving one card for the next fires a leave
+    // before the enter, and resetting in between makes the row flinch.
+    fan.addEventListener('pointerleave', () => settle(null));
   }
 }
 
