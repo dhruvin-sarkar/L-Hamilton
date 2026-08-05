@@ -1269,7 +1269,11 @@ if (fan) {
     for (const card of cards) {
       card.style.setProperty('--rise', '1');
       card.style.setProperty('--spread', '0');
+      // Both hover signals start explicitly at rest. GSAP reads the computed
+      // value to tween FROM, and an unset custom property computes to the empty
+      // string rather than to the var() fallback the transform names.
       card.style.setProperty('--push', '0rem');
+      card.style.setProperty('--lean', '0deg');
     }
 
     ScrollTrigger.create({
@@ -1310,27 +1314,68 @@ if (fan) {
       },
     });
 
-    /* ---- hover: the card pops, its neighbours lean away ----
+    /* ---- hover: the card pops, the fan opens around it ----
      *
-     * The push falls off as 1/distance, so the cards either side move most and
-     * the far pair barely at all. That falloff is what makes the row feel
-     * connected: a constant push would slide the whole side across as a block,
-     * and no push at all leaves the popped card growing straight through its
-     * neighbours.
+     * Measured off the reference rather than invented. Hovering its middle card
+     * moves the neighbours out by 131.9px, the pair beyond them by 56.5px and
+     * the outermost pair by NOTHING — and hovering an off-centre card leaves the
+     * outermost card on that side equally still. So the fan does not get wider
+     * on hover; it redistributes inside a fixed span.
+     *
+     * That is the whole model: the gap beside the hovered card opens by OPEN,
+     * and every gap further out compresses proportionally to pay for it, which
+     * pins the outer edge and makes the displacement taper to zero there. Fitted
+     * against the reference it predicts 7.47 / 3.13 / 0 rem where the reference
+     * measures 7.47 / 3.20 / 0 — inside 2%.
+     *
+     * The old version pushed on a 1/distance curve topping out at 2.6rem, barely
+     * a third of this, so the hovered card grew into neighbours that had hardly
+     * moved. It hid that by jumping the card 20 above its own z-index, which
+     * fixed the overlap by breaking the fan's depth order instead. The reference
+     * never restacks — its z stays 1,2,3,10,3,2,1 through every hover — because
+     * once the neighbours actually move there is nothing left to cover.
      *
      * back.out overshoots once and settles. elastic rings several times, which
      * on seven cards at once reads as a wobble rather than as give. */
     const SPRING = 'back.out(2.2)';
-    const REACH = 2.6;
+    /** The measured rest offsets, in rem, indexed to match `cards`. */
+    const FAN_X = [-30, -22.02, -10.98, 0, 10.98, 22.02, 30];
+    /** How far the gap beside the hovered card opens. 131.9px at a 17.667 root. */
+    const OPEN = 7.47;
+    /** Neighbours also rotate a touch further out — 1.5deg at the nearest. */
+    const LEAN = 1.5;
+
+    /* The markup and this table have to describe the same fan. If they ever
+       disagree the geometry below is meaningless, so say so rather than
+       quietly treating a missing card as sitting at the centre. */
+    const restX = (i: number): number => {
+      const x = FAN_X[i];
+      if (x === undefined) throw new Error(`socials fan: no rest offset for card ${i}`);
+      return x;
+    };
+
+    const displace = (hovered: number, i: number): number => {
+      if (i === hovered) return 0;
+      const dir = Math.sign(i - hovered);
+      const edge = dir > 0 ? cards.length - 1 : 0;
+      const near = hovered + dir;
+      // The neighbour IS the pinned edge, so there is no gap left to compress
+      // into and that side simply holds still.
+      if (near === edge) return 0;
+      const span = restX(edge) - restX(near);
+      return dir * OPEN * (1 - (restX(i) - restX(near)) / span);
+    };
 
     const settle = (hovered: number | null): void => {
       cards.forEach((card, i) => {
         const isHovered = hovered === i;
-        const gap = hovered === null ? 0 : i - hovered;
-        const push = gap === 0 ? 0 : (Math.sign(gap) * REACH) / Math.abs(gap);
+        const distance = hovered === null ? 0 : Math.abs(i - hovered);
+        const push = hovered === null ? 0 : displace(hovered, i);
+        const lean = distance === 0 ? 0 : (Math.sign(i - hovered!) * LEAN) / distance;
         gsap.to(card, {
           '--pop': isHovered ? 1 : 0,
           '--push': `${push}rem`,
+          '--lean': `${lean}deg`,
           duration: isHovered || hovered === null ? 0.55 : 0.7,
           ease: SPRING,
           overwrite: 'auto',
@@ -1406,6 +1451,86 @@ if (!reducedMotion) {
    * make one group read top to bottom, so it has to restart at each group —
    * otherwise it is not a stagger, it is an accumulating delay.
    */
+  /* ---- splitting a block into one bar per visual line ----
+   *
+   * The reference does this and it is the whole reason its copy arrives a line
+   * at a time: every paragraph is cut into <span class="line"> boxes, each with
+   * its own bar, ~0.15s apart. One bar across a four-line paragraph cannot
+   * express that no matter how it is eased.
+   *
+   * Lines are a rendering fact, not a markup one, so they have to be MEASURED:
+   * wrap each word, read the line box it landed in off offsetTop, then rebuild
+   * the block one span per distinct box. */
+
+  const LINE_STAGGER = 150;
+
+  /** The words as authored, kept so a re-split starts from the text and not
+      from the spans left by the previous one. */
+  const sourceOf = (el: HTMLElement): string => {
+    if (el.dataset.revealSource === undefined) el.dataset.revealSource = el.textContent ?? '';
+    return el.dataset.revealSource;
+  };
+
+  /* Text-only blocks, laid out as blocks. Anything carrying element children has
+     markup worth more than the cascade — a link, an emphasis, a nested span —
+     and rebuilding it from textContent would silently throw that away. */
+  const splittable = (el: HTMLElement): boolean =>
+    el.childElementCount === 0 &&
+    (el.textContent ?? '').trim().length > 0 &&
+    getComputedStyle(el).display.includes('block');
+
+  const splitIntoLines = (el: HTMLElement, baseDelay: number): void => {
+    const source = sourceOf(el);
+
+    // Every word its own box, so offsetTop reports which line it fell on.
+    el.textContent = '';
+    const words: HTMLElement[] = [];
+    for (const token of source.split(/(\s+)/)) {
+      if (!token) continue;
+      if (/^\s+$/.test(token)) {
+        el.appendChild(document.createTextNode(token));
+        continue;
+      }
+      const word = document.createElement('span');
+      word.textContent = token;
+      el.appendChild(word);
+      words.push(word);
+    }
+
+    const rows: string[][] = [];
+    let current: string[] = [];
+    let lastTop: number | null = null;
+    for (const word of words) {
+      const top = word.offsetTop;
+      // A tolerance rather than equality: superscripts and inline images sit a
+      // pixel or two off their neighbours without starting a new line.
+      if (lastTop === null || Math.abs(top - lastTop) > 1) {
+        current = [];
+        rows.push(current);
+        lastTop = top;
+      }
+      current.push(word.textContent ?? '');
+    }
+
+    // One line is not a cascade, and wrapping it would swap its inline layout
+    // for a block one for no gain. Put the text back exactly as it was.
+    if (rows.length < 2) {
+      el.textContent = source;
+      delete el.dataset.revealSplit;
+      return;
+    }
+
+    el.textContent = '';
+    rows.forEach((row, i) => {
+      const line = document.createElement('span');
+      line.className = 'reveal-line';
+      line.textContent = row.join(' ');
+      line.style.setProperty('--reveal-delay', `${baseDelay + i * LINE_STAGGER}ms`);
+      el.appendChild(line);
+    });
+    el.dataset.revealSplit = '';
+  };
+
   const groupOf = (el: HTMLElement): Element => el.closest('section') ?? document.body;
   /* 25ms, not the 90ms this used to be. The reference's own staggers measure
      0.015-0.03s and cluster on 0.02s; 90ms was more than four times its widest.
@@ -1414,11 +1539,45 @@ if (!reducedMotion) {
      closing line did not read for the better part of a second after the section
      had arrived. At 25ms those six span 125ms and still resolve top to bottom
      rather than snapping in together. */
-  const delayFor = (el: HTMLElement) => {
+  const delayFor = (el: HTMLElement): number => {
     const group = groupOf(el);
     const peers = lines.filter((line) => groupOf(line) === group);
-    return `${peers.indexOf(el) * 25}ms`;
+    return peers.indexOf(el) * 25;
   };
+
+  /* Split every block that turns out to be more than one line long.
+   *
+   * After the fonts, not before: line boxes measured against the fallback face
+   * break in different places, and a block cut on those breaks keeps the wrong
+   * cuts once the real face swaps in.
+   *
+   * Re-cut on resize for the same reason. Between 992 and 1920 the root scales
+   * with the viewport so the text and its column grow together and the breaks
+   * barely move, but below 992 the root locks at 16px while the column keeps
+   * narrowing — and there the breaks change completely. A block that has
+   * already played is marked done rather than re-cut into a fresh animation,
+   * so re-measuring never replays a reveal the reader has watched. */
+  const applySplits = (): void => {
+    for (const el of lines) {
+      if (!splittable(el)) continue;
+      const played = el.classList.contains('is-in');
+      splitIntoLines(el, delayFor(el));
+      if (played) el.classList.add('is-done');
+    }
+  };
+
+  void document.fonts.ready.then(() => {
+    applySplits();
+    // The rebuild can move a block's height by a fraction of a line, and every
+    // pinned section below it is positioned off that.
+    ScrollTrigger.refresh();
+  });
+
+  let resplit = 0;
+  window.addEventListener('resize', () => {
+    window.clearTimeout(resplit);
+    resplit = window.setTimeout(applySplits, 200);
+  });
 
   /**
    * Hero lines fire with the entrance, NOT on intersection.
@@ -1440,7 +1599,7 @@ if (!reducedMotion) {
   const galleryLines = lines.filter((el) => el.closest('.gallery'));
   const scrollLines = lines.filter((el) => !el.closest('.hero') && !el.closest('.gallery'));
 
-  for (const line of heroLines) line.style.setProperty('--reveal-delay', delayFor(line));
+  for (const line of heroLines) line.style.setProperty('--reveal-delay', `${delayFor(line)}ms`);
   onReady(() => {
     for (const line of heroLines) line.classList.add('is-in');
   });
@@ -1450,7 +1609,7 @@ if (!reducedMotion) {
       for (const entry of entries) {
         if (!entry.isIntersecting) continue;
         const el = entry.target as HTMLElement;
-        el.style.setProperty('--reveal-delay', delayFor(el));
+        el.style.setProperty('--reveal-delay', `${delayFor(el)}ms`);
         el.classList.add('is-in');
         textRevealer.unobserve(el);
       }

@@ -608,7 +608,7 @@
    one, because everything from the hero down is dark ink on light — degrading
    to --bg would leave the wall unreadable. */
 #main {
-  background: var(--gl-rev-bg);
+  background: var(--field-ground);
 }
 
 .hero-back {
@@ -1091,77 +1091,88 @@
   position: relative;
 }
 
-[data-reveal-animated] .reveal-text {
-  opacity: 0;
-}
-
-[data-reveal-animated] .reveal-text::after {
+/* The bar ALREADY COVERS the line, and revealing means retracting it.
+ *
+ * This used to travel: scaleX 0 -> 1 from the left, flip origin, 1 -> 0 to the
+ * right, with the text held at opacity 0 until the bar had arrived. That first
+ * half is dead time — the reader is looking straight at a line that has not
+ * begun to appear yet — and no amount of moving the scroll trigger earlier
+ * removes it, because the wait is inside the animation rather than in front of
+ * it. Compressing it to 19% of the duration only shortened it to ~285ms.
+ *
+ * The reference does not do that. Its .high-line-reveal rests at scaleX(1) with
+ * transform-origin right, over text that is never hidden, and the whole
+ * animation is the retract — so the first frame after the trigger already shows
+ * letterforms. That is also what puts solid accent blocks over copy that has
+ * not been reached yet, which is the look, not a glitch. Measured off the
+ * reference: ~0.47s per line, ~0.15s apart.
+ *
+ * The text needs no opacity animation at all now — the bar covering it is what
+ * hides it — which is one less thing that can leave a line invisible. */
+[data-reveal-animated] .reveal-text::after,
+[data-reveal-animated] .reveal-line::after {
   content: '';
   position: absolute;
   /* Slightly larger than the text box so the bar covers descenders and the
      letterforms never peek out from under its edge. */
   inset: -0.1em -0.15em;
   background: var(--accent);
-  transform: scaleX(0);
-  transform-origin: left;
+  transform: scaleX(1);
+  /* Retracts to the right, so the line is uncovered left-to-right — in reading
+     order. The reference's own origin is 100% 50%. */
+  transform-origin: right;
   pointer-events: none;
 }
 
-/* 1.5s, a full second longer than it was, and the split inside it is what makes
-   that affordable.
+/* A split block's bar lives on each line instead, so the block must not also
+   carry one across the whole paragraph. */
+[data-reveal-animated] .reveal-text[data-reveal-split]::after {
+  content: none;
+}
+
+/* One visual line of a split block, measured and rebuilt by main.ts.
+   nowrap because the line boxes were computed at this width: letting the words
+   re-flow would put two lines' worth of text under one bar. */
+.reveal-line {
+  position: relative;
+  display: block;
+  white-space: nowrap;
+}
+
+/* One rule now, covering both the unsplit block and every line of a split one.
  *
- * The bar is opaque, so the line is unreadable until the bar has covered it and
- * started to retract. That cover phase used to be 48% of the duration, which is
- * fine at 0.5s (240ms) and unusable at 1.5s (720ms of blank line) — stretching
- * the old curve would have put back exactly the lateness this was tuned out of.
+ * A split block's own .is-in is what starts its lines, so a single trigger
+ * drives the whole paragraph and the cascade inside it comes from each line's
+ * own --reveal-delay rather than from seven separate observers firing at seven
+ * slightly different scroll positions.
  *
- * So the cover is compressed to the first 20% and the RETRACT is stretched
- * across the remaining 80%. Blank time stays at ~300ms, near where it already
- * was, while the half worth watching — the bar pulling off finished
- * letterforms — runs four times longer than before. */
-.reveal-text.is-in {
-  animation: text-in var(--dur-reveal) var(--cubic-default) both;
+ * --ease-reveal, not the house curve. cubic-bezier(0.65, 0.05, 0, 1) is an
+ * ease-IN-out: it barely moves for its first fifth, which on a 1.5s retract is
+ * ~300ms of a bar sitting still over the line — the exact lateness this rebuild
+ * exists to remove, reintroduced through the easing instead of the keyframes.
+ * The reveal curve leaves immediately and decelerates into place. */
+.reveal-text.is-in::after,
+.reveal-text.is-in .reveal-line::after {
+  animation: bar-retract var(--dur-reveal) var(--ease-reveal) both;
   animation-delay: var(--reveal-delay, 0ms);
 }
 
-.reveal-text.is-in::after {
-  animation: bar-sweep var(--dur-reveal) var(--cubic-default) both;
-  animation-delay: var(--reveal-delay, 0ms);
-}
-
-/* Stepped, not eased: the text must be fully hidden until the bar has covered
-   it, then fully present. A cross-fade under a moving bar reads as a mistake.
-   The step sits at 19/20% rather than 48/49% — see the note on --dur-reveal. */
-@keyframes text-in {
-  0%,
-  19% {
-    opacity: 0;
+@keyframes bar-retract {
+  from {
+    transform: scaleX(1);
   }
-  20%,
-  100% {
-    opacity: 1;
+  to {
+    transform: scaleX(0);
   }
 }
 
-/* Grow from the left, then shrink away to the right — one continuous sweep,
-   which is why the origin flips at the midpoint rather than the bar sliding. */
-@keyframes bar-sweep {
-  0% {
-    transform: scaleX(0);
-    transform-origin: left;
-  }
-  19% {
-    transform: scaleX(1);
-    transform-origin: left;
-  }
-  21% {
-    transform: scaleX(1);
-    transform-origin: right;
-  }
-  100% {
-    transform: scaleX(0);
-    transform-origin: right;
-  }
+/* Already read. Set when a resize re-cuts a block that had played, because the
+   new line spans are fresh elements and would otherwise animate in from fully
+   covered — replaying a reveal over text the reader is looking at. */
+.reveal-text.is-done::after,
+.reveal-text.is-done .reveal-line::after {
+  animation: none;
+  transform: scaleX(0);
 }
 
 /* No reduced-motion override needed: the lines are visible unless
@@ -1858,7 +1869,7 @@
   color: var(--dark);
   /* The crest's visor is a knockout, so it has to match the ground it is on
      rather than the page's. See the <use> target in index.html. */
-  --crest-ground: var(--gl-rev-bg);
+  --crest-ground: var(--field-ground);
 }
 
 .impact__inner {
@@ -3450,10 +3461,11 @@
  * 4.5rem headline on a 0.886 line, and a 3.45rem logo row 8rem below.
  *
  * This is where the field stops. Both closing sections are a plain ground
- * with no contour behind them, painted in --gl-rev-bg — the SAME token the
- * field's own light ground reads, so the flat area and the field above it
- * are the same cream by construction rather than by two hexes that have to
- * be kept in step.
+ * with no contour behind them, painted in --field-ground — the cream the
+ * field's own light ground RENDERS as, which is not the same number as the
+ * hex handed to its shader. See the pair of notes in tokens.css; painting
+ * these with --gl-rev-bg instead is what left the flat area a visibly
+ * lighter, whiter panel than the field it continues.
  * ==================================================================== */
 
 .collabs {
@@ -3461,7 +3473,7 @@
   isolation: isolate;
   padding-block-start: 20rem;
   color: var(--dark);
-  background: var(--gl-rev-bg);
+  background: var(--field-ground);
   overflow-x: clip;
 }
 
@@ -3473,7 +3485,7 @@
   inset-block-start: -8rem;
   inset-inline: 0;
   block-size: 8rem;
-  background: linear-gradient(to bottom, transparent, var(--gl-rev-bg));
+  background: linear-gradient(to bottom, transparent, var(--field-ground));
   pointer-events: none;
 }
 
@@ -3609,7 +3621,7 @@
   isolation: isolate;
   padding-block: 12.8rem 4rem;
   color: var(--dark);
-  background: var(--gl-rev-bg);
+  background: var(--field-ground);
   overflow-x: clip;
 }
 
@@ -3681,18 +3693,22 @@
     translate(
       calc(var(--fan-x, 0rem) * var(--spread, 1) + var(--push, 0rem)),
       calc(
-        var(--fan-y, 0rem) * var(--spread, 1) - var(--pop, 0) * 1.6rem + var(--rise, 0) *
+        var(--fan-y, 0rem) * var(--spread, 1) - var(--pop, 0) * 2.5rem + var(--rise, 0) *
           26rem
       )
     )
-    rotate(calc(var(--fan-rot, 0deg) * var(--spread, 1)))
+    rotate(calc(var(--fan-rot, 0deg) * var(--spread, 1) + var(--lean, 0deg)))
     scale(
       calc(
-        (1 + (var(--fan-scale, 1) - 1) * var(--spread, 1)) * (1 + var(--pop, 0) * 0.07)
+        (1 + (var(--fan-scale, 1) - 1) * var(--spread, 1)) * (1 + var(--pop, 0) * 0.08)
       )
     );
   opacity: calc(1 - var(--rise, 0));
-  z-index: calc(var(--fan-z, 1) + var(--pop, 0) * 20);
+  /* Fixed, never touched by hover. The reference holds 1,2,3,10,3,2,1 through
+     every hover state: the fan's depth order IS the composition, and lifting a
+     card out of it to dodge an overlap trades one artefact for a worse one. The
+     hovered card gets its room from --push moving its neighbours instead. */
+  z-index: var(--fan-z, 1);
   border-radius: 1.4rem;
   overflow: clip;
   background: var(--dark);

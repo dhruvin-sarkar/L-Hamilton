@@ -90,11 +90,30 @@ html {
      does: its backgroundScene shares headScene's THICKNESS and OUTLINE and
      differs only in colour. Ours inverts the other way round, because our hero
      is the dark one: light ground, red line. See BackgroundField. */
-  /* Cream, not white. This is the one value that decides the colour of every
-     light surface on the site at once — the field's own ground, the screen the
-     hero uncovers, the impact wall, the store, the partners row and the socials
-     — because all six read this token rather than each naming a hex. */
+  /* Cream, not white. The SHADER INPUT for the revealed field's ground.
+   *
+   * Read this pair together with --field-ground below, and do not paint CSS
+   * with this one. The field's fragment shader is a raw ShaderMaterial, so
+   * three never injects its <colorspace_fragment> encode step: the colour
+   * three has already converted into its LINEAR working space is written
+   * straight to the framebuffer and the screen reads those linear components
+   * as if they were sRGB. The field therefore paints a predictably darker
+   * colour than the hex here, and every value in this GL block is really "the
+   * number handed to the shader", not "the colour you will see".
+   *
+   * That is a real defect in the colour pipeline rather than a choice, but the
+   * dark palette above has been tuned by eye THROUGH it (see the note on
+   * --gl-outline), so correcting the encode would re-light the hero and every
+   * value here would need re-tuning together. Left as-is deliberately. */
   --gl-rev-bg: var(--cream);
+  /* What the field's light ground ACTUALLY renders as: linear(--gl-rev-bg),
+     measured off the canvas at rgb(222, 212, 208) and matching that
+     conversion exactly. This is the cream of every light surface on the site,
+     so anything painting a flat ground that has to sit flush with the field
+     — #main, the impact wall's crest, the partners row, the socials — reads
+     THIS token, never --gl-rev-bg. Retune --gl-rev-bg and this must move with
+     it, or the flat sections will step away from the field again. */
+  --field-ground: #ded4d0;
   /* Separated from its ground mostly in CHROMA rather than in luminance — about
      7/255 in red against 64 and 77 in green and blue. That is a deliberate
      shape, not a colour picked and left: the reference's own background pair is
@@ -204,9 +223,19 @@ html {
   --dur-micro: 0.25s;
   --dur-base: 0.5s;
   /* The text reveal only. A full second longer than an ordinary entrance, which
-     it can afford because the bar's covering phase is held to the first fifth
-     of it rather than scaling with it — see .reveal-text in home.css. */
+     it can afford because none of it is spent waiting: the bar starts already
+     covering the line, so every millisecond of this is text appearing. See
+     .reveal-text in home.css. */
   --dur-reveal: 1.5s;
+  /* Leaves hard and decelerates. The house curve is an ease-IN-out and would
+     hold the bar still for the first ~300ms of the retract, which is precisely
+     the delay the reveal was rebuilt to get rid of. */
+  --ease-reveal: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Between the lines of one block. Measured off the reference at ~150ms, which
+     is far larger than it sounds — it is the beat that makes a paragraph arrive
+     line by line instead of all at once. Not to be confused with --stagger,
+     which spaces whole elements and stays small. */
+  --stagger-line: 150ms;
   --stagger: 20ms;
 }
 
