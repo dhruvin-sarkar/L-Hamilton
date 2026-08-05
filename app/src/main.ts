@@ -89,6 +89,48 @@ let lenis: Lenis | null = null;
    reduced, and every caller has to cope with that. */
 let background: BackgroundField | null = null;
 
+/* ------------------------------------------------------------------ *
+ * The revealed field's ground, and its single owner.
+ *
+ * The field crosses to black once — the gallery scrubbing sideways over it —
+ * and back to cream once, as the store's visor opens. Both of those used to
+ * ASSIGN background.darkness, on the reasoning that their ranges never overlap
+ * so whichever ran last was the one that mattered.
+ *
+ * That holds while scrolling and fails on every refresh, because a refresh
+ * re-applies EVERY trigger regardless of whether the scroll is inside its
+ * range. Anywhere above the store its progress is 0, so its writer set
+ * darkness to 1 - 0 = 1 and painted the whole top of the page black — the
+ * screen the hero uncovers, the signature, everything above the gallery —
+ * moments after the gallery's writer had correctly set 0. Document order
+ * decided it, and document order is not the answer to "how dark should this
+ * ground be at this scroll position".
+ *
+ * So neither writes the value now. Each reports its own contribution and this
+ * combines them: how far the ground has gone dark, less how far it has come
+ * back. The two ranges still never overlap, which is what makes a subtraction
+ * exact rather than a blend — and unlike last-writer-wins it is
+ * order-independent, so a refresh firing them in any sequence lands on the
+ * same answer as scrolling through them would.
+ * ------------------------------------------------------------------ */
+
+const groundCross = { darkening: 0, ink: 0, lightening: 0 };
+
+/** Resolved once. The script is a module, so the nav is already parsed. */
+const navGroundStyle = document.querySelector<HTMLElement>('.nav-inner')?.style ?? null;
+
+function applyGroundCross(): void {
+  const clamp = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
+  if (background) background.darkness = clamp(groundCross.darkening - groundCross.lightening);
+  /* The nav's ink crosses on a far steeper curve than the ground does — see
+     the note in the gallery — so it carries its own term rather than reusing
+     the ground's. Both are undone by the same return to light. */
+  navGroundStyle?.setProperty(
+    '--nav-ground-dark',
+    String(clamp(groundCross.ink - groundCross.lightening)),
+  );
+}
+
 if (!reducedMotion) {
   const instance = new Lenis({
     lerp: 0.14,
@@ -682,9 +724,6 @@ const WIDE_AND_ANIMATED = '(min-width: 992px) and (prefers-reduced-motion: no-pr
 
 mm.add(WIDE_AND_ANIMATED, () => {
   if (!gallery || !galleryTrack) return;
-  /** The nav's own style, so the wordmark can cross back with the ground. */
-  const navInk = document.querySelector<HTMLElement>('.nav-inner')?.style;
-
   /** Every photo, with the frame it slides inside. Resolved once. */
   const panes = [...galleryTrack.querySelectorAll<HTMLElement>('.gallery__frame')].map(
     (frame) => ({ frame, img: frame.querySelector('img') }),
@@ -750,7 +789,6 @@ mm.add(WIDE_AND_ANIMATED, () => {
   const applyGround = (progress: number) => {
     const t = 1 - (1 - progress) * (1 - progress);
     gallery.style.setProperty('--gallery-dark', String(t));
-    if (background) background.darkness = t;
 
     /* The ink flips on its OWN curve, far steeper than the ground's, and that
      * is the difference between readable and not.
@@ -784,7 +822,9 @@ mm.add(WIDE_AND_ANIMATED, () => {
        for the cream screen it uncovers, wrong once this section paints that
        screen black. The nav combines the two in CSS instead, so neither has to
        know about the other. */
-    navInk?.setProperty('--nav-ground-dark', String(ink));
+    groundCross.darkening = t;
+    groundCross.ink = ink;
+    applyGroundCross();
   };
 
   gsap.to(
@@ -819,8 +859,12 @@ mm.add(WIDE_AND_ANIMATED, () => {
     galleryTrack.style.removeProperty('--gallery-x');
     for (const { img } of panes) img?.style.removeProperty('--pan');
     otot?.style.removeProperty('--otot-ink');
-    navInk?.removeProperty('--nav-ground-dark');
-    if (background) background.darkness = 0;
+    // Withdraw this section's contribution rather than clearing the value: the
+    // store still has a say, and in the column layout there is no darkening
+    // left for it to undo.
+    groundCross.darkening = 0;
+    groundCross.ink = 0;
+    applyGroundCross();
   };
 });
 
@@ -1006,18 +1050,13 @@ mm.add(WIDE_AND_ANIMATED, () => {
 const store = document.querySelector<HTMLElement>('[data-store]');
 
 if (store && !reducedMotion) {
-  const navGround = document.querySelector<HTMLElement>('.nav-inner')?.style ?? null;
-
-  /* Ground and nav ink, from the visor's progress.
-   *
-   * `background.darkness` has two writers now — the gallery taking it to black
-   * and this taking it back. They never overlap: a scrub holds at its end value
-   * and stops calling onUpdate once past its range, so the gallery is silent by
-   * the time this starts. On a refresh both fire, and this one is later in the
-   * document, so it lands last. Same for --nav-ground-dark. */
+  /* This section's share of the ground: how far the field has come BACK to
+     cream. It never assigns the ground — see applyGroundCross, which owns it —
+     because above this section the visor's progress is 0 and "1 - 0" is a
+     perfectly confident instruction to paint the top of the page black. */
   const applyGround = (p: number): void => {
-    if (background) background.darkness = 1 - p;
-    navGround?.setProperty('--nav-ground-dark', String(1 - p));
+    groundCross.lightening = p;
+    applyGroundCross();
   };
 
   gsap.to(
