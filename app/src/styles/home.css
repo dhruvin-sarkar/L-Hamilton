@@ -1107,13 +1107,19 @@
   pointer-events: none;
 }
 
+/* --dur-base, NOT --duration-default. 0.75s is the reference's house value for
+   a transition; 0.5s is its house value for an entrance, and this is an
+   entrance. The distinction matters more here than anywhere else on the site
+   because the bar is opaque: the text is unreadable for the first 48% of
+   whatever duration is set, so 0.75s cost 360ms of blank line before a single
+   glyph appeared. 0.5s costs 240ms. */
 .reveal-text.is-in {
-  animation: text-in var(--duration-default) var(--cubic-default) both;
+  animation: text-in var(--dur-base) var(--cubic-default) both;
   animation-delay: var(--reveal-delay, 0ms);
 }
 
 .reveal-text.is-in::after {
-  animation: bar-sweep var(--duration-default) var(--cubic-default) both;
+  animation: bar-sweep var(--dur-base) var(--cubic-default) both;
   animation-delay: var(--reveal-delay, 0ms);
 }
 
@@ -2518,11 +2524,31 @@
   inset: 0;
   inline-size: 100%;
   block-size: 100%;
-  object-fit: cover;
   object-position: center;
-  transform: scale(calc(1 + var(--otot-rise, 0) * 0.04));
   transform-origin: center;
   will-change: transform;
+}
+
+/* The context layer, and the only one that is allowed to be cropped. Scaled
+   past the frame on purpose: a blur samples outside the element's own box, so
+   at 1:1 the outer band would fade toward transparency and show the pinned
+   screen through the edges of a picture that is meant to cover it. */
+.otot__end-img--bed {
+  object-fit: cover;
+  filter: blur(2.25rem) brightness(0.55) saturate(0.9);
+  transform: scale(calc(1.08 + var(--otot-rise, 0) * 0.04));
+}
+
+/* The subject layer, whole. `contain` rather than `cover`, so the raised hands
+   at the top and the ground at the bottom both survive.
+ *
+ * It settles UP TO 1 rather than past it. The push-in is worth keeping, but a
+ * contained image scaled beyond 1 is cropped again by its own frame, which is
+ * the whole defect this pair exists to fix — so the movement runs 0.96 to 1 and
+ * the picture is complete exactly when it comes to rest. */
+.otot__end-img--sharp {
+  object-fit: contain;
+  transform: scale(calc(1 - (1 - var(--otot-rise, 0)) * 0.04));
 }
 
 /* ---- narrow screens ----
@@ -2581,8 +2607,15 @@
   .otot__cut.is-off,
   .otot__col.is-on,
   .otot__col.is-off,
-  .otot__end-img {
+  .otot__end-img--sharp {
     transform: none;
+  }
+
+  /* NOT `none`. The push-in is motion and goes, but the bed's scale is not
+     motion — it is the bleed that stops a 2.25rem blur fading the frame's own
+     edges to transparent. Held at its resting value instead. */
+  .otot__end-img--bed {
+    transform: scale(1.08);
   }
 }
 

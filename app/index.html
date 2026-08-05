@@ -639,7 +639,17 @@
              card sliding up. -->
         <div class="otot__end">
           <div class="otot__end-frame">
-            <img class="otot__end-img" src="/assets/otot/hall-of-fame.webp"
+            <!-- Two layers, the same arrangement the hall of fame cards use. The
+                 photograph is 16:9 and this frame is a whole viewport, so
+                 `cover` alone was taking 69px off the top and the same off the
+                 bottom — the raised hands and the ground he stands on. The
+                 blurred copy fills the frame and carries the setting; the sharp
+                 copy over it is contained, so the picture reads whole. One src,
+                 so it stays one download and one decode. -->
+            <img class="otot__end-img otot__end-img--bed" src="/assets/otot/hall-of-fame.webp"
+              alt="" aria-hidden="true" width="2400" height="1350" loading="lazy"
+              decoding="async" />
+            <img class="otot__end-img otot__end-img--sharp" src="/assets/otot/hall-of-fame.webp"
               alt="Lewis Hamilton with both arms raised, seen from behind" width="2400"
               height="1350" loading="lazy" decoding="async" />
           </div>

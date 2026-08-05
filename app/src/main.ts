@@ -1040,10 +1040,17 @@ if (!reducedMotion) {
    * otherwise it is not a stagger, it is an accumulating delay.
    */
   const groupOf = (el: HTMLElement): Element => el.closest('section') ?? document.body;
+  /* 25ms, not the 90ms this used to be. The reference's own staggers measure
+     0.015-0.03s and cluster on 0.02s; 90ms was more than four times its widest.
+     Across the six lines of On Track / Off Track that put the last one 450ms
+     behind the first, and on top of the time the bar spends covering it the
+     closing line did not read for the better part of a second after the section
+     had arrived. At 25ms those six span 125ms and still resolve top to bottom
+     rather than snapping in together. */
   const delayFor = (el: HTMLElement) => {
     const group = groupOf(el);
     const peers = lines.filter((line) => groupOf(line) === group);
-    return `${peers.indexOf(el) * 90}ms`;
+    return `${peers.indexOf(el) * 25}ms`;
   };
 
   /**
@@ -1081,7 +1088,16 @@ if (!reducedMotion) {
         textRevealer.unobserve(el);
       }
     },
-    { rootMargin: '0px 0px -8% 0px' },
+    /* A LEAD, not an inset. This used to be -8%, which held the reveal back
+       until the line was already 8% of the viewport inside the frame — so the
+       bar's covering half ran in full view and the line sat blank while the
+       reader was looking straight at it.
+     *
+     * +10% starts it just under a viewport-tenth before the line crosses the
+     * edge, which is roughly the covering half at an ordinary scroll rate. What
+     * arrives on screen is the bar already retracting off finished text, which
+     * is the half of this animation worth watching. */
+    { rootMargin: '0px 0px 10% 0px' },
   );
   for (const line of scrollLines) textRevealer.observe(line);
 
@@ -2029,108 +2045,131 @@ if (stage) {
     document.documentElement.dataset.heroPinned = '';
 
     const p = { t: 0 };
+
+    /**
+     * Everything the shrink writes, for a raw progress through the pin.
+     *
+     * Named and called from two places on purpose. ScrollTrigger.refresh()
+     * scrolls the document to 0 to take its measurements, which renders this
+     * tween at t=0 and writes the whole top-of-hero state into the DOM; it then
+     * restores the scroll and re-applies progress with events SUPPRESSED, so
+     * onUpdate does not fire again. A tween with rendered properties survives
+     * that, because the properties are re-applied either way — but every output
+     * here is a side effect of the callback, so nothing came back and the page
+     * was left describing the top of the hero from wherever it had been
+     * reloaded or resized. The field then never drew at all, since the frame
+     * loop gates on `shrunk`, and the ground went flat white.
+     *
+     * Driving it from onRefresh as well is what the gallery and both On/Off
+     * Track triggers already do, for the same reason.
+     */
+    const applyShrink = (t: number): void => {
+      /* Two clocks: t is raw scroll through the pin, eased is the plate's
+         curve. Anything belonging to the shrink reads `eased`; anything that
+         should advance evenly with the wheel reads `t`. */
+      const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+      shrunk = eased;
+      // plateGeometry already returns values for this progress — no second ramp.
+      const box = plateGeometry(eased);
+      stage.style.setProperty('--hero-zoom', String(box.zoom));
+      stage.style.setProperty('--hero-crop-x', `${box.cropX * 100}%`);
+      stage.style.setProperty('--hero-crop-top', `${box.cropTop * 100}%`);
+      stage.style.setProperty('--hero-crop-bottom', `${box.cropBottom * 100}%`);
+
+      /* The plate stops being a scene and becomes a picture.
+       *
+       * 0.4, not the 0.75 this used to be, and that came out of the reference
+       * rather than out of taste: screenshotted at the midpoint of its own
+       * shrink, its plate is ALREADY flat — no contours inside the box, no
+       * helmet, nothing moving — while at a quarter through both are still
+       * plainly there. So the handover happens somewhere in between, and it
+       * is a switch rather than a fade. */
+      head.inert = eased >= 0.4;
+
+      /* The signature writes itself across the back half of the pin, on the
+         RAW clock so it advances by the same amount for every notch of the
+         wheel. Measured against the reference over ten increments: nothing at
+         three, barely started at five, then a steady climb that lands exactly
+         on ten.
+
+         A progress SET rather than a tween of its own, so scrubbing backwards
+         un-writes it exactly the way it was written. */
+      rawProgress = t;
+      if (signature) {
+        signature.progress = (t - SIGN_FROM) / (SIGN_TO - SIGN_FROM);
+      }
+      // Muted, not faded. Draining saturation keeps the plate solid; dropping
+      // opacity would dissolve it into the screen behind. Stops at 0.2 — a
+      // fully grey plate reads as broken rather than as receding.
+      head.saturation = 1 - 0.8 * eased;
+      // The furniture belongs to the full-bleed screen, so it clears early —
+      // gone by the time the plate is a third of the way in.
+      heroTrack.style.setProperty(
+        '--hero-furniture',
+        String(Math.max(0, 1 - eased / 0.3)),
+      );
+      /* These three go on the NAV, not on the document element.
+       *
+       * A custom property set on :root invalidates style for every element
+       * that could inherit it, which is all of them — so writing three of
+       * them per frame was scheduling three whole-document style recalcs on
+       * every frame of the shrink. Every consumer of all three lives inside
+       * .nav-inner (the wordmark, its two halves, the monogram, the topbar),
+       * so scoping the write there confines the recalc to about a dozen
+       * elements. Nothing about the rendered result changes. */
+      // The nav does not travel; it is already fixed in the corners. It just
+      // settles smaller as the screen behind it changes.
+      navStyle?.setProperty('--nav-shrink', String(1 - 0.18 * eased));
+
+      /* The nav's monogram clears early and does NOT come back. It used to
+         return over the last tenth of the shrink, but the nav is fixed — so
+         the mark it brought back then hung over every section below the hero
+         instead of belonging to the plate. The copy in .hero-mark takes that
+         job over and travels with the plate. */
+      navStyle?.setProperty('--mono-in', String(Math.max(0, 1 - eased / 0.15)));
+
+      /* And here it is, arriving as the plate settles. Late and quick, so it
+         lands WITH the plate rather than drifting in alongside it. Set on the
+         track rather than the root, for the same reason as the nav's. */
+      heroTrack.style.setProperty(
+        '--hero-mark',
+        String(gsap.utils.clamp(0, 1, (eased - 0.82) / 0.18)),
+      );
+
+      /* Wordmark crosses to the revealed screen's palette. Giallo on that
+         cream measures about 1.06:1, so it has to. Eased, not raw — it tracks
+         the screen changing, and a linear ramp would leave it half-inverted
+         while the hero still filled the frame. */
+      navStyle?.setProperty(
+        '--nav-invert',
+        String(gsap.utils.clamp(0, 1, (eased - 0.1) / 0.5)),
+      );
+    };
+
     gsap.to(p, {
       t: 1,
       /* LINEAR, so `p.t` is raw scroll position through the pin.
        *
        * The reference's curve on the plate is power1.inOut — confirmed against
        * its own render at nine consecutive scroll increments, matching to within
-       * a pixel — and that curve is now applied below, explicitly, to the things
-       * that want it. It used to live here on the tween instead, which meant
-       * EVERYTHING read an eased clock, including the signature. That is what
-       * made the signature feel like it snapped: it started near the middle of
-       * the pin, which is exactly where an inOut curve is moving fastest, so it
-       * inherited the plate's acceleration on top of its own. */
+       * a pixel — and that curve is applied inside applyShrink, explicitly, to
+       * the things that want it. It used to live here on the tween instead,
+       * which meant EVERYTHING read an eased clock, including the signature.
+       * That is what made the signature feel like it snapped: it started near
+       * the middle of the pin, which is exactly where an inOut curve is moving
+       * fastest, so it inherited the plate's acceleration on top of its own. */
       ease: 'none',
-      onUpdate: () => {
-        /* Two clocks: p.t is raw scroll through the pin, eased is the plate's
-           curve. Anything belonging to the shrink reads `eased`; anything that
-           should advance evenly with the wheel reads `p.t`. */
-        const eased = p.t < 0.5 ? 2 * p.t * p.t : 1 - Math.pow(-2 * p.t + 2, 2) / 2;
-
-        shrunk = eased;
-        // plateGeometry already returns values for this progress — no second ramp.
-        const box = plateGeometry(eased);
-        stage.style.setProperty('--hero-zoom', String(box.zoom));
-        stage.style.setProperty('--hero-crop-x', `${box.cropX * 100}%`);
-        stage.style.setProperty('--hero-crop-top', `${box.cropTop * 100}%`);
-        stage.style.setProperty('--hero-crop-bottom', `${box.cropBottom * 100}%`);
-
-        /* The plate stops being a scene and becomes a picture.
-         *
-         * 0.4, not the 0.75 this used to be, and that came out of the reference
-         * rather than out of taste: screenshotted at the midpoint of its own
-         * shrink, its plate is ALREADY flat — no contours inside the box, no
-         * helmet, nothing moving — while at a quarter through both are still
-         * plainly there. So the handover happens somewhere in between, and it
-         * is a switch rather than a fade. */
-        head.inert = eased >= 0.4;
-
-        /* The signature writes itself across the back half of the pin, on the
-           RAW clock so it advances by the same amount for every notch of the
-           wheel. Measured against the reference over ten increments: nothing at
-           three, barely started at five, then a steady climb that lands exactly
-           on ten.
-
-           A progress SET rather than a tween of its own, so scrubbing backwards
-           un-writes it exactly the way it was written. */
-        rawProgress = p.t;
-        if (signature) {
-          signature.progress = (p.t - SIGN_FROM) / (SIGN_TO - SIGN_FROM);
-        }
-        // Muted, not faded. Draining saturation keeps the plate solid; dropping
-        // opacity would dissolve it into the screen behind. Stops at 0.2 — a
-        // fully grey plate reads as broken rather than as receding.
-        head.saturation = 1 - 0.8 * eased;
-        // The furniture belongs to the full-bleed screen, so it clears early —
-        // gone by the time the plate is a third of the way in.
-        heroTrack.style.setProperty(
-          '--hero-furniture',
-          String(Math.max(0, 1 - eased / 0.3)),
-        );
-        /* These three go on the NAV, not on the document element.
-         *
-         * A custom property set on :root invalidates style for every element
-         * that could inherit it, which is all of them — so writing three of
-         * them per frame was scheduling three whole-document style recalcs on
-         * every frame of the shrink. Every consumer of all three lives inside
-         * .nav-inner (the wordmark, its two halves, the monogram, the topbar),
-         * so scoping the write there confines the recalc to about a dozen
-         * elements. Nothing about the rendered result changes. */
-        // The nav does not travel; it is already fixed in the corners. It just
-        // settles smaller as the screen behind it changes.
-        navStyle?.setProperty('--nav-shrink', String(1 - 0.18 * eased));
-
-        /* The nav's monogram clears early and does NOT come back. It used to
-           return over the last tenth of the shrink, but the nav is fixed — so
-           the mark it brought back then hung over every section below the hero
-           instead of belonging to the plate. The copy in .hero-mark takes that
-           job over and travels with the plate. */
-        navStyle?.setProperty('--mono-in', String(Math.max(0, 1 - eased / 0.15)));
-
-        /* And here it is, arriving as the plate settles. Late and quick, so it
-           lands WITH the plate rather than drifting in alongside it. Set on the
-           track rather than the root, for the same reason as the nav's. */
-        heroTrack.style.setProperty(
-          '--hero-mark',
-          String(gsap.utils.clamp(0, 1, (eased - 0.82) / 0.18)),
-        );
-
-        /* Wordmark crosses to the revealed screen's palette. Giallo on that
-           cream measures about 1.06:1, so it has to. Eased, not raw — it tracks
-           the screen changing, and a linear ramp would leave it half-inverted
-           while the hero still filled the frame. */
-        navStyle?.setProperty(
-          '--nav-invert',
-          String(gsap.utils.clamp(0, 1, (eased - 0.1) / 0.5)),
-        );
-      },
+      onUpdate: () => applyShrink(p.t),
       scrollTrigger: {
         trigger: heroTrack,
         start: 'top top',
         end: () => `+=${window.innerHeight}`,
         scrub: true,
         invalidateOnRefresh: true,
+        // See applyShrink. Without this a reload or a resize anywhere past the
+        // hero leaves the whole page in its scroll-zero state.
+        onRefresh: (self) => applyShrink(self.progress),
       },
     });
   }
