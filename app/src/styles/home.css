@@ -3434,3 +3434,407 @@
     clip-path: ellipse(70% 100% at 50% 0%);
   }
 }
+
+/* ==================================================================== *
+ * Partners & campaigns
+ *
+ * Measured off the reference at 1908x884, root 17.6667px. The numbers are
+ * in the markup comment; the ones that matter here are 20rem of lead, a
+ * 4.5rem headline on a 0.886 line, and a 3.45rem logo row 8rem below.
+ *
+ * This is where the field stops. The reference runs both closing sections
+ * on flat cream with no contour behind them, so ours paints an opaque
+ * ground and fades into it over the 8rem above, rather than the field
+ * simply ending on a line.
+ * ==================================================================== */
+
+.collabs {
+  position: relative;
+  isolation: isolate;
+  padding-block-start: 20rem;
+  color: var(--dark);
+  background: var(--gl-rev-bg);
+  overflow-x: clip;
+}
+
+/* The fade. Sits ABOVE the section box, over the foot of the store, so the
+   contour field dissolves into this ground instead of being cut off by it. */
+.collabs::before {
+  content: '';
+  position: absolute;
+  inset-block-start: -8rem;
+  inset-inline: 0;
+  block-size: 8rem;
+  background: linear-gradient(to bottom, transparent, var(--gl-rev-bg));
+  pointer-events: none;
+}
+
+/* The drawn word, behind the type as the reference's is: it carries
+   z-index -1 and runs off the left edge, 1407x881 at -159,71. */
+.collabs__mark {
+  position: absolute;
+  inset-block-start: 4rem;
+  inset-inline-start: -9rem;
+  inline-size: 79.6rem;
+  block-size: 49.9rem;
+  z-index: 0;
+  color: var(--giallo-modena);
+  pointer-events: none;
+}
+
+.collabs__mark-svg {
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+
+/* Dash length and offset are written by main.ts from each path's own measured
+   getTotalLength, the same way the menu draws its current-page mark. A constant
+   here would be wrong for every path and silently wrong after any edit. */
+.collabs__stroke path {
+  stroke-dashoffset: var(--draw-offset, 0);
+}
+
+.collabs__inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+  padding-inline: 1.25rem;
+}
+
+.collabs__title {
+  margin: 0;
+  font-size: 4.5rem;
+  line-height: 0.886;
+  letter-spacing: -0.0278em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.collabs__title-line {
+  display: block;
+  inline-size: fit-content;
+}
+
+/* 4.6875rem against the sans line's 4.5, which is the reference's own 1.0417x.
+   It is a cap-height match rather than a size change: Playfair sets smaller on
+   the body than the grotesque at the same nominal size, so leaving both at
+   4.5rem drops the serif line visibly below the one above it. */
+.collabs__title-line.is-serif {
+  font-family: var(--font-serif);
+  font-size: 4.6875rem;
+  font-weight: 700;
+  text-transform: lowercase;
+}
+
+.collabs__body {
+  margin: 0;
+  max-inline-size: 25rem;
+  font-size: 1.25rem;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+/* ---- the logo row ----
+ *
+ * Wordmarks set in the site's own type rather than the partners' logo files.
+ * The reference ships each partner's SVG, which it is entitled to do with its
+ * own commercial partners; those marks are third-party trademarks and this
+ * build does not redistribute them. Set as type the row still reads as a
+ * partner wall, and every name on it is real. */
+
+.collabs__marquee {
+  margin-block-start: 8rem;
+  overflow: clip;
+  /* The row is the section's last element and carries the closing space. 20rem
+     rather than 8: the reference's section is 1053 tall against 700 of content,
+     and that trailing third is what stops the drawn word - which runs to 952 -
+     reading as though it overflows the section it belongs to. */
+  padding-block-end: 20rem;
+}
+
+.collabs__track {
+  display: flex;
+  align-items: center;
+  inline-size: max-content;
+  /* Written by main.ts; the loop owns transform on this element. */
+  will-change: transform;
+}
+
+.collabs__item {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  block-size: 3.45rem;
+  padding-inline: 2.4rem;
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--dark);
+}
+
+/* ==================================================================== *
+ * On socials
+ *
+ * The fan is static. Every card is the same 20 x 35rem box on a centre
+ * origin, and the four distinct steps out from the middle carry the
+ * reference's own scale, rotation and offset:
+ *
+ *   step   scale    rotate   x         y        z
+ *   0      1        0        0         0        10
+ *   1      0.9346   7deg     10.98rem  1.3rem   3
+ *   2      0.8498   14deg    22.02rem  4.02rem  2
+ *   3      0.7756   21deg    30rem     7.3rem   1
+ *
+ * Rotation is exactly 7 degrees a step. Scale and offset are not linear
+ * and are not fitted - they are the measured numbers.
+ * ==================================================================== */
+
+.socials {
+  position: relative;
+  isolation: isolate;
+  padding-block: 12.8rem 4rem;
+  color: var(--dark);
+  background: var(--gl-rev-bg);
+  overflow-x: clip;
+}
+
+.socials__title {
+  margin: 0;
+  font-size: 4.5rem;
+  line-height: 0.886;
+  letter-spacing: -0.0278em;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.socials__title-line {
+  display: block;
+  /* The sweep bar spans its element, so each line is sized to its own words
+     rather than to the column. fit-content plus auto margins keeps it centred
+     without the bar running the full width. */
+  inline-size: fit-content;
+  margin-inline: auto;
+}
+
+.socials__title-line.is-serif {
+  font-family: var(--font-serif);
+  font-size: 4.6875rem;
+  font-weight: 700;
+  text-transform: none;
+}
+
+/* ---- the fan ---- */
+
+.socials__fan {
+  position: relative;
+  inline-size: 80rem;
+  max-inline-size: 100%;
+  block-size: 36rem;
+  margin: 5.7rem auto 0;
+}
+
+.socials__card {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 50%;
+  inline-size: 20rem;
+  block-size: 35rem;
+  /* -50% takes the card off its own left edge; the measured x applies on top
+     of that, so a step of 0 genuinely means centred. */
+  transform: translate(-50%, 0) translate(var(--fan-x, 0), var(--fan-y, 0))
+    rotate(var(--fan-rot, 0deg)) scale(var(--fan-scale, 1));
+  z-index: var(--fan-z, 1);
+  border-radius: 1.4rem;
+  overflow: clip;
+  background: var(--dark);
+}
+
+.socials__card img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.socials__card[data-step='0'] {
+  --fan-scale: 1;
+  --fan-rot: 0deg;
+  --fan-x: 0rem;
+  --fan-y: 0rem;
+  --fan-z: 10;
+}
+
+.socials__card[data-step='-1'],
+.socials__card[data-step='1'] {
+  --fan-scale: 0.9346;
+  --fan-y: 1.3rem;
+  --fan-z: 3;
+}
+
+.socials__card[data-step='-2'],
+.socials__card[data-step='2'] {
+  --fan-scale: 0.8498;
+  --fan-y: 4.02rem;
+  --fan-z: 2;
+}
+
+.socials__card[data-step='-3'],
+.socials__card[data-step='3'] {
+  --fan-scale: 0.7756;
+  --fan-y: 7.3rem;
+  --fan-z: 1;
+}
+
+.socials__card[data-step='-1'] {
+  --fan-rot: -7deg;
+  --fan-x: -10.98rem;
+}
+
+.socials__card[data-step='1'] {
+  --fan-rot: 7deg;
+  --fan-x: 10.98rem;
+}
+
+.socials__card[data-step='-2'] {
+  --fan-rot: -14deg;
+  --fan-x: -22.02rem;
+}
+
+.socials__card[data-step='2'] {
+  --fan-rot: 14deg;
+  --fan-x: 22.02rem;
+}
+
+.socials__card[data-step='-3'] {
+  --fan-rot: -21deg;
+  --fan-x: -30rem;
+}
+
+.socials__card[data-step='3'] {
+  --fan-rot: 21deg;
+  --fan-x: 30rem;
+}
+
+/* ---- follow ---- */
+
+.socials__follow {
+  margin: 6.3rem auto 0;
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  line-height: 1.04;
+  letter-spacing: 0.025em;
+  font-weight: 400;
+  text-align: center;
+  inline-size: fit-content;
+}
+
+.socials__links {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin: 2.6rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.socials__links a {
+  display: inline-block;
+  font-size: 1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--dark);
+}
+
+/* ---- narrow screens ----
+ *
+ * The fan depends on 80rem of width to spread into and a phone has a fifth of
+ * that, so the cards become a swipe row instead. Sideways is the reader's own
+ * gesture here rather than a hijacked scroll, so it stays horizontal. */
+@media (max-width: 991px) {
+  .collabs {
+    padding-block-start: 8rem;
+  }
+
+  .collabs__inner {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .collabs__title {
+    font-size: clamp(2.6rem, 12vw, 4.5rem);
+  }
+
+  .collabs__title-line.is-serif {
+    font-size: clamp(2.7rem, 12.5vw, 4.6875rem);
+  }
+
+  .collabs__mark {
+    inset-block-start: 2rem;
+    inline-size: 130%;
+    block-size: 24rem;
+  }
+
+  .collabs__marquee {
+    margin-block-start: 4rem;
+    padding-block-end: 4rem;
+  }
+
+  .socials {
+    padding-block-start: 6rem;
+  }
+
+  .socials__title,
+  .socials__title-line.is-serif {
+    font-size: clamp(2.6rem, 12vw, 4.5rem);
+  }
+
+  .socials__fan {
+    display: flex;
+    gap: 1rem;
+    inline-size: auto;
+    block-size: auto;
+    margin-block-start: 3rem;
+    padding-inline: 1.25rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+  }
+
+  .socials__card {
+    position: relative;
+    inset: auto;
+    flex: none;
+    inline-size: 62vw;
+    block-size: auto;
+    aspect-ratio: 20 / 35;
+    /* Flat: the fan is a wide-screen composition, and a rotated card in a
+       swipe row reads as a broken layout rather than as a stack. */
+    transform: none;
+    scroll-snap-align: center;
+  }
+
+  .socials__follow {
+    margin-block-start: 3.5rem;
+    font-size: 1.5rem;
+  }
+
+  .socials__links {
+    flex-wrap: wrap;
+    gap: 1.2rem;
+  }
+}
+
+/* The draw and the loop are the motion. Held still the word is simply written
+   and the row is simply a row, so neither section loses what it carries. */
+@media (prefers-reduced-motion: reduce) {
+  .collabs__stroke path {
+    stroke-dashoffset: 0;
+  }
+}

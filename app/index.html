@@ -824,6 +824,152 @@
             loading="lazy" decoding="async" />
         </div>
       </section>
+
+      <!-- ============================================ Partners & campaigns
+           Measured off the reference at 1908x884, root 17.6667px:
+
+             section    1908 x 1053        59.6rem
+             column     1864 at x22        gutter 1.25rem, not the 86rem shell
+             headline   79.5 / 70.437      4.5rem on a 0.886 line, -0.0278em
+             serif line 82.8125            4.6875rem - 1.0417x the sans, which
+                                           is the cap-height match, not a whim
+             body       22.083 / 27.604    1.25rem on 1.25, 442 wide at x944
+             logo row   61 tall at y639    3.45rem
+             drawn word 1407 x 881 at -159,71, z-index -1 - BEHIND the type
+
+           The reference fills the drawn-word slot with a Rive canvas (artboard
+           "collabs", state machine "page_home", scroll-triggered). Ours is the
+           same idea on machinery this site already has: a stroked path whose
+           dash offset is run to zero by scroll, which is how the menu draws its
+           current-page mark and how the hero writes the signature. -->
+      <section class="collabs" data-collabs aria-labelledby="collabs-h">
+        <div class="collabs__mark" aria-hidden="true">
+          <svg class="collabs__mark-svg" viewBox="0 0 1000 400" fill="none"
+            preserveAspectRatio="xMidYMid meet">
+            <g class="collabs__stroke" stroke="currentColor" stroke-width="30"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M285 135C250 95 175 88 130 130C80 178 78 262 130 300C172 331 235 322 268 288" />
+              <path d="M330 210C300 200 285 245 300 280C315 313 360 308 368 268C375 232 358 205 330 210" />
+              <path d="M400 300C412 250 425 165 420 120C417 95 402 100 405 132C409 178 420 250 432 292" />
+              <path d="M460 300C472 250 485 165 480 120C477 95 462 100 465 132C469 178 480 250 492 292" />
+              <path d="M570 218C545 200 512 218 508 258C504 298 540 316 562 288C574 272 574 238 570 218C566 250 570 282 588 296" />
+              <path d="M625 296C638 240 650 155 645 112C642 90 628 95 631 128C635 180 640 250 646 288C660 258 700 248 715 275C728 300 705 322 672 306" />
+              <path d="M780 228C770 206 736 206 731 232C726 258 770 266 780 290C789 312 752 320 736 304" />
+              <path d="M742 306C800 332 890 326 946 286" />
+            </g>
+          </svg>
+        </div>
+
+        <div class="collabs__inner">
+          <h2 class="collabs__title" id="collabs-h">
+            <span class="collabs__title-line reveal-text">Partners</span>
+            <span class="collabs__title-line is-serif reveal-text">&amp;campaigns</span>
+          </h2>
+          <p class="collabs__body reveal-text">
+            Lewis Hamilton works with partners across fashion, luxury, technology
+            and sport, alongside the premium partners of Scuderia Ferrari.
+          </p>
+        </div>
+
+        <!-- The row is repetition, so it is hidden from assistive tech and the
+             real list is written out below it. Same arrangement as the hero
+             marquee. Both are built from the same array in main.ts, so the two
+             cannot drift apart. -->
+        <div class="collabs__marquee" data-collab-marquee aria-hidden="true">
+          <div class="collabs__track"></div>
+        </div>
+
+        <p class="sr-only" data-collab-list></p>
+      </section>
+
+      <!-- ==================================================== On socials
+           Measured off the reference at 1908x884:
+
+             section   1908 x 1278        72.34rem
+             heading   79.5 / 70.437      4.5rem on 0.886, -0.0278em, centred
+             fan box   1413 x 636 at 247  80rem, centred
+             card      353.328 x 618.328  20 x 35rem, transform-origin centre
+             follow    35.333 / 36.747    2rem serif on 1.04, +0.025em
+             links     17.667             1rem, weight 800
+
+           The fan is STATIC - sampled at five scroll positions and every card
+           box came back identical to the pixel, so nothing here is scroll
+           driven. Each card carries a measured scale, rotation and offset; the
+           rotation is exactly 7 degrees per step out from the centre, and the
+           rest are the reference's own numbers rather than a curve fitted to
+           them. See --fan-* in home.css. -->
+      <section class="socials" aria-labelledby="socials-h">
+        <h2 class="socials__title" id="socials-h">
+          <span class="socials__title-line reveal-text">What&rsquo;s up</span>
+          <span class="socials__title-line is-serif reveal-text">On Socials</span>
+        </h2>
+
+        <!-- Decorative: a collage of photography with no caption and no
+             destination of its own. The links below are the content. -->
+        <div class="socials__fan" aria-hidden="true">
+          <div class="socials__card" data-step="-3">
+            <img src="/assets/socials/social-01.webp" width="760" height="949" alt=""
+              loading="lazy" decoding="async" />
+          </div>
+          <div class="socials__card" data-step="-2">
+            <img src="/assets/socials/social-02.webp" width="760" height="1013" alt=""
+              loading="lazy" decoding="async" />
+          </div>
+          <div class="socials__card" data-step="-1">
+            <img src="/assets/socials/social-03.webp" width="760" height="951" alt=""
+              loading="lazy" decoding="async" />
+          </div>
+          <div class="socials__card" data-step="0">
+            <img src="/assets/socials/social-04.webp" width="760" height="950" alt=""
+              loading="lazy" decoding="async" />
+          </div>
+          <div class="socials__card" data-step="1">
+            <img src="/assets/socials/social-05.webp" width="760" height="1013" alt=""
+              loading="lazy" decoding="async" />
+          </div>
+          <div class="socials__card" data-step="2">
+            <img src="/assets/socials/social-06.webp" width="760" height="1013" alt=""
+              loading="lazy" decoding="async" />
+          </div>
+          <div class="socials__card" data-step="3">
+            <img src="/assets/socials/social-07.webp" width="760" height="1013" alt=""
+              loading="lazy" decoding="async" />
+          </div>
+        </div>
+
+        <p class="socials__follow reveal-text">Follow Lewis on social media</p>
+
+        <!-- PLACEHOLDER LINKS, exactly as the menu's are and for the same
+             reason: pointing these at a guessed handle would be inventing data,
+             and a link that goes to the wrong account is worse than one that
+             goes nowhere. Swap the hrefs once the real accounts are confirmed. -->
+        <ul class="socials__links">
+          <li>
+            <a href="#" data-placeholder-href>
+              <span class="sr-only">TikTok</span>
+              <span class="btn-text" aria-hidden="true" data-split-chars>TikTok</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" data-placeholder-href>
+              <span class="sr-only">Instagram</span>
+              <span class="btn-text" aria-hidden="true" data-split-chars>Instagram</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" data-placeholder-href>
+              <span class="sr-only">YouTube</span>
+              <span class="btn-text" aria-hidden="true" data-split-chars>YouTube</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" data-placeholder-href>
+              <span class="sr-only">X</span>
+              <span class="btn-text" aria-hidden="true" data-split-chars>X</span>
+            </a>
+          </li>
+        </ul>
+      </section>
     </main>
 
     <!-- ===================================================== Menu panel

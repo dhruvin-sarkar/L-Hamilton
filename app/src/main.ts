@@ -1064,6 +1064,177 @@ if (store && !reducedMotion) {
 }
 
 /* ------------------------------------------------------------------ *
+ * Partners & campaigns
+ *
+ * Three parts, all measured off the reference:
+ *
+ *   the row      a linear loop whose period is exactly one copy of the list,
+ *                which is the only distance it can travel without the joint
+ *                showing. Same mechanic as the hero marquee, and the same
+ *                scroll-velocity coupling.
+ *   the cursor   hovering slows the row rather than stopping it. A hard stop
+ *                reads as a bug on a band that has been moving for ten
+ *                seconds; a decelerating one reads as an invitation to look.
+ *   the word     each path dashed with its own measured length and the offset
+ *                run to zero on scroll, which is how the menu draws its
+ *                current-page mark. Length from getTotalLength rather than a
+ *                constant, so a path edit cannot silently break it.
+ * ------------------------------------------------------------------ */
+
+/**
+ * Every partner, in the order they appear on the row.
+ *
+ * Set as type rather than as logo files: these are third-party trademarks and
+ * this build does not redistribute them. Grouped the way they were supplied -
+ * personal partners first, then the Scuderia Ferrari partners he carries on
+ * race gear as part of the team contract.
+ */
+const PARTNERS = [
+  'Tommy Hilfiger',
+  'Puma',
+  'Dior',
+  'IWC Schaffhausen',
+  'Police',
+  'Sanpellegrino',
+  'Perplexity AI',
+  'CFI',
+  'Monster Energy',
+  'Sony',
+  'HP',
+  'Shell',
+  'IBM',
+  'Ceva Logistics',
+  'UniCredit',
+] as const;
+
+const collabs = document.querySelector<HTMLElement>('[data-collabs]');
+
+if (collabs) {
+  /* The readable list, built from the same array as the row so the two cannot
+     drift. The row itself is aria-hidden: it repeats its own content. */
+  const listOut = collabs.querySelector<HTMLElement>('[data-collab-list]');
+  if (listOut) {
+    listOut.textContent = `Lewis Hamilton's partners: ${PARTNERS.join(', ')}.`;
+  }
+
+  const track = collabs.querySelector<HTMLElement>('.collabs__track');
+  const marqueeBox = collabs.querySelector<HTMLElement>('[data-collab-marquee]');
+
+  if (track && marqueeBox) {
+    /* Two copies minimum, then as many more as it takes for the track to span
+       the viewport twice — the loop needs copyWidth * (copies - 1) to cover the
+       screen or the tail is visible as the head comes round. */
+    const buildCopy = (): HTMLElement => {
+      const frag = document.createElement('div');
+      frag.style.display = 'contents';
+      for (const name of PARTNERS) frag.append(el('span', 'collabs__item', name));
+      return frag;
+    };
+
+    track.append(buildCopy());
+    const copyWidth = track.scrollWidth;
+    let copies = 1;
+    while (copyWidth * copies < window.innerWidth * 2 || copies < 2) {
+      track.append(buildCopy());
+      copies++;
+    }
+
+    if (!reducedMotion) {
+      const step = 100 / copies;
+      // Derived from width, not fixed, so the row travels at a readable rate
+      // whatever the list length does. 90px/s matches the hero marquee.
+      const duration = (track.scrollWidth * (step / 100)) / 90;
+
+      const loop = gsap.fromTo(
+        track,
+        { xPercent: 0 },
+        { xPercent: -step, duration, ease: 'none', repeat: -1 },
+      );
+
+      /* Scroll velocity and pointer hover are two inputs to ONE rate, combined
+         here rather than each writing timeScale. Two writers on a rate is how
+         the hero marquee ended up stuck at whatever the last event said. */
+      let scrollTarget = 1;
+      let hoverTarget = 1;
+      let rate = 1;
+
+      lenis?.on('scroll', ({ velocity }: { velocity: number }) => {
+        scrollTarget = gsap.utils.clamp(-5, 5, 1 + velocity * 0.06);
+      });
+
+      marqueeBox.addEventListener('pointerenter', () => {
+        hoverTarget = 0.15;
+      });
+      marqueeBox.addEventListener('pointerleave', () => {
+        hoverTarget = 1;
+      });
+
+      gsap.ticker.add(() => {
+        scrollTarget += (1 - scrollTarget) * 0.08;
+        const want = scrollTarget * hoverTarget;
+        rate += (want - rate) * 0.12;
+        if (Math.abs(rate - want) < 0.001) return;
+        loop.timeScale(rate);
+      });
+
+      new IntersectionObserver(
+        ([entry]) => {
+          entry?.isIntersecting ? loop.play() : loop.pause();
+        },
+        { threshold: 0 },
+      ).observe(marqueeBox);
+    }
+  }
+
+  /* ---- the drawn word ---- */
+
+  const strokes = [...collabs.querySelectorAll<SVGPathElement>('.collabs__stroke path')];
+
+  if (strokes.length && !reducedMotion) {
+    const lengths = strokes.map((p) => p.getTotalLength());
+    const total = lengths.reduce((a, b) => a + b, 0);
+
+    for (const [i, path] of strokes.entries()) {
+      path.style.strokeDasharray = String(lengths[i]);
+      path.style.setProperty('--draw-offset', String(lengths[i]));
+    }
+
+    /* Paced by INK, not by path count. The eight strokes differ by more than
+       four to one in length, so advancing one path per equal slice of scroll
+       would crawl through the C and flick through the s. Splitting the scroll
+       by cumulative length instead makes the pen travel at a constant speed. */
+    const draw = (p: number): void => {
+      const drawn = p * total;
+      let consumed = 0;
+      for (const [i, path] of strokes.entries()) {
+        const len = lengths[i] ?? 0;
+        const here = gsap.utils.clamp(0, 1, (drawn - consumed) / len);
+        path.style.setProperty('--draw-offset', String(len * (1 - here)));
+        consumed += len;
+      }
+    };
+
+    gsap.to(
+      {},
+      {
+        ease: 'none',
+        scrollTrigger: {
+          trigger: collabs,
+          // Writes across the approach and lands as the block settles, which is
+          // where the reference's own scroll-triggered Rive artboard finishes.
+          start: 'top bottom',
+          end: 'top 30%',
+          scrub: true,
+          invalidateOnRefresh: true,
+          onUpdate: (self) => draw(self.progress),
+          onRefresh: (self) => draw(self.progress),
+        },
+      },
+    );
+  }
+}
+
+/* ------------------------------------------------------------------ *
  * Hero entrance.
  *
  * Delays are assigned here rather than written into CSS so the order follows
