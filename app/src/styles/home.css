@@ -3449,10 +3449,11 @@
  * in the markup comment; the ones that matter here are 20rem of lead, a
  * 4.5rem headline on a 0.886 line, and a 3.45rem logo row 8rem below.
  *
- * This is where the field stops. The reference runs both closing sections
- * on flat cream with no contour behind them, so ours paints an opaque
- * ground and fades into it over the 8rem above, rather than the field
- * simply ending on a line.
+ * This is where the field stops. Both closing sections are a plain ground
+ * with no contour behind them, painted in --gl-rev-bg — the SAME token the
+ * field's own light ground reads, so the flat area and the field above it
+ * are the same cream by construction rather than by two hexes that have to
+ * be kept in step.
  * ==================================================================== */
 
 .collabs {
@@ -3465,7 +3466,7 @@
 }
 
 /* The fade. Sits ABOVE the section box, over the foot of the store, so the
-   contour field dissolves into this ground instead of being cut off by it. */
+   contour lines dissolve into this ground instead of being cut off by it. */
 .collabs::before {
   content: '';
   position: absolute;
@@ -3602,6 +3603,7 @@
  * and are not fitted - they are the measured numbers.
  * ==================================================================== */
 
+/* The same plain ground as .collabs, off the same token. */
 .socials {
   position: relative;
   isolation: isolate;
