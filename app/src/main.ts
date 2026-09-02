@@ -1,4 +1,7 @@
-import './styles/main.css';
+// The stylesheet is NOT imported here. index.html links it in the head so it is
+// render-blocking; importing it from this module made it arrive only after the
+// whole graph resolved, which painted the page unstyled first. See the note on
+// that link element.
 import * as THREE from 'three';
 import gsap from 'gsap';
 import { MorphSVGPlugin } from 'gsap/MorphSVGPlugin';

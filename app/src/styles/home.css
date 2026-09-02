@@ -2356,6 +2356,11 @@
      surface interrupting the same page, and they should not differ. */
   background: var(--gl-bg);
   color: var(--white);
+  /* The mask hides the portrait's overhang but does NOT take it out of layout,
+     so the page kept growing by the 3rem the picture hangs below the panel and
+     that strip showed the fixed field under the footer. clip, not hidden:
+     hidden would make this a scroll container. */
+  overflow: clip;
   -webkit-mask-image: var(--mask-url);
   mask-image: var(--mask-url);
   -webkit-mask-size: cover;
@@ -2543,13 +2548,16 @@
   position: relative;
   inset-block-end: -3rem;
   flex: none;
-  /* Sized by HEIGHT to the reference's 39.875rem rather than by its width.
-     Its subject is a helmet and ours is a head and shoulders, so matching the
-     width leaves ours sitting nearly 3rem lower in the panel and opens a gap
-     under the headline. Height is what sets the composition here; the extra
-     width that follows is the cheaper thing to spend. */
+  /* Sized by HEIGHT rather than by width, because height is what sets the
+     composition: the picture is anchored to the panel's bottom and hangs 3rem
+     below it, so its height alone decides where the head lands.
+     Solved against the render rather than nudged. The crown sits 4.3% down the
+     frame, which makes crownTop = 58.5 - 0.957 * H from the panel's top; the
+     headline's last line has its glyph bottom at 16.5rem, so 44.5rem puts the
+     crown at 15.9 and it clips the descenders by about half a rem. Also 12%
+     larger than the reference's 39.875rem box. */
   inline-size: auto;
-  block-size: 39.875rem;
+  block-size: 44.5rem;
   -webkit-mask: url('/assets/hero/alpha-map.webp') center / contain no-repeat;
   mask: url('/assets/hero/alpha-map.webp') center / contain no-repeat;
   -webkit-mask-mode: luminance;

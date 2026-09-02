@@ -42,6 +42,18 @@
       type="font/woff2"
       crossorigin
     />
+
+    <!-- The stylesheet is linked HERE rather than imported from main.ts.
+         Imported from JS it is not a stylesheet as far as the parser is
+         concerned: it arrives only once the module graph has resolved, and
+         main.ts is the last element in the body and pulls in three, gsap and
+         lenis. So the browser parsed the whole document and PAINTED it with no
+         CSS at all — a white page with the inline SVG wordmark drawn huge in
+         its default fill and every link in its default colour, for as long as
+         the graph took. A link element is render-blocking, which is exactly
+         what is wanted here; Vite serves it directly in dev and rewrites it to
+         the hashed extracted file on build. -->
+    <link rel="stylesheet" href="/src/styles/main.css" />
   </head>
   <body>
     <a class="sr-only" href="#main">Skip to content</a>
