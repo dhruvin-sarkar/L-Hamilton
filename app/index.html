@@ -1153,7 +1153,138 @@
          Kept in the markup rather than deleted — the attribution has to ship
          with the site, and it is easier to get that wrong by deleting it now
          and forgetting than by hiding it behind one attribute. -->
-    <footer class="footer" hidden>
+    <footer class="footer" data-footer>
+      <div class="footer__lead" aria-hidden="true"></div>
+
+      <div class="footer__shell">
+        <div class="footer__frame">
+          <div class="footer__panel">
+            <!-- Contour blobs, ours rather than the reference's artwork. Drawn
+                 as a mask over a token colour so the linework stays on-palette
+                 instead of baking a hex into an asset. -->
+            <div class="footer__pattern" aria-hidden="true"></div>
+
+            <div class="footer__stack">
+              <!-- margin-block-start:auto in the column is what puts this row
+                   near the bottom; everything else is absolute around it. -->
+              <div class="footer__links">
+                <div class="footer__col">
+                  <p class="footer__eyebrow reveal-text">Pages</p>
+                  <nav class="footer__nav" aria-label="Footer">
+                    <a class="footer__link reveal-text" href="/index.html" aria-current="page">
+                      <span class="sr-only">Home</span>
+                      <span class="btn-text" aria-hidden="true" data-split-chars>Home</span>
+                    </a>
+                    <a class="footer__link reveal-text" href="/on-track.html">
+                      <span class="sr-only">On Track</span>
+                      <span class="btn-text" aria-hidden="true" data-split-chars>On Track</span>
+                    </a>
+                    <a class="footer__link reveal-text" href="/off-track.html">
+                      <span class="sr-only">Off Track</span>
+                      <span class="btn-text" aria-hidden="true" data-split-chars>Off Track</span>
+                    </a>
+                    <a class="footer__link reveal-text" href="/calendar.html">
+                      <span class="sr-only">Calendar</span>
+                      <span class="btn-text" aria-hidden="true" data-split-chars>Calendar</span>
+                    </a>
+                  </nav>
+                  <a class="footer__store reveal-text" href="https://store.lewishamilton.com"
+                    target="_blank" rel="noopener">
+                    <span class="sr-only">Store</span>
+                    <span class="btn-text" aria-hidden="true" data-split-chars>Store</span>
+                  </a>
+                </div>
+
+                <div class="footer__col">
+                  <p class="footer__eyebrow reveal-text">Follow on</p>
+                  <!-- PLACEHOLDER LINKS, as in the socials section and for the
+                       same reason: a link that goes to the wrong account is
+                       worse than one that goes nowhere. -->
+                  <nav class="footer__nav" aria-label="Social media">
+                    <a class="footer__link reveal-text" href="#" data-placeholder-href>
+                      <span class="sr-only">TikTok</span>
+                      <span class="btn-text" aria-hidden="true" data-split-chars>TikTok</span>
+                    </a>
+                    <a class="footer__link reveal-text" href="#" data-placeholder-href>
+                      <span class="sr-only">Instagram</span>
+                      <span class="btn-text" aria-hidden="true" data-split-chars>Instagram</span>
+                    </a>
+                    <a class="footer__link reveal-text" href="#" data-placeholder-href>
+                      <span class="sr-only">YouTube</span>
+                      <span class="btn-text" aria-hidden="true" data-split-chars>YouTube</span>
+                    </a>
+                    <a class="footer__link reveal-text" href="#" data-placeholder-href>
+                      <span class="sr-only">X</span>
+                      <span class="btn-text" aria-hidden="true" data-split-chars>X</span>
+                    </a>
+                  </nav>
+                </div>
+              </div>
+
+            <!-- The statement, and the signature hung above it on a negative
+                 top so the two read as one lockup however the line wraps. -->
+            <div class="footer__statement">
+              <div class="footer__statement-inner">
+                <div class="footer__sign" aria-hidden="true"></div>
+                <!-- Site copy, not a quotation. Nothing here is presented as
+                     something Lewis Hamilton said. -->
+                <h2 class="footer__headline" id="footer-h">
+                  <span class="footer__headline-line reveal-text">Still <em>setting</em></span>
+                  <span class="footer__headline-line reveal-text">the <em>pace.</em></span>
+                </h2>
+              </div>
+            </div>
+
+            <!-- Anchored to the panel's bottom and allowed to overhang it: the
+                 mask does the cropping, which is what puts the shoulders off
+                 the bottom edge rather than a hand-placed crop. -->
+            <div class="footer__art">
+              <div class="footer__art-inner">
+                <img class="footer__portrait" src="/assets/hero/lewis-hero.webp" alt=""
+                  width="3780" height="2834" loading="lazy" decoding="async" aria-hidden="true" />
+                <div class="footer__cta">
+                  <a class="footer-cta__link" href="#" data-placeholder-href>
+                    <span class="sr-only">Business enquiries</span>
+                    <span class="btn-text" aria-hidden="true" data-split-chars>Business enquiries</span>
+                    <svg class="footer-cta__icon" viewBox="0 0 16 16" aria-hidden="true">
+                      <path d="M4 12 12 4M6 4h6v6" fill="none" stroke="currentColor"
+                        stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Behind the portrait on purpose: the reference runs this at
+                 z-index -1 so the logos pass behind the shoulders. -->
+            <div class="footer__marquee" data-footer-marquee aria-hidden="true">
+              <div class="footer__marquee-scroll">
+                <div class="footer__track"></div>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <div class="footer__legal">
+            <p class="footer__copy"><strong>&copy; 2026 Lewis Hamilton.</strong> All rights reserved</p>
+            <div class="footer__legal-links">
+              <a class="footer__legal-link" href="#" data-placeholder-href>
+                <span class="sr-only">Privacy policy</span>
+                <span class="btn-text" aria-hidden="true" data-split-chars>Privacy Policy</span>
+              </a>
+              <a class="footer__legal-link" href="#" data-placeholder-href>
+                <span class="sr-only">Terms</span>
+                <span class="btn-text" aria-hidden="true" data-split-chars>Terms</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Last, and BEHIND the shell, which is what keeps the accent off the
+           panel: the shell carries a z-index and this does not. -->
+      <div class="footer__glow" aria-hidden="true"></div>
+    </footer>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

@@ -114,7 +114,7 @@ let background: BackgroundField | null = null;
  * same answer as scrolling through them would.
  * ------------------------------------------------------------------ */
 
-const groundCross = { darkening: 0, ink: 0, lightening: 0 };
+const groundCross = { darkening: 0, ink: 0, lightening: 0, panel: 0 };
 
 /** Resolved once. The script is a module, so the nav is already parsed. */
 const navGroundStyle = document.querySelector<HTMLElement>('.nav-inner')?.style ?? null;
@@ -125,9 +125,14 @@ function applyGroundCross(): void {
   /* The nav's ink crosses on a far steeper curve than the ground does — see
      the note in the gallery — so it carries its own term rather than reusing
      the ground's. Both are undone by the same return to light. */
+  /* The footer panel is a third dark surface, and the only one that is not on
+     the field at all — it is an opaque block laid over it. So it does not
+     belong in the subtraction above (there is nothing for the store's return
+     to light to undo); it just overrides, for as long as it is under the nav.
+     Without this the wordmark stays dark ink on the dark panel. */
   navGroundStyle?.setProperty(
     '--nav-ground-dark',
-    String(clamp(groundCross.ink - groundCross.lightening)),
+    String(Math.max(clamp(groundCross.ink - groundCross.lightening), groundCross.panel)),
   );
 }
 
@@ -1146,6 +1151,110 @@ const PARTNERS = [
   'UniCredit',
 ] as const;
 
+/**
+ * A looping row of partner names.
+ *
+ * Extracted because the page has two of them — the partners row on the cream
+ * ground and the one inside the footer panel — and they are the same object in
+ * two colours, not two components. The reference treats its marquees the same
+ * way: one behaviour, driven by attributes.
+ *
+ * `drift` is the footer's extra. The reference scrubs its footer row bodily
+ * across the viewport as you pass it, on top of the loop, which is what makes
+ * that row feel attached to the scroll rather than merely running near it. The
+ * partners row above has no drift, so it stays at 0 there.
+ */
+function mountMarquee(opts: {
+  track: HTMLElement;
+  box: HTMLElement;
+  items: readonly string[];
+  itemClass: string;
+  /** vw travelled across the row's viewport pass. 0 leaves the row put. */
+  drift?: number;
+  /** The element the drift moves. Must not be the looping track. */
+  scroller?: HTMLElement | null;
+}): void {
+  const { track, box, items, itemClass, drift = 0, scroller = null } = opts;
+
+  /* Two copies minimum, then as many more as it takes for the track to span
+     the viewport twice — the loop needs copyWidth * (copies - 1) to cover the
+     screen or the tail is visible as the head comes round. */
+  const buildCopy = (): HTMLElement => {
+    const frag = document.createElement('div');
+    frag.style.display = 'contents';
+    for (const name of items) frag.append(el('span', itemClass, name));
+    return frag;
+  };
+
+  track.append(buildCopy());
+  const copyWidth = track.scrollWidth;
+  let copies = 1;
+  while (copyWidth * copies < window.innerWidth * 2 || copies < 2) {
+    track.append(buildCopy());
+    copies++;
+  }
+
+  if (reducedMotion) return;
+
+  const step = 100 / copies;
+  // Derived from width, not fixed, so the row travels at a readable rate
+  // whatever the list length does. 90px/s matches the hero marquee.
+  const duration = (track.scrollWidth * (step / 100)) / 90;
+
+  const loop = gsap.fromTo(
+    track,
+    { xPercent: 0 },
+    { xPercent: -step, duration, ease: 'none', repeat: -1 },
+  );
+
+  /* Scroll velocity and pointer hover are two inputs to ONE rate, combined
+     here rather than each writing timeScale. Two writers on a rate is how the
+     hero marquee ended up stuck at whatever the last event said. */
+  let scrollTarget = 1;
+  let hoverTarget = 1;
+  let rate = 1;
+
+  lenis?.on('scroll', ({ velocity }: { velocity: number }) => {
+    scrollTarget = gsap.utils.clamp(-5, 5, 1 + velocity * 0.06);
+  });
+
+  box.addEventListener('pointerenter', () => {
+    hoverTarget = 0.15;
+  });
+  box.addEventListener('pointerleave', () => {
+    hoverTarget = 1;
+  });
+
+  gsap.ticker.add(() => {
+    scrollTarget += (1 - scrollTarget) * 0.08;
+    const want = scrollTarget * hoverTarget;
+    rate += (want - rate) * 0.12;
+    if (Math.abs(rate - want) < 0.001) return;
+    loop.timeScale(rate);
+  });
+
+  new IntersectionObserver(
+    ([entry]) => {
+      entry?.isIntersecting ? loop.play() : loop.pause();
+    },
+    { threshold: 0 },
+  ).observe(box);
+
+  /* The positional drift, on its own element so it never fights the loop for
+     the track's transform. Scrubbed across the row's whole viewport pass. */
+  if (drift && scroller) {
+    gsap.fromTo(
+      scroller,
+      { xPercent: drift },
+      {
+        xPercent: -drift,
+        ease: 'none',
+        scrollTrigger: { trigger: box, start: 'top bottom', end: 'bottom top', scrub: 0 },
+      },
+    );
+  }
+}
+
 const collabs = document.querySelector<HTMLElement>('[data-collabs]');
 
 if (collabs) {
@@ -1160,69 +1269,7 @@ if (collabs) {
   const marqueeBox = collabs.querySelector<HTMLElement>('[data-collab-marquee]');
 
   if (track && marqueeBox) {
-    /* Two copies minimum, then as many more as it takes for the track to span
-       the viewport twice — the loop needs copyWidth * (copies - 1) to cover the
-       screen or the tail is visible as the head comes round. */
-    const buildCopy = (): HTMLElement => {
-      const frag = document.createElement('div');
-      frag.style.display = 'contents';
-      for (const name of PARTNERS) frag.append(el('span', 'collabs__item', name));
-      return frag;
-    };
-
-    track.append(buildCopy());
-    const copyWidth = track.scrollWidth;
-    let copies = 1;
-    while (copyWidth * copies < window.innerWidth * 2 || copies < 2) {
-      track.append(buildCopy());
-      copies++;
-    }
-
-    if (!reducedMotion) {
-      const step = 100 / copies;
-      // Derived from width, not fixed, so the row travels at a readable rate
-      // whatever the list length does. 90px/s matches the hero marquee.
-      const duration = (track.scrollWidth * (step / 100)) / 90;
-
-      const loop = gsap.fromTo(
-        track,
-        { xPercent: 0 },
-        { xPercent: -step, duration, ease: 'none', repeat: -1 },
-      );
-
-      /* Scroll velocity and pointer hover are two inputs to ONE rate, combined
-         here rather than each writing timeScale. Two writers on a rate is how
-         the hero marquee ended up stuck at whatever the last event said. */
-      let scrollTarget = 1;
-      let hoverTarget = 1;
-      let rate = 1;
-
-      lenis?.on('scroll', ({ velocity }: { velocity: number }) => {
-        scrollTarget = gsap.utils.clamp(-5, 5, 1 + velocity * 0.06);
-      });
-
-      marqueeBox.addEventListener('pointerenter', () => {
-        hoverTarget = 0.15;
-      });
-      marqueeBox.addEventListener('pointerleave', () => {
-        hoverTarget = 1;
-      });
-
-      gsap.ticker.add(() => {
-        scrollTarget += (1 - scrollTarget) * 0.08;
-        const want = scrollTarget * hoverTarget;
-        rate += (want - rate) * 0.12;
-        if (Math.abs(rate - want) < 0.001) return;
-        loop.timeScale(rate);
-      });
-
-      new IntersectionObserver(
-        ([entry]) => {
-          entry?.isIntersecting ? loop.play() : loop.pause();
-        },
-        { threshold: 0 },
-      ).observe(marqueeBox);
-    }
+    mountMarquee({ track, box: marqueeBox, items: PARTNERS, itemClass: 'collabs__item' });
   }
 
   /* ---- the drawn word ---- */
@@ -1295,6 +1342,46 @@ if (collabs) {
  * it read as a deal rather than as a queue — the middle card is already home
  * while the outer pair is still travelling.
  * ------------------------------------------------------------------ */
+
+/* The nav crosses to its dark-ground styling while the footer panel is behind
+   it — the same signal the gallery uses, asserted from a different place.
+   Ends at the nav's own height rather than at the viewport top, because what
+   decides the wordmark's colour is what is under the WORDMARK. */
+const footerPanel = document.querySelector<HTMLElement>('.footer__panel');
+
+if (footerPanel) {
+  const navHeight = (): number =>
+    parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-height')) *
+      parseFloat(getComputedStyle(document.documentElement).fontSize) || 0;
+
+  ScrollTrigger.create({
+    trigger: footerPanel,
+    start: () => `top top+=${navHeight()}`,
+    end: 'bottom top',
+    invalidateOnRefresh: true,
+    onToggle: (self) => {
+      groundCross.panel = self.isActive ? 1 : 0;
+      applyGroundCross();
+    },
+  });
+}
+
+/* The footer's row: the same names and the same behaviour as the partners row
+   above, in the accent instead of the ink, plus the drift that row does not
+   have. aria-hidden in the markup — the readable list is the one up there. */
+const footerMarquee = document.querySelector<HTMLElement>('[data-footer-marquee]');
+const footerTrack = footerMarquee?.querySelector<HTMLElement>('.footer__track');
+
+if (footerMarquee && footerTrack) {
+  mountMarquee({
+    track: footerTrack,
+    box: footerMarquee,
+    items: PARTNERS,
+    itemClass: 'footer__item',
+    drift: 5,
+    scroller: footerMarquee.querySelector<HTMLElement>('.footer__marquee-scroll'),
+  });
+}
 
 const fan = document.querySelector<HTMLElement>('.socials__fan');
 
@@ -1885,7 +1972,7 @@ function mountStoreFill(): void {
  */
 function mountSectionFills(): void {
   const buttons = document.querySelectorAll<HTMLAnchorElement>(
-    '.otot__link, .hof__cta-link, .store-cta__link',
+    '.otot__link, .hof__cta-link, .store-cta__link, .footer-cta__link',
   );
   for (const link of buttons) {
     mountLiquidFill(link, (level) => link.style.setProperty('--liquid-level', String(level)));

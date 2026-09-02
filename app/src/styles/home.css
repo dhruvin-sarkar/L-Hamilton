@@ -2265,27 +2265,544 @@
   }
 }
 
-/* ============================================================ Footer */
+/* ============================================================ Footer
+ *
+ * The reference's closing screen, rebuilt off its authored rules rather than
+ * off measured screen positions — which matters, because the layout is
+ * structural: the panel is sized by aspect-ratio, the link row is pushed down
+ * by `margin-block-start: auto` in a column flex, and everything else hangs
+ * off those two. Copying the pixel offsets instead would have produced the
+ * same screenshot at 1728 and nothing else.
+ *
+ * Numbers below are the reference's own, at its 1728/16 design ratio — which
+ * is ours too, so every rem transfers unchanged.
+ * ------------------------------------------------------------------ */
 
 .footer {
-  border-top: 1px solid var(--hairline);
-  padding-block: var(--padding--med);
+  position: relative;
+  /* Its own stacking context, so the glow underneath cannot escape upward
+     past the sections above. */
+  z-index: 0;
+  background: var(--field-ground);
+  color: var(--gl-bg);
 }
 
-.footer__inner {
+/* The run the accent needs. 14rem of plain ground between the socials and the
+   panel is what lets the gradient go from nothing to saturated without ever
+   reading as a band with an edge. */
+.footer__lead {
+  block-size: 14rem;
+}
+
+/* The pool of accent the panel sits in.
+ *
+ * A circle centred far ABOVE the section (-190%) and enormous, so what crosses
+ * the page is its outer arc: nearly flat along the top, curving in around the
+ * panel's shoulders, saturated by the bottom edge. Centring it inside the
+ * section would give a hotspot instead of a horizon.
+ *
+ * Last in the DOM and deliberately WITHOUT a z-index: .footer__shell carries
+ * one, so the shell paints over this and the panel stays clean. Put a z-index
+ * here and the accent washes across the panel's face. */
+.footer__glow {
+  position: absolute;
+  inset: auto 0 0;
+  block-size: 100%;
+  background: radial-gradient(
+    circle farthest-corner at 50% -190%,
+    var(--accent-zero) 68%,
+    var(--accent) 83%
+  );
+  overflow: clip;
+  pointer-events: none;
+}
+
+.footer__shell {
+  position: relative;
+  z-index: 5;
+  inline-size: 100%;
+  /* The same clamp the root font-size runs on, so the container and the type
+     stop growing at the same viewport. */
+  max-inline-size: clamp(992px, 100vw, 1920px);
+  margin-inline: auto;
+  padding-inline: var(--padding--container);
+  padding-block: var(--gap);
+}
+
+/* The containing block for the legal line, which has to hang off the panel's
+   bottom rather than sit after it. */
+.footer__frame {
+  position: relative;
+}
+
+/* THE SHAPE.
+ *
+ * One SVG, read for its alpha only. The box carries the mask's own aspect
+ * ratio, so `cover` is an exact fit at every root size and the notches never
+ * crop — get the ratio wrong and the top bump is the first thing to go.
+ *
+ * A mask also clips its subtree, which is what lets the portrait overhang the
+ * bottom edge and be cut by the silhouette rather than by a second rule.
+ *
+ * Swapping --mask-url is the entire mobile story; the reference does the same,
+ * one custom property, one breakpoint. */
+.footer__panel {
+  --mask-url: url('/assets/footer/panel-mask-desktop.svg');
+
+  position: relative;
+  inline-size: 100%;
+  aspect-ratio: 1688 / 896;
+  /* The menu's ground, not --bg: this panel and the open menu are the same
+     surface interrupting the same page, and they should not differ. */
+  background: var(--gl-bg);
+  color: var(--white);
+  -webkit-mask-image: var(--mask-url);
+  mask-image: var(--mask-url);
+  -webkit-mask-size: cover;
+  mask-size: cover;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+
+/* Contours, as a mask over a token colour rather than as coloured artwork —
+   the file stays a silhouette and the palette stays in one place. */
+.footer__pattern {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.12;
+  background: var(--gl-outline);
+  -webkit-mask: url('/assets/footer/contours.svg') center / cover no-repeat;
+  mask: url('/assets/footer/contours.svg') center / cover no-repeat;
+  pointer-events: none;
+}
+
+.footer__stack {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--padding--mini);
-  font-size: var(--text--eyebrow);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  flex-direction: column;
+  block-size: 100%;
 }
 
-.footer__mark {
-  font-size: var(--text--h3);
+/* ---- the two link columns ----
+ *
+ * `margin-block-start: auto` is the whole vertical story: the row is the only
+ * thing in the column flex, so auto pushes it to the bottom and the 14rem
+ * bottom margin lifts it back to where it belongs. Everything else in the
+ * panel is absolutely placed around it. */
+.footer__links {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  inline-size: 100%;
+  margin-block-start: auto;
+  margin-block-end: 14rem;
+  padding-inline: 12.8rem;
+}
+
+.footer__col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.footer__eyebrow {
+  margin: 0;
+  font-size: var(--text--eyebrow);
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--off-white-2);
+  inline-size: fit-content;
+}
+
+.footer__nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--gap) * 0.2);
+  margin-block: 1rem 2rem;
+}
+
+.footer__link,
+.footer__store {
+  color: inherit;
+  text-decoration: none;
+  inline-size: fit-content;
+}
+
+.footer__link .btn-text {
+  font-size: 1.875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* The one accent item in the columns, and a size down from the links so it
+   reads as a departure from the list rather than another entry in it. */
+.footer__store {
   color: var(--accent);
+}
+
+.footer__store .btn-text {
+  font-size: var(--text--btn-nav);
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* ---- the statement ---- */
+
+.footer__statement {
+  position: absolute;
+  inset: 12rem 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  text-align: center;
+}
+
+.footer__statement-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  inline-size: 48rem;
+  margin-inline: auto;
+}
+
+/* Hung above the headline on a negative offset rather than placed at a measured
+   y, so the two stay one lockup if the line ever rewraps. */
+.footer__sign {
+  position: absolute;
+  inset-block-start: -6.8rem;
+  z-index: 5;
+  inline-size: 13.0625rem;
+  block-size: 8.5rem;
+  background: var(--accent);
+  -webkit-mask: url('/assets/brand/signature.svg') center / contain no-repeat;
+  mask: url('/assets/brand/signature.svg') center / contain no-repeat;
+  pointer-events: none;
+}
+
+.footer__headline {
+  margin: 0;
+  font-size: 5.25rem;
+  line-height: 0.856;
+  letter-spacing: -0.0125em;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+/* fit-content so the reveal bar covers the words and not the 48rem column. */
+.footer__headline-line {
+  display: block;
+  inline-size: fit-content;
+  margin-inline: auto;
+}
+
+/* The serif half of the two-tone. Same relationship the impact wall uses: the
+   display face sets smaller on the body at a given size, so it is nudged up to
+   match cap heights rather than left nominally equal. */
+.footer__headline em {
+  font-family: var(--font-serif);
+  font-size: 1.0357em;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: -0.023em;
+  color: var(--accent-off);
+}
+
+/* ---- the portrait and the button ---- */
+
+.footer__art {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 5;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  /* The wrapper spans the panel; only the button inside should be clickable. */
+  pointer-events: none;
+}
+
+.footer__art-inner {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+/* Overhangs the panel's bottom by 3rem and is cropped by the mask, which is
+   what runs the shoulders off the bottom edge.
+ *
+ * The alpha map is the hero's own cutout, reused here as a luminance mask —
+ * white is the subject — so the portrait sits ON the panel instead of bringing
+ * a rectangle of its own background with it. */
+.footer__portrait {
+  position: relative;
+  inset-block-end: -3rem;
+  flex: none;
+  /* Sized by HEIGHT to the reference's 39.875rem rather than by its width.
+     Its subject is a helmet and ours is a head and shoulders, so matching the
+     width leaves ours sitting nearly 3rem lower in the panel and opens a gap
+     under the headline. Height is what sets the composition here; the extra
+     width that follows is the cheaper thing to spend. */
+  inline-size: auto;
+  block-size: 39.875rem;
+  -webkit-mask: url('/assets/hero/alpha-map.webp') center / contain no-repeat;
+  mask: url('/assets/hero/alpha-map.webp') center / contain no-repeat;
+  -webkit-mask-mode: luminance;
+  mask-mode: luminance;
+}
+
+.footer__cta {
+  position: absolute;
+  inset-block-end: 1.75rem;
+  pointer-events: auto;
+}
+
+/* Same fill and roll as every other primary button on the site — see
+   mountSectionFills, which this class is registered with. */
+.footer-cta__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  block-size: 3rem;
+  padding-inline: 1rem;
+  border-radius: var(--radius--btn);
+  font-size: var(--text--btn-primary);
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 1;
+  background: linear-gradient(
+    to top,
+    var(--giallo-modena) calc(var(--liquid-level) * 100%),
+    var(--rosso-corsa) calc((var(--liquid-level) + var(--liquid-gap)) * 100%)
+  );
+  color: var(--dark);
+  text-decoration: none;
+}
+
+.footer-cta__icon {
+  inline-size: 1rem;
+  block-size: 1rem;
+  flex: none;
+}
+
+/* ---- the partner row ----
+ *
+ * z-index -1 so the wordmarks pass BEHIND the portrait, which is the detail
+ * that stops the row reading as a strip laid over the picture. */
+.footer__marquee {
+  position: absolute;
+  inset: auto 0 3.75rem;
+  z-index: -1;
+  display: flex;
+  align-items: flex-start;
+  block-size: 2.625rem;
+  overflow: clip;
+}
+
+/* Wider than the panel and pulled back by half the overhang, so the scroll
+   drift below has somewhere to travel without exposing an end. */
+.footer__marquee-scroll {
+  inline-size: 110%;
+  margin-inline-start: -5%;
+  display: flex;
+  will-change: transform;
+}
+
+.footer__track {
+  display: flex;
+  align-items: center;
+  inline-size: max-content;
+  will-change: transform;
+}
+
+.footer__item {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  block-size: 2.625rem;
+  padding-inline: 1.25rem;
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  /* The different colour: the same names as the partners row above, but that
+     one is dark on cream and this one is accent on the panel. */
+  color: var(--accent);
+}
+
+/* ---- the legal line ----
+ *
+ * Anchored to the frame's bottom, which puts it in the band where the mask has
+ * notched the panel away — so it reads dark on the accent, not on the panel. */
+.footer__legal {
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--gl-bg);
+}
+
+.footer__copy {
+  margin: 0;
+}
+
+.footer__copy strong {
+  font-weight: 800;
+}
+
+.footer__legal-links {
+  display: flex;
+  gap: var(--gap);
+}
+
+.footer__legal-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.footer__legal-link .btn-text {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* ---- narrow ----
+ *
+ * The reference keeps its landscape panel all the way down to 480px and only
+ * then swaps to the portrait cut. We swap at OUR breakpoint, 992, and the
+ * reason is the root font-size rather than taste.
+ *
+ * The reference's root keeps scaling below 992 — 11.5px at 991, 11.0px at 950,
+ * 8.9px at 768 — so its panel and the type inside it shrink together and 44rem
+ * of panel still holds its content. Ours LOCKS at 16px there (tokens.css, a
+ * deliberate site-wide call so a phone is not handed a 992px design). With the
+ * root fixed and the panel still sized by aspect-ratio, a 900px viewport gives
+ * a 28rem-tall panel asked to hold 56rem of content, and the headline, the
+ * links and the portrait all land on top of each other.
+ *
+ * So: same mechanic as the reference, same two masks, breakpoint chosen for our
+ * own root instead of copied across. Below 992 the panel takes the portrait cut
+ * — which has the height the locked type needs — and the composition stacks. */
+@media (max-width: 991px) {
+  .footer__panel {
+    --mask-url: url('/assets/footer/panel-mask-mobile.svg');
+    aspect-ratio: 381.94 / 627.49;
+  }
+
+  .footer__lead {
+    block-size: 7rem;
+  }
+
+  /* Everything that was floated over the middle joins the flow, top down:
+     statement, then links, with the portrait still anchored to the bottom. */
+  .footer__stack {
+    justify-content: flex-start;
+  }
+
+  .footer__statement {
+    position: static;
+    /* Ahead of the links. The reference's DOM order puts its statement after
+       them, which at this width would open with the nav list and only then say
+       what the page is — worth the one deviation. */
+    order: -1;
+    /* Clears the marquee AND the signature hanging above the headline: the row
+       ends at 5.625rem (3 + its 2.625 height) and the signature reaches 4.8rem
+       above the first line, so anything less than this lands type on type. */
+    margin-block-start: 11rem;
+  }
+
+  .footer__statement-inner {
+    inline-size: auto;
+    max-inline-size: 90%;
+  }
+
+  .footer__headline {
+    font-size: 3.6rem;
+  }
+
+  .footer__sign {
+    inset-block-start: -4.8rem;
+    inline-size: 10rem;
+    block-size: auto;
+    aspect-ratio: 13.0625 / 8.5;
+  }
+
+  .footer__links {
+    margin-block: 4rem 0;
+    padding-inline: 1.25rem;
+  }
+
+  .footer__col {
+    inline-size: 50%;
+  }
+
+  .footer__link .btn-text {
+    font-size: 1.6rem;
+  }
+
+  /* Proportional rather than fixed, because the portrait cut is 1.64x as tall
+     as it is wide and a fixed width leaves a hole under the links at the top of
+     this range. The cap stops it overwhelming an actual phone. */
+  .footer__portrait {
+    inline-size: 80%;
+    block-size: auto;
+    max-inline-size: 30rem;
+  }
+
+  .footer__cta {
+    inset-block-end: 1.1rem;
+  }
+
+  /* Above the portrait rather than across it: at this width there is no room
+     for the logos to pass behind the shoulders and still be read. */
+  .footer__marquee {
+    inset: 3rem 0 auto;
+  }
+
+  /* Out from under the panel and centred, since the portrait cut's bottom
+     notches are too narrow to seat a spread. */
+  .footer__legal {
+    position: relative;
+    inset: auto;
+    flex-direction: row-reverse;
+    justify-content: center;
+    align-items: center;
+    gap: var(--gap);
+    margin-block-start: 2rem;
+  }
+}
+
+@media (max-width: 479px) {
+  .footer__headline {
+    font-size: 2.6rem;
+  }
+
+  .footer__link .btn-text {
+    font-size: 1.3rem;
+  }
+
+  .footer__sign {
+    inline-size: 7.5rem;
+    inset-block-start: -3.6rem;
+  }
+
+  .footer__legal {
+    margin-block-start: 1rem;
+  }
+
+  .footer__legal-links {
+    gap: calc(var(--gap) * 0.5);
+  }
 }
 
 /* ==================================================== On Track / Off Track
