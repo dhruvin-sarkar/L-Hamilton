@@ -53,7 +53,10 @@ html {
   --giallo-modena: #fff200;
 
   --accent: var(--rosso-corsa); /* replacing the reference's lime */
-  --accent-off: #c4212a; /* muted accent, for larger areas */
+  /* Muted accent, for larger areas. Lifted from #c4212a, which measured
+     2.877:1 against --gl-bg and so missed the 3:1 large-text floor wherever it
+     was ink on that ground. Same hue and saturation, value only: now 3.43:1. */
+  --accent-off: #da252f;
   --accent-zero: #ff280000; /* gradient stop */
 
   --white: #f7f3f1;

@@ -2538,12 +2538,14 @@
   align-items: flex-end;
 }
 
-/* Overhangs the panel's bottom by 3rem and is cropped by the mask, which is
-   what runs the shoulders off the bottom edge.
+/* Overhangs the panel's bottom by 3rem and is cropped by the PANEL's mask,
+   which is what runs the shoulders off the bottom edge.
  *
- * The alpha map is the hero's own cutout, reused here as a luminance mask —
- * white is the subject — so the portrait sits ON the panel instead of bringing
- * a rectangle of its own background with it. */
+ * No mask of its own. lewis-hero.webp is already RGBA with the cutout baked in
+ * — 35% of it is fully transparent — so it sits on the panel unaided. It
+ * briefly carried the hero's alpha-map as a second, luminance mask, which
+ * cannot add anything to a silhouette, only multiply it, and measurably ate
+ * into the edge. */
 .footer__portrait {
   position: relative;
   inset-block-end: -3rem;
@@ -2558,10 +2560,6 @@
      larger than the reference's 39.875rem box. */
   inline-size: auto;
   block-size: 44.5rem;
-  -webkit-mask: url('/assets/hero/alpha-map.webp') center / contain no-repeat;
-  mask: url('/assets/hero/alpha-map.webp') center / contain no-repeat;
-  -webkit-mask-mode: luminance;
-  mask-mode: luminance;
 }
 
 .footer__cta {
@@ -2613,11 +2611,15 @@
   overflow: clip;
 }
 
-/* Wider than the panel and pulled back by half the overhang, so the scroll
-   drift below has somewhere to travel without exposing an end. */
+/* Wider than the panel and pulled back by half the overhang, so the drift has
+   somewhere to travel without exposing an end.
+   112, not 110: GSAP writes xPercent against the element's OWN width, so a 5%
+   drift reaches 0.05 * 1.1P = 5.5% of the panel while 110% only reserves 5% a
+   side — the row's left edge came 8px inside the clip box at full travel. The
+   reserve has to beat the reach, which needs a width of at least 1.111P. */
 .footer__marquee-scroll {
-  inline-size: 110%;
-  margin-inline-start: -5%;
+  inline-size: 112%;
+  margin-inline-start: -6%;
   display: flex;
   will-change: transform;
 }
@@ -2657,7 +2659,10 @@
   font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.25;
-  color: var(--gl-bg);
+  /* --dark, not --gl-bg. This ink sits on the accent, and the panel's ground
+     against #ff2800 is only 3.0:1 — under AA for text this size. --dark is
+     4.81:1 and keeps the reference's dark-on-accent treatment. */
+  color: var(--dark);
 }
 
 .footer__copy {

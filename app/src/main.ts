@@ -1346,6 +1346,17 @@ if (collabs) {
  * while the outer pair is still travelling.
  * ------------------------------------------------------------------ */
 
+const fan = document.querySelector<HTMLElement>('.socials__fan');
+
+
+/* ------------------------------------------------------------------ *
+ * Footer.
+ *
+ * Two independent pieces: the nav has to cross to its dark-ground styling
+ * while the panel is behind it, and the partner row is the same marquee as
+ * the one above the socials in a different colour.
+ * ------------------------------------------------------------------ */
+
 /* The nav crosses to its dark-ground styling while the footer panel is behind
    it — the same signal the gallery uses, asserted from a different place.
    Ends at the nav's own height rather than at the viewport top, because what
@@ -1385,9 +1396,6 @@ if (footerMarquee && footerTrack) {
     scroller: footerMarquee.querySelector<HTMLElement>('.footer__marquee-scroll'),
   });
 }
-
-const fan = document.querySelector<HTMLElement>('.socials__fan');
-
 if (fan) {
   const cards = [...fan.querySelectorAll<HTMLElement>('.socials__card')];
 
