@@ -269,6 +269,27 @@ for (const [key, value] of Object.entries(bindings)) {
 }
 
 /* ------------------------------------------------------------------ *
+ * Inert links
+ *
+ * Sixteen links across the menu, the socials block and the footer stand in for
+ * destinations that do not exist yet — the three other pages, and the social
+ * profiles. They carry href="#" so they keep a link's appearance, focus ring
+ * and keyboard semantics, but nothing was stopping the default: clicking or
+ * pressing Enter on any of them threw the reader back to the top of the page,
+ * which on a 17,000px document is the most destructive thing a stray click can
+ * do here.
+ *
+ * One delegated listener rather than sixteen, and preventDefault only — the
+ * link stays focusable and announced, it simply no longer goes anywhere. Give
+ * one a real href and it starts working with no other change.
+ * ------------------------------------------------------------------ */
+
+document.addEventListener('click', (event) => {
+  const target = event.target as Element | null;
+  if (target?.closest('[data-placeholder-href]')) event.preventDefault();
+});
+
+/* ------------------------------------------------------------------ *
  * Small DOM helper
  *
  * All that survives of a stat band, an eras list and a pair of

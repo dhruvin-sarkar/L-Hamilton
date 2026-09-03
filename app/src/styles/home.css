@@ -2992,7 +2992,7 @@
 .otot__end-img--bed {
   object-fit: cover;
   filter: blur(2.25rem) brightness(0.55) saturate(0.9);
-  transform: scale(calc(1.08 + var(--otot-rise, 0) * 0.04));
+  transform: scale(calc(1.08 + var(--otot-rise, 1) * 0.04));
 }
 
 /* The subject layer, whole. `contain` rather than `cover`, so the raised hands
@@ -3004,7 +3004,14 @@
  * the picture is complete exactly when it comes to rest. */
 .otot__end-img--sharp {
   object-fit: contain;
-  transform: scale(calc(1 - (1 - var(--otot-rise, 0)) * 0.04));
+  /* Fallback 1, not 0 — the fallback is the RESTING value, not the opening
+     one. --otot-rise is written only by the WIDE_AND_ANIMATED branch, and that
+     branch's cleanup removes the property again, so below 992px and under
+     reduced motion this resolved to scale(1 - 0.04) and the picture sat 4%
+     small forever, never reaching the completeness the push-in exists to
+     arrive at. On wide screens the trigger's onRefresh writes the real
+     progress immediately, so nothing starts in the wrong place. */
+  transform: scale(calc(1 - (1 - var(--otot-rise, 1)) * 0.04));
 }
 
 /* ---- narrow screens ----
