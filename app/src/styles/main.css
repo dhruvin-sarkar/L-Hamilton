@@ -28,6 +28,46 @@
 }
 
 /* ---------------------------------------------------------------- *
+ * Hide the scrollbar
+ *
+ * The reference does this and it is not decoration — it is what makes the menu
+ * open without moving the page.
+ *
+ * Opening the menu sets `overflow: clip` on the root to stop the document
+ * scrolling behind the panel. On a platform with classic, space-taking
+ * scrollbars that also removes the scrollbar, the gutter collapses, and every
+ * viewport-relative thing on the page — the nav, the wordmark, the whole
+ * centred layout — jumps sideways by the scrollbar's width as the panel opens
+ * and jumps back as it closes. So the page had a scrollbar at rest and none
+ * with the menu open, which is exactly the asymmetry that reads as a glitch.
+ *
+ * With no scrollbar at either moment there is no gutter to collapse and
+ * nothing can shift. Lenis owns the scroll here anyway, so the native bar was
+ * never the affordance it looks like.
+ *
+ * The reference's own rules, matched:
+ *     body ::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
+ *     body { -ms-overflow-style: none; }
+ *     html { scrollbar-width: none; }
+ * The -ms- line is dropped: it targets IE and pre-Chromium Edge, neither of
+ * which can run this site, and the brief is explicit about not stacking
+ * fallbacks. The two live ones cover every engine that can.
+ *
+ * Scrolling itself is untouched — wheel, trackpad, keyboard, touch and
+ * programmatic scrolling all behave exactly as before; only the painted bar
+ * is gone.
+ * ---------------------------------------------------------------- */
+
+html {
+  scrollbar-width: none; /* Firefox */
+}
+
+body ::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none; /* Chromium, WebKit */
+}
+
+/* ---------------------------------------------------------------- *
  * Reset
  * ---------------------------------------------------------------- */
 

@@ -260,6 +260,15 @@ const bindings: Record<string, string> = {
   // Placeholder until the calendar feed lands. Named honestly rather than
   // filled with a plausible-looking circuit that would read as real.
   'race-name': 'TBC',
+  /* The team line, in one place. It was typed out in the impact eyebrow and
+     again in the menu while the next-race card bound the same year properly —
+     three statements of one fact, two of which could go stale on their own.
+     Bound as a WHOLE STRING rather than by wrapping the year in a span:
+     splittable() requires childElementCount === 0, so a nested span would have
+     silently switched off the eyebrow's line reveal. "Scuderia" is Ferrari's
+     own prefix and would need revisiting alongside a team change, which is a
+     larger content edit than this. */
+  'team-line': `Scuderia ${driver.currentTeam} since ${currentEra.from}`,
 };
 
 for (const [key, value] of Object.entries(bindings)) {
@@ -829,6 +838,16 @@ mm.add(WIDE_AND_ANIMATED, () => {
   if (!otot) return;
   const ototEnd = otot.querySelector<HTMLElement>('.otot__end');
 
+  const applyCutouts = (progress: number): void => {
+    const rest = 1 - progress;
+    // power3.out: most of the distance is covered early, so the cutouts arrive
+    // with weight and then ease the last few pixels shut.
+    otot.style.setProperty('--otot-cut', `${20 * rest * rest * rest}rem`);
+    // Linear, and done at 60%.
+    const t = gsap.utils.clamp(0, 1, progress / 0.6);
+    otot.style.setProperty('--otot-txt', `${5 * (1 - t)}rem`);
+  };
+
   gsap.to(
     {},
     {
@@ -842,26 +861,12 @@ mm.add(WIDE_AND_ANIMATED, () => {
         end: 'bottom bottom',
         scrub: true,
         invalidateOnRefresh: true,
-        onUpdate: (self) => {
-          const p = self.progress;
-          const rest = 1 - p;
-          // power3.out: most of the distance is covered early, so the cutouts
-          // arrive with weight and then ease the last few pixels shut.
-          otot.style.setProperty('--otot-cut', `${20 * rest * rest * rest}rem`);
-          // Linear, and done at 60%.
-          const t = gsap.utils.clamp(0, 1, p / 0.6);
-          otot.style.setProperty('--otot-txt', `${5 * (1 - t)}rem`);
-        },
         /* Also on refresh: a reload landing inside this section fires no update
            until something moves, which would leave the cutouts parked at their
-           opening offset with the type already settled. */
-        onRefresh: (self) => {
-          const p = self.progress;
-          const rest = 1 - p;
-          otot.style.setProperty('--otot-cut', `${20 * rest * rest * rest}rem`);
-          const t = gsap.utils.clamp(0, 1, p / 0.6);
-          otot.style.setProperty('--otot-txt', `${5 * (1 - t)}rem`);
-        },
+           opening offset with the type already settled. One body, so the pair
+           cannot drift — they had been maintained as two copies. */
+        onUpdate: (self) => applyCutouts(self.progress),
+        onRefresh: (self) => applyCutouts(self.progress),
       },
     },
   );
@@ -996,6 +1001,11 @@ if (store && !reducedMotion) {
     applyGroundCross();
   };
 
+  const applyVisor = (progress: number): void => {
+    store.style.setProperty('--store-visor', String(progress));
+    applyGround(progress);
+  };
+
   gsap.to(
     {},
     {
@@ -1008,14 +1018,12 @@ if (store && !reducedMotion) {
         end: 'top 34%',
         scrub: true,
         invalidateOnRefresh: true,
-        onUpdate: (self) => {
-          store.style.setProperty('--store-visor', String(self.progress));
-          applyGround(self.progress);
-        },
-        onRefresh: (self) => {
-          store.style.setProperty('--store-visor', String(self.progress));
-          applyGround(self.progress);
-        },
+        /* Same body on both, so a reload landing inside the section paints the
+           visor where the scroll position says rather than at its opening
+           value. Written once — the two had already been maintained as a
+           copy-pasted pair. */
+        onUpdate: (self) => applyVisor(self.progress),
+        onRefresh: (self) => applyVisor(self.progress),
       },
     },
   );
@@ -1528,7 +1536,13 @@ if (!reducedMotion) {
    * wrap each word, read the line box it landed in off offsetTop, then rebuild
    * the block one span per distinct box. */
 
-  const LINE_STAGGER = 150;
+  /* Read from --stagger-line rather than restated here. The token said 150ms
+     and this said 150, which is two sources of truth for one beat — and the
+     token was the one nothing read, so tuning it did nothing. */
+  const LINE_STAGGER =
+    Number.parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue('--stagger-line'),
+    ) || 150;
 
   /** The words as authored, kept so a re-split starts from the text and not
       from the spans left by the previous one. */
