@@ -3125,7 +3125,11 @@
      of red used in the menu screen", and this is literally that token rather
      than a second red mixed to look like it. */
   background: var(--gl-bg);
-  padding-block: 8rem 10rem;
+  /* The reference's helmets section carries no padding at either end and lets
+     its heading block and grid margins do the spacing. 2.5rem/8.75rem is the
+     40px/140px it ends up with; 8rem/10rem here was 288px of section nobody
+     asked for. */
+  padding-block: 2.5rem 8.75rem;
   /* The gutter lives here rather than on a .shell wrapper, so the grid runs
      almost the full width of the page. Measured off the reference: 20px each
      side at a 1728 viewport, which is exactly --padding--container. */
@@ -3421,12 +3425,15 @@
   flex-direction: column;
   align-items: center;
   gap: 2rem;
-  /* Clear of the grid by more than the 36rem the trailing columns hang below it
-     at their furthest, so the two can never collide mid-scroll. The reference
-     leaves 404px between the foot of its grid and its button; this is that plus
-     the extra our deeper travel needs, and it has to be raised whenever the
-     travel in main.ts is. */
-  margin-block-start: 22rem;
+  /* Measured, not reasoned about. On the running reference the top of its
+     button sits 7px ABOVE the foot of its grid — its callout is a separate
+     section and it simply lets the trailing columns pass over the band. Ours
+     stood 274px clear of the grid, which was 274px of empty section.
+
+     The old value was sized to clear a 36rem overhang that no longer exists:
+     the column drift is now the reference's 44/219px rather than 180/540, so
+     the trailing columns hang 234px below the grid, not 576. */
+  margin-block-start: 5rem;
   text-align: center;
 }
 

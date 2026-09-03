@@ -932,8 +932,13 @@ mm.add(WIDE_AND_ANIMATED, () => {
      their neighbours as the wall comes onto the screen. */
   const apply = (progress: number) => {
     const rest = 1 - progress;
-    hof.style.setProperty('--hof-lead', `${12 * rest}rem`);
-    hof.style.setProperty('--hof-lag', `${36 * rest}rem`);
+    /* Solved against the reference's own drift, measured on the running site:
+       sampling the topmost card of each column at four scroll positions, its
+       lead columns travel 44px and its lag columns 219px. Ours travelled 180
+       and 540 — four times and two and a half times too far — which is what
+       forced the CTA's outsized clearance below and inflated the section. */
+    hof.style.setProperty('--hof-lead', `${2.93 * rest}rem`);
+    hof.style.setProperty('--hof-lag', `${14.6 * rest}rem`);
   };
 
   gsap.to(
