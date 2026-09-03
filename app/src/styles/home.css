@@ -2628,8 +2628,13 @@
 }
 
 .footer__legal-link .btn-text {
-  font-size: 0.75rem;
-  font-weight: 600;
+  /* The reference sets these at its button-primary step — 16px, 800,
+     uppercase — so they read as the heavier half of the legal row. Ours had
+     been restating the copyright line's 12px/600 instead, which left the links
+     lighter than the static text beside them. */
+  font-size: var(--text--btn-primary);
+  font-weight: 800;
+  text-transform: uppercase;
   line-height: 1.25;
 }
 
@@ -2710,6 +2715,18 @@
   /* Proportional rather than fixed, because the portrait cut is 1.64x as tall
      as it is wide and a fixed width leaves a hole under the links at the top of
      this range. The cap stops it overwhelming an actual phone. */
+  /* The flex parent needs a definite width here or nothing resolves. It is
+     shrink-to-fit, and its width is derived from this image — while the image
+     asks for 80% OF IT. That circularity left the portrait at 0x0 with
+     naturalWidth 0 at 360, 375, 479, 768 and 991: the browser never even
+     fetched it, so the whole footer art column collapsed to nothing on every
+     screen below 992. Giving the parent 100% breaks the loop — the percentage
+     then resolves against the panel and the width/height attributes supply the
+     ratio. */
+  .footer__art-inner {
+    inline-size: 100%;
+  }
+
   .footer__portrait {
     inline-size: 80%;
     block-size: auto;
@@ -2740,6 +2757,26 @@
 }
 
 @media (max-width: 479px) {
+  /* Reclaim the lead at the very bottom of the range. The panel's height is
+     pinned by aspect-ratio, which at 360px gives 526px, while the stacked
+     content measured 528 — so the CTA, absolutely positioned at the foot,
+     came down on top of the links: at 360 it covered Calendar, Store and the
+     X link, all three unclickable underneath an opaque button, and at 375 it
+     still covered Store. It clears from 390 up. Trimming the statement's lead
+     and the links' top margin gives back ~70px, which is more than the
+     overlap needs.
+
+     The 11rem and 4rem those replace are sized to clear the marquee and the
+     signature above the headline, and both still do at this size because the
+     signature itself is 7.5rem here rather than its full width. */
+  .footer__statement {
+    margin-block-start: 7rem;
+  }
+
+  .footer__links {
+    margin-block: 2rem 0;
+  }
+
   .footer__headline {
     font-size: 2.6rem;
   }
