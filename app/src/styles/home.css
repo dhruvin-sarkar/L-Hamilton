@@ -38,6 +38,16 @@
      ours scrolling away with the hero. */
   position: fixed;
   inset: 0 0 auto;
+  /* The bar is a full-width fixed box, so without this it hit-tests as a
+     126px-tall lid over every section: measured with elementFromPoint at
+     (400,60), (900,60) and (1200,110), all three returned .nav-inner at
+     scrollY 0 AND at 6000, where the reference returns its gl canvas and its
+     horizontal track. Gallery cards, helmet cards and the on/off-track links
+     could not be hovered or clicked while they passed under it.
+
+     The interactive children take it back individually, which is exactly how
+     the reference wires its own nav. */
+  pointer-events: none;
   /* Above the menu overlay (z-index 25), matching the reference's z-index 120.
      The wordmark, store button and close button all have to stay visible and
      clickable while the menu is open — this overlay is not a modal that covers
@@ -172,6 +182,24 @@
      variable is unset, and a 0 fallback hides the mark on the hero at rest. */
   opacity: var(--mono-in, 1);
   transition-property: visibility;
+  /* The centring translate has to be restated at THIS specificity for the same
+     reason opacity is. `.monogram` sets `translate: -50% -50%` at 0-1-0 and
+     `.is-ready .hero-in { translate: none }` is 0-2-0 and later in the file,
+     so from the moment the scene flagged ready the mark lost its centring and
+     sat 17px right of centre and 32px low. */
+  translate: -50% -50%;
+  /* Interactive, unlike its parent — see the pointer-events note on
+     .nav-inner. */
+  pointer-events: auto;
+}
+
+/* Once the mark has faded out it must stop being a target. Nothing set
+   visibility or pointer-events outside the menu case, so a 35x38px invisible
+   link to the home page sat over the top-centre of every section, still in the
+   tab order and still winning elementFromPoint. */
+.nav-inner .monogram.is-faded {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 [data-menu-open] .nav-inner .monogram {
@@ -183,6 +211,14 @@
   transition:
     opacity 0.45s var(--cubic-default),
     visibility 0s linear 0.45s;
+}
+
+/* The controls, back on. Everything else in the bar is a label. */
+.topbar,
+.store,
+.menu-btn,
+.wordmark {
+  pointer-events: auto;
 }
 
 .monogram__svg {
@@ -3492,6 +3528,15 @@
   flex: none;
 }
 
+/* Same box as .hof__cta-arrow — it is the same mark on a smaller button, and
+   the gap comes from .store-cta__link's own inline-flex. */
+.store-cta__arrow {
+  inline-size: 1.25rem;
+  block-size: 1.25rem;
+  flex: none;
+  margin-inline-start: 0.5rem;
+}
+
 /* ---- narrow screens ----
  *
  * Two columns, and no parallax: the effect needs four columns side by side to
@@ -3633,7 +3678,9 @@
   max-inline-size: 86rem;
   margin-inline: auto;
   padding-block-start: 18.17rem;
-  padding-inline: var(--gutter);
+  /* No gutter here at wide widths. The reference's text column starts flush
+     with its 86rem measure; the gutter pushed ours 20px right of it. It goes
+     back on below 992px, where the section does need an edge. */
 }
 
 .shop__text {
@@ -3756,7 +3803,8 @@
  * thrown away. */
 .shop__frame {
   position: absolute;
-  transform: translateY(calc(var(--store-parallax, 0) * -2.83rem));
+  /* 4rem = the reference's measured 64px of drift. 2.83rem travelled 45.3. */
+  transform: translateY(calc(var(--store-parallax, 0) * -4rem));
   will-change: transform;
 }
 
@@ -3861,6 +3909,7 @@
 
   .shop__inner {
     padding-block-start: 7rem;
+    padding-inline: var(--gutter);
   }
 
   .shop__title {
@@ -3904,7 +3953,10 @@
    hold their pictures and the visor still separates the two grounds, so the
    section arrives assembled rather than absent. */
 @media (prefers-reduced-motion: reduce) {
-  .shop__img {
+  /* .shop__frame, not .shop__img: the parallax translate lives on the frame,
+     so this guard had been neutralising an element that never moved and the
+     drift played in full for anyone who asked for no motion. */
+  .shop__frame {
     transform: none;
   }
 
@@ -4049,7 +4101,9 @@
   display: inline-flex;
   align-items: center;
   block-size: 3.45rem;
-  padding-inline: 2.4rem;
+  /* 3.5rem a side puts 112px between items, which is what the reference's
+     spacer measures. 2.4rem gave 77px and the row read noticeably denser. */
+  padding-inline: 3.5rem;
   font-size: 1.55rem;
   font-weight: 800;
   letter-spacing: -0.01em;

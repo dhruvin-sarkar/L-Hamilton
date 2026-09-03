@@ -1118,8 +1118,17 @@ function mountMarquee(opts: {
   drift?: number;
   /** The element the drift moves. Must not be the looping track. */
   scroller?: HTMLElement | null;
+  /** Travel direction. The reference runs both of its rows to the RIGHT. */
+  direction?: 'left' | 'right';
+  /** Loop rate. Measured off the reference at ~92px/s on both of its rows. */
+  pxPerSecond?: number;
+  /** The reference does not slow either row under the pointer. */
+  slowOnHover?: boolean;
 }): void {
-  const { track, box, items, itemClass, drift = 0, scroller = null } = opts;
+  const {
+    track, box, items, itemClass, drift = 0, scroller = null,
+    direction = 'right', pxPerSecond = 92, slowOnHover = false,
+  } = opts;
 
   /* Two copies minimum, then as many more as it takes for the track to span
      the viewport twice — the loop needs copyWidth * (copies - 1) to cover the
@@ -1142,15 +1151,20 @@ function mountMarquee(opts: {
   if (reducedMotion) return;
 
   const step = 100 / copies;
-  // Derived from width, not fixed, so the row travels at a readable rate
-  // whatever the list length does. 90px/s matches the hero marquee.
-  const duration = (track.scrollWidth * (step / 100)) / 90;
+  /* Travel is step% of the track's BORDER-BOX width, because that is what
+     GSAP resolves xPercent against — not scrollWidth. Computing the duration
+     off scrollWidth made the row run about 1.5x its nominal rate, which is why
+     it measured 134px/s against a nominal 92. Derived from width rather than
+     fixed so the rate holds whatever the list length does. */
+  const travelPx = (step / 100) * track.getBoundingClientRect().width;
+  const duration = travelPx / pxPerSecond;
 
-  const loop = gsap.fromTo(
-    track,
-    { xPercent: 0 },
-    { xPercent: -step, duration, ease: 'none', repeat: -1 },
-  );
+  /* Rightward means starting one copy to the LEFT and travelling to 0, so the
+     row is already full at t=0 rather than sliding in from an empty edge. */
+  const loop =
+    direction === 'right'
+      ? gsap.fromTo(track, { xPercent: -step }, { xPercent: 0, duration, ease: 'none', repeat: -1 })
+      : gsap.fromTo(track, { xPercent: 0 }, { xPercent: -step, duration, ease: 'none', repeat: -1 });
 
   /* Scroll velocity and pointer hover are two inputs to ONE rate, combined
      here rather than each writing timeScale. Two writers on a rate is how the
@@ -1163,18 +1177,23 @@ function mountMarquee(opts: {
     scrollTarget = gsap.utils.clamp(-5, 5, 1 + velocity * 0.06);
   });
 
-  box.addEventListener('pointerenter', () => {
-    hoverTarget = 0.15;
-  });
-  box.addEventListener('pointerleave', () => {
-    hoverTarget = 1;
-  });
+  if (slowOnHover) {
+    box.addEventListener('pointerenter', () => {
+      hoverTarget = 0.15;
+    });
+    box.addEventListener('pointerleave', () => {
+      hoverTarget = 1;
+    });
+  }
 
   gsap.ticker.add(() => {
     scrollTarget += (1 - scrollTarget) * 0.08;
     const want = scrollTarget * hoverTarget;
     rate += (want - rate) * 0.12;
-    if (Math.abs(rate - want) < 0.001) return;
+    /* Snap on arrival and write it. Returning early here left the LAST value
+       written as whatever it was a frame before convergence, so the row settled
+       at a rate slightly off the one it was easing toward. */
+    if (Math.abs(rate - want) < 0.001) rate = want;
     loop.timeScale(rate);
   });
 
@@ -2530,6 +2549,9 @@ if (stage) {
   /* Resolved once. The scrub writes to it every frame, and a querySelector per
      frame is a lookup the shrink does not need to repeat. */
   const navStyle = document.querySelector<HTMLElement>('.nav-inner')?.style;
+  /* Kept alongside navStyle: the mark needs a class toggled on it once it has
+     faded out completely, which a custom property cannot express. */
+  const monogram = document.querySelector<HTMLElement>('.nav-inner .monogram');
 
   /* End scale of the plate, per axis. Measured, not chosen: the reference's
      landing box is 625x404 in a 1908x926 viewport.
@@ -2740,7 +2762,12 @@ if (stage) {
          the mark it brought back then hung over every section below the hero
          instead of belonging to the plate. The copy in .hero-mark takes that
          job over and travels with the plate. */
-      navStyle?.setProperty('--mono-in', String(Math.max(0, 1 - eased / 0.15)));
+      const monoIn = Math.max(0, 1 - eased / 0.15);
+      navStyle?.setProperty('--mono-in', String(monoIn));
+      /* CSS cannot branch on a number, so the fully-faded state is carried as a
+         class. Without it the mark stays hit-testable and tabbable at opacity 0
+         for the whole document below the hero. */
+      monogram?.classList.toggle('is-faded', monoIn === 0);
 
       /* And here it is, arriving as the plate settles. Late and quick, so it
          lands WITH the plate rather than drifting in alongside it. Set on the
