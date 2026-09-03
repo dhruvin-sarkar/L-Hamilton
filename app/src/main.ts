@@ -134,12 +134,29 @@ function applyGroundCross(): void {
 }
 
 if (!reducedMotion) {
+  /* Read off the reference's own live window.lenis.options, not chosen. lerp
+     0.14 here was a measurably tighter scroll than the reference's 0.1 — a
+     ~110ms time constant against its ~158ms — and the whole parity mandate
+     cashes out to how the page feels under the wheel, so this is the single
+     value the rest of the site's motion is judged against. TECH-STACK.md
+     already specified 0.1; this had drifted off it.
+
+     The four touch options were absent entirely, so touch feel matched nothing
+     at all. autoRaf stays false, as the reference's is: the ticker below drives
+     raf so Lenis and ScrollTrigger share one clock. */
   const instance = new Lenis({
-    lerp: 0.14,
+    lerp: 0.1,
     smoothWheel: true,
     syncTouch: true,
+    syncTouchLerp: 0.075,
     wheelMultiplier: 1,
+    touchMultiplier: 1.25,
   });
+  /* The reference also sets touchInertiaMultiplier: 35. Deliberately NOT
+     copied: Lenis renamed that option to touchInertiaExponent in 1.x and it is
+     a different formulation — an exponent, not a multiplier — so passing 35
+     would not reproduce the reference's feel, it would break touch inertia
+     outright. Left at the library default until someone measures the curve. */
 
   instance.on('scroll', ScrollTrigger.update);
   gsap.ticker.add((time) => instance.raf(time * 1000));

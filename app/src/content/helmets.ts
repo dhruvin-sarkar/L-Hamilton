@@ -63,14 +63,22 @@ export function revealAlt(helmet: Helmet): string {
     : 'Lewis Hamilton wearing this helmet';
 }
 
-/* Ordered oldest to newest, which is the order the assets were numbered in:
-   id 1 is a Vodafone-era McLaren lid and id 27 is a gold Ferrari one. That
-   ordering is the only claim made here, and it comes from the liveries visible
-   in the photographs rather than from a date attached to any single helmet. */
+/* NEWEST FIRST, which is the order the reference presents its own wall in: its
+   year labels run 2025, 2025, 2025, 2024, 2024... down the grid, measured on
+   the running site. The asset numbering is the opposite — id 1 is a
+   Vodafone-era McLaren lid and id 27 a gold Ferrari one — so the list is
+   reversed here rather than renumbered, because the filenames are the record
+   (see the note about the missing 22 above).
+
+   The oldest-to-newest ordering is the only claim these ids make, and it comes
+   from the liveries visible in the photographs, not from a date attached to any
+   single helmet. Reversing it is presentation, not a new claim. */
 export const helmets: Helmet[] = [
   1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 25,
   26, 27,
-].map((id) => ({ id, name: null, year: null }));
+]
+  .reverse()
+  .map((id) => ({ id, name: null, year: null }));
 
 /**
  * Which entries are still missing their name or year.
