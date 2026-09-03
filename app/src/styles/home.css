@@ -4072,10 +4072,32 @@
 .socials {
   position: relative;
   isolation: isolate;
-  padding-block: 12.8rem 4rem;
+  /* Measured off the reference: its ornament sits 128px below the section top
+     and its section has no padding at either end (it runs 1158px, where 4rem
+     of bottom padding here was pushing us to 1266). 8rem puts the ball exactly
+     where the reference's is; the links block below the fan carries its own
+     spacing. */
+  padding-block: 8rem 0;
   color: var(--dark);
   background: var(--field-ground);
   overflow-x: clip;
+}
+
+/* The ornament. 3.5rem is the reference's 56px, and the 3.125rem below it puts
+   the heading's cap line where the reference's sits — ball top 128, ball bottom
+   184, heading top 234, all measured off the running site.
+
+   A mask over currentColor rather than an <img>: the file is drawn with
+   fill="currentColor", which an <img> would not honour, and this way the ball
+   takes --dark from the section like every other ink on it. */
+.socials__ball {
+  display: block;
+  inline-size: 3.5rem;
+  block-size: 3.5rem;
+  margin: 0 auto 2.5rem;
+  background: currentColor;
+  -webkit-mask: url('/assets/brand/dot-ball.svg') center / contain no-repeat;
+  mask: url('/assets/brand/dot-ball.svg') center / contain no-repeat;
 }
 
 .socials__title {
@@ -4101,7 +4123,10 @@
   font-family: var(--font-serif);
   font-size: 4.6875rem;
   font-weight: 700;
-  text-transform: none;
+  /* No text-transform reset here. .socials__title sets uppercase and this rule
+     used to override it back to title case, so the serif line read "On Socials"
+     where the reference sets "ON SOCIALS" — both of its lines are uppercase and
+     the Didone is drawn for caps at this size. */
 }
 
 /* ---- the fan ---- */
@@ -4111,7 +4136,10 @@
   inline-size: 80rem;
   max-inline-size: 100%;
   block-size: 36rem;
-  margin: 5.7rem auto 0;
+  /* 2.875rem, not 5.7. Measured on the running reference the heading's last
+     line clears the top of the fan by 46px; 5.7rem put 91px there and pushed
+     the whole fan — and the section with it — half a heading too low. */
+  margin: 2.875rem auto 0;
 }
 
 /* The card composes FOUR independent signals into one transform:
@@ -4210,6 +4238,7 @@
 .socials__card[data-step='-2'],
 .socials__card[data-step='2'] {
   --fan-scale: 0.8498;
+  /* See the note on step 3. Measured drop 80px, matching the reference. */
   --fan-y: 4.02rem;
   --fan-z: 2;
 }
@@ -4217,6 +4246,17 @@
 .socials__card[data-step='-3'],
 .socials__card[data-step='3'] {
   --fan-scale: 0.7756;
+  /* Solved against the RENDERED card tops on the settled fan, not read off the
+     translate: the rotation lifts a card's bounding box more the further out it
+     sits (21deg here), so rem and rendered drop are not proportional across the
+     steps. Measured drop below the centre card, going out from the middle:
+     the reference is 0 / 22 / 80 / 149px and this now matches it.
+
+     MEASURE WITH THE FAN SETTLED. The cards ride an entrance, and sampling
+     while it is still running reads a far flatter arc than the rest state. An
+     audit pass measured 95px here mid-entrance, "corrected" it to 11.46rem and
+     overshot the settled arc to 216px. Scroll past the section and back before
+     trusting any number here — at rest this value was, and is, right. */
   --fan-y: 7.3rem;
   --fan-z: 1;
 }
