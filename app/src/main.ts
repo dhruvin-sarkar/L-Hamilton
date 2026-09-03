@@ -11,13 +11,7 @@ import { BackgroundField } from './BackgroundField';
 import { mountBlurText } from './BlurText';
 import { HeadScene } from './HeadScene';
 import { Signature } from './Signature';
-import {
-  age,
-  careerTotals,
-  driver,
-  eras,
-  seasonsRacing,
-} from './content/hamilton';
+import { age, driver, eras, seasonsRacing } from './content/hamilton';
 import {
   helmetAlt,
   helmetSrc,
@@ -275,22 +269,21 @@ for (const [key, value] of Object.entries(bindings)) {
 }
 
 /* ------------------------------------------------------------------ *
- * Stat band
+ * Small DOM helper
+ *
+ * All that survives of a stat band, an eras list and a pair of
+ * IntersectionObservers that were built for markup this page does not have.
+ * `#stats-grid`, `#stats-note` and `#eras-list` appear nowhere in index.html,
+ * `[data-count]` was only ever set by the stat builder itself, and no element
+ * carries the bare `reveal` class the revealer watched for — so every one of
+ * those blocks was querying an empty NodeList on load and had been since the
+ * markup settled.
+ *
+ * They are gone rather than wired up, because the reference's home page has no
+ * stat band and no eras list, and CLAUDE.md's parity mandate is explicit that a
+ * section the reference does not have is out of scope. The career numbers
+ * belong to the season table on /on-track.
  * ------------------------------------------------------------------ */
-
-interface StatDef {
-  label: string;
-  value: number;
-  hero?: boolean;
-}
-
-const stats: StatDef[] = [
-  { label: 'Championships', value: careerTotals.championships, hero: true },
-  { label: 'Wins', value: careerTotals.wins },
-  { label: 'Poles', value: careerTotals.poles },
-  { label: 'Podiums', value: careerTotals.podiums },
-  { label: 'Starts', value: careerTotals.starts },
-];
 
 /** Build an element with text content set safely. */
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -302,96 +295,6 @@ function el<K extends keyof HTMLElementTagNameMap>(
   node.className = className;
   if (text !== undefined) node.textContent = text;
   return node;
-}
-
-const statsGrid = document.querySelector<HTMLUListElement>('#stats-grid');
-if (statsGrid) {
-  // Built through the DOM rather than innerHTML. These values are static today,
-  // but careerTotals is slated to come from a live API — and the moment it does,
-  // a template string here becomes an injection sink.
-  for (const s of stats) {
-    const item = el('li', s.hero ? 'stat stat--hero' : 'stat');
-    const value = el('span', 'stat__value', String(reducedMotion ? s.value : 0));
-    value.dataset.count = String(s.value);
-    item.append(value, el('span', 'stat__label', s.label));
-    statsGrid.append(item);
-  }
-}
-
-/**
- * Career totals are placeholders until the live fetch lands. Say so in the UI
- * rather than rendering zeroes that look like real results — a wrong number
- * presented confidently is worse than an absent one.
- */
-const note = document.querySelector<HTMLParagraphElement>('#stats-note');
-if (note) {
-  note.textContent = careerTotals.verified
-    ? `Updated ${new Date(careerTotals.lastUpdated).toLocaleDateString()}`
-    : 'Career totals pending live data — championships shown are final.';
-}
-
-/* ------------------------------------------------------------------ *
- * Eras
- * ------------------------------------------------------------------ */
-
-const erasList = document.querySelector<HTMLOListElement>('#eras-list');
-if (erasList) {
-  for (const e of eras) {
-    const item = el('li', 'era');
-    item.dataset.era = e.id; // drives the --era accent swap in tokens.css
-    item.append(
-      el('p', 'era__years', `${e.from}–${e.to ?? 'present'}`),
-      el('h3', 'era__team', e.team),
-      el('p', 'era__blurb', e.blurb),
-    );
-    erasList.append(item);
-  }
-}
-
-/* ------------------------------------------------------------------ *
- * Reveal + count-up on scroll into view
- * ------------------------------------------------------------------ */
-
-/** Ease-out count-up driven by rAF rather than a fixed interval, so it tracks
- *  real elapsed time instead of drifting on a busy frame. */
-function countUp(el: HTMLElement, duration = 1100): void {
-  const target = Number(el.dataset.count ?? 0);
-  if (!target) return;
-  const start = performance.now();
-
-  const tick = (now: number) => {
-    const t = Math.min((now - start) / duration, 1);
-    const eased = 1 - Math.pow(1 - t, 3); // cubic out, matching --ease-out
-    el.textContent = String(Math.round(target * eased));
-    if (t < 1) requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
-}
-
-if (!reducedMotion) {
-  const revealer = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        entry.target.classList.add('is-visible');
-        revealer.unobserve(entry.target); // reveals fire once
-      }
-    },
-    { rootMargin: '0px 0px -10% 0px' },
-  );
-  for (const el of document.querySelectorAll('.reveal')) revealer.observe(el);
-
-  const counter = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        countUp(entry.target as HTMLElement);
-        counter.unobserve(entry.target);
-      }
-    },
-    { threshold: 0.4 },
-  );
-  for (const el of document.querySelectorAll('[data-count]')) counter.observe(el);
 }
 
 /* ------------------------------------------------------------------ *
@@ -407,13 +310,18 @@ const MARQUEE_FALLBACK_COPIES = 4;
 
 const marquee = document.querySelector<HTMLElement>('.hero-back');
 if (marquee) {
-  /* PLACEHOLDER. Deliberately not the real career data: the two bands are a
-     graphic surface, and hanging championship years off them made the layout
-     look decided when the copy is not. Swap for the real line once it exists —
-     the loop measures itself, so length does not matter. */
+  /* The band labels the narrative that follows, which is what the reference's
+     own band does — it reads "MESSAGE FROM LANDO" over the same moment.
+     Third person on purpose: CLAUDE.md forbids putting words in Hamilton's
+     mouth, so this is site copy introducing him, never something he said.
+     No figures here either — every number on this page comes from the data
+     layer, and a championship count baked into a graphic surface would be the
+     one place it could silently go stale.
+     "From Stevenage to Maranello" is the only concrete claim and both ends of
+     it are matters of record. The loop measures itself, so length is free. */
   const BANDS = {
-    left: ['Placeholder headline', 'Second placeholder'],
-    right: ['Lower band copy', 'Another placeholder'],
+    left: ['The story so far', 'On and off the track'],
+    right: ['From Stevenage to Maranello', 'Still writing it'],
   } as const;
 
   type BandName = keyof typeof BANDS;

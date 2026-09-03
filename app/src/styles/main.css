@@ -173,26 +173,3 @@ a {
   text-decoration: none;
   border-radius: 0.25rem;
 }
-
-/* ---------------------------------------------------------------- *
- * Reveal — clip-path, not opacity.
- * This is why the reference's entrances read as material being uncovered
- * rather than elements fading in. See ANIMATIONS-SPEC.
- * ---------------------------------------------------------------- */
-
-.reveal {
-  clip-path: inset(0 100% 0 0);
-  will-change: clip-path;
-}
-
-.reveal.is-visible {
-  clip-path: inset(0 0% 0 0);
-  transition: clip-path var(--dur-slow) var(--ease-out);
-}
-
-/* Content must never be trapped behind an animation that did not run. */
-@media (prefers-reduced-motion: reduce) {
-  .reveal {
-    clip-path: none;
-  }
-}

@@ -409,19 +409,25 @@
             <p class="impact__eyebrow reveal-text">Scuderia Ferrari since 2025</p>
           </div>
 
-          <!-- PLACEHOLDER, same footing as the marquee bands. Deliberately not
-               real career copy: this is the loudest thing on the page after the
-               hero, and filling it with a line nobody has signed off makes the
-               page look decided when it is not. What is being built here is the
-               shape — one long sentence, three accents spread across it. -->
-          <!-- Length matters as much as wording: the reference runs seven
-               lines, and a stand-in of a different length makes the block a
-               different height from the one being matched. Keep replacements
-               to about this word count. -->
+          <!-- The shape is measured off the reference, which runs one long
+               sentence over seven lines with three accent words spread across
+               it: "Redefining limits, fighting for wins, bringing it all in all
+               ways. Defining a legacy in Formula 1 on and off the track."
+               Ours keeps that rhythm and its three accent positions — first
+               word, middle, and the closing idea.
+
+               LENGTH IS LOAD-BEARING, and it was measured, not guessed:
+               24 words set to eight lines (section 1384px), 19 words to six
+               (1150px). The reference is 22 words over seven lines at 1235px,
+               and so is this. Count the words before changing this copy.
+
+               Third person, and no figures. CLAUDE.md forbids attributing
+               first-person words to Hamilton, and every number on this page is
+               owned by the data layer rather than typed into markup. -->
           <p class="impact__text" data-impact-text>
-            <strong>Placeholder</strong> copy standing in here until the real
-            line is written — three <strong>accent</strong> words across one
-            long <strong>sentence</strong>.
+            <strong>Redefining</strong> what the sport can be, racing for more
+            than <strong>wins</strong>. Building a <strong>legacy</strong> in
+            Formula 1, on and off the track.
           </p>
         </div>
       </section>
@@ -442,8 +448,19 @@
                              that overflow as it crosses — a parallax inside the
                              crop, not a still
 
-           Captions are placeholders. Real ones need provenance for each shot,
-           and a guessed circuit and year is invented data. -->
+           Captions describe only what is visible in each frame. The reference
+           captions its shots "PLACE, YEAR" — we deliberately do not, because a
+           guessed circuit or season is exactly the invented data the brief
+           forbids. Swap in real provenance when it exists and the format can
+           follow the reference exactly.
+
+           The two callouts are THIRD PERSON and carry no signature, and that
+           divergence is required rather than accidental: the reference's
+           equivalent is a signed first-person quote from Norris ("Since I was
+           7 years old..."), and CLAUDE.md forbids putting words in Hamilton's
+           mouth. A signature under a sentence attributes it, so it comes off
+           here — it still appears in the hero and the footer, where it is a
+           brand mark rather than a sign-off. -->
       <section class="gallery" data-gallery aria-labelledby="gallery-h">
         <h2 class="sr-only" id="gallery-h">Gallery</h2>
 
@@ -452,14 +469,14 @@
             <!-- 1 -->
             <div class="gallery__col">
               <figure class="gallery__item" style="--w: 15rem; --top: 3.9rem">
-                <figcaption class="gallery__cap reveal-text">Caption to come</figcaption>
+                <figcaption class="gallery__cap reveal-text">On the mic</figcaption>
                 <div class="gallery__frame" style="--ar: 0.806">
                   <img src="/assets/gallery/gallery-01.webp" alt="" width="1121" height="1400"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
               <figure class="gallery__item" style="--w: 16.3rem; --top: 5.8rem">
-                <figcaption class="gallery__cap reveal-text">Caption to come</figcaption>
+                <figcaption class="gallery__cap reveal-text">Lowrider</figcaption>
                 <div class="gallery__frame" style="--ar: 1">
                   <img src="/assets/gallery/gallery-02.webp" alt="" width="1120" height="1400"
                     loading="lazy" decoding="async" />
@@ -473,13 +490,12 @@
             <div class="gallery__col">
               <div class="gallery__callout" style="--w: 17.4rem; --top: 4.8rem">
                 <p class="gallery__quote reveal-text">
-                  Placeholder callout, real copy to come.
+                  A career photographed from every angle — on the grid, and
+                  everywhere else.
                 </p>
-                <img class="gallery__sign" src="/assets/brand/signature.svg" alt=""
-                  loading="lazy" decoding="async" />
               </div>
               <figure class="gallery__item" style="--w: 36.4rem; --top: 6rem">
-                <figcaption class="gallery__cap reveal-text">Caption to come</figcaption>
+                <figcaption class="gallery__cap reveal-text">Head in hands</figcaption>
                 <div class="gallery__frame" style="--ar: 1.101">
                   <img src="/assets/gallery/gallery-03.webp" alt="" width="1050" height="1400"
                     loading="lazy" decoding="async" />
@@ -492,14 +508,14 @@
             <!-- 3 -->
             <div class="gallery__col">
               <figure class="gallery__item is-out" style="--w: 12.2rem; --top: 3.9rem">
-                <figcaption class="gallery__cap reveal-text">Caption to come</figcaption>
+                <figcaption class="gallery__cap reveal-text">Trophy</figcaption>
                 <div class="gallery__frame" style="--ar: 1.048">
                   <img src="/assets/gallery/gallery-04.webp" alt="" width="1050" height="1400"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
               <figure class="gallery__item" style="--w: 17.7rem; --top: 9.6rem">
-                <figcaption class="gallery__cap reveal-text">Caption to come</figcaption>
+                <figcaption class="gallery__cap reveal-text">Lakeside</figcaption>
                 <div class="gallery__frame" style="--ar: 0.897">
                   <img src="/assets/gallery/gallery-05.webp" alt="" width="1050" height="1400"
                     loading="lazy" decoding="async" />
@@ -512,7 +528,7 @@
             <!-- 4 — a low one and a high one, side by side -->
             <div class="gallery__col">
               <figure class="gallery__item" style="--w: 11.9rem; --top: 35.8rem">
-                <figcaption class="gallery__cap reveal-text">Caption to come</figcaption>
+                <figcaption class="gallery__cap reveal-text">On the green</figcaption>
                 <div class="gallery__frame" style="--ar: 0.808">
                   <img src="/assets/gallery/gallery-06.webp" alt="" width="1050" height="1400"
                     loading="lazy" decoding="async" />
@@ -521,7 +537,7 @@
             </div>
             <div class="gallery__col">
               <figure class="gallery__item" style="--w: 11.5rem; --top: 8.3rem">
-                <figcaption class="gallery__cap reveal-text">Caption to come</figcaption>
+                <figcaption class="gallery__cap reveal-text">The home crowd</figcaption>
                 <div class="gallery__frame" style="--ar: 1">
                   <img src="/assets/gallery/gallery-07.webp" alt="" width="1050" height="1400"
                     loading="lazy" decoding="async" />
@@ -534,7 +550,7 @@
             <!-- 5 — the second big one, callout beneath it -->
             <div class="gallery__col">
               <figure class="gallery__item" style="--w: 33.9rem; --top: 5rem">
-                <figcaption class="gallery__cap reveal-text">Caption to come</figcaption>
+                <figcaption class="gallery__cap reveal-text">In the dojo</figcaption>
                 <div class="gallery__frame" style="--ar: 1">
                   <img src="/assets/gallery/gallery-08.webp" alt="" width="1050" height="1400"
                     loading="lazy" decoding="async" />
@@ -542,11 +558,9 @@
               </figure>
               <div class="gallery__callout" style="--w: 30rem; --top: 3.5rem">
                 <p class="gallery__quote reveal-text">
-                  Second placeholder callout, sitting under the picture rather
-                  than over it.
+                  The helmet comes off and the story keeps going: the studio,
+                  the fairway, the dojo, the road.
                 </p>
-                <img class="gallery__sign" src="/assets/brand/signature.svg" alt=""
-                  loading="lazy" decoding="async" />
               </div>
             </div>
 
@@ -555,14 +569,14 @@
             <!-- 6 -->
             <div class="gallery__col">
               <figure class="gallery__item" style="--w: 17.6rem; --top: 12.2rem">
-                <figcaption class="gallery__cap reveal-text">Caption to come</figcaption>
+                <figcaption class="gallery__cap reveal-text">F40</figcaption>
                 <div class="gallery__frame" style="--ar: 1.023">
                   <img src="/assets/gallery/gallery-09.webp" alt="" width="1055" height="1400"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
               <figure class="gallery__item is-out" style="--w: 15.2rem; --top: 3.6rem">
-                <figcaption class="gallery__cap reveal-text">Caption to come</figcaption>
+                <figcaption class="gallery__cap reveal-text">Colour study</figcaption>
                 <div class="gallery__frame" style="--ar: 1.098">
                   <img src="/assets/gallery/gallery-10.webp" alt="" width="1050" height="1400"
                     loading="lazy" decoding="async" />
@@ -575,7 +589,7 @@
             <!-- 7 — the one landscape frame, to close on a different shape -->
             <div class="gallery__col">
               <figure class="gallery__item" style="--w: 36rem; --top: 14rem">
-                <figcaption class="gallery__cap reveal-text">Caption to come</figcaption>
+                <figcaption class="gallery__cap reveal-text">The Mercedes years</figcaption>
                 <div class="gallery__frame" style="--ar: 1.4">
                   <img src="/assets/gallery/gallery-11.webp" alt="" width="1024" height="682"
                     loading="lazy" decoding="async" />

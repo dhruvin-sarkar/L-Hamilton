@@ -999,9 +999,16 @@
 /* The content must be present even if the ready flag never arrives — a failed
    scene load must not leave the page permanently blank. */
 @media (prefers-reduced-motion: reduce) {
-  .hero-in {
+  /* `.is-ready .hero-in` is (0,2,0) and a media query adds NO specificity, so a
+     bare `.hero-in` here (0,1,0) lost to it the moment the scene flagged ready
+     — the 0.9s fade-and-rise then played in full for someone who asked for no
+     motion. Matching the compound selector is what actually wins, and the
+     transition has to be cancelled too or the properties still animate. */
+  .hero-in,
+  .is-ready .hero-in {
     opacity: 1;
     translate: none;
+    transition: none;
   }
 }
 
@@ -1731,119 +1738,6 @@
   }
 }
 
-/* ============================================================= Stats */
-
-.stats__grid {
-  list-style: none;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-  gap: 1px;
-  background: var(--hairline); /* the gap becomes the rule */
-  border-block: 1px solid var(--hairline);
-}
-
-.stat {
-  background: var(--bg);
-  padding: var(--padding--small) var(--padding--mini);
-  display: grid;
-  gap: 0.4rem;
-}
-
-.stat__value {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: var(--text--h3);
-  line-height: 1;
-}
-
-.stat--hero .stat__value {
-  color: var(--accent);
-}
-
-.stat__label {
-  font-size: var(--text--eyebrow);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-}
-
-.stats__note {
-  margin-top: var(--padding--mini);
-  font-size: var(--text--eyebrow);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-/* ============================================================== Eras */
-
-.eras__title {
-  font-size: var(--text--h2);
-  margin-block: 0.2em 0.6em;
-}
-
-.eras__list {
-  list-style: none;
-  display: grid;
-  gap: 1px;
-  background: var(--hairline);
-  border-block: 1px solid var(--hairline);
-}
-
-.era {
-  background: var(--bg);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 0.5rem;
-  padding-block: var(--padding--small);
-  transition: background var(--animation-default);
-}
-
-.era:hover {
-  background: var(--bg-elevated);
-}
-
-/* Era colour lives in the year text and a small swatch, not a slab down the
-   side. Same information, far less shouting. */
-.era__years {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: var(--text--eyebrow);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--era);
-  font-weight: 600;
-}
-
-.era__years::before {
-  content: '';
-  inline-size: 0.4rem;
-  block-size: 0.4rem;
-  flex: none;
-  background: var(--era);
-}
-
-.era__team {
-  font-family: var(--font-display);
-  font-weight: 800;
-  text-transform: uppercase;
-  font-size: var(--text--h3);
-  line-height: 1;
-}
-
-.era__blurb {
-  color: var(--text-muted);
-  max-width: 48ch;
-}
-
-@media (min-width: 48rem) {
-  .era {
-    grid-template-columns: 10rem minmax(0, 22rem) minmax(0, 1fr);
-    align-items: baseline;
-    gap: var(--padding--small);
-  }
-}
-
 /* ======================================================= Impact wall
  *
  * Measured off the reference at a 1908px viewport, converted to rem:
@@ -1927,7 +1821,18 @@
   font-weight: 600;
   font-size: 1.04em;
   letter-spacing: -0.023em;
-  color: var(--rosso-corsa);
+  /* --accent-off, not --rosso-corsa. Measured on --field-ground, the cream this
+     wall actually sits on, #ff2800 is 2.60:1 — under the 3:1 floor even for
+     text this size. --accent-off is 3.37:1 here and 3.43:1 on --gl-bg, so the
+     one token clears both grounds, and it is already documented as the value
+     for large areas. Same hue, value only. */
+  color: var(--accent-off);
+  /* The parent's line-height is the unitless 0.9, which inherits as a NUMBER
+     and is then multiplied by this element's own 1.04em — giving accented lines
+     a line box ~4.6px taller than plain ones at the design width, so the wall
+     leaded unevenly wherever an accent fell. Dividing it back out pins every
+     line to the same height. */
+  line-height: calc(0.9 / 1.04);
 }
 
 /* --------------------------------------------------- BlurText units
@@ -2996,7 +2901,10 @@
 
 .otot__blurb {
   margin: 0 0 2rem;
-  font-size: var(--text--body-small, 0.95rem);
+  /* Literal, not a token: --text--body-small was never defined anywhere in
+     tokens.css, so this var() had always resolved to its fallback. Kept at the
+     measured value rather than inventing a token used in exactly one place. */
+  font-size: 0.95rem;
   line-height: 1.4;
   /* The column already sets the measure. An extra ch cap on top of it broke
      this into four ragged lines where the reference gets two. */
@@ -3293,6 +3201,14 @@
 .hof__item {
   position: relative;
   aspect-ratio: 407 / 411;
+  /* The card is the clipping box for its own layers, and it has to be.
+     .hof__reveal-w is scaled 1.05 and the blurred .hof__reveal-bg inside it
+     1.15, both deliberately (see their rules) — but nothing else bounded them,
+     so the fourth column pushed the DOCUMENT 22px wider than the viewport at
+     every width from 992 up, and the bleed crossed into the neighbouring card.
+     `clip` rather than `hidden`: hidden would make all 26 cards scroll
+     containers. Measured at a 1728 viewport: scrollWidth 1735 -> 1713. */
+  overflow: clip;
   /* Columns 1 and 3 — the leaders. */
   transform: translate3d(0, var(--hof-lead, 0px), 0);
   will-change: transform;
