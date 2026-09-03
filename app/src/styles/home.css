@@ -698,7 +698,10 @@
      leaves the flat plate the reference lands on — face on a solid ground, no
      contours inside the box. */
   background: var(--gl-bg);
-  transform: scale(var(--hero-zoom, 1));
+  /* translateY BEFORE scale in the list, so it applies after it and is not
+     itself scaled — the shift is already computed in final pixels. It undoes
+     the offset the uneven clip inset introduces; see plateGeometry. */
+  transform: translateY(var(--hero-crop-shift, 0px)) scale(var(--hero-zoom, 1));
   /* Top and bottom are separate, not one symmetric inset: the zoom pushes in
      on the face, and the head sits above centre, so an even crop would trim
      the top of it while leaving empty chest below. */

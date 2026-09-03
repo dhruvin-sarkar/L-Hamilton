@@ -2635,6 +2635,17 @@ if (stage) {
          centred in the box. */
       cropTop: cropYTotal * 0.25,
       cropBottom: cropYTotal * 0.75,
+      /* ...and the pixels that split costs us, handed back.
+         A clip inset removes from the element's own box, so an uneven split
+         moves the surviving band's centre to 0.5 - 0.25 * cropYTotal of the
+         box; scale() then works about the BOX centre, not the band's, and
+         carries that offset with it. The plate therefore landed
+         0.25 * cropYTotal * vh * zoom ABOVE the viewport centre — 32px at the
+         landing values, measured, against a reference whose plate is centred
+         to half a pixel at every moment of the close.
+         Compensated here rather than by evening the split, because the uneven
+         split is the point: it is what holds the face centred in the box. */
+      cropShift: cropYTotal * 0.25 * vh * zoom,
     };
   };
 
@@ -2728,6 +2739,7 @@ if (stage) {
       stage.style.setProperty('--hero-crop-x', `${box.cropX * 100}%`);
       stage.style.setProperty('--hero-crop-top', `${box.cropTop * 100}%`);
       stage.style.setProperty('--hero-crop-bottom', `${box.cropBottom * 100}%`);
+      stage.style.setProperty('--hero-crop-shift', `${box.cropShift}px`);
 
       /* The plate stops being a scene and becomes a picture.
        *
