@@ -634,7 +634,7 @@ if (hofGrid) {
         </div>
         <div class="hof__frame-w">${hofFrame('base')}${hofFrame('on')}</div>
         <p class="hof__label">
-          <span class="hof__name">${helmet.name ? attr(helmet.name) : '&mdash;'}</span>
+          <span class="hof__name">${helmet.name ? attr(helmet.name) : ''}</span>
           <span class="hof__year">${helmet.year ?? ''}</span>
         </p>
       </li>`,

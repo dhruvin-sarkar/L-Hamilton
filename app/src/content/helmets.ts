@@ -15,9 +15,11 @@
  * `name` and `year` are deliberately null. They are the one part of this
  * section that cannot be recovered from the images without guessing, and a
  * guessed year attached to a real helmet is exactly the invented stat the brief
- * forbids. pendingHelmets() below surfaces the gap loudly in dev instead of
- * letting 26 em-dashes look like a rendering bug. Fill them in and the labels,
- * the alt text and the ordering all follow with no other change. */
+ * forbids. pendingHelmets() surfaces the gap loudly in dev; the card itself
+ * renders NOTHING in the label notch rather than a lone em-dash, because
+ * twenty-six dashes down the wall read as a rendering fault rather than as a
+ * queue of data still to come. Fill them in and the labels, the alt text and
+ * the ordering all follow with no other change. */
 
 export interface Helmet {
   /** Asset index; also the filename stem. See the note about the missing 22. */
