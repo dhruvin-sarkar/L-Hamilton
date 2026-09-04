@@ -13,6 +13,7 @@ import { mountBlurText } from './BlurText';
 import { HeadScene } from './HeadScene';
 import { Signature } from './Signature';
 import { age, driver, eras, seasonsRacing } from './content/hamilton';
+import { nextRound } from './content/live-stats';
 
 /** The era he is in now — the one with no end date. */
 const currentEra = eras.find((e) => e.to === null);
@@ -259,9 +260,12 @@ const bindings: Record<string, string> = {
   // reads "mclaren f1 since 2019", which is Norris's tenure at that team, so
   // binding debutYear here would say "ferrari since 2007" and be plainly wrong.
   'team-since': String(currentEra.from),
-  // Placeholder until the calendar feed lands. Named honestly rather than
-  // filled with a plausible-looking circuit that would read as real.
-  'race-name': 'TBC',
+  /* The calendar feed has landed, so this is the real next round rather than
+     the placeholder this card shipped with. Still degrades honestly: past the
+     final race of a season there is no next round, and TBC is then the true
+     answer rather than a stale one. The card's markup supplies the "gp" after
+     it, so the suffix comes off the name. */
+  'race-name': nextRound()?.raceName.replace(/ Grand Prix$/, '') ?? 'TBC',
   /* The team line, in one place. It was typed out in the impact eyebrow and
      again in the menu while the next-race card bound the same year properly —
      three statements of one fact, two of which could go stale on their own.
@@ -278,27 +282,6 @@ for (const [key, value] of Object.entries(bindings)) {
     el.textContent = value;
   }
 }
-
-/* ------------------------------------------------------------------ *
- * Inert links
- *
- * Sixteen links across the menu, the socials block and the footer stand in for
- * destinations that do not exist yet — the three other pages, and the social
- * profiles. They carry href="#" so they keep a link's appearance, focus ring
- * and keyboard semantics, but nothing was stopping the default: clicking or
- * pressing Enter on any of them threw the reader back to the top of the page,
- * which on a 17,000px document is the most destructive thing a stray click can
- * do here.
- *
- * One delegated listener rather than sixteen, and preventDefault only — the
- * link stays focusable and announced, it simply no longer goes anywhere. Give
- * one a real href and it starts working with no other change.
- * ------------------------------------------------------------------ */
-
-document.addEventListener('click', (event) => {
-  const target = event.target as Element | null;
-  if (target?.closest('[data-placeholder-href]')) event.preventDefault();
-});
 
 /* ------------------------------------------------------------------ *
  * Small DOM helper

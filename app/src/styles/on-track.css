@@ -111,6 +111,106 @@
   color: var(--text-muted);
 }
 
+/* --------------------------------------- Previous / next race cards
+ *
+ * The reference's hero carries both, inside the same notched 119x244 outline
+ * the homepage's next-race card uses. Same path, same mirroring, same reason:
+ * a CSS border cannot cut that diagonal, and faking it with clip-path would
+ * lose the 1px stroke. See the notes in home.css. */
+
+.ot-races {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap);
+  margin-block-start: 4rem;
+}
+
+/* The <defs> carrier, holding the outline path the two cards share. Taken out
+   of flow entirely — it renders nothing itself and must not occupy a row. */
+.ot-races__defs {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+}
+
+.ot-race {
+  position: relative;
+  z-index: 1;
+  inline-size: 16rem;
+  /* The block-start padding clears the notch. The outline's left edge starts
+     about 19.5 of its 244 units down, so nothing may sit above that line —
+     which is also where the label goes. */
+  padding: 2.6rem 1.4rem 1.4rem;
+  color: var(--text);
+}
+
+.ot-race__outline {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  inline-size: 100%;
+  block-size: 100%;
+  color: var(--hairline);
+  /* Mirrored, for the reason home.css gives: the path was traced with the notch
+     on the right and the site cuts it on the left. Flipping the drawing beats
+     retracing coordinates that a hand edit would drift on. */
+  scale: -1 1;
+}
+
+/* Flush to the card's top-left, in the cut-away the notch opens up. */
+.ot-race__label {
+  position: absolute;
+  inset-block-start: 0.5rem;
+  inset-inline-start: 1.4rem;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text--eyebrow);
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ot-race__body {
+  margin: 0;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.ot-race__pair {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ot-race__key {
+  font-family: var(--font-display);
+  font-size: var(--text--eyebrow);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ot-race__value {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text--h5);
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: end;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The next round is the one a visitor is most likely here for, so it is the one
+   the accent picks out — the same distinction the schedule below draws. */
+.ot-race[data-race='next'] .ot-race__outline,
+.ot-race[data-race='next'] .ot-race__label {
+  color: var(--accent);
+}
+
 /* ================================================== Career stat band */
 
 .ot-band {
@@ -1105,6 +1205,17 @@
   .ot-hero__meta {
     gap: 2rem 3rem;
     margin-block: 3rem 2rem;
+  }
+
+  .ot-races {
+    margin-block-start: 2.5rem;
+  }
+
+  .ot-race {
+    /* Two cards will not sit side by side on a phone, and one card stretched
+       across the screen loses the outline's proportion. They stack, each held
+       to the width the notched path was traced at. */
+    inline-size: min(100%, 16rem);
   }
 
   .ot-band {

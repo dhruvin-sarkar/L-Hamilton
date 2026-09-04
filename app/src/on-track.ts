@@ -29,6 +29,7 @@ import {
   calendar,
   career,
   circuitById,
+  lastRound,
   nextRound,
   provenance,
   roundStart,
@@ -147,6 +148,56 @@ for (const [key, value] of Object.entries(bindings)) {
     node.textContent = value;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * Previous / next race cards
+ *
+ * The reference's hero carries both. Its "previous" panel shows the last
+ * circuit and his finish there; its "next" panel shows the round number and
+ * where it is going.
+ *
+ * Both are chosen by the clock rather than by whether a result has been
+ * recorded — see nextRound() and lastRound(). The two differ for most of a race
+ * weekend, and going by the clock is what keeps the previous card from still
+ * pointing at the race currently being run.
+ * ------------------------------------------------------------------ */
+
+function raceCard(selector: string, round: CalendarRound | null): void {
+  const card = document.querySelector<HTMLElement>(selector);
+  if (!card) return;
+
+  /* Hidden in the markup and revealed here, rather than the reverse. Either
+     card can legitimately have nothing to show — no previous round before a
+     season opens, no next round after it ends — and an empty outlined panel
+     reads as a failure rather than as an answer. */
+  if (!round) return;
+  card.hidden = false;
+
+  const body = card.querySelector<HTMLElement>('.ot-race__body');
+  if (!body) return;
+
+  const finish = round.result
+    ? round.result.position
+      ? ordinal(round.result.position)
+      : round.result.status
+    : null;
+
+  const rows: [string, string][] = [
+    ['Round', `${round.round} of ${calendar.length}`],
+    ['Grand Prix', round.raceName.replace(/ Grand Prix$/, '')],
+    ['Circuit', round.locality],
+    finish ? ['Finished', finish] : ['Date', shortDate(round.date)],
+  ];
+
+  for (const [label, value] of rows) {
+    const pair = el('div', 'ot-race__pair');
+    pair.append(el('dt', 'ot-race__key', label), el('dd', 'ot-race__value', value));
+    body.appendChild(pair);
+  }
+}
+
+raceCard('[data-race="previous"]', lastRound());
+raceCard('[data-race="next"]', nextRound());
 
 /* ------------------------------------------------------------------ *
  * The gigantic number

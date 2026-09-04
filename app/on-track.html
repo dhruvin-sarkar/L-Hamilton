@@ -87,6 +87,55 @@
             written down, so the page is only ever as current as the last Grand
             Prix it has seen.
           </p>
+          <!-- ============================== Previous / next race cards
+               The reference's hero carries these two panels: a "previous" card
+               with the last circuit and his finish, and a "next" card with the
+               round number and where it is. Both sit inside the same notched
+               outline the homepage's next-race card already uses — traced from
+               the reference's own 119x244 path, defined once below and used
+               twice rather than carried three times in the markup.
+
+               Panels, not links. The reference's previous card is a display
+               too, and the schedule further down this page is already the
+               interactive route to any round. -->
+          <div class="ot-races">
+            <svg class="ot-races__defs" aria-hidden="true" focusable="false">
+              <defs>
+                <path
+                  id="ot-race-outline"
+                  d="M118.5 6v232a5.5 5.5 0 0 1-5.5 5.5H6A5.5 5.5 0 0 1 .5 238V25A5.5 5.5 0 0 1 6 19.5h46.346c4.695 0 9.167-2 12.297-5.498l7.46-8.337A15.5 15.5 0 0 1 83.653.5H113a5.5 5.5 0 0 1 5.5 5.5Z"
+                />
+              </defs>
+            </svg>
+
+            <article class="ot-race" data-race="previous" aria-labelledby="ot-race-prev-h" hidden>
+              <svg
+                class="ot-race__outline"
+                viewBox="0 0 119 244"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <use href="#ot-race-outline" fill="none" stroke="currentColor" />
+              </svg>
+              <!-- The notch cuts the left half of the top edge down, leaving a
+                   raised strip on the right for the label. -->
+              <p class="ot-race__label" id="ot-race-prev-h">Previous</p>
+              <dl class="ot-race__body"></dl>
+            </article>
+
+            <article class="ot-race" data-race="next" aria-labelledby="ot-race-next-h" hidden>
+              <svg
+                class="ot-race__outline"
+                viewBox="0 0 119 244"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <use href="#ot-race-outline" fill="none" stroke="currentColor" />
+              </svg>
+              <p class="ot-race__label" id="ot-race-next-h">Next</p>
+              <dl class="ot-race__body"></dl>
+            </article>
+          </div>
         </div>
       </header>
 
