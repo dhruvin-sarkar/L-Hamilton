@@ -78,33 +78,66 @@ export function mountReveals(opts: RevealOptions): void {
        markup worth more than the cascade — a link, an emphasis, a nested span —
        and rebuilding it from textContent would silently throw that away. */
     const splittable = (el: HTMLElement): boolean =>
-      el.childElementCount === 0 &&
+      // A block we split ourselves is still eligible: its only children are the
+      // `.reveal-line` spans this module created, and `sourceOf` kept the text
+      // they were built from. Requiring zero children unconditionally — as this
+      // did — meant the resize re-split below skipped every block it had
+      // already cut, so it had never actually re-cut anything.
+      (el.childElementCount === 0 || el.dataset.revealSplit !== undefined) &&
       (el.textContent ?? '').trim().length > 0 &&
       getComputedStyle(el).display.includes('block');
 
     const splitIntoLines = (el: HTMLElement, baseDelay: number): void => {
       const source = sourceOf(el);
 
-      // Every word its own box, so offsetTop reports which line it fell on.
+      /* Every break opportunity its own box, so offsetTop reports which line it
+       * fell on.
+       *
+       * A "word" here is NOT simply a run between spaces, because that is not
+       * where browsers are allowed to break. They also break after a hyphen —
+       * so `race-by-race` can occupy two visual lines while being a single
+       * whitespace-delimited token. Grouping by whitespace alone put that whole
+       * compound on one row and, because a `.reveal-line` is `nowrap`, produced
+       * a line 384px wide inside a 320px column and pushed the document 44px
+       * past the viewport at 360px.
+       *
+       * Each piece therefore records whether real whitespace followed it, and
+       * the row is reassembled from that rather than by rejoining with spaces —
+       * otherwise the fragments of a hyphenated compound come back as
+       * "race- by- race".
+       */
+      interface Piece {
+        span: HTMLElement;
+        text: string;
+        spaceAfter: boolean;
+      }
+
       el.textContent = '';
-      const words: HTMLElement[] = [];
+      const pieces: Piece[] = [];
       for (const token of source.split(/(\s+)/)) {
         if (!token) continue;
         if (/^\s+$/.test(token)) {
           el.appendChild(document.createTextNode(token));
+          const last = pieces[pieces.length - 1];
+          if (last) last.spaceAfter = true;
           continue;
         }
-        const word = document.createElement('span');
-        word.textContent = token;
-        el.appendChild(word);
-        words.push(word);
+        // Keep the hyphen on the fragment before it — that is the side it stays
+        // on when a browser breaks there.
+        for (const fragment of token.split(/(?<=-)/)) {
+          if (!fragment) continue;
+          const span = document.createElement('span');
+          span.textContent = fragment;
+          el.appendChild(span);
+          pieces.push({ span, text: fragment, spaceAfter: false });
+        }
       }
 
-      const rows: string[][] = [];
-      let current: string[] = [];
+      const rows: Piece[][] = [];
+      let current: Piece[] = [];
       let lastTop: number | null = null;
-      for (const word of words) {
-        const top = word.offsetTop;
+      for (const piece of pieces) {
+        const top = piece.span.offsetTop;
         // A tolerance rather than equality: superscripts and inline images sit a
         // pixel or two off their neighbours without starting a new line.
         if (lastTop === null || Math.abs(top - lastTop) > 1) {
@@ -112,8 +145,12 @@ export function mountReveals(opts: RevealOptions): void {
           rows.push(current);
           lastTop = top;
         }
-        current.push(word.textContent ?? '');
+        current.push(piece);
       }
+
+      /** A row's text, with the separators it actually had. */
+      const rowText = (row: Piece[]): string =>
+        row.map((p, i) => (p.spaceAfter && i < row.length - 1 ? `${p.text} ` : p.text)).join('');
 
       // One line is not a cascade, and wrapping it would swap its inline layout
       // for a block one for no gain. Put the text back exactly as it was.
@@ -127,11 +164,36 @@ export function mountReveals(opts: RevealOptions): void {
       rows.forEach((row, i) => {
         const line = document.createElement('span');
         line.className = 'reveal-line';
-        line.textContent = row.join(' ');
+        line.textContent = rowText(row);
         line.style.setProperty('--reveal-delay', `${baseDelay + i * LINE_STAGGER}ms`);
         el.appendChild(line);
       });
       el.dataset.revealSplit = '';
+
+      /* Backstop. Every line is `nowrap`, so one that does not fit does not
+       * wrap — it spills, and the page grows sideways. The tokeniser above is
+       * the fix for the case we found; this catches the ones we have not, from
+       * a break opportunity nobody anticipated (an em dash, a slash, a soft
+       * hyphen) to a font whose metrics shift after the split.
+       *
+       * Reverting to plain text costs the per-line cascade and keeps the whole
+       * block's single reveal, which is what an unsplittable block already
+       * gets. A line reveal is never worth a broken layout. */
+      /* Measured with a Range over the line's own text, NOT via scrollWidth.
+       * The bar is an absolutely-positioned ::after inset -0.15em horizontally
+       * so it covers descenders, and because the line is the containing block
+       * that overhang inflates its scrollWidth by ~4px at this size. Testing
+       * scrollWidth therefore detects the bar rather than the text, and reverted
+       * every split block on the page. */
+      const range = document.createRange();
+      const spills = [...el.querySelectorAll<HTMLElement>('.reveal-line')].some((line) => {
+        range.selectNodeContents(line);
+        return range.getBoundingClientRect().width > line.clientWidth + 1;
+      });
+      if (spills) {
+        el.textContent = source;
+        delete el.dataset.revealSplit;
+      }
     };
 
     const groupOf = (el: HTMLElement): Element => el.closest('section') ?? document.body;
@@ -161,8 +223,26 @@ export function mountReveals(opts: RevealOptions): void {
      * already played is marked done rather than re-cut into a fresh animation,
      * so re-measuring never replays a reveal the reader has watched. */
     const applySplits = (): void => {
-      for (const el of lines) {
-        if (!splittable(el)) continue;
+      const targets = lines.filter(splittable);
+
+      /* Restore every block to plain text BEFORE measuring any of them.
+       *
+       * A `.reveal-line` is `nowrap`, so its width is a hard minimum for
+       * whatever column it sits in. Re-cutting one block at a time means the
+       * stale lines of its neighbours are still propping that column open, and
+       * the fresh measurement is taken against the OLD width — which produces
+       * lines that fit the old width, and the column never comes back down.
+       *
+       * Measured: resizing 1728 -> 360 left the band's grid column pinned at
+       * 378px inside a 320px shell, 41px of horizontal document overflow that a
+       * fresh load at 360 did not have. Clearing first lets the column collapse
+       * to its real width, and every block is then measured against it. */
+      for (const el of targets) {
+        el.textContent = sourceOf(el);
+        delete el.dataset.revealSplit;
+      }
+
+      for (const el of targets) {
         const played = el.classList.contains('is-in');
         splitIntoLines(el, delayFor(el));
         if (played) el.classList.add('is-done');

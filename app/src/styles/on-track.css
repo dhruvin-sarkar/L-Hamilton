@@ -1,0 +1,527 @@
+/* /on-track
+ *
+ * Tokens only below this line — no raw hex, no magic pixel. Every colour
+ * resolves through tokens.css and every size through the fluid rem, so this
+ * page scales as one object with the rest of the site rather than reflowing on
+ * its own schedule.
+ *
+ * Imported by src/on-track.ts. main.css (tokens, fonts, reset, chrome) is
+ * linked from the document head and loads first. */
+
+/* ================================================== Page header
+ * The reference's header is huge stacked display type with a helmet render
+ * bleeding in from the left edge. Ours keeps the stack and the scale; the
+ * bleeding render is a copyrighted asset we do not have and will not rehost,
+ * so the left edge is held by type and the identity strip instead. */
+
+.ot-hero {
+  /* Clears the fixed nav, then a full screen of its own. The reference gives
+     its header 2000px against a 900px viewport; ours is sized in vh so it
+     holds that proportion at any window height rather than at one. */
+  padding-block: calc(var(--nav-height) + 6rem) 8rem;
+  min-block-size: 100svh;
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  /* The band below crosses to the light ground, so the header owns the dark
+     end of that transition explicitly rather than inheriting it from body. */
+  color: var(--text);
+}
+
+.ot-hero__eyebrow {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--text--eyebrow);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-block-end: 2rem;
+}
+
+.ot-hero__title {
+  /* The reference's .text-on-t-hero-heading is 22.3rem with -2.5px tracking
+     and a 0.886 line-height. Held here, so the two pages' display type is the
+     same object at the same scale. */
+  font-family: var(--font-display);
+  font-size: 22.3rem;
+  font-weight: 700;
+  line-height: 0.886;
+  letter-spacing: -0.011em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.ot-hero__line {
+  display: block;
+}
+
+/* The second line in the Didone, which is the site's editorial voice and the
+   reference's own device — its second lines are set in Brier. Lowercase and
+   italic, so the two lines read as one phrase rather than two shouts. */
+.ot-hero__line--serif {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  text-transform: none;
+  color: var(--accent);
+  /* Optically aligned: the Didone's italic leans right and its left sidebearing
+     is larger, so setting it flush left visibly indents it against the
+     grotesque above. */
+  margin-inline-start: -0.06em;
+}
+
+.ot-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3rem 5rem;
+  margin-block: 5rem 3rem;
+  padding-block-start: 2rem;
+  border-block-start: 1px solid var(--hairline);
+}
+
+.ot-hero__meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ot-hero__meta-label {
+  font-family: var(--font-display);
+  font-size: var(--text--eyebrow);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ot-hero__meta-value {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text--h4);
+  font-weight: 600;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.ot-hero__lead {
+  max-inline-size: 46ch;
+  font-size: var(--text--reg);
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+/* ================================================== Career stat band */
+
+.ot-band {
+  /* The light ground. This is the value the GL field actually renders as, not
+     the shader input — see the note on --field-ground in tokens.css. Anything
+     painting a flat ground that must sit flush with the field reads this. */
+  background: var(--field-ground);
+  color: var(--dark);
+  padding-block: 10rem 12rem;
+  /* The gigantic number is deliberately larger than its column and is allowed
+     to bleed; clip rather than hidden so this does not become a scroll
+     container and start capturing the page's scroll. */
+  overflow-x: clip;
+}
+
+/* ---------------------------------------------- The gigantic number */
+
+.ot-gigantic {
+  position: relative;
+  margin-block-end: 6rem;
+}
+
+.ot-gigantic__num {
+  /* Sized from the digit count in on-track.ts; see the note there. The
+     fallback is the reference's own two-digit value, so a failed script
+     degrades to its scale rather than to nothing. */
+  font-size: var(--gigantic-size, 114rem);
+  font-family: var(--font-display);
+  font-weight: 700;
+  /* 0.85 is the reference's line-height on this element. At this size the
+     glyph box is mostly air, so anything looser leaves a visible gap that
+     reads as a layout error rather than as leading. */
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  color: var(--dark);
+  /* The number is decoration around a value carried by the sr-only mirror, so
+     it must never eat a pointer event meant for something behind it. */
+  pointer-events: none;
+  -webkit-user-select: none; /* Safari, incl. iOS, still needs the prefix */
+  user-select: none;
+}
+
+.ot-gigantic__char {
+  display: block;
+  /* Each digit is placed rather than flowed, which is what lets them sit at
+     different heights the way the reference's two chars do. */
+  will-change: transform;
+}
+
+/* Every digit after the first sits a little higher, alternating — the
+   reference offsets its second char 42px above its first at a 1292px cap
+   height, which is 3.25% of it. Expressed as a ratio so it holds at any size. */
+.ot-gigantic__char:nth-child(even) {
+  transform: translateY(-3.25%);
+}
+
+.ot-gigantic__label {
+  font-family: var(--font-display);
+  font-size: var(--text--h3);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent-off);
+  margin: 0;
+}
+
+/* ---------------------------------------------------------- Heading */
+
+.ot-band__head {
+  /* The reference's .title-layout.grid-main: headline in the left two-column
+     span, body copy in one column on the right. Its grid is four equal columns
+     at 23.55% with a --gap between, which is what the fractions here
+     reproduce. */
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--gap);
+  align-items: end;
+  margin-block-end: 6rem;
+}
+
+.ot-band__title {
+  grid-column: 1 / span 2;
+  margin: 0;
+  font-family: var(--font-display);
+  /* .text-title-lg-mona — 4.5rem, 0.886 line-height, -1.667px tracking. */
+  font-size: 4.5rem;
+  font-weight: 750;
+  line-height: 0.886;
+  letter-spacing: -0.023em;
+  text-transform: uppercase;
+}
+
+.ot-band__title-line {
+  display: block;
+}
+
+.ot-band__title-line--serif {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  text-transform: none;
+  /* --accent-off, not the raw accent: #ff2800 measures 2.60:1 on this ground
+     and misses the 3:1 large-text floor. Established on the homepage's impact
+     wall; the same pairing recurs here. */
+  color: var(--accent-off);
+}
+
+.ot-band__blurb {
+  grid-column: 4 / span 1;
+  margin: 0;
+  font-size: var(--step-0);
+  line-height: 1.5;
+  color: var(--dark-tint-2);
+}
+
+/* ---------------------------------------------------- Headline stats */
+
+.ot-stats {
+  list-style: none;
+  margin: 0 0 2rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4rem var(--gap);
+}
+
+.ot-stats__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-block-start: 1.5rem;
+  /* The rule is structure here, and at full ink it competes with the figures
+     it separates. */
+  border-block-start: 1px solid color-mix(in srgb, var(--dark) 22%, transparent);
+}
+
+.ot-stats__value {
+  font-family: var(--font-display);
+  /* .text-on-t-stat-label-major — 4.375rem at 0.93. */
+  font-size: 4.375rem;
+  font-weight: 700;
+  line-height: 0.93;
+  letter-spacing: -0.02em;
+  /* The counter must not reflow its neighbours as it spins. main.css already
+     sets tabular figures on body; restated because this is the element where
+     it actually matters. */
+  font-variant-numeric: tabular-nums;
+}
+
+.ot-stats__label {
+  font-family: var(--font-display);
+  font-size: var(--text--btn-primary);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dark-tint-2);
+}
+
+.ot-stats__note {
+  font-size: var(--text--eyebrow);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-off);
+}
+
+.ot-provenance {
+  max-inline-size: 74ch;
+  margin-block: 0 6rem;
+  font-size: var(--text--eyebrow);
+  line-height: 1.6;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--dark-tint-2);
+}
+
+/* ------------------------------------------------------ Season table */
+
+.ot-seasons {
+  /* Twenty rows of eight columns will not fit 360px, and the honest answer to
+     that is a scroll rather than a font size nobody can read. Only this
+     element scrolls — the page never does. */
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+/* on-track.ts makes this focusable only while it actually overflows, so the
+   hidden columns are reachable from the keyboard. A focus stop with no visible
+   ring is worse than none — the caret goes somewhere nobody can see. */
+.ot-seasons:focus-visible {
+  outline: 2px solid var(--accent-off);
+  outline-offset: 4px;
+}
+
+.ot-seasons__table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+  /* Below the point where the columns fit, hold a legible measure and let the
+     container scroll rather than crushing eight columns together. */
+  min-inline-size: 52rem;
+}
+
+.ot-seasons__th {
+  text-align: start;
+  padding: 1rem var(--gap) 1rem 0;
+  font-family: var(--font-display);
+  font-size: var(--text--eyebrow);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dark-tint-2);
+  border-block-end: 1px solid color-mix(in srgb, var(--dark) 40%, transparent);
+  /* NOT sticky, deliberately.
+   *
+   * A sticky header over twenty rows is the obvious thing to reach for and it
+   * cannot work here, for two independent reasons. `.ot-seasons` carries
+   * `overflow-x: auto`, which makes it the nearest scrollport — so a vertical
+   * sticky inside it has nothing to stick against, because that container only
+   * ever scrolls horizontally. And `position: sticky` on a `th` is unreliable
+   * under `border-collapse: collapse`, which this table needs for its hairlines.
+   *
+   * Measured before removing: with `inset-block-start: var(--nav-height)` the
+   * header still sat at -8px while the nav's band ended at 126px. It was doing
+   * nothing at all. Twenty rows is a short enough table to read without it. */
+  background: var(--field-ground);
+}
+
+.ot-seasons__th--num {
+  text-align: end;
+  padding-inline-end: 0;
+}
+
+.ot-seasons__row {
+  position: relative;
+  transition: background-color var(--dur-micro) var(--ease-out);
+}
+
+/* Rest state for the entry animation, set behind .is-ready — which on-track.ts
+   adds once the fonts have landed.
+
+   That direction matters. If the hidden state were unconditional, a failure
+   anywhere in the module graph would leave twenty rows of real data
+   permanently invisible. Visible by default; hidden only once something has
+   committed to revealing them. */
+.is-ready .ot-seasons__row {
+  opacity: 0;
+}
+
+/* The reference's .item-reveal: an accent bar wiping across the row, resting at
+   scaleX(0) and growing to cover. Ours retreats instead, matching the text
+   reveal on the rest of the site — the bar starts over the row and pulls off
+   it, so the first frame already shows the numbers. */
+.is-ready .ot-seasons__row::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform: scaleX(calc(1 - var(--row-wipe, 0)));
+  transform-origin: right;
+  pointer-events: none;
+}
+
+.ot-seasons__cell {
+  padding: 1.1rem var(--gap) 1.1rem 0;
+  font-family: var(--font-display);
+  font-size: var(--text--h5);
+  font-weight: 500;
+  text-align: start;
+  border-block-end: 1px solid color-mix(in srgb, var(--dark) 12%, transparent);
+  white-space: nowrap;
+}
+
+.ot-seasons__cell--num {
+  text-align: end;
+  padding-inline-end: 0;
+}
+
+.ot-seasons__cell--year {
+  font-weight: 700;
+}
+
+.ot-seasons__year {
+  /* The team stripe. Two channels, not one: the colour says which team and the
+     stripe's presence says "this row belongs to a run", so the grouping
+     survives for anyone who cannot separate the three hues. */
+  border-inline-start: 0.25rem solid var(--era, var(--accent));
+  padding-inline-start: 0.75rem;
+}
+
+.ot-seasons__row[data-team='mclaren'] {
+  --era: #ff8000;
+}
+.ot-seasons__row[data-team='mercedes'] {
+  --era: #00d2be;
+}
+.ot-seasons__row[data-team='ferrari'] {
+  --era: var(--accent);
+}
+
+.ot-seasons__row.is-champion {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.ot-seasons__row.is-champion .ot-seasons__cell {
+  font-weight: 700;
+}
+
+.ot-seasons__crown {
+  margin-inline-start: 0.5rem;
+  color: var(--accent-off);
+}
+
+.ot-seasons__row:hover {
+  background: color-mix(in srgb, var(--dark) 6%, transparent);
+}
+
+/* ============================================== Reduced motion
+ *
+ * The reference has no reduced-motion path at all — a grep across its CSS, its
+ * markup and its bundle returns zero. So this is additive work rather than
+ * parity work, and the standard to meet is the homepage's, not the reference's.
+ *
+ * The rules are stated at the same specificity as the ones they undo
+ * (`.is-ready .ot-seasons__row` is 0,2,0), because a media query adds no
+ * specificity of its own and a bare selector here would lose. That exact
+ * mistake left the homepage hero hidden under reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .ot-seasons__row,
+  .is-ready .ot-seasons__row {
+    opacity: 1;
+  }
+
+  .is-ready .ot-seasons__row::after {
+    content: none;
+  }
+
+  .ot-gigantic__char,
+  .ot-gigantic__char:nth-child(even) {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* ==================================================== Narrow widths
+ *
+ * Below 992px the root font-size locks at 16px (tokens.css), so rem values stop
+ * scaling with the viewport and the display sizes above have to be restated
+ * rather than left to shrink on their own. */
+
+@media (max-width: 991px) {
+  .ot-hero {
+    padding-block: calc(var(--nav-height) + 3rem) 5rem;
+    min-block-size: auto;
+  }
+
+  .ot-hero__title {
+    /* The reference steps its own gigantic type down hard at this breakpoint
+       (114rem to 96rem, then to 38.8rem below 479). Same idea: the type is
+       sized to the column, not to the design width. */
+    font-size: clamp(4.5rem, 18vw, 9rem);
+  }
+
+  .ot-hero__meta {
+    gap: 2rem 3rem;
+    margin-block: 3rem 2rem;
+  }
+
+  .ot-band {
+    padding-block: 5rem 6rem;
+  }
+
+  .ot-gigantic__num {
+    font-size: clamp(6rem, 32vw, 16rem);
+  }
+
+  .ot-band__head {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .ot-band__title,
+  .ot-band__blurb {
+    grid-column: 1 / -1;
+  }
+
+  .ot-band__title {
+    font-size: clamp(2.5rem, 9vw, 4.5rem);
+  }
+
+  .ot-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2.5rem var(--gap);
+  }
+
+  .ot-stats__value {
+    font-size: clamp(2.25rem, 9vw, 3.5rem);
+  }
+}
+
+@media (max-width: 479px) {
+  .ot-hero__meta {
+    /* Four label/value pairs across a 360px screen is two per row, not four
+       squeezed. */
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ot-stats {
+    grid-template-columns: 1fr;
+  }
+}

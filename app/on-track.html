@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Lewis Hamilton on track — twenty seasons, seven world championships, and the season-by-season record behind them."
+    />
+    <title>On Track — Lewis Hamilton</title>
+    <link rel="icon" href="/assets/brand/lh-monogram.svg" type="image/svg+xml" />
+
+    <!-- Same two faces as the homepage, and for the same reason: the display
+         grotesque sets the wordmark and every heading on this page, including
+         the gigantic career number, and the Didone italic sets the given name
+         beside it. Both paint before anything is scrolled. See index.html for
+         why crossorigin is required on a same-origin font preload. -->
+    <link
+      rel="preload"
+      href="/assets/fonts/archivo-narrow-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/assets/fonts/playfair-display-latin-wght-italic.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <!-- Render-blocking on purpose; see the note in index.html. -->
+    <link rel="stylesheet" href="/src/styles/main.css" />
+  </head>
+  <body data-page="on-track">
+    <!--#include "partials/nav.html"-->
+
+    <main id="main">
+      <!-- ==================================================== Page header
+           The reference stacks "ON TRACK" as huge display type with a helmet
+           render bleeding in from the left, then an identity strip beneath it
+           reading nickname / age / birthplace.
+
+           Ours carries the same three facts and computes two of them: the age
+           comes from the date of birth in the content model, because a
+           hardcoded age is wrong within a year, and the season count comes from
+           the fetched record rather than a number typed here. -->
+      <header class="ot-hero" aria-labelledby="ot-hero-h">
+        <div class="shell">
+          <p class="ot-hero__eyebrow reveal-text">Scuderia Ferrari &middot; Car 44</p>
+
+          <h1 class="ot-hero__title" id="ot-hero-h">
+            <span class="ot-hero__line reveal-text">On</span>
+            <span class="ot-hero__line ot-hero__line--serif reveal-text">Track</span>
+          </h1>
+
+          <!-- The identity strip. A dl rather than a row of divs: these are
+               genuinely label/value pairs, and a screen reader should be able
+               to say "Age, 41" rather than reading two orphaned strings. -->
+          <dl class="ot-hero__meta">
+            <div class="ot-hero__meta-item">
+              <dt class="ot-hero__meta-label">Driver</dt>
+              <dd class="ot-hero__meta-value" data-bind="driver-name">Lewis Hamilton</dd>
+            </div>
+            <div class="ot-hero__meta-item">
+              <dt class="ot-hero__meta-label">Age</dt>
+              <dd class="ot-hero__meta-value" data-bind="driver-age">&mdash;</dd>
+            </div>
+            <div class="ot-hero__meta-item">
+              <dt class="ot-hero__meta-label">Born</dt>
+              <dd class="ot-hero__meta-value" data-bind="driver-birthplace">&mdash;</dd>
+            </div>
+            <div class="ot-hero__meta-item">
+              <dt class="ot-hero__meta-label">Seasons</dt>
+              <dd class="ot-hero__meta-value" data-bind="driver-seasons">&mdash;</dd>
+            </div>
+          </dl>
+
+          <!-- Third-person site copy, never a quote. CLAUDE.md forbids putting
+               words in his mouth, and the reference's equivalent slot is a
+               signed first-person line — so this is written as narration and
+               carries no signature. -->
+          <p class="ot-hero__lead reveal-text">
+            Twenty seasons, three teams and seven world championships. Every figure
+            on this page is counted from the race-by-race record rather than
+            written down, so the page is only ever as current as the last Grand
+            Prix it has seen.
+          </p>
+        </div>
+      </header>
+
+      <!-- ================================================ Career stat band
+           Reference section 1: a gigantic number, then a headline stat grid,
+           then a season table.
+
+           The reference's gigantic number is its driver's podium count, and
+           ours is the same statistic — but 207 is three digits where 56 is two,
+           so the size is derived from the digit count in on-track.ts rather
+           than fixed. Otherwise a third digit simply runs off the side.
+
+           The number is `aria-hidden` with a screen-reader mirror beside it,
+           which is the reference's own pattern (125 elements) and the thing
+           that satisfies CLAUDE.md's requirement that every animated stat has a
+           static, screen-reader-readable equivalent. -->
+      <section class="ot-band" aria-labelledby="ot-band-h">
+        <div class="shell">
+          <div class="ot-gigantic">
+            <p class="sr-only" data-gigantic-sr>&mdash;</p>
+            <p class="ot-gigantic__num" data-gigantic aria-hidden="true"></p>
+            <p class="ot-gigantic__label" aria-hidden="true">Podiums</p>
+          </div>
+
+          <div class="ot-band__head">
+            <h2 class="ot-band__title" id="ot-band-h">
+              <span class="ot-band__title-line reveal-text">F1 career</span>
+              <span class="ot-band__title-line ot-band__title-line--serif reveal-text"
+                >since <span data-bind="debut-year">2007</span></span
+              >
+            </h2>
+            <p class="ot-band__blurb reveal-text">
+              A rookie seat at McLaren, twelve seasons at Mercedes, and a move to
+              Maranello that reshaped the grid. The table below is the whole of
+              it, season by season.
+            </p>
+          </div>
+
+          <!-- Headline stats. Rendered from the data layer in on-track.ts —
+               there is deliberately no markup for the individual figures here,
+               because a number typed into HTML is a number nobody updates. -->
+          <ul class="ot-stats" data-stat-grid></ul>
+
+          <!-- Provenance. The reference has no equivalent and needs none; ours
+               does, because these totals move on a race weekend and presenting
+               them bare would imply a permanence they do not have. -->
+          <p class="ot-provenance" data-provenance></p>
+
+          <!-- ------------------------------------------------ Season table
+               The reference has seven rows and a fixed block. Hamilton has
+               twenty across three teams, which is the one place his volume
+               genuinely changes the layout — so this is the element that grows,
+               per CLAUDE.md, rather than becoming a page of its own.
+
+               A real <table>: twenty rows of eight columns is tabular data, and
+               building it from divs would throw away row and column
+               association for anyone not looking at it. -->
+          <div class="ot-seasons" data-seasons>
+            <table class="ot-seasons__table">
+              <caption class="sr-only" data-seasons-caption>
+                Formula 1 season-by-season record
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col" class="ot-seasons__th">Season</th>
+                  <th scope="col" class="ot-seasons__th">Team</th>
+                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Pos</th>
+                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Starts</th>
+                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Wins</th>
+                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Podiums</th>
+                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Poles</th>
+                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Points</th>
+                </tr>
+              </thead>
+              <tbody data-seasons-body></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!--#include "partials/menu.html"-->
+    <!--#include "partials/footer.html"-->
+
+    <script type="module" src="/src/on-track.ts"></script>
+  </body>
+</html>
