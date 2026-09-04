@@ -1,0 +1,170 @@
+    <!-- ===================================================== Menu panel
+         Structure and geometry measured off the reference's own overlay at a
+         1908px viewport, converted to rem so it scales with the fluid root:
+
+           overlay   fixed, full bleed, BELOW the nav (the wordmark, store and
+                     close button stay visible and usable over it)
+           grid      two columns, space-between
+           left      two columns of image tiles, offset +/-5.98rem from each
+                     other so they interlock rather than lining up
+           right     the four links, then the crest, then the team eyebrow,
+                     with the contact and social links pinned to the bottom
+
+         Every panel reveals through the same expanding ellipse; see home.css
+         for why that shape and not a slide or a fade. -->
+    <!-- tabindex="-1" so opening can move focus to the panel itself rather than
+         to the first link. Focusing a link instead put a focus ring on HOME
+         every time the menu was opened with a mouse, which read as an error
+         state; keyboard users still Tab straight into the list from here. -->
+    <div class="menu" id="menu" tabindex="-1" hidden>
+      <!-- The contour backdrop. The reference fills this slot with a static SVG
+           rather than its live field, and so does ours: the curves are
+           generated as iso-lines of a warped simplex field at the same
+           1/NOISE_DETAIL spacing the hero's shader bands at, so the menu reads
+           as the same topography without a second WebGL context running behind
+           an opaque panel. -->
+      <div class="menu__bg" aria-hidden="true"></div>
+      <div class="menu__grid">
+        <!-- Left: the collage. Decorative, so it is hidden from assistive tech
+             entirely — the links carry all the meaning. -->
+        <!-- Each tile belongs to a page. Hovering that page's link brings its
+             tile up to full colour and drops the others back, so the collage
+             answers the link you are pointing at. The reference interleaves
+             them down the two columns rather than filling one then the other:
+             Home and Off Track on the left, On Track and Calendar on the right.
+
+             Two stacked layers per tile. The muted one is always there; the lit
+             one crossfades 0 -> 1 on top. When the real photography lands, the
+             muted layer takes the blend treatment (a `saturation` layer to
+             strip colour, then `plus-lighter` with the page ground to tint it
+             back) and the lit layer is simply the untouched image. -->
+        <div class="menu__images" aria-hidden="true">
+          <div class="menu__col">
+            <div class="menu__tile" data-menu-tile="0">
+              <img class="menu__tile-img" src="/assets/menu/home.webp" alt="" loading="lazy"
+                decoding="async" width="1080" height="1440" />
+              <div class="menu__tile-desat"></div>
+              <div class="menu__tile-tint"></div>
+              <div class="menu__tile-soften"></div>
+              <img class="menu__tile-lit" src="/assets/menu/home.webp" alt="" loading="lazy"
+                decoding="async" width="1080" height="1440" />
+            </div>
+            <div class="menu__tile" data-menu-tile="2">
+              <img class="menu__tile-img" src="/assets/menu/off-track.webp" alt="" loading="lazy"
+                decoding="async" width="1080" height="1440" />
+              <div class="menu__tile-desat"></div>
+              <div class="menu__tile-tint"></div>
+              <div class="menu__tile-soften"></div>
+              <img class="menu__tile-lit" src="/assets/menu/off-track.webp" alt="" loading="lazy"
+                decoding="async" width="1080" height="1440" />
+            </div>
+          </div>
+          <div class="menu__col">
+            <div class="menu__tile" data-menu-tile="1">
+              <img class="menu__tile-img" src="/assets/menu/on-track.webp" alt="" loading="lazy"
+                decoding="async" width="1080" height="1440" />
+              <div class="menu__tile-desat"></div>
+              <div class="menu__tile-tint"></div>
+              <div class="menu__tile-soften"></div>
+              <img class="menu__tile-lit" src="/assets/menu/on-track.webp" alt="" loading="lazy"
+                decoding="async" width="1080" height="1440" />
+            </div>
+            <div class="menu__tile" data-menu-tile="3">
+              <img class="menu__tile-img" src="/assets/menu/calendar.webp" alt="" loading="lazy"
+                decoding="async" width="1080" height="1440" />
+              <div class="menu__tile-desat"></div>
+              <div class="menu__tile-tint"></div>
+              <div class="menu__tile-soften"></div>
+              <img class="menu__tile-lit" src="/assets/menu/calendar.webp" alt="" loading="lazy"
+                decoding="async" width="1080" height="1440" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: navigation and identity. -->
+        <div class="menu__side">
+          <div class="menu__block">
+            <nav class="menu__links" aria-label="Primary">
+              <a class="menu__link is-current" href="/index.html" aria-current="page" data-menu-link="0">
+                <!-- Same arrangement as the store button: the visible copy is
+                     split per character and hidden from assistive tech, and an
+                     sr-only twin carries the real accessible name. -->
+                <span class="sr-only">Home</span>
+                <span class="menu__link-text" aria-hidden="true" data-split-chars>Home</span>
+                <!-- Marks the page you are already on. Drawn here rather than
+                     lifted from the reference: straight runs joined by eased
+                     bends, which is a circuit read as a single line. -->
+                <!-- Spans the FULL viewBox width: 2 -> 410 of 412. The first
+                     version ran out at x=350, so the line stopped about 85% of
+                     the way across and left the last letter uncrossed. The
+                     segments sum to the width deliberately —
+                     2 +69 +34 +79 +34 +79 +34 +79 = 410 — leaving 2 units at
+                     each end for the round cap. -->
+                <svg class="menu__link-mark" viewBox="0 0 412 26" aria-hidden="true">
+                  <path
+                    d="M2 13h69c14 0 20-9 34-9h79c14 0 20 18 34 18h79c14 0 20-9 34-9h79"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </a>
+              <a class="menu__link" href="/on-track.html" data-menu-link="1">
+                <span class="sr-only">On Track</span>
+                <span class="menu__link-text" aria-hidden="true" data-split-chars>On Track</span>
+              </a>
+              <a class="menu__link" href="/off-track.html" data-menu-link="2">
+                <span class="sr-only">Off Track</span>
+                <span class="menu__link-text" aria-hidden="true" data-split-chars>Off Track</span>
+              </a>
+              <a class="menu__link" href="/calendar.html" data-menu-link="3">
+                <span class="sr-only">Calendar</span>
+                <span class="menu__link-text" aria-hidden="true" data-split-chars>Calendar</span>
+              </a>
+            </nav>
+
+            <!-- Laurel wreath around a helmet, reused from the next-race card so
+                 the two read as the same mark. -->
+            <!-- Crest and team line are one unit: they sit 22px apart, half the
+                 44px that separates this group from the links above it. -->
+            <div class="menu__team">
+              <svg class="menu__crest" viewBox="0 0 64 44" aria-hidden="true">
+                <use href="#nr-crest" />
+              </svg>
+              <p class="menu__eyebrow" data-bind="team-line">Scuderia Ferrari since 2025</p>
+            </div>
+          </div>
+
+          <div class="menu__footer">
+            <!-- PLACEHOLDER LINKS. Deliberately inert: pointing these at a
+                 guessed handle would be inventing data, and a nav link that
+                 goes to the wrong account is worse than one that goes nowhere.
+                 Swap the hrefs once the real accounts are confirmed. -->
+            <a class="menu__contact" href="#" data-placeholder-href>
+              <span class="sr-only">Business enquiries</span>
+              <span class="btn-text" aria-hidden="true" data-split-chars>Business enquiries</span>
+            </a>
+            <div class="menu__socials">
+              <a href="#" data-placeholder-href>
+                <span class="sr-only">Instagram</span>
+                <span class="btn-text" aria-hidden="true" data-split-chars>Instagram</span>
+              </a>
+              <a href="#" data-placeholder-href>
+                <span class="sr-only">X</span>
+                <span class="btn-text" aria-hidden="true" data-split-chars>X</span>
+              </a>
+              <a href="#" data-placeholder-href>
+                <span class="sr-only">TikTok</span>
+                <span class="btn-text" aria-hidden="true" data-split-chars>TikTok</span>
+              </a>
+              <a href="#" data-placeholder-href>
+                <span class="sr-only">YouTube</span>
+                <span class="btn-text" aria-hidden="true" data-split-chars>YouTube</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
