@@ -166,6 +166,122 @@
           </div>
         </div>
       </section>
+
+      <!-- ============================================= Result highlights
+           Reference section 2: a table of career wins, one row per race —
+           country, date, finishing position, race time, gap.
+
+           The reference driver has seven wins and the block is a fixed height.
+           Hamilton has 106, which is the one place his volume genuinely breaks
+           the layout. Rather than invent a page the reference does not have, or
+           silently truncate, the section keeps the row design and puts the tail
+           behind a disclosure: the ten most recent are open, the rest one button
+           away. That button is a real <button> with aria-expanded, not the
+           reference's non-focusable div. -->
+      <section class="ot-wins" aria-labelledby="ot-wins-h">
+        <div class="shell">
+          <div class="ot-band__head">
+            <h2 class="ot-band__title" id="ot-wins-h">
+              <span class="ot-band__title-line reveal-text">Race wins</span>
+              <span class="ot-band__title-line ot-band__title-line--serif reveal-text"
+                >every one of them</span
+              >
+            </h2>
+            <p class="ot-band__blurb reveal-text" data-wins-blurb></p>
+          </div>
+
+          <div class="ot-wins__table" data-wins>
+            <table class="ot-seasons__table">
+              <caption class="sr-only" data-wins-caption>
+                Career Grand Prix wins
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col" class="ot-seasons__th">Grand Prix</th>
+                  <th scope="col" class="ot-seasons__th">Season</th>
+                  <th scope="col" class="ot-seasons__th">Team</th>
+                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Grid</th>
+                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Laps</th>
+                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Race time</th>
+                </tr>
+              </thead>
+              <tbody data-wins-body></tbody>
+            </table>
+          </div>
+
+          <button class="ot-wins__more" type="button" data-wins-toggle aria-expanded="false">
+            <span data-wins-toggle-label>Show all wins</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ==================================================== Countdown
+           Reference section 5. Its target datetime sits in a hidden element as
+           plain text, and its four digit pairs all read 00 because the race it
+           points at is long past — the reference's countdown has expired.
+
+           Ours derives the target from the season calendar at page load, by the
+           clock rather than by whether a result has been recorded, so it never
+           points at a race that has already run. -->
+      <section class="ot-countdown" data-countdown aria-labelledby="ot-countdown-h">
+        <div class="shell">
+          <p class="ot-countdown__eyebrow reveal-text" id="ot-countdown-h">Next race begins in</p>
+
+          <!-- The live region carries the whole phrase for assistive tech, and
+               is polite rather than assertive: a countdown that interrupted the
+               reader every second would be unusable. The visible digits are
+               aria-hidden so the two never double up. -->
+          <p class="sr-only" data-countdown-sr role="status" aria-live="polite"></p>
+
+          <div class="ot-countdown__digits" data-countdown-digits aria-hidden="true"></div>
+
+          <p class="ot-countdown__race" data-countdown-race></p>
+        </div>
+      </section>
+
+      <!-- ===================================================== Schedule
+           Reference section 6: a schedule table where each row carries its whole
+           circuit record as a hidden payload, and selecting a row swaps the
+           detail panel above it.
+
+           Same mechanic. The reference's rows are clickable divs with a title
+           attribute — no tabindex, no keyboard path — so ours are real buttons.
+           The panel shows his record at that circuit, which the API can actually
+           source, rather than the reference's lap length and distance, which it
+           cannot. -->
+      <section class="ot-schedule" aria-labelledby="ot-schedule-h">
+        <div class="shell">
+          <div class="ot-band__head">
+            <h2 class="ot-band__title" id="ot-schedule-h">
+              <span class="ot-band__title-line reveal-text">The season</span>
+              <span
+                class="ot-band__title-line ot-band__title-line--serif reveal-text"
+                data-schedule-year
+                >2026</span
+              >
+            </h2>
+            <p class="ot-band__blurb reveal-text">
+              Selecting a round shows his record at that circuit. Every figure is
+              counted from the races he has actually started there.
+            </p>
+          </div>
+
+          <!-- The detail panel sits above the list on purpose: the reference
+               puts its circuit render above its schedule, and a panel below a
+               long table would be off-screen at the moment it changes. -->
+          <div class="ot-circuit" data-circuit>
+            <div class="ot-circuit__head">
+              <p class="ot-circuit__round" data-circuit-round></p>
+              <h3 class="ot-circuit__name" data-circuit-name></h3>
+              <p class="ot-circuit__where" data-circuit-where></p>
+            </div>
+            <dl class="ot-circuit__stats" data-circuit-stats></dl>
+            <div class="ot-circuit__sessions" data-circuit-sessions></div>
+          </div>
+
+          <div class="ot-schedule__list" data-schedule></div>
+        </div>
+      </section>
     </main>
 
     <!--#include "partials/menu.html"-->

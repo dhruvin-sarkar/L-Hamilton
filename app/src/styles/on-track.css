@@ -183,6 +183,13 @@
 /* ---------------------------------------------------------- Heading */
 
 .ot-band__head {
+  /* Two of this block's colours depend on the ground under it, and the block is
+     now used by four sections across two grounds. Declared as locals here and
+     re-declared once per dark section below, so a ground is stated once rather
+     than each rule being restated. */
+  --head-accent: var(--accent-off);
+  --head-body: var(--dark-tint-2);
+
   /* The reference's .title-layout.grid-main: headline in the left two-column
      span, body copy in one column on the right. Its grid is four equal columns
      at 23.55% with a --gap between, which is what the fractions here
@@ -215,10 +222,11 @@
   font-style: italic;
   font-weight: 400;
   text-transform: none;
-  /* --accent-off, not the raw accent: #ff2800 measures 2.60:1 on this ground
-     and misses the 3:1 large-text floor. Established on the homepage's impact
-     wall; the same pairing recurs here. */
-  color: var(--accent-off);
+  /* --accent-off on the cream ground: #ff2800 measures 2.60:1 there and misses
+     the 3:1 large-text floor. Established on the homepage's impact wall. On the
+     dark sections the local below returns it to the raw accent, where it
+     measures 4.66:1 and is the more correct red. */
+  color: var(--head-accent);
 }
 
 .ot-band__blurb {
@@ -226,7 +234,7 @@
   margin: 0;
   font-size: var(--step-0);
   line-height: 1.5;
-  color: var(--dark-tint-2);
+  color: var(--head-body);
 }
 
 /* ---------------------------------------------------- Headline stats */
@@ -430,6 +438,462 @@
   background: color-mix(in srgb, var(--dark) 6%, transparent);
 }
 
+/* ==================================================== Race wins
+ *
+ * Reference section 2 — a table of career wins on the dark ground. The cream
+ * band above is one section, not the page, so this returns to `--bg`.
+ *
+ * The reference's rows are full-bleed grid items whose hover fill runs to the
+ * viewport edge; ours are table rows inside the shell. Same fill, same flip of
+ * the ink — but this page already has one table held by the shell, and two
+ * tables that disagree about their own edges read as an accident rather than a
+ * decision. */
+
+.ot-wins {
+  background: var(--bg);
+  color: var(--text);
+  padding-block: 10rem 8rem;
+}
+
+.ot-wins .ot-band__head {
+  --head-accent: var(--accent);
+  --head-body: var(--text-muted);
+}
+
+.ot-wins__table {
+  /* Six columns of race names and lap times will not fit 360px. Same answer as
+     the season table: this wrapper scrolls, the page never does. */
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+/* Focusable only while it actually overflows — see on-track.ts. A focus stop
+   with no visible ring puts the caret somewhere nobody can see. */
+.ot-wins__table:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+/* The table classes are shared with the season table, which is coloured for the
+   cream ground. Only the values that actually depend on the ground change. */
+.ot-wins .ot-seasons__th {
+  background: transparent;
+  color: var(--text-muted);
+  border-block-end-color: color-mix(in srgb, var(--cream) 45%, transparent);
+}
+
+.ot-wins .ot-seasons__cell {
+  border-block-end-color: color-mix(in srgb, var(--cream) 14%, transparent);
+}
+
+/* The reference's row hover: the row fills with the accent and the ink flips to
+   the page's black. [source] site.css:5602. #ff2800 against #1a1416 measures
+   4.66:1, which clears AA at this size rather than only the large-text floor. */
+.ot-wins .ot-seasons__row:hover {
+  background: var(--accent);
+  color: var(--dark);
+}
+
+.ot-wins .ot-seasons__row:hover .ot-wins__date,
+.ot-wins .ot-seasons__row:hover .ot-wins__pole {
+  color: var(--dark);
+}
+
+.ot-wins__season {
+  font-weight: 700;
+}
+
+.ot-wins__date {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Pole-to-flag. Decorative — the row carries "won from pole position" as an
+   sr-only twin — so this marks the win without being the only thing that says
+   it. */
+.ot-wins__pole {
+  margin-inline-start: 0.5rem;
+  font-size: 0.7em;
+  vertical-align: 0.15em;
+  color: var(--accent);
+}
+
+/* The disclosure holding the rest of the rows. A real button with
+   aria-expanded, where the reference's equivalent control is a
+   non-focusable div. */
+.ot-wins__more {
+  margin-block-start: 3rem;
+  padding: 1.1rem 2.4rem;
+  font-family: var(--font-display);
+  font-size: var(--text--btn-primary);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius--btn);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-micro) var(--ease-out),
+    border-color var(--dur-micro) var(--ease-out),
+    color var(--dur-micro) var(--ease-out);
+}
+
+.ot-wins__more:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--dark);
+}
+
+.ot-wins__more:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* ==================================================== Countdown
+ *
+ * Reference section 9: an eyebrow, then four huge digit pairs centred on the
+ * dark ground. [source] site.css:5783-5822 for the layout, 5477 for the type. */
+
+.ot-countdown {
+  background: var(--bg);
+  color: var(--text);
+  padding-block: 8rem 10rem;
+  text-align: center;
+}
+
+.ot-countdown__eyebrow {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text--eyebrow);
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.ot-countdown__digits {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--gap);
+  /* 4rem below the eyebrow, as the reference. */
+  margin-block-start: 4rem;
+}
+
+.ot-countdown__item {
+  display: flex;
+  align-items: baseline;
+}
+
+.ot-countdown__value {
+  /* .text-on-t-large-number — 17.5rem at 0.8 with -0.1rem tracking. Sized from
+     the character count in on-track.ts; the fallback is the reference's own
+     eight-character value, so a failed script degrades to its scale. */
+  font-family: var(--font-display);
+  font-size: var(--countdown-size, 17.5rem);
+  font-weight: 700;
+  line-height: 0.8;
+  letter-spacing: -0.1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.ot-countdown__unit {
+  /* The reference dims the unit against the digits (#535450 against #dde1d2).
+     Its exact value would measure 1.42:1 on our ground — not dim but gone — so
+     the relationship is kept at a legible level rather than the hue. */
+  font-family: var(--font-display);
+  font-size: calc(var(--countdown-size, 17.5rem) * 0.36);
+  font-weight: 700;
+  line-height: 0.8;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ot-countdown__race {
+  margin-block: 3rem 0;
+  /* A step above the eyebrow token the rest of the site uses. Those are one to
+     three words; this is a full sentence naming the round, the circuit and the
+     date, and at 0.625rem it was 10px of tracked uppercase. */
+  font-size: var(--text--h6);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* ==================================================== Season schedule
+ *
+ * Reference section 6. Its upper half is a neon 3D circuit rendered in WebGL
+ * with 30 projected corner markers and a five-field stat row; that is a modelled
+ * asset we do not have and will not lift, so the panel here carries what the API
+ * can actually source — his record at the circuit, and the weekend's sessions.
+ *
+ * The mechanic is the reference's, unchanged: selecting a round swaps the panel
+ * above the list. */
+
+.ot-schedule {
+  background: var(--bg);
+  color: var(--text);
+  padding-block: 8rem 12rem;
+}
+
+.ot-schedule .ot-band__head {
+  --head-accent: var(--accent);
+  --head-body: var(--text-muted);
+}
+
+.ot-circuit {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 3rem var(--gap);
+  align-items: start;
+  padding: 3rem;
+  margin-block-end: var(--gap);
+  background: var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius--small);
+}
+
+.ot-circuit__head {
+  grid-column: 1;
+}
+
+.ot-circuit__round {
+  margin: 0 0 0.75rem;
+  font-family: var(--font-display);
+  font-size: var(--text--eyebrow);
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.ot-circuit__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text--h2);
+  font-weight: 750;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.ot-circuit__where {
+  margin: 1rem 0 0;
+  font-size: var(--step-0);
+  color: var(--text-muted);
+}
+
+.ot-circuit__stats {
+  /* The reference's stat row — WHEN / LENGTH / DISTANCE / FIRST COMPETED /
+     LAPS — in the same place, sourced from his record here. */
+  grid-column: 1;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem 3rem;
+}
+
+.ot-circuit__pair {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ot-circuit__label {
+  font-family: var(--font-display);
+  font-size: var(--text--eyebrow);
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ot-circuit__value {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text--h3);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.ot-circuit__sessions {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  border-inline-start: 1px solid var(--hairline);
+  padding-inline-start: var(--gap);
+}
+
+.ot-circuit__session {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--gap);
+  margin: 0;
+  padding-block: 0.7rem;
+  border-block-end: 1px solid color-mix(in srgb, var(--cream) 10%, transparent);
+  font-size: var(--step-0);
+}
+
+/* The reference sets its RACE row in lime against the panel. The same red at
+   this size measures 3.70:1 and misses the 4.5:1 body-text floor, so the row is
+   filled rather than tinted — which says "this is the race" more loudly and
+   clears AA at 4.66:1. */
+.ot-circuit__session--race {
+  margin-block-start: 0.6rem;
+  padding-inline: 1rem;
+  background: var(--accent);
+  color: var(--dark);
+  font-weight: 700;
+  border-block-end: none;
+}
+
+.ot-circuit__session-label {
+  font-family: var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ot-circuit__session-time {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The reference footnotes its schedule *UK TIME. Ours renders in the reader's
+   own zone and names it, rather than asserting one they may not be in. */
+.ot-circuit__note {
+  margin: 1.2rem 0 0;
+  font-size: var(--text--eyebrow);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ot-schedule__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.ot-round {
+  /* The reference's schedule row: five columns at 11.775% / 35.325% / 23.55% /
+     1fr / 1fr, padded half a --gap top and bottom. [source] site.css:5585.
+     A button rather than its clickable div — see on-track.ts. */
+  display: grid;
+  grid-template-columns: 11.775% 35.325% 23.55% 1fr 1fr;
+  gap: var(--gap);
+  align-items: baseline;
+  position: relative;
+  inline-size: 100%;
+  padding-block: calc(var(--gap) * 0.5);
+  padding-inline: calc(var(--gap) * 0.5);
+  border: 0;
+  border-block-start: 1px solid color-mix(in srgb, var(--cream) 14%, transparent);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-micro) var(--ease-out),
+    color var(--dur-micro) var(--ease-out);
+}
+
+.ot-round:last-child {
+  border-block-end: 1px solid color-mix(in srgb, var(--cream) 14%, transparent);
+}
+
+.ot-round__num,
+.ot-round__name,
+.ot-round__where,
+.ot-round__date,
+.ot-round__outcome {
+  font-family: var(--font-display);
+  font-size: var(--text--h4);
+  font-weight: 600;
+  line-height: 1.1;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.ot-round__name {
+  font-weight: 750;
+}
+
+.ot-round__num,
+.ot-round__where,
+.ot-round__date {
+  color: var(--text-muted);
+}
+
+/* A step down from the race name it sits beside — it is the secondary fact, and
+   the long ones (Autódromo Hermanos Rodríguez, Las Vegas Strip Street Circuit)
+   only fit the column on one line at this size. */
+.ot-round__where {
+  font-size: var(--text--h5);
+}
+
+.ot-round__outcome {
+  text-align: end;
+}
+
+/* A round already run reads back rather than forward. Muted, not faint: the
+   faint token measures 1.42:1 here, which is not quiet but absent. */
+.ot-round.is-past .ot-round__name {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.ot-round__outcome.is-win {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+.ot-round__outcome.is-dnf {
+  color: var(--text-muted);
+}
+
+/* The next race, marked before anything is selected. */
+.ot-round.is-next .ot-round__outcome {
+  color: var(--accent);
+  font-weight: 800;
+}
+
+/* [source] site.css:5623 — hover fills the row and flips the ink to the accent;
+   .is-active holds that fill for the selected round. */
+.ot-round:hover {
+  background: var(--bg-elevated);
+  color: var(--accent);
+}
+
+.ot-round:hover .ot-round__num,
+.ot-round:hover .ot-round__name,
+.ot-round:hover .ot-round__where,
+.ot-round:hover .ot-round__date,
+.ot-round:hover .ot-round__outcome {
+  color: inherit;
+}
+
+.ot-round.is-active {
+  background: var(--bg-elevated);
+}
+
+/* The fill alone cannot be the only signal — it is a background colour, and the
+   selected round has to survive being read by someone who cannot see it. The
+   button's aria-pressed carries that; this bar is its visible twin. */
+.ot-round.is-active::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: 0.25rem;
+  background: var(--accent);
+}
+
+.ot-round:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 /* ============================================== Reduced motion
  *
  * The reference has no reduced-motion path at all — a grep across its CSS, its
@@ -523,5 +987,132 @@
 
   .ot-stats {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ============================== Narrow widths — the tail three sections
+ *
+ * Same reasoning as the block above: below 992px the root font-size locks at
+ * 16px, so every rem here stops tracking the viewport and the display sizes
+ * have to be restated rather than left to shrink on their own. */
+
+@media (max-width: 991px) {
+  .ot-wins {
+    padding-block: 5rem 4rem;
+  }
+
+  .ot-countdown {
+    padding-block: 4rem 5rem;
+  }
+
+  .ot-schedule {
+    padding-block: 4rem 6rem;
+  }
+
+  .ot-countdown__digits {
+    /* Four items at the desktop size do not fit one narrow line. Wrapping to
+       two rows of two keeps all four units rather than dropping seconds. */
+    flex-wrap: wrap;
+    gap: 1.5rem var(--gap);
+    margin-block-start: 2rem;
+  }
+
+  /* These override the inline --countdown-size solve, which is sized for the
+     design width. Later in the file at equal specificity, so they win. */
+  .ot-countdown__value {
+    font-size: clamp(3rem, 13vw, 7rem);
+  }
+
+  .ot-countdown__unit {
+    font-size: clamp(1.1rem, 4.5vw, 2.5rem);
+  }
+
+  .ot-circuit {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 2rem;
+  }
+
+  .ot-circuit__head,
+  .ot-circuit__stats,
+  .ot-circuit__sessions {
+    grid-column: 1;
+  }
+
+  .ot-circuit__sessions {
+    /* The side rule becomes a top rule once the panel is one column — a border
+       on the inline start of a full-width block reads as a stray mark. */
+    grid-row: auto;
+    border-inline-start: 0;
+    padding-inline-start: 0;
+    border-block-start: 1px solid var(--hairline);
+    padding-block-start: 1.5rem;
+  }
+
+  .ot-circuit__name {
+    font-size: clamp(2rem, 8vw, 3.5rem);
+  }
+
+  .ot-circuit__value {
+    font-size: clamp(1.4rem, 5vw, 2rem);
+  }
+
+  .ot-circuit__stats {
+    gap: 1.5rem 2.5rem;
+  }
+
+  .ot-round {
+    /* Five columns will not fit 360px. The reference's answer is data-hide="m"
+       — it drops two columns on mobile. Ours wraps to two lines instead, so a
+       narrow reader still gets the round, the circuit, the date and the result
+       rather than a shorter row. */
+    grid-template-columns: 3.5rem 1fr auto;
+    grid-template-areas:
+      "num name outcome"
+      "num where date";
+    gap: 0.3rem var(--gap);
+  }
+
+  .ot-round__num {
+    grid-area: num;
+  }
+
+  .ot-round__name {
+    grid-area: name;
+  }
+
+  .ot-round__where {
+    grid-area: where;
+  }
+
+  .ot-round__date {
+    grid-area: date;
+    text-align: end;
+  }
+
+  .ot-round__outcome {
+    grid-area: outcome;
+  }
+
+  .ot-round__where,
+  .ot-round__date {
+    font-size: var(--text--h6);
+  }
+}
+
+@media (max-width: 479px) {
+  .ot-countdown__digits {
+    gap: 1rem;
+  }
+
+  .ot-circuit__stats {
+    gap: 1.2rem 2rem;
+  }
+
+  .ot-circuit__session {
+    /* Label and time stop fitting one line at this width; let them stack rather
+       than let the time overflow its row. */
+    flex-wrap: wrap;
+    gap: 0.2rem;
   }
 }

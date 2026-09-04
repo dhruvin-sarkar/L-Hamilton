@@ -183,3 +183,154 @@ export function daysSinceFetch(now: Date = new Date()): number {
   const then = new Date(provenance.fetchedAt).getTime();
   return Math.max(0, Math.floor((now.getTime() - then) / 86_400_000));
 }
+
+/* ------------------------------------------------------------------ *
+ * Wins, circuits and the season calendar
+ *
+ * Same file, same validation discipline. These are shaped by the generator and
+ * narrowed here; anything malformed throws at load rather than reaching a
+ * component as undefined.
+ * ------------------------------------------------------------------ */
+
+export interface Win {
+  season: number;
+  round: number;
+  raceName: string;
+  /** ISO date, YYYY-MM-DD. */
+  date: string;
+  circuitId: string;
+  circuitName: string;
+  country: string;
+  locality: string;
+  team: string;
+  teamId: string;
+  grid: number;
+  laps: number;
+  /** The winner's race time, e.g. "1:32:28.105". Null if the source lacked it. */
+  raceTime: string | null;
+  fastestLap: string | null;
+  fromPole: boolean;
+}
+
+export interface CircuitRecord {
+  id: string;
+  name: string;
+  country: string;
+  locality: string;
+  starts: number;
+  wins: number;
+  podiums: number;
+  poles: number;
+  bestFinish: number | null;
+  firstRaced: number;
+  lastRaced: number;
+  /** Longest race he has completed here — the scheduled distance, inferred. */
+  laps: number;
+}
+
+export interface RaceSession {
+  date: string;
+  time: string | null;
+}
+
+export interface RoundResult {
+  position: number | null;
+  positionText: string;
+  points: number;
+  grid: number;
+  status: string;
+}
+
+export interface CalendarRound {
+  season: number;
+  round: number;
+  raceName: string;
+  circuitId: string;
+  circuitName: string;
+  country: string;
+  locality: string;
+  date: string;
+  /** "13:00:00Z", or null where the source has no start time. */
+  time: string | null;
+  sessions: {
+    practice1: RaceSession | null;
+    practice2: RaceSession | null;
+    practice3: RaceSession | null;
+    qualifying: RaceSession | null;
+    sprint: RaceSession | null;
+  };
+  /** Null until the round has been run. */
+  result: RoundResult | null;
+}
+
+function list<T>(value: unknown, where: string): T[] {
+  if (!Array.isArray(value) || value.length === 0) fail(`${where} is empty or not an array`);
+  return value as T[];
+}
+
+export const wins: Win[] = list<Win>(raw.wins, 'wins').map((w, i) => {
+  number(w.season, `wins[${i}].season`);
+  number(w.grid, `wins[${i}].grid`);
+  text(w.raceName, `wins[${i}].raceName`);
+  text(w.date, `wins[${i}].date`);
+  return w;
+});
+
+if (wins.length !== career.wins) {
+  fail(`totals.wins is ${career.wins} but the wins list has ${wins.length} entries`);
+}
+
+export const circuits: CircuitRecord[] = list<CircuitRecord>(raw.circuits, 'circuits').map(
+  (c, i) => {
+    text(c.id, `circuits[${i}].id`);
+    number(c.starts, `circuits[${i}].starts`);
+    return c;
+  },
+);
+
+export const circuitById: ReadonlyMap<string, CircuitRecord> = new Map(
+  circuits.map((c) => [c.id, c]),
+);
+
+export const calendar: CalendarRound[] = list<CalendarRound>(raw.calendar, 'calendar').map(
+  (r, i) => {
+    number(r.round, `calendar[${i}].round`);
+    text(r.date, `calendar[${i}].date`);
+    text(r.raceName, `calendar[${i}].raceName`);
+    return r;
+  },
+);
+
+/**
+ * When a round actually starts, as a real instant.
+ *
+ * The source splits date and time and marks the time UTC. Combining them into
+ * one ISO string is what makes the comparison below correct across time zones:
+ * parsing the bare date alone would resolve to local midnight and put a race up
+ * to a day on the wrong side of "now".
+ */
+export function roundStart(round: CalendarRound): Date {
+  return new Date(round.time ? `${round.date}T${round.time}` : `${round.date}T00:00:00Z`);
+}
+
+/**
+ * The next round that has not yet started, by the clock — NOT by whether a
+ * result has been recorded.
+ *
+ * Those two differ for most of a race weekend: a round is in the past the
+ * moment it is run, but its result does not reach this file until the record is
+ * fetched again. Going by the clock keeps the countdown and the schedule right
+ * between fetches instead of pointing at a race that has already happened.
+ */
+export function nextRound(now: Date = new Date()): CalendarRound | null {
+  return calendar.find((r) => roundStart(r).getTime() > now.getTime()) ?? null;
+}
+
+/** The most recent round already started. Null before the season opens. */
+export function lastRound(now: Date = new Date()): CalendarRound | null {
+  const past = calendar.filter((r) => roundStart(r).getTime() <= now.getTime());
+  return past.length ? (past[past.length - 1] as CalendarRound) : null;
+}
+
+/** Wins newest-first — the order a results feed reads in. */
+export const winsNewestFirst: Win[] = [...wins].reverse();

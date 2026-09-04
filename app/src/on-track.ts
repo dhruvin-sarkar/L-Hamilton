@@ -7,8 +7,9 @@
  * something nobody will remember to change.
  *
  * Section order follows the reference (docs/ON-TRACK-REFERENCE.md §1). Built so
- * far: the page header and the career stat band, including the twenty-season
- * table that the reference's seven-row block becomes.
+ * far: the page header, the career stat band (including the twenty-season table
+ * that the reference's seven-row block becomes), the full wins table, the
+ * countdown to the next race, and the season schedule with its circuit panel.
  */
 
 import './styles/on-track.css';
@@ -17,7 +18,19 @@ import { gsap, reducedMotion, ScrollTrigger } from './lib/motion';
 import { mountChrome } from './lib/chrome';
 import { mountReveals } from './lib/reveal';
 import { age, driver } from './content/hamilton';
-import { career, provenance, seasons, seasonsNewestFirst } from './content/live-stats';
+import {
+  calendar,
+  career,
+  circuitById,
+  nextRound,
+  provenance,
+  roundStart,
+  seasons,
+  seasonsNewestFirst,
+  wins,
+  winsNewestFirst,
+} from './content/live-stats';
+import type { CalendarRound, RaceSession } from './content/live-stats';
 
 /* ------------------------------------------------------------------ *
  * Smooth scroll
@@ -328,33 +341,494 @@ if (seasonsBody) {
 }
 
 /* ------------------------------------------------------------------ *
- * Keyboard access to the season table's overflow
+ * Race wins
  *
- * Below about 992px the table is wider than its column and `.ot-seasons`
- * scrolls it sideways. A scroll container is only operable by pointer unless it
- * is focusable, so without this the last few columns — poles and points — are
- * simply unreachable for anyone driving the page from the keyboard. WCAG 2.1.1.
+ * The reference's section 2 is a seven-row block of career wins. Hamilton has
+ * 106, so the rows stay and the tail goes behind a disclosure: the ten most
+ * recent render open, the rest are built once and revealed by the button.
+ *
+ * Built eagerly rather than on first open, so the hidden rows are in the
+ * accessible tree and findable by browser find-in-page from the start.
+ * ------------------------------------------------------------------ */
+
+const WINS_VISIBLE = 10;
+
+const winsBody = document.querySelector<HTMLElement>('[data-wins-body]');
+const winsToggle = document.querySelector<HTMLButtonElement>('[data-wins-toggle]');
+const winsToggleLabel = document.querySelector<HTMLElement>('[data-wins-toggle-label]');
+const winsBlurb = document.querySelector<HTMLElement>('[data-wins-blurb]');
+const winsCaption = document.querySelector<HTMLElement>('[data-wins-caption]');
+
+function shortDate(iso: string): string {
+  return new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  });
+}
+
+if (winsBody) {
+  winsNewestFirst.forEach((win, index) => {
+    const row = el('tr', 'ot-seasons__row ot-wins__row');
+    row.dataset.team = win.teamId;
+    if (index >= WINS_VISIBLE) row.hidden = true;
+
+    const name = el('th', 'ot-seasons__cell ot-seasons__cell--year');
+    name.setAttribute('scope', 'row');
+    name.appendChild(el('span', 'ot-seasons__year', win.raceName.replace(/ Grand Prix$/, '')));
+    if (win.fromPole) {
+      // Pole-to-flag is the win worth marking. Mark plus word, so it is never
+      // glyph-only.
+      name.appendChild(el('span', 'sr-only', ' — won from pole position'));
+      const mark = el('span', 'ot-wins__pole', '◆');
+      mark.setAttribute('aria-hidden', 'true');
+      name.appendChild(mark);
+    }
+    row.appendChild(name);
+
+    const season = el('td', 'ot-seasons__cell');
+    season.append(
+      el('span', 'ot-wins__season', String(win.season)),
+      el('span', 'ot-wins__date', ` ${shortDate(win.date)}`),
+    );
+    row.appendChild(season);
+
+    row.appendChild(el('td', 'ot-seasons__cell', win.team));
+    for (const value of [`P${win.grid}`, groups.format(win.laps), win.raceTime ?? '—']) {
+      row.appendChild(el('td', 'ot-seasons__cell ot-seasons__cell--num', value));
+    }
+    winsBody.appendChild(row);
+  });
+
+  const fromPole = wins.filter((w) => w.fromPole).length;
+
+  if (winsBlurb) {
+    winsBlurb.textContent =
+      `${groups.format(career.wins)} Grand Prix victories across three teams, ` +
+      `${groups.format(fromPole)} of them from pole position. Listed newest first.`;
+  }
+  if (winsCaption) {
+    winsCaption.textContent = `Career Grand Prix wins, ${groups.format(
+      career.wins,
+    )} in total, newest first.`;
+  }
+
+  /* Same row entry as the season table, and for the same reason: the reference
+   * gives its wins rows the `.item-reveal` wipe too (§6.1). Batched, so the
+   * hundred-odd rows read downward rather than each finding its own trigger.
+   *
+   * The hidden tail is included. A `hidden` row has no box, so its trigger
+   * resolves to nothing until the disclosure opens — which is why the toggle
+   * calls `ScrollTrigger.refresh()`. */
+  if (!reducedMotion) {
+    ScrollTrigger.batch(winsBody.querySelectorAll('.ot-wins__row'), {
+      start: 'top 92%',
+      onEnter: (batch) =>
+        gsap.to(batch, {
+          '--row-wipe': 1,
+          opacity: 1,
+          duration: 0.62,
+          ease: 'power3.out',
+          stagger: 0.045,
+          overwrite: true,
+        }),
+    });
+  }
+
+  if (winsToggle && winsToggleLabel) {
+    if (winsNewestFirst.length <= WINS_VISIBLE) {
+      winsToggle.hidden = true;
+    } else {
+      winsToggleLabel.textContent = `Show all ${groups.format(career.wins)} wins`;
+      winsToggle.addEventListener('click', () => {
+        const open = winsToggle.getAttribute('aria-expanded') === 'true';
+        winsToggle.setAttribute('aria-expanded', String(!open));
+        for (const [i, row] of [...winsBody.children].entries()) {
+          if (i >= WINS_VISIBLE) (row as HTMLElement).hidden = open;
+        }
+        winsToggleLabel.textContent = open
+          ? `Show all ${groups.format(career.wins)} wins`
+          : 'Show only the ten most recent';
+        // Collapsing removes thousands of pixels above the reader; put them back
+        // on the control they just pressed rather than wherever that lands them.
+        if (open) winsToggle.scrollIntoView({ block: 'center', behavior: 'auto' });
+        ScrollTrigger.refresh();
+      });
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Countdown to the next race
+ *
+ * The reference reads its target from plain text in a hidden element, and its
+ * digits all sit at 00 because the race it points at is long past. Ours reads
+ * the calendar and picks by the clock, so it cannot expire in place.
+ * ------------------------------------------------------------------ */
+
+const countdownSection = document.querySelector<HTMLElement>('[data-countdown]');
+const countdownDigits = document.querySelector<HTMLElement>('[data-countdown-digits]');
+const countdownSr = document.querySelector<HTMLElement>('[data-countdown-sr]');
+const countdownRace = document.querySelector<HTMLElement>('[data-countdown-race]');
+
+const UNITS = [
+  { key: 'days', label: 'day', short: 'D', per: 86_400_000 },
+  { key: 'hours', label: 'hour', short: 'H', per: 3_600_000 },
+  { key: 'minutes', label: 'minute', short: 'M', per: 60_000 },
+  { key: 'seconds', label: 'second', short: 'S', per: 1000 },
+] as const;
+
+if (countdownSection && countdownDigits) {
+  const upcoming = nextRound();
+
+  if (!upcoming) {
+    // The season is over. Say nothing rather than counting down to nothing —
+    // the reference's own countdown sits frozen at 00 and reads as broken.
+    countdownSection.hidden = true;
+  } else {
+    const target = roundStart(upcoming);
+
+    /* The row has to fit its container, and days is the one field whose width
+     * is not fixed: two figures inside a season, three across a winter break.
+     *
+     * Same solve as the gigantic number. The reference sets 17.5rem for eight
+     * characters, so the size is scaled by the count actually needed — and
+     * measured once, then held, because a row that resized itself as the count
+     * fell through 100 would jump under the reader. */
+    const COUNTDOWN_SPAN_REM = 140; // 17.5rem x 8 characters, from the reference
+    const dayWidth = Math.max(
+      2,
+      String(Math.floor(Math.max(0, target.getTime() - Date.now()) / 86_400_000)).length,
+    );
+    countdownDigits.style.setProperty(
+      '--countdown-size',
+      `${COUNTDOWN_SPAN_REM / (dayWidth + 6)}rem`,
+    );
+
+    const cells = UNITS.map((unit) => {
+      const item = el('div', 'ot-countdown__item');
+      const value = el('span', 'ot-countdown__value', '00');
+      value.dataset.unit = unit.key;
+      item.append(value, el('span', 'ot-countdown__unit', unit.short));
+      countdownDigits.appendChild(item);
+      return { unit, value };
+    });
+
+    if (countdownRace) {
+      const when = target.toLocaleDateString('en-GB', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      });
+      /* The locality is dropped where the circuit's own name already contains
+         it — "Autodromo Nazionale di Monza, Monza" and "Silverstone Circuit,
+         Silverstone" say one thing twice, while "Circuit Gilles Villeneuve,
+         Montreal" says two. */
+      const place = upcoming.circuitName.toLowerCase().includes(upcoming.locality.toLowerCase())
+        ? upcoming.circuitName
+        : `${upcoming.circuitName}, ${upcoming.locality}`;
+      countdownRace.textContent =
+        `Round ${upcoming.round} · ${upcoming.raceName} · ${place} · ${when}`;
+    }
+
+    const render = (): boolean => {
+      let remaining = target.getTime() - Date.now();
+      const done = remaining <= 0;
+      if (done) remaining = 0;
+
+      const parts: string[] = [];
+      for (const { unit, value } of cells) {
+        const n = Math.floor(remaining / unit.per);
+        remaining -= n * unit.per;
+        value.textContent = String(n).padStart(unit.key === 'days' ? dayWidth : 2, '0');
+        // The visible digits are aria-hidden, so this sentence is the whole of
+        // what a screen reader gets. "1 days" is not English.
+        parts.push(`${n} ${unit.label}${n === 1 ? '' : 's'}`);
+      }
+      if (countdownSr) {
+        countdownSr.textContent = done
+          ? `${upcoming.raceName} is under way.`
+          : `${parts.join(', ')} until the ${upcoming.raceName}.`;
+      }
+      return done;
+    };
+
+    render();
+
+    if (!reducedMotion) {
+      /* One interval, cleared the moment it reaches zero.
+       *
+       * setInterval rather than a rAF loop: this changes once a second, and a
+       * per-frame loop would wake the page sixty times to write the same
+       * string. */
+      const tick = window.setInterval(() => {
+        if (render()) window.clearInterval(tick);
+      }, 1000);
+    }
+    /* Under reduced motion it renders once and stops. The remaining time is
+       still stated in full and the live region carries it — what is dropped is
+       the per-second update, which is motion, not information. */
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Season schedule, and the circuit panel it drives
+ *
+ * The reference's rows are clickable divs carrying a title attribute — no
+ * tabindex, no keyboard path, so the whole mechanic is mouse-only. CLAUDE.md
+ * requires keyboard operability, so each row here is a real button and the
+ * panel it controls is wired with aria-controls.
+ * ------------------------------------------------------------------ */
+
+const scheduleList = document.querySelector<HTMLElement>('[data-schedule]');
+const circuitPanel = document.querySelector<HTMLElement>('[data-circuit]');
+
+function timeLabel(session: { date: string; time: string | null }): string {
+  const when = new Date(
+    session.time ? `${session.date}T${session.time}` : `${session.date}T00:00:00Z`,
+  );
+  return session.time
+    ? when.toLocaleString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : when.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+if (scheduleList && circuitPanel) {
+  const nowRound = nextRound();
+  circuitPanel.id = 'ot-circuit-panel';
+
+  const roundState = (round: CalendarRound): 'past' | 'next' | 'upcoming' =>
+    round.result ? 'past' : nowRound && round.round === nowRound.round ? 'next' : 'upcoming';
+
+  /** Fill the detail panel from one round. */
+  const showRound = (round: CalendarRound): void => {
+    const record = circuitById.get(round.circuitId);
+
+    const set = (sel: string, value: string) => {
+      const node = circuitPanel.querySelector<HTMLElement>(sel);
+      if (node) node.textContent = value;
+    };
+    set('[data-circuit-round]', `Round ${round.round} of ${calendar.length}`);
+    set('[data-circuit-name]', round.circuitName);
+    set('[data-circuit-where]', `${round.locality}, ${round.country}`);
+
+    const stats = circuitPanel.querySelector<HTMLElement>('[data-circuit-stats]');
+    if (stats) {
+      stats.textContent = '';
+      /* A circuit he has never raced is a real state, not an error — the 2026
+         calendar visits venues new to it. Say so, rather than printing a row of
+         zeroes that reads like a bad record. */
+      const rows: [string, string][] = record
+        ? [
+            ['Starts', groups.format(record.starts)],
+            ['Wins', groups.format(record.wins)],
+            ['Podiums', groups.format(record.podiums)],
+            ['Poles', groups.format(record.poles)],
+            ['Best finish', record.bestFinish ? ordinal(record.bestFinish) : '—'],
+            ['First raced', String(record.firstRaced)],
+          ]
+        : [['Record', 'No previous start at this circuit']];
+
+      for (const [label, value] of rows) {
+        const pair = el('div', 'ot-circuit__pair');
+        pair.append(el('dt', 'ot-circuit__label', label), el('dd', 'ot-circuit__value', value));
+        stats.appendChild(pair);
+      }
+    }
+
+    const sessions = circuitPanel.querySelector<HTMLElement>('[data-circuit-sessions]');
+    if (sessions) {
+      sessions.textContent = '';
+      const schedule: [string, RaceSession | null][] = [
+        ['Practice 1', round.sessions.practice1],
+        ['Practice 2', round.sessions.practice2],
+        ['Practice 3', round.sessions.practice3],
+        ['Sprint', round.sessions.sprint],
+        ['Qualifying', round.sessions.qualifying],
+      ];
+      for (const [label, session] of schedule) {
+        if (!session) continue; // a sprint weekend has no P3, a normal one no sprint
+        const line = el('p', 'ot-circuit__session');
+        line.append(
+          el('span', 'ot-circuit__session-label', label),
+          el('span', 'ot-circuit__session-time', timeLabel(session)),
+        );
+        sessions.appendChild(line);
+      }
+      const race = el('p', 'ot-circuit__session ot-circuit__session--race');
+      race.append(
+        el('span', 'ot-circuit__session-label', 'Race'),
+        el('span', 'ot-circuit__session-time', timeLabel({ date: round.date, time: round.time })),
+      );
+      sessions.appendChild(race);
+
+      // The reference footnotes its schedule *UK TIME. Ours renders in the
+      // reader's own zone, so it names that zone rather than asserting one they
+      // may not be in.
+      const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      sessions.appendChild(el('p', 'ot-circuit__note', `Times shown in your local zone (${zone}).`));
+    }
+  };
+
+  const buttons: HTMLButtonElement[] = [];
+
+  const select = (round: CalendarRound, index: number, focus = false): void => {
+    showRound(round);
+    buttons.forEach((b, i) => {
+      const active = i === index;
+      b.classList.toggle('is-active', active);
+      // aria-pressed, not aria-selected: these are toggle buttons in a toolbar,
+      // not tabs, and aria-selected outside a listbox or tablist means nothing.
+      b.setAttribute('aria-pressed', String(active));
+      /* Roving tabindex. Without it the schedule is 23 tab stops standing
+       * between the wins disclosure and the footer, and every one of them has
+       * to be pressed past to leave the section. One stop enters the list, and
+       * the arrow keys below move inside it — the ARIA toolbar pattern, which
+       * is why the container carries that role. */
+      b.tabIndex = active ? 0 : -1;
+    });
+    if (focus) buttons[index]?.focus();
+  };
+
+  scheduleList.setAttribute('role', 'toolbar');
+  scheduleList.setAttribute('aria-orientation', 'vertical');
+  scheduleList.setAttribute('aria-label', `Rounds of the ${calendar[0]?.season ?? ''} season`);
+
+  calendar.forEach((round, index) => {
+    const state = roundState(round);
+    const button = el('button', `ot-round is-${state}`);
+    button.type = 'button';
+    button.setAttribute('aria-controls', circuitPanel.id);
+    button.setAttribute('aria-pressed', 'false');
+    // Overwritten by the first select() below; set here so the list is never
+    // momentarily a 23-stop tab trap if that call ever fails to run.
+    button.tabIndex = -1;
+
+    /* The locality, not the country: the name column has already stripped
+     * "Grand Prix" off the race name, so "Dutch / Netherlands" would be one
+     * fact twice where "Dutch / Zandvoort" names the circuit's town.
+     *
+     * Except where the town IS the race — Abu Dhabi, Miami, Singapore — and the
+     * two columns read identically. There the circuit's own name is the second
+     * fact: "Abu Dhabi / Yas Marina Circuit". */
+    const shortName = round.raceName.replace(/ Grand Prix$/, '');
+    const where =
+      round.locality.toLowerCase() === shortName.toLowerCase() ? round.circuitName : round.locality;
+
+    button.append(
+      el('span', 'ot-round__num', String(round.round).padStart(2, '0')),
+      el('span', 'ot-round__name', shortName),
+      el('span', 'ot-round__where', where),
+      el('span', 'ot-round__date', shortDate(round.date)),
+    );
+
+    /* The outcome gets its own column. The reference strikes through the round
+       number of a completed race and shows the finish in its place; keeping
+       them apart leaves the number legible. */
+    const outcome = el('span', 'ot-round__outcome');
+    if (round.result) {
+      outcome.textContent = round.result.position
+        ? ordinal(round.result.position)
+        : round.result.positionText; // "R" for a retirement, "D" for a disqualification
+      if (round.result.position === 1) outcome.classList.add('is-win');
+      if (!round.result.position) outcome.classList.add('is-dnf');
+    } else {
+      outcome.textContent = state === 'next' ? 'Next' : '—';
+    }
+    button.appendChild(outcome);
+
+    // The visible row is a terse grid; the accessible name has to be a sentence.
+    button.appendChild(
+      el(
+        'span',
+        'sr-only',
+        `Round ${round.round}, ${round.raceName}, ${round.country}, ${shortDate(round.date)}. ` +
+          (round.result
+            ? `Finished ${
+                round.result.position ? ordinal(round.result.position) : round.result.status
+              }.`
+            : state === 'next'
+              ? 'The next race.'
+              : 'Upcoming.') +
+          ' Show his record at this circuit.',
+      ),
+    );
+
+    button.addEventListener('click', () => select(round, index));
+    buttons.push(button);
+    scheduleList.appendChild(button);
+  });
+
+  /* Arrow keys move between rounds — the other half of the roving tabindex
+     above. Home and End jump to the season's first and last round. */
+  scheduleList.addEventListener('keydown', (event) => {
+    const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    if (index < 0) return;
+    const moves: Record<string, number> = {
+      ArrowDown: index + 1,
+      ArrowRight: index + 1,
+      ArrowUp: index - 1,
+      ArrowLeft: index - 1,
+      Home: 0,
+      End: buttons.length - 1,
+    };
+    const target = moves[event.key];
+    if (target === undefined) return;
+    event.preventDefault();
+    const clamped = Math.max(0, Math.min(buttons.length - 1, target));
+    const round = calendar[clamped];
+    if (round) select(round, clamped, true);
+  });
+
+  // Open on the next race — the round a visitor is most likely here for.
+  const openingIndex = nowRound ? calendar.findIndex((r) => r.round === nowRound.round) : 0;
+  const opening = calendar[Math.max(0, openingIndex)];
+  if (opening) select(opening, Math.max(0, openingIndex));
+
+  const yearNode = document.querySelector<HTMLElement>('[data-schedule-year]');
+  if (yearNode && calendar[0]) yearNode.textContent = String(calendar[0].season);
+}
+
+/* ------------------------------------------------------------------ *
+ * Keyboard access to the tables' sideways overflow
+ *
+ * Below about 992px both tables are wider than their column and their wrapper
+ * scrolls them sideways. A scroll container is only operable by pointer unless
+ * it is focusable, so without this the last few columns — poles and points on
+ * one, laps and race time on the other — are simply unreachable for anyone
+ * driving the page from the keyboard. WCAG 2.1.1.
  *
  * Applied only while it actually overflows: an unconditional tabindex would add
  * a tab stop on every desktop width, where there is nothing to scroll and the
  * stop does nothing but waste a keypress.
  * ------------------------------------------------------------------ */
 
-const seasonsScroller = document.querySelector<HTMLElement>('[data-seasons]');
+const scrollRegions: [string, string][] = [
+  ['[data-seasons]', 'Season-by-season record, scrollable'],
+  ['[data-wins]', 'Career race wins, scrollable'],
+];
 
-if (seasonsScroller) {
+for (const [selector, label] of scrollRegions) {
+  const scroller = document.querySelector<HTMLElement>(selector);
+  if (!scroller) continue;
+
   const syncFocusable = (): void => {
-    const scrolls = seasonsScroller.scrollWidth > seasonsScroller.clientWidth + 1;
-    if (scrolls) {
-      seasonsScroller.tabIndex = 0;
+    if (scroller.scrollWidth > scroller.clientWidth + 1) {
+      scroller.tabIndex = 0;
       // Named and given a role, so it is announced as a region worth entering
       // rather than as an unlabelled focus stop.
-      seasonsScroller.setAttribute('role', 'region');
-      seasonsScroller.setAttribute('aria-label', 'Season-by-season record, scrollable');
+      scroller.setAttribute('role', 'region');
+      scroller.setAttribute('aria-label', label);
     } else {
-      seasonsScroller.removeAttribute('tabindex');
-      seasonsScroller.removeAttribute('role');
-      seasonsScroller.removeAttribute('aria-label');
+      scroller.removeAttribute('tabindex');
+      scroller.removeAttribute('role');
+      scroller.removeAttribute('aria-label');
     }
   };
   syncFocusable();

@@ -269,6 +269,147 @@ async function main() {
     if (err.code !== 'ENOENT') throw err; // first run: nothing to compare against
   }
 
+  /* ------------------------------------------------------------------ *
+   * Every win, in full
+   *
+   * Section 2 of the page. No extra requests — these are the same result
+   * objects already paged above, filtered and projected.
+   * ------------------------------------------------------------------ */
+
+  const wins = results
+    .filter((race) => finishedPosition(race.Results[0].positionText) === 1)
+    .map((race) => {
+      const r = race.Results[0];
+      return {
+        season: Number(race.season),
+        round: Number(race.round),
+        raceName: race.raceName,
+        date: race.date,
+        circuitId: race.Circuit.circuitId,
+        circuitName: race.Circuit.circuitName,
+        country: race.Circuit.Location.country,
+        locality: race.Circuit.Location.locality,
+        team: r.Constructor.name,
+        teamId: r.Constructor.constructorId,
+        grid: Number(r.grid),
+        laps: Number(r.laps),
+        // Winner's race time. Ergast gives it only for the classified winner,
+        // which is exactly who this is.
+        raceTime: r.Time?.time ?? null,
+        fastestLap: r.FastestLap?.Time?.time ?? null,
+        // A win from pole is a different kind of win to one from row three, and
+        // it is the one extra fact that makes a long list readable at a glance.
+        fromPole: Number(r.grid) === 1,
+      };
+    });
+
+  /* ------------------------------------------------------------------ *
+   * His record at every circuit he has raced
+   *
+   * Also free: folded from the same results and qualifying records. This is
+   * what the calendar rows carry instead of the reference's lap-length and
+   * distance fields, which Ergast does not publish — a driver's history at a
+   * circuit is both traceable and more use on a driver's own site.
+   * ------------------------------------------------------------------ */
+
+  const circuits = new Map();
+  const circuitBucket = (race) => {
+    const c = race.Circuit;
+    if (!circuits.has(c.circuitId)) {
+      circuits.set(c.circuitId, {
+        id: c.circuitId,
+        name: c.circuitName,
+        country: c.Location.country,
+        locality: c.Location.locality,
+        starts: 0, wins: 0, podiums: 0, poles: 0,
+        bestFinish: null,
+        firstRaced: Number(race.season),
+        lastRaced: Number(race.season),
+        // Laps of the longest race he has completed here. Ergast has no circuit
+        // table, so the scheduled distance is inferred from a real result rather
+        // than typed in from somewhere else.
+        laps: 0,
+      });
+    }
+    return circuits.get(c.circuitId);
+  };
+
+  for (const race of results) {
+    const b = circuitBucket(race);
+    const pos = finishedPosition(race.Results[0].positionText);
+    const season = Number(race.season);
+    b.starts++;
+    b.firstRaced = Math.min(b.firstRaced, season);
+    b.lastRaced = Math.max(b.lastRaced, season);
+    b.laps = Math.max(b.laps, Number(race.Results[0].laps) || 0);
+    if (pos === 1) b.wins++;
+    if (pos !== null && pos <= 3) b.podiums++;
+    if (pos !== null) b.bestFinish = b.bestFinish === null ? pos : Math.min(b.bestFinish, pos);
+  }
+
+  for (const race of quali) {
+    if (finishedPosition(race.QualifyingResults[0].position) === 1) {
+      const b = circuits.get(race.Circuit.circuitId);
+      if (b) b.poles++;
+    }
+  }
+
+  /* ------------------------------------------------------------------ *
+   * The current season's calendar
+   *
+   * One request. Carries the practice and qualifying session times — the same
+   * payload the reference hangs off each schedule row — and the race datetime
+   * the countdown targets.
+   * ------------------------------------------------------------------ */
+
+  const calendarData = await get(`${latestSeason}/races`, { limit: 100 });
+  const rounds = calendarData.RaceTable?.Races ?? [];
+  if (!rounds.length) throw new Error(`No ${latestSeason} calendar returned`);
+
+  const session = (node) => (node?.date ? { date: node.date, time: node.time ?? null } : null);
+
+  const raced = new Map(results.map((r) => [`${r.season}-${r.round}`, r]));
+
+  const calendar = rounds.map((race) => {
+    const result = raced.get(`${race.season}-${race.round}`);
+    const r = result?.Results?.[0];
+    return {
+      season: Number(race.season),
+      round: Number(race.round),
+      raceName: race.raceName,
+      circuitId: race.Circuit.circuitId,
+      circuitName: race.Circuit.circuitName,
+      country: race.Circuit.Location.country,
+      locality: race.Circuit.Location.locality,
+      date: race.date,
+      time: race.time ?? null,
+      sessions: {
+        practice1: session(race.FirstPractice),
+        practice2: session(race.SecondPractice),
+        practice3: session(race.ThirdPractice),
+        qualifying: session(race.Qualifying),
+        sprint: session(race.Sprint),
+      },
+      // Present only once the round has been run. Its absence is what marks a
+      // round upcoming — the page derives that from the clock rather than
+      // storing a state that goes stale between the fetch and the visit.
+      result: r
+        ? {
+            position: finishedPosition(r.positionText),
+            positionText: r.positionText,
+            points: Number(r.points),
+            grid: Number(r.grid),
+            status: r.status,
+          }
+        : null,
+    };
+  });
+
+  console.log(
+    `  ${wins.length} wins, ${circuits.size} circuits, ${calendar.length} rounds in ` +
+      `${latestSeason} (${calendar.filter((c) => c.result).length} run)`,
+  );
+
   const payload = {
     $comment:
       'GENERATED by tools/fetch-stats.mjs. Do not edit by hand — run `npm run fetch-stats`.',
@@ -287,6 +428,9 @@ async function main() {
     },
     totals,
     seasons: seasonRows,
+    wins,
+    circuits: [...circuits.values()].sort((a, b) => b.wins - a.wins || a.name.localeCompare(b.name)),
+    calendar,
   };
 
   await mkdir(path.dirname(OUT), { recursive: true });

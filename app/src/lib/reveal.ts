@@ -148,9 +148,16 @@ export function mountReveals(opts: RevealOptions): void {
         current.push(piece);
       }
 
-      /** A row's text, with the separators it actually had. */
+      /** A row's text, with the separators it actually had.
+       *
+       * The trailing space on a row's last piece is kept rather than trimmed.
+       * Dropping it looked harmless — a line box discards trailing whitespace,
+       * so nothing moves — but the block's own text is the concatenation of its
+       * lines, and without it the word boundary at every break disappeared:
+       * "61 of" + "them from" read back as "61 ofthem" to `textContent`,
+       * find-in-page, copy-paste and anything extracting the accessible name. */
       const rowText = (row: Piece[]): string =>
-        row.map((p, i) => (p.spaceAfter && i < row.length - 1 ? `${p.text} ` : p.text)).join('');
+        row.map((p) => (p.spaceAfter ? `${p.text} ` : p.text)).join('');
 
       // One line is not a cascade, and wrapping it would swap its inline layout
       // for a block one for no gain. Put the text back exactly as it was.
