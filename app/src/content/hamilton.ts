@@ -102,6 +102,159 @@ export const eras: Era[] = [
 /** The seven title years — stable, and the spine of the career narrative. */
 export const championshipYears = [2008, 2014, 2015, 2017, 2018, 2019, 2020] as const;
 
+/**
+ * The pre-Formula 1 championship record — 1995 to 2006.
+ *
+ * Stable, and held here rather than fetched, because unlike the career totals
+ * these cannot move: a 1995 cadet karting title is settled. The API cannot
+ * supply them either — Jolpica covers Formula 1 only.
+ *
+ * The list is not a selection of highlights. It is a rule: **every championship
+ * he finished first or second in before reaching Formula 1**, which is why the
+ * two runners-up are here beside the ten titles and why nothing that is not a
+ * championship is. His one-off international wins — the 2000 Karting World Cup
+ * at Suzuka, the 2004 Bahrain Superprix, the 2005 Masters of Formula 3 — are
+ * named in the section's copy instead, because folding events into a list of
+ * championships would make the list mean nothing.
+ *
+ * Every entry carries the source it was verified against. CONTENT-DATA.md:
+ * every number must come from a real source and be traceable.
+ */
+export interface JuniorChampionship {
+  year: number;
+  /** The championship, as its organiser names it. */
+  series: string;
+  /** The class contested. Null where the championship has only one. */
+  category: string | null;
+  /** The entrant. Null through the karting years, where it is not recorded. */
+  team: string | null;
+  /** 1 or 2 — the list holds only those, by the rule above. */
+  position: 1 | 2;
+  /** Third-person site copy. Never a quote, never a number without a source. */
+  note: string | null;
+  source: string;
+}
+
+export const preF1Championships: JuniorChampionship[] = [
+  {
+    year: 1995,
+    series: 'Super One National Championship',
+    category: 'Comer Cadet',
+    team: null,
+    position: 1,
+    note: 'The youngest winner of the British cadet title, at ten years old.',
+    source: 'https://en.wikipedia.org/wiki/Lewis_Hamilton',
+  },
+  {
+    year: 1995,
+    series: 'STP Karting Championship',
+    category: null,
+    team: null,
+    position: 1,
+    note: null,
+    source: 'https://www.racefans.net/lewis-hamilton/',
+  },
+  {
+    year: 1996,
+    series: 'Champions of the Future',
+    category: 'MSA British Cadet',
+    team: null,
+    position: 1,
+    note: null,
+    source: 'https://en.wikipedia.org/wiki/Formula_Kart_Stars',
+  },
+  {
+    year: 1996,
+    series: 'Five Nations Championship',
+    category: 'Cadet',
+    team: null,
+    position: 1,
+    note: null,
+    source: 'https://www.racefans.net/lewis-hamilton/',
+  },
+  {
+    year: 1997,
+    series: 'Super One National Championship',
+    category: 'Junior Yamaha',
+    team: null,
+    position: 1,
+    note: null,
+    source: 'https://en.wikipedia.org/wiki/Lewis_Hamilton',
+  },
+  {
+    year: 1997,
+    series: 'Champions of the Future',
+    category: 'Formula Yamaha',
+    team: null,
+    position: 1,
+    note: null,
+    source: 'https://en.wikipedia.org/wiki/Formula_Kart_Stars',
+  },
+  {
+    year: 1998,
+    series: 'Champions of the Future',
+    category: 'Junior Intercontinental A',
+    team: null,
+    position: 2,
+    note: null,
+    source: 'https://www.racefans.net/lewis-hamilton/',
+  },
+  {
+    year: 1999,
+    series: 'CIK-FIA Karting European Championship',
+    category: 'ICA-Junior',
+    team: null,
+    position: 2,
+    note: 'Beaten to the title by Reinhard Kofler.',
+    source: 'https://www.fiakarting.com/history/1999',
+  },
+  {
+    year: 2000,
+    series: 'CIK-FIA Karting European Championship',
+    category: 'Formula A',
+    team: 'Team MBM.com',
+    position: 1,
+    note: "Seventy-five points to Nico Rosberg's fifty-one.",
+    source: 'https://en.wikipedia.org/wiki/Karting_European_Championship',
+  },
+  {
+    year: 2003,
+    series: 'Formula Renault 2.0 UK Championship',
+    category: null,
+    team: 'Manor Motorsport',
+    position: 1,
+    note: 'Ten wins, eleven poles and nine fastest laps.',
+    source: 'https://en.wikipedia.org/wiki/British_Formula_Renault_Championship',
+  },
+  {
+    year: 2005,
+    series: 'Formula 3 Euro Series',
+    category: null,
+    team: 'ASM Formule 3',
+    position: 1,
+    note: 'Fifteen wins from twenty races, and thirteen poles.',
+    source: 'https://en.wikipedia.org/wiki/2005_Formula_3_Euro_Series',
+  },
+  {
+    year: 2006,
+    series: 'GP2 Series',
+    category: null,
+    team: 'ART Grand Prix',
+    position: 1,
+    note: 'Champion at the first attempt, ahead of Nelson Piquet Jr.',
+    source: 'https://en.wikipedia.org/wiki/2006_GP2_Series',
+  },
+];
+
+/** Championships won before Formula 1. Counted, never typed. */
+export const preF1Titles: number = preF1Championships.filter((c) => c.position === 1).length;
+
+/** The span the list covers, derived so the heading cannot drift from the data. */
+export const preF1Span: { from: number; to: number } = {
+  from: Math.min(...preF1Championships.map((c) => c.year)),
+  to: Math.max(...preF1Championships.map((c) => c.year)),
+};
+
 /* ------------------------------------------------------------------ *
  * Volatile
  * ------------------------------------------------------------------ */

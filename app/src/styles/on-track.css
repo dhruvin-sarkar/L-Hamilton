@@ -894,6 +894,168 @@
   outline-offset: -2px;
 }
 
+/* ==================================================== Pre-F1 career
+ *
+ * Reference section 4. Its grid is two columns with a --gap between and twice
+ * that between rows, and each item is a flex row whose laurel is a 3.75rem
+ * square hung 5.25rem to the left by an absolute transform.
+ * [source] site.css:5720-5747.
+ *
+ * One deviation, deliberate: the hang is per-item padding here rather than a
+ * negative offset into the grid. With two columns and a 1.25rem column gap, an
+ * icon translated 5.25rem left of column two lands on top of column one's text.
+ * The look is identical; the collision is not possible. */
+
+.ot-junior {
+  background: var(--bg);
+  color: var(--text);
+  padding-block: 8rem;
+}
+
+.ot-junior .ot-band__head {
+  --head-accent: var(--accent);
+  --head-body: var(--text-muted);
+}
+
+.ot-junior__lead {
+  max-inline-size: 62ch;
+  margin-block: 0 6rem;
+  font-size: var(--text--reg);
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.ot-junior__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: var(--gap);
+  row-gap: calc(var(--gap) * 2);
+}
+
+.ot-junior__item {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem var(--gap);
+  padding-inline-start: 5.25rem;
+  padding-block-end: 1.2rem;
+  border-block-end: 1px solid color-mix(in srgb, var(--cream) 12%, transparent);
+}
+
+/* The laurel. Drawn in on-track.ts, not lifted — and coloured by whether the
+   result was a title, which is the reference's own device and the reason the
+   mark is here at all. Never the only signal: the word is written out too. */
+.ot-junior__mark {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 3.75rem;
+  block-size: 3.75rem;
+  display: flex;
+  color: var(--accent);
+}
+
+.ot-junior__mark svg {
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.ot-junior__year {
+  font-family: var(--font-display);
+  font-size: var(--text--h3);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.ot-junior__series {
+  /* Grows to fill the row, but wraps to its own line rather than squeezing the
+     year and the verdict off the ends. */
+  flex: 1 1 16rem;
+  font-family: var(--font-display);
+  font-size: var(--text--h4);
+  font-weight: 700;
+  line-height: 1.15;
+  text-transform: uppercase;
+}
+
+/* The class, and the entrant where there was one. Two championships share a
+   name in this list — Champions of the Future and Super One were each won
+   twice, in different categories — so without these the grid reads as a
+   duplicate rather than as two results. */
+.ot-junior__class {
+  font-family: var(--font-display);
+  font-size: var(--text--eyebrow);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius--btn);
+  padding: 0.35rem 0.7rem;
+}
+
+.ot-junior__place {
+  margin-inline-start: auto;
+  font-family: var(--font-display);
+  font-size: var(--text--btn-primary);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+/* --grey-on-track is this site's mapping of the reference's own
+   --color--grey-on-track, which is exactly the token its greyed laurel uses. */
+.ot-junior__item[data-place='2'] .ot-junior__mark,
+.ot-junior__item[data-place='2'] .ot-junior__year,
+.ot-junior__item[data-place='2'] .ot-junior__place {
+  color: var(--grey-on-track);
+}
+
+.ot-junior__note-line {
+  flex: 1 0 100%;
+  margin: 0.2rem 0 0;
+  font-size: var(--step-0);
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* The stat band's provenance sentence is coloured for the cream ground. */
+.ot-junior .ot-provenance {
+  margin-block: 4rem 0;
+  color: var(--text-muted);
+}
+
+/* The citation on each result. Small and set apart from the note it follows,
+   but a real link with a real focus ring — twelve of them is twelve tab stops,
+   which is what a cited list costs. */
+.ot-junior__cite {
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: var(--text--eyebrow);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.3em;
+}
+
+.ot-junior__cite:hover {
+  color: var(--text);
+}
+
+.ot-junior__cite:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 /* ============================================== Reduced motion
  *
  * The reference has no reduced-motion path at all — a grep across its CSS, its
@@ -956,6 +1118,10 @@
   .ot-band__head {
     grid-template-columns: 1fr;
     gap: 2rem;
+    /* 6rem of air below a heading is a proportion of the design width, not a
+       constant. Below 992px the rem stops scaling, so it has to come down with
+       everything else — this block heads four sections now. */
+    margin-block-end: 3rem;
   }
 
   .ot-band__title,
@@ -1114,5 +1280,41 @@
        than let the time overflow its row. */
     flex-wrap: wrap;
     gap: 0.2rem;
+  }
+}
+
+@media (max-width: 991px) {
+  .ot-junior {
+    padding-block: 4rem;
+  }
+
+  .ot-junior__lead {
+    margin-block-end: 3rem;
+    /* Six sentences at the desktop lead size is ten lines on a phone. */
+    font-size: var(--text--h5);
+  }
+
+  .ot-junior__grid {
+    /* Two columns of a multi-line item do not fit a phone. One column, and the
+       laurel shrinks with the indent that reserves its space. */
+    grid-template-columns: 1fr;
+    row-gap: var(--gap);
+  }
+
+  .ot-junior__item {
+    padding-inline-start: 3.5rem;
+  }
+
+  .ot-junior__mark {
+    inline-size: 2.5rem;
+    block-size: 2.5rem;
+  }
+
+  .ot-junior__series {
+    flex-basis: 100%;
+  }
+
+  .ot-junior__place {
+    margin-inline-start: 0;
   }
 }

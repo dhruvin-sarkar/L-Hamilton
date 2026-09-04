@@ -17,7 +17,13 @@ import Lenis from 'lenis';
 import { gsap, reducedMotion, ScrollTrigger } from './lib/motion';
 import { mountChrome } from './lib/chrome';
 import { mountReveals } from './lib/reveal';
-import { age, driver } from './content/hamilton';
+import {
+  age,
+  driver,
+  preF1Championships,
+  preF1Span,
+  preF1Titles,
+} from './content/hamilton';
 import {
   calendar,
   career,
@@ -69,6 +75,18 @@ const groups = new Intl.NumberFormat('en-GB');
 /** Points can be fractional — 2021 ended on 387.5 — but rarely are. */
 const points = (n: number): string =>
   n % 1 === 0 ? groups.format(n) : groups.format(Math.trunc(n)) + String(n % 1).slice(1);
+
+const SMALL_NUMBERS = [
+  'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
+  'nine', 'ten', 'eleven', 'twelve',
+];
+
+/**
+ * Small numbers spelled out, for the places where a figure sits inside a
+ * sentence rather than in a table. Still derived — the value comes from the
+ * data either way; this only decides how it reads.
+ */
+const spell = (n: number): string => SMALL_NUMBERS[n] ?? groups.format(n);
 
 /** 1 -> 1st, 2 -> 2nd, 3 -> 3rd, 11 -> 11th. */
 function ordinal(n: number): string {
@@ -455,6 +473,137 @@ if (winsBody) {
         ScrollTrigger.refresh();
       });
     }
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Pre-F1 career
+ *
+ * Reference section 4. Its eight achievements each carry a laurel-wreath Rive
+ * whose colour input encodes whether the result was a title — lime for a
+ * championship, grey for a placing. That is the section's one real idea, and it
+ * is kept; the laurel below is drawn here rather than lifted, and the colour is
+ * never the only signal, because "Champion" and "Runner-up" are written out.
+ * ------------------------------------------------------------------ */
+
+const juniorGrid = document.querySelector<HTMLElement>('[data-junior-grid]');
+
+/** One laurel branch, mirrored in the markup to make the wreath. */
+const LAUREL_LEAVES: [number, number, number, number, number][] = [
+  // cx, cy, rx, ry, rotation
+  [10.5, 17, 4.6, 2.4, -66],
+  [12.5, 25, 4.6, 2.4, -50],
+  [16, 32.5, 4.4, 2.3, -34],
+  [20.5, 38.5, 4, 2.2, -18],
+];
+
+function laurel(): SVGSVGElement {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 48 48');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+
+  for (const mirror of [false, true]) {
+    const branch = document.createElementNS(NS, 'g');
+    if (mirror) branch.setAttribute('transform', 'translate(48 0) scale(-1 1)');
+
+    const stem = document.createElementNS(NS, 'path');
+    stem.setAttribute('d', 'M23 43C12.5 38.5 8 27.5 9.5 14.5');
+    stem.setAttribute('fill', 'none');
+    stem.setAttribute('stroke', 'currentColor');
+    stem.setAttribute('stroke-width', '1.6');
+    stem.setAttribute('stroke-linecap', 'round');
+    branch.appendChild(stem);
+
+    for (const [cx, cy, rx, ry, angle] of LAUREL_LEAVES) {
+      const leaf = document.createElementNS(NS, 'ellipse');
+      leaf.setAttribute('cx', String(cx));
+      leaf.setAttribute('cy', String(cy));
+      leaf.setAttribute('rx', String(rx));
+      leaf.setAttribute('ry', String(ry));
+      leaf.setAttribute('transform', `rotate(${angle} ${cx} ${cy})`);
+      leaf.setAttribute('fill', 'currentColor');
+      branch.appendChild(leaf);
+    }
+    svg.appendChild(branch);
+  }
+  return svg;
+}
+
+if (juniorGrid) {
+  for (const entry of preF1Championships) {
+    const item = el('li', 'ot-junior__item');
+    item.dataset.place = String(entry.position);
+
+    const mark = el('span', 'ot-junior__mark');
+    mark.appendChild(laurel());
+    item.appendChild(mark);
+
+    item.append(
+      el('span', 'ot-junior__year', String(entry.year)),
+      el('span', 'ot-junior__series', entry.series),
+    );
+
+    /* The class is what distinguishes two championships of the same name — he
+       won Champions of the Future twice, in different categories, and Super One
+       twice. Without it the grid reads as a duplicate. */
+    if (entry.category) item.appendChild(el('span', 'ot-junior__class', entry.category));
+    if (entry.team) item.appendChild(el('span', 'ot-junior__class', entry.team));
+
+    // Written out, so the laurel's colour is a second signal rather than the
+    // only one. WCAG 1.4.1.
+    item.appendChild(
+      el('span', 'ot-junior__place', entry.position === 1 ? 'Champion' : 'Runner-up'),
+    );
+
+    const line = el('p', 'ot-junior__note-line');
+    if (entry.note) line.appendChild(document.createTextNode(`${entry.note} `));
+
+    /* One citation per result, rather than a list of hosts at the foot of the
+       section. A host name is not a citation — it does not say which page
+       carried which result, and CONTENT-DATA.md asks for figures that are
+       traceable, not merely attributed. */
+    const cite = el('a', 'ot-junior__cite', new URL(entry.source).hostname.replace(/^www\./, ''));
+    cite.href = entry.source;
+    cite.rel = 'noreferrer';
+    cite.appendChild(
+      el(
+        'span',
+        'sr-only',
+        ` — source for the ${entry.year} ${entry.series}${
+          entry.category ? ` ${entry.category}` : ''
+        } result`,
+      ),
+    );
+    line.appendChild(cite);
+    item.appendChild(line);
+
+    juniorGrid.appendChild(item);
+  }
+
+  const runnersUp = preF1Championships.length - preF1Titles;
+  const blurb = document.querySelector<HTMLElement>('[data-junior-blurb]');
+  if (blurb) {
+    const sentence =
+      `${spell(preF1Titles)} championships won before he reached Formula 1, ` +
+      `and the ${spell(runnersUp)} he did not. ` +
+      'Every championship he finished first or second in, in order.';
+    blurb.textContent = sentence.charAt(0).toUpperCase() + sentence.slice(1);
+  }
+
+  const span = document.querySelector<HTMLElement>('[data-junior-span]');
+  if (span) span.textContent = `${preF1Span.from}–${preF1Span.to}`;
+
+  /* Provenance, as on the stat band — but a different kind. The career totals
+     move every race weekend and so carry the date they were fetched; these do
+     not move at all, so what matters is where each one came from, which is the
+     link on the result itself. */
+  const note = document.querySelector<HTMLElement>('[data-junior-note]');
+  if (note) {
+    note.textContent =
+      'Each result links to the source it was verified against. Unlike the career ' +
+      'totals above, none of these can change.';
   }
 }
 
