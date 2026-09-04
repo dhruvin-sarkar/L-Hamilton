@@ -1,0 +1,64 @@
+      <section class="hof" data-hof aria-labelledby="hof-h">
+
+        <!-- The card silhouette, once, for all 26 to clip their photographs
+             against. objectBoundingBox units — the same path the frame strokes
+             in its 407x411 viewBox, divided through by 407 and 411 — so one
+             definition tracks the cards at any width instead of a px path that
+             would only be right at one viewport. -->
+        <svg class="hof__defs" aria-hidden="true" focusable="false">
+          <defs>
+            <clipPath id="hof-card" clipPathUnits="objectBoundingBox">
+              <path d="M0.018428 0 H0.981572 A0.018428 0.018248 0 0 1 1 0.018248
+                       V0.886861 A0.018428 0.018248 0 0 1 0.981572 0.905109
+                       H0.646192 L0.518428 1 H0.018428
+                       A0.018428 0.018248 0 0 1 0 0.981752
+                       V0.018248 A0.018428 0.018248 0 0 1 0.018428 0 Z" />
+            </clipPath>
+          </defs>
+        </svg>
+
+        <!-- No .shell here. The reference runs this grid to a flat 20px gutter
+             rather than into the 1600px measure the rest of the page uses —
+             measured at a 1728 viewport, its grid spans 20 to 1708. Constrained
+             to .shell the cards came out 383px instead of the reference's 407,
+             and the wall stopped well short of both edges. -->
+        <div class="hof__inner">
+          <!-- Title left, standfirst at the half. Both measured: the title sits
+               on the same 20px gutter as the grid below it, and the paragraph
+               starts at 855px of 1728 — a hair under halfway. -->
+          <header class="hof__head">
+            <h2 class="hof__title" id="hof-h">
+              <span class="hof__title-line reveal-text">Helmets</span>
+              <span class="hof__title-line is-serif reveal-text">Hall of Fame</span>
+            </h2>
+            <!-- Site copy, third person. Nothing here is presented as something
+                 he said, and it carries no figure that would need sourcing. -->
+            <p class="hof__blurb reveal-text">
+              One-off designs, tribute liveries and championship colours. Every
+              helmet marks a chapter of the career, and where it had reached by
+              the time he wore it.
+            </p>
+          </header>
+
+          <ul class="hof__grid" data-hof-grid></ul>
+
+          <div class="hof__cta">
+            <!-- The same crest as the next-race card and the menu, by reference
+                 rather than by a third copy that would drift out of sync. -->
+            <svg class="hof__cta-crest" viewBox="0 0 64 44" aria-hidden="true">
+              <use href="#nr-crest" />
+            </svg>
+            <p class="hof__cta-line reveal-text">
+              See more helmets and highlights from Lewis on the track
+            </p>
+            <a class="hof__cta-link" href="/on-track.html">
+              <span class="sr-only">View on Track</span>
+              <span class="btn-text" aria-hidden="true" data-split-chars>View on Track</span>
+              <svg class="hof__cta-arrow" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor"
+                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </section>

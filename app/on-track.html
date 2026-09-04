@@ -327,6 +327,18 @@
           <div class="ot-schedule__list" data-schedule></div>
         </div>
       </section>
+      <!-- ============================== The tail Home and On Track share
+           Reference section 8: helmets, then socials, then the store call to
+           action, in that order — which is not Home's order (Home puts the
+           store between them and adds a partners block that does not appear
+           here). Same three components either way.
+
+           Its own study of this section says plainly: reuse the component, do
+           not re-implement it. So these are the partials Home renders and the
+           behaviour Home runs — see src/lib/showcase.ts. -->
+      <!--#include "partials/helmets.html"-->
+      <!--#include "partials/socials.html"-->
+      <!--#include "partials/store.html"-->
     </main>
 
     <!--#include "partials/menu.html"-->

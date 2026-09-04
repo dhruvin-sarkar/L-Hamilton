@@ -17,6 +17,7 @@ import Lenis from 'lenis';
 import { gsap, reducedMotion, ScrollTrigger } from './lib/motion';
 import { mountChrome } from './lib/chrome';
 import { mountReveals } from './lib/reveal';
+import { mountHelmets, mountHofDrift, mountSocials, mountStore } from './lib/showcase';
 import {
   age,
   driver,
@@ -64,6 +65,29 @@ if (!reducedMotion) {
   gsap.ticker.add((t) => lenis.raf(t * 1000));
   gsap.ticker.lagSmoothing(0);
 }
+
+/* ------------------------------------------------------------------ *
+ * The tail Home and On Track share
+ *
+ * Reference section 8 — the helmet wall, the socials block and the store call
+ * to action. Its own study of them is explicit that On Track should reuse
+ * Home's components rather than re-implement them, so it does: same partials,
+ * same module, same measured motion. See src/lib/showcase.ts.
+ *
+ * The wall is built first, before any ScrollTrigger on this page exists, for
+ * the reason it is built first on Home — twenty-six cards is most of the
+ * document's height, and a trigger that measures before they are in the DOM
+ * measures the wrong page.
+ *
+ * mountStore takes no ground reporter here. Home wires that to its WebGL
+ * field's ground-cross model; this page has no field, and the visor animates
+ * the same either way.
+ * ------------------------------------------------------------------ */
+
+mountHelmets();
+mountHofDrift();
+mountSocials();
+mountStore();
 
 /* ------------------------------------------------------------------ *
  * Formatting — one place, so the table and the stat grid cannot disagree
@@ -1005,9 +1029,19 @@ for (const [selector, label] of scrollRegions) {
  * ------------------------------------------------------------------ */
 
 const navInner = document.querySelector<HTMLElement>('.nav-inner');
-const lightBand = document.querySelector<HTMLElement>('.ot-band');
+/* Every light ground on this page.
+ *
+ * Measured, not assumed: sampling the painted background under the nav strip
+ * every 400px down the document returns cream at 1386-5005 and again from
+ * 14444 to the footer. The first is the stat band. The second is the socials
+ * and store sections this page shares with Home — both carry their own light
+ * ground rather than taking it from the field, which is why they are still
+ * cream on a page that has no field at all. */
+const lightBands = ['.ot-band', '.socials', '.shop']
+  .map((selector) => document.querySelector<HTMLElement>(selector))
+  .filter((el): el is HTMLElement => el !== null);
 
-if (navInner && lightBand) {
+if (navInner && lightBands.length) {
   /* What the lockup is actually sitting on, rather than which section it is in.
    *
    * Keying off the band alone was wrong and the screenshot proved it: the
@@ -1016,8 +1050,8 @@ if (navInner && lightBand) {
    * to mean "light ground". The lockup went dark ink on a dark glyph and
    * disappeared just as completely as the giallo had on the cream.
    *
-   * So the test is the two grounds this page actually has, in order: the number
-   * if it is under the nav, otherwise the band. */
+   * So the test is the grounds this page actually has, in order: the number if
+   * it is under the nav, otherwise any of the light sections. */
   const navBand = (): number => navInner.getBoundingClientRect().bottom;
 
   const groundIsLight = (): number => {
@@ -1028,8 +1062,12 @@ if (navInner && lightBand) {
       // top of that strip and the number's glyphs are solid.
       if (g.top < nav && g.bottom > 0) return 0;
     }
-    const band = lightBand.getBoundingClientRect();
-    return band.top < nav && band.bottom > 0 ? 1 : 0;
+    return lightBands.some((el) => {
+      const box = el.getBoundingClientRect();
+      return box.top < nav && box.bottom > 0;
+    })
+      ? 1
+      : 0;
   };
 
   if (reducedMotion) {
