@@ -6,12 +6,15 @@
  *   STABLE   — biography, team tenure, championship years. These do not change
  *              race to race and are safe to hold here.
  *   VOLATILE — career totals. Hamilton is racing *right now*; every one of these
- *              moves on a race weekend. They are marked `verified: false` and
- *              carry a `lastUpdated`, and the UI must surface that rather than
- *              presenting them as settled fact.
+ *              moves on a race weekend. They are NOT written here: they come
+ *              from `live-stats.ts`, which validates the record fetched from the
+ *              Jolpica-F1 API, and they carry a `lastUpdated` the UI must
+ *              surface rather than presenting them as settled fact.
  *
  * See docs/CONTENT-DATA.md. Do not hardcode a number anywhere else in the app.
  */
+
+import { career, provenance } from './live-stats';
 
 export type TeamId = 'mclaren' | 'mercedes' | 'ferrari';
 
@@ -46,10 +49,12 @@ export interface CareerTotals {
   /** ISO 8601 date. Render this near any figure below. */
   lastUpdated: string;
   /**
-   * False until a live fetch has replaced these. Public sources disagreed by
-   * several wins/poles/podiums at the time of writing, partly because they were
-   * published between different 2026 races and partly because they count
-   * non-classified finishes differently.
+   * True once these are traceable to the live structured source and have passed
+   * the generator's and loader's cross-checks. It is not a claim that a human
+   * has confirmed them: published tallies still disagree by a few
+   * wins/poles/podiums, partly because they were published between different
+   * 2026 races and partly because they count non-classified finishes — and
+   * sprint-era poles — differently.
    */
   verified: boolean;
 }
@@ -102,21 +107,36 @@ export const championshipYears = [2008, 2014, 2015, 2017, 2018, 2019, 2020] as c
  * ------------------------------------------------------------------ */
 
 /**
- * Placeholder totals. Deliberately zeroed and explicitly unverified — these
- * exist so the UI has a shape to render, NOT so they can ship. `live-stats.ts`
- * replaces them at build time.
+ * Sourced, no longer placeholder. `live-stats.ts` reads the generated record
+ * that `tools/fetch-stats.mjs` derives from the Jolpica-F1 API, and this is the
+ * projection of it onto the shape the rest of the app already consumed.
+ *
+ * `verified: true` here means *traceable to a live structured source and
+ * internally cross-checked* — not that a human has signed it off. Two checks
+ * earn it: the generator counts wins and fastest laps by two independent routes
+ * and refuses to write on a mismatch, and `live-stats.ts` asserts that the
+ * seasons finishing P1 are exactly the years `championshipYears` declares
+ * above. CONTENT-DATA.md still asks for human re-verification before launch and
+ * after every race weekend.
  */
 export const careerTotals: CareerTotals = {
-  starts: 0,
-  wins: 0,
-  podiums: 0,
-  poles: 0,
-  fastestLaps: 0,
-  points: 0,
-  championships: championshipYears.length, // the one total that is stable
-  lastUpdated: '1970-01-01',
-  verified: false,
+  starts: career.starts,
+  wins: career.wins,
+  podiums: career.podiums,
+  poles: career.poles,
+  fastestLaps: career.fastestLaps,
+  points: career.points,
+  championships: career.championships,
+  lastUpdated: provenance.fetchedAt.slice(0, 10),
+  verified: true,
 };
+
+/**
+ * What the totals are current through. Render this near any stat block — the
+ * figures move on a race weekend, and a bare number implies a permanence it
+ * does not have.
+ */
+export const statsCurrentThrough = provenance.latestRace;
 
 /* ------------------------------------------------------------------ *
  * Derived
