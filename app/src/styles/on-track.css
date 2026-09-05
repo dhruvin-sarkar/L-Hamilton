@@ -9,206 +9,544 @@
  * linked from the document head and loads first. */
 
 /* ================================================== Page header
- * The reference's header is huge stacked display type with a helmet render
- * bleeding in from the left edge. Ours keeps the stack and the scale; the
- * bleeding render is a copyrighted asset we do not have and will not rehost,
- * so the left edge is held by type and the identity strip instead. */
+ *
+ * A measured rebuild of the reference's On Track hero. Every number below was
+ * read off localhost:8080 at 1728x1080, where its root font-size is exactly
+ * 16px — so every rem here is the reference's own rem, not a conversion.
+ *
+ * The shape it produces:
+ *
+ *   +--------------------------------------------------------------+  y=86
+ *   |  [ On ]                    T R A C K                         |  h=316
+ *   +--------------------------------------------------------------+  y=402
+ *   |                          | sir lewis      | 41 y.o  stevenage|  h=32
+ *   +--------------------------------------------------------------+
+ *   |                          |                                   |
+ *   |     (the reference's     |            (spacer, 4-8rem)       |
+ *   |      helmet render)      |  eyebrow                          |  y=568
+ *   |                          |  paragraph, 2.25rem/700           |  y=598
+ *   |                          |  [prev][ next ]|[ round     ]|    |  y=817
+ *   +--------------------------------------------------------------+  y=1060
+ *
+ * Two departures, both forced and both deliberate:
+ *
+ *   - the helmet render and the Rive script "on" are the reference's own
+ *     artwork. The first column is left to the type; the second is set in our
+ *     Didone italic.
+ *   - the container is the reference's (100% inset by --gap), not .shell's
+ *     1600px cap. The whole geometry hangs off the column origins, and at 1728
+ *     .shell puts column 3 at x=919 where the reference puts it at 855.
+ */
 
 .ot-hero {
-  /* Clears the fixed nav, then a full screen of its own. The reference gives
-     its header 2000px against a 900px viewport; ours is sized in vh so it
-     holds that proportion at any window height rather than at one. */
-  padding-block: calc(var(--nav-height) + 6rem) 8rem;
-  min-block-size: 100svh;
+  /* Reference: height: min(calc(var(--vh) * 100), 1200px). Exactly one screen,
+     capped so a very tall monitor does not stretch the type off the grid. */
+  block-size: min(100svh, 1200px);
+  /* Its own padding-top is 5.375rem and its nav is 6.25rem, so its title tucks
+     under a transparent bar. Ours is 7.9rem (see tokens.css) and the title
+     clears it — the same relationship, against a taller bar. */
+  padding-block: var(--nav-height) var(--gap);
   display: flex;
-  align-items: center;
+  flex-direction: column;
   background: var(--bg);
-  /* The band below crosses to the light ground, so the header owns the dark
-     end of that transition explicitly rather than inheriting it from body. */
   color: var(--text);
+  /* Every card border and hairline in this section. The reference's equivalent
+     is --color--dark-green-tint-1, the first step up off its ground. */
+  --ui-line: var(--dark-tint-1);
 }
 
-.ot-hero__eyebrow {
-  display: block;
-  font-family: var(--font-display);
-  font-size: var(--text--eyebrow);
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--accent);
-  margin-block-end: 2rem;
+.ot-hero__c {
+  inline-size: 100%;
+  padding-inline: var(--gap);
+  block-size: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The reference's grid-main: four percentage columns with the gap added on top,
+   which is why they stop 38px short of the container's right edge rather than
+   filling it. Reproduced as measured — the shortfall is what puts its column-4
+   text where it is. */
+.ot-hero__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 23.55%);
+  column-gap: var(--gap);
+  inline-size: 100%;
+}
+
+/* ------------------------------------------------------- The title line */
+
+.ot-hero__title-layout {
+  display: flex;
+  flex-direction: column;
+  padding-block-end: var(--gap);
 }
 
 .ot-hero__title {
-  /* The reference's .text-on-t-hero-heading is 22.3rem with -2.5px tracking
-     and a 0.886 line-height. Held here, so the two pages' display type is the
-     same object at the same scale. */
-  font-family: var(--font-display);
-  font-size: 22.3rem;
-  font-weight: 700;
-  line-height: 0.886;
-  letter-spacing: -0.011em;
-  text-transform: uppercase;
   margin: 0;
+  display: flex;
+  /* Pushed right, so TRACK ends flush with column 4 and the accent word takes
+     whatever is left. At 1728 that leaves it exactly 519px — the width of the
+     reference's own script artwork. */
+  justify-content: flex-end;
+  align-items: center;
+  position: relative;
 }
 
-.ot-hero__line {
-  display: block;
+.ot-hero__track {
+  flex: none;
+  font-family: var(--font-display);
+  /* Measured: 22.3rem, line-height 0.886, letter-spacing -0.1875rem. The
+     reference sets Mona Sans at "wdth" 95; Archivo Narrow has no width axis and
+     runs narrower, so the size is tuned to match the WIDTH of its title rather
+     than its nominal point size — the line has to reach column 4 either way. */
+  font-size: 25.8rem;
+  font-weight: 700;
+  /* Absolute, not a ratio. The reference's title occupies a 19.758rem line box
+     and the whole row below it is positioned off that — so the BOX is what has
+     to match, independent of the size the face needs to reach column 4. */
+  line-height: 19.758rem;
+  letter-spacing: -0.1875rem;
+  text-transform: uppercase;
+  color: var(--text);
 }
 
-/* The second line in the Didone, which is the site's editorial voice and the
-   reference's own device — its second lines are set in Brier. Lowercase and
-   italic, so the two lines read as one phrase rather than two shouts. */
-.ot-hero__line--serif {
+/* Stands in for the reference's Rive script word, and has to carry the same
+   weight in the composition: theirs is the hero's dominant graphic, a brush
+   script running off the left edge of the screen and crossing behind the T of
+   TRACK. Set at a size that does that job rather than at one that fits.
+
+   Taken OUT of the flex flow so it can overhang in both directions without
+   pushing TRACK off its column. TRACK is `flex: none` under
+   `justify-content: flex-end`, so it holds x=539 whether this is in the row or
+   not. */
+.ot-hero__on {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: -2.5rem;
+  display: flex;
+  align-items: center;
   font-family: var(--font-serif);
   font-style: italic;
   font-weight: 400;
-  text-transform: none;
+  font-size: 31rem;
+  line-height: 1;
+  letter-spacing: -0.04em;
   color: var(--accent);
-  /* Optically aligned: the Didone's italic leans right and its left sidebearing
-     is larger, so setting it flush left visibly indents it against the
-     grotesque above. */
-  margin-inline-start: -0.06em;
+  pointer-events: none;
 }
 
-.ot-hero__meta {
+/* ------------------------------------------------------- The identity row */
+
+.ot-hero__sub {
+  /* Columns 3 and 4. The reference places this with a Webflow grid-area; the
+     span is the same. */
+  grid-column: 3 / 5;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+}
+
+.ot-hero__sub-col {
   display: flex;
-  flex-wrap: wrap;
-  gap: 3rem 5rem;
-  margin-block: 5rem 3rem;
-  padding-block-start: 2rem;
-  border-block-start: 1px solid var(--hairline);
+  justify-content: space-between;
 }
 
-.ot-hero__meta-item {
+.ot-hero__label-flex {
   display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  gap: calc(var(--gap) * 0.5);
 }
 
-.ot-hero__meta-label {
-  font-family: var(--font-display);
-  font-size: var(--text--eyebrow);
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.ot-hero__meta-value {
+/* Reference .text-on-t-stat-label-reg: 2.063rem, "wdth" 75 "wght" 700,
+   line-height 32.01px, letter-spacing -0.1px, uppercase. */
+.ot-hero__label {
   margin: 0;
   font-family: var(--font-display);
-  font-size: var(--text--h4);
-  font-weight: 600;
-  line-height: 1;
+  font-size: 2.063rem;
+  font-weight: 700;
+  line-height: 2rem;
+  letter-spacing: -0.1px;
   text-transform: uppercase;
+  color: var(--text);
+  white-space: nowrap;
 }
 
-.ot-hero__lead {
-  max-inline-size: 46ch;
-  font-size: var(--text--reg);
-  line-height: 1.45;
-  color: var(--text-muted);
+/* --------------------------------------------------- The bottom half */
+
+.ot-hero__stats {
+  /* flex:1 with margin-top:auto — it takes the rest of the screen and packs its
+     content downward, which is what puts the card cluster on the bottom edge at
+     any viewport height. */
+  flex: 1;
+  margin-block-start: auto;
+  position: relative;
 }
 
-/* --------------------------------------- Previous / next race cards
- *
- * The reference's hero carries both, inside the same notched 119x244 outline
- * the homepage's next-race card uses. Same path, same mirroring, same reason:
- * a CSS border cannot cut that diagonal, and faking it with clip-path would
- * lose the 1px stroke. See the notes in home.css. */
-
-.ot-races {
+.ot-hero__stats-w {
+  grid-column: 3 / 5;
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--gap);
-  margin-block-start: 4rem;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 1rem;
 }
 
-/* The <defs> carrier, holding the outline path the two cards share. Taken out
-   of flow entirely — it renders nothing itself and must not occupy a row. */
-.ot-races__defs {
+.ot-hero__spacer {
+  flex: 1 1 0;
+  min-block-size: 4rem;
+  max-block-size: 8rem;
+}
+
+.ot-hero__stats-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+/* Reference .text-eyebrow: 0.625rem, "wght" 700, line-height 10px, uppercase,
+   in --color--grey-on-track. Every small label in this section is this. */
+.ot-hero__eyebrow,
+.ot-hero__ui-label,
+.ot-hero__ui-eyebrow {
+  margin: 0;
+  /* Shrunk to the words. These are `.reveal-text` targets and the bar that
+     sweeps them covers the ELEMENT — a label stretched to its flex column
+     would be swept by a bar seven times the width of the word.
+
+     A definite inline-size rather than `align-self: flex-start`, which would
+     ALSO override the centring the card rows set and pull every label in the
+     cluster over to its left edge. */
+  inline-size: fit-content;
+  font-family: var(--font-display);
+  font-size: var(--text--eyebrow);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--grey-on-track);
+}
+
+.ot-hero__para-w {
+  /* Reference: 41rem. The paragraph breaks to three lines at the design width
+     and the reveal cuts one bar per line, so the measure is load-bearing. */
+  max-inline-size: 41rem;
+}
+
+/* Reference .text-body-lg-mona: 2.25rem, weight 700, line-height 39.6px,
+   letter-spacing -1px. */
+.ot-hero__para {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 700;
+  line-height: 2.475rem;
+  letter-spacing: -1px;
+  color: var(--text);
+}
+
+/* The closing clause, in the second face — the reference's .text-body-lg-brier
+   in lime. Uppercase there; ours stays sentence case because the Didone's
+   italic capitals at this size read as a different sentence rather than as
+   emphasis inside this one. */
+.ot-hero__accent {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+/* ================================================ The card cluster
+ *
+ * 52.4rem across, in five panels:
+ *
+ *   7.4375  prev card      (119x244 notched outline)
+ *   1.25    gap
+ *  17.2188  next card      (275.5x244, framed, two rows)
+ *   1.25    hatched connector
+ *  24       round panel    (bordered, two columns)
+ *   1.25    hatched end cap, rounded on its right
+ */
+
+.ot-hero__ui {
+  block-size: 15.1875rem;
+  margin-block-start: calc(var(--gap) * 2);
+  display: flex;
+  position: relative;
+  color: var(--ui-line);
+}
+
+/* Renders nothing itself and must not occupy a row. */
+.ot-hero__defs {
   position: absolute;
   inline-size: 0;
   block-size: 0;
 }
 
-.ot-race {
+/* ------------------------------------------------------- Previous */
+
+.ot-hero__prev {
   position: relative;
   z-index: 1;
-  inline-size: 16rem;
-  /* The block-start padding clears the notch. The outline's left edge starts
-     about 19.5 of its 244 units down, so nothing may sit above that line —
-     which is also where the label goes. */
-  padding: 2.6rem 1.4rem 1.4rem;
-  color: var(--text);
+  flex: none;
+  inline-size: 7.4375rem;
+  block-size: 15.25rem;
+  display: flex;
+  flex-direction: column;
 }
 
-.ot-race__outline {
+.ot-hero__prev-frame,
+.ot-hero__next-frame {
   position: absolute;
   inset: 0;
   z-index: -1;
   inline-size: 100%;
   block-size: 100%;
-  color: var(--hairline);
-  /* Mirrored, for the reason home.css gives: the path was traced with the notch
-     on the right and the site cuts it on the left. Flipping the drawing beats
-     retracing coordinates that a hand edit would drift on. */
-  scale: -1 1;
+  color: var(--ui-line);
 }
 
-/* Flush to the card's top-left, in the cut-away the notch opens up. */
-.ot-race__label {
+/* The notch cuts the top-left corner away, and the label sits in the raised
+   strip it leaves. Reference: .on-t-hero-stats-ui-sec1-top, height 1.3rem. */
+.ot-hero__ui-label {
+  block-size: 1.3rem;
+  flex: none;
+}
+
+.ot-hero__ui-label--abs {
   position: absolute;
-  inset-block-start: 0.5rem;
-  inset-inline-start: 1.4rem;
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--text--eyebrow);
-  font-weight: 400;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+  inset-block-start: 0;
+  inset-inline-start: 0;
 }
 
-.ot-race__body {
-  margin: 0;
-  display: grid;
-  gap: 0.9rem;
-}
-
-.ot-race__pair {
+.ot-hero__prev-row {
+  block-size: 6.9rem;
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--gap) * 0.5);
+  color: var(--white);
 }
 
-.ot-race__key {
-  font-family: var(--font-display);
-  font-size: var(--text--eyebrow);
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-muted);
+/* The reference top-anchors this row because its content — a 4.7rem circuit
+   drawing above its caption — very nearly fills it. Ours is two lines of type
+   and would leave the row half empty, so it centres: same visual weight in the
+   same half of the card, which is what the row is for. */
+.ot-hero__prev-row:first-of-type {
+  justify-content: center;
 }
 
-.ot-race__value {
+/* Reference: .home-hero-next-race-line, 80% wide, 1px, centred. */
+.ot-hero__prev-rule {
+  inline-size: 80%;
+  block-size: 1px;
+  margin-inline: auto;
+  background: var(--ui-line);
+}
+
+/* ------------------------------------------------------- Next */
+
+.ot-hero__next {
+  position: relative;
+  /* Establishes the stacking context its own frame sits inside. Without it the
+     frame's `z-index: -1` climbs to the root and paints behind the section's
+     background, which is exactly where it went. */
+  z-index: 1;
+  flex: none;
+  inline-size: 17.2188rem;
+  margin-inline-start: var(--gap);
+  aspect-ratio: 275.5 / 244;
+}
+
+.ot-hero__next-layout {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.ot-hero__next-row {
+  display: flex;
+  inline-size: 100%;
+  block-size: 7.5rem;
+  border-block-end: 1px solid var(--ui-line);
+}
+
+.ot-hero__next-row--team {
+  block-size: calc(100% - 7.5rem);
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap);
+  border-block-end: 0;
+}
+
+.ot-hero__next-cell {
+  position: relative;
+  inline-size: 8.7rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--gap) * 0.5);
+  overflow: clip;
+}
+
+.ot-hero__next-cell--round {
+  flex-direction: row;
+  gap: 0.4rem;
+  padding-block-start: 0.8rem;
+}
+
+/* The reference fills this cell with a photographic texture behind a right
+   border. Drawn instead of loaded: one fewer asset, and it stays crisp at any
+   root size. Painted as the cell's own background rather than as a pseudo —
+   a negative z-index needs a stacking context to stay inside, and this cell is
+   not one. */
+.ot-hero__next-cell--round {
+  border-inline-end: 1px solid var(--ui-line);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in oklab, var(--ui-line) 45%, var(--bg)) 0 1px,
+    transparent 1px 9px
+  );
+}
+
+.ot-hero__monogram {
+  inline-size: 3rem;
+  block-size: 3.2rem;
+  background-color: var(--grey-on-track);
+  mask-image: url('/assets/brand/lh-monogram.svg');
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+}
+
+/* ------------------------------------------------------- Connectors */
+
+.ot-hero__fill {
+  flex: none;
+  inline-size: var(--gap);
+  border-block: 1px solid var(--ui-line);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in oklab, var(--ui-line) 45%, var(--bg)) 0 1px,
+    transparent 1px 9px
+  );
+}
+
+.ot-hero__fill--cap {
+  border-inline-end: 1px solid var(--ui-line);
+  border-start-end-radius: 0.375rem;
+  border-end-end-radius: 0.375rem;
+}
+
+/* ------------------------------------------------------- Round panel */
+
+.ot-hero__round {
+  flex: none;
+  inline-size: 24rem;
+  block-size: 100%;
+  display: flex;
+  border: 1px solid var(--ui-line);
+}
+
+.ot-hero__round-col {
+  flex: none;
+  inline-size: 16.1875rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap);
+  border-inline-end: 1px solid var(--ui-line);
+  padding-inline: 1rem;
+}
+
+/* Where the reference draws the circuit. Set at stat-label weight so the panel
+   keeps its mass without a shape we cannot honestly draw yet. */
+.ot-hero__circuit {
   margin: 0;
   font-family: var(--font-display);
-  font-size: var(--text--h5);
+  font-size: 1.9rem;
   font-weight: 700;
-  line-height: 1.1;
-  text-align: end;
+  line-height: 1;
+  letter-spacing: -0.02em;
   text-transform: uppercase;
+  text-align: center;
+  text-wrap: balance;
+  color: var(--white);
+}
+
+.ot-hero__round-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  text-align: center;
+}
+
+.ot-hero__round-col2 {
+  inline-size: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.ot-hero__number {
+  margin: 0;
+  block-size: 60%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-block-end: 1px solid var(--ui-line);
+  font-family: var(--font-display);
+  font-size: 3.4rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: var(--accent);
+}
+
+/* The mark the homepage writes stroke by stroke, held still here — which is
+   exactly what the reference does with its own signature in this slot. */
+.ot-hero__sign {
+  block-size: 40%;
+  background-color: var(--grey-on-track);
+  mask-image: url('/assets/brand/signature.svg');
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: 78% auto;
+}
+
+/* ------------------------------------------------------- Shared bits */
+
+/* Stands in for the reference's flag artwork; see the note in the markup. */
+.ot-hero__code {
+  align-self: center;
+  padding: 0.15rem 0.3rem;
+  border: 1px solid var(--ui-line);
+  border-radius: 0.2rem;
+  font-family: var(--font-display);
+  font-size: var(--text--eyebrow);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  color: var(--grey-on-track);
+}
+
+/* Reference .text-on-t-stat-label-reg again, inside the cards. */
+.ot-hero__figure {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 2.063rem;
+  font-weight: 700;
+  line-height: 2rem;
+  letter-spacing: -0.1px;
+  text-transform: uppercase;
+  color: var(--white);
   font-variant-numeric: tabular-nums;
 }
 
-/* The next round is the one a visitor is most likely here for, so it is the one
-   the accent picks out — the same distinction the schedule below draws. */
-.ot-race[data-race='next'] .ot-race__outline,
-.ot-race[data-race='next'] .ot-race__label {
-  color: var(--accent);
+.ot-hero__figure--quiet {
+  color: var(--grey-on-track);
 }
 
 /* ================================================== Career stat band */
@@ -1191,31 +1529,110 @@
 
 @media (max-width: 991px) {
   .ot-hero {
-    padding-block: calc(var(--nav-height) + 3rem) 5rem;
-    min-block-size: auto;
+    /* The reference drops its own hero out of the one-screen lock below 992
+       and lets it grow: five panels of card at their traced widths cannot fit
+       a phone, and squeezing them would lose the proportions the outlines were
+       drawn at. Ours does the same and scrolls the cluster instead. */
+    block-size: auto;
+    padding-block: calc(var(--nav-height) + 3rem) 4rem;
   }
 
   .ot-hero__title {
-    /* The reference steps its own gigantic type down hard at this breakpoint
-       (114rem to 96rem, then to 38.8rem below 479). Same idea: the type is
-       sized to the column, not to the design width. */
-    font-size: clamp(4.5rem, 18vw, 9rem);
+    /* The reference steps its own title hard here (17rem, then 7.7rem below
+       479). Same idea: sized to the column, not to the design width. */
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: baseline;
+    gap: 0 0.2em;
   }
 
-  .ot-hero__meta {
-    gap: 2rem 3rem;
-    margin-block: 3rem 2rem;
+  .ot-hero__track {
+    font-size: clamp(4.5rem, 21vw, 11rem);
+    /* The desktop rule pins an absolute 19.758rem line box, because that is
+       the reference's measured title row. Below 992 the type is a fraction of
+       that size and the pinned box becomes 200px of empty air above the word,
+       so leading goes back to being a ratio of the size. */
+    line-height: 0.9;
   }
 
-  .ot-races {
-    margin-block-start: 2.5rem;
+  .ot-hero__on {
+    /* Back into the flow. Above 992 it is taken out so it can bleed off the
+       left edge and cross behind the T; at this width there is no room to
+       bleed into and an absolute word simply sits on top of TRACK. */
+    position: static;
+    block-size: auto;
+    font-size: clamp(3.5rem, 17vw, 9rem);
+    line-height: 0.9;
   }
 
-  .ot-race {
-    /* Two cards will not sit side by side on a phone, and one card stretched
-       across the screen loses the outline's proportion. They stack, each held
-       to the width the notched path was traced at. */
-    inline-size: min(100%, 16rem);
+  .ot-hero__grid {
+    /* Two columns below 992, as the reference's own
+       .on-t-hero-info-grid.grid-main does. */
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ot-hero__sub,
+  .ot-hero__stats-w {
+    grid-column: 1 / -1;
+  }
+
+  .ot-hero__sub {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .ot-hero__sub-col {
+    gap: var(--gap);
+    justify-content: flex-start;
+  }
+
+  .ot-hero__label {
+    font-size: clamp(1.25rem, 5vw, 2.063rem);
+    line-height: 1;
+  }
+
+  .ot-hero__stats {
+    margin-block-start: 3rem;
+  }
+
+  .ot-hero__spacer {
+    display: none;
+  }
+
+  .ot-hero__label {
+    /* Nowrap is right at the design width, where each of these is a short line
+       in its own column. On a 360px screen "Sir Lewis Hamilton" on one
+       unbreakable line is 40px of horizontal document overflow. */
+    white-space: normal;
+  }
+
+  /* The min-inline-size chain.
+   *
+   * A flex or grid item's automatic minimum size is its CONTENT's minimum, not
+   * zero — so the 52.4rem card cluster propagated its width all the way back up
+   * through the stats layout, the column and the grid, and pushed the document
+   * 499px sideways at 360. Setting each link to 0 is what lets the scroll
+   * container below actually contain it. */
+  .ot-hero__stats-w,
+  .ot-hero__stats-layout,
+  .ot-hero__para-w,
+  .ot-hero__ui {
+    min-inline-size: 0;
+    max-inline-size: 100%;
+  }
+
+  .ot-hero__para {
+    font-size: clamp(1.5rem, 6vw, 2.25rem);
+    line-height: 1.12;
+  }
+
+  .ot-hero__ui {
+    /* The cluster keeps its traced proportions and scrolls sideways rather
+       than reflowing. Every panel in it is an outline drawn at a fixed aspect;
+       stacking them would break all five. */
+    margin-block-start: var(--gap);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
   }
 
   .ot-band {
@@ -1255,11 +1672,10 @@
 }
 
 @media (max-width: 479px) {
-  .ot-hero__meta {
-    /* Four label/value pairs across a 360px screen is two per row, not four
-       squeezed. */
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+  .ot-hero__sub-col {
+    /* Age and birthplace stop fitting one line at this width. */
+    flex-wrap: wrap;
+    gap: 0.4rem var(--gap);
   }
 
   .ot-stats {

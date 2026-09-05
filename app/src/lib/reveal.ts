@@ -67,28 +67,78 @@ export function mountReveals(opts: RevealOptions): void {
         getComputedStyle(document.documentElement).getPropertyValue('--stagger-line'),
       ) || 150;
 
-    /** The words as authored, kept so a re-split starts from the text and not
-        from the spans left by the previous one. */
-    const sourceOf = (el: HTMLElement): string => {
-      if (el.dataset.revealSource === undefined) el.dataset.revealSource = el.textContent ?? '';
-      return el.dataset.revealSource;
+    /**
+     * A block's authored content, flattened to a list of formatted runs.
+     *
+     * Kept so a re-split starts from what was written and not from the spans
+     * the previous split left behind — and kept as a LIST rather than a string
+     * because a block can legitimately carry inline formatting. The reference's
+     * On Track hero closes its paragraph on an accent clause set in a second
+     * face, mid-sentence, and a block rebuilt from `textContent` loses that span
+     * silently: the words survive, the emphasis does not.
+     *
+     * A WeakMap rather than a data attribute, because markup does not survive a
+     * round trip through a string and an attribute holding serialised HTML is a
+     * second parser nobody asked for.
+     */
+    interface Run {
+      text: string;
+      /** Class of the inline element this run came from; '' at the top level. */
+      cls: string;
+    }
+
+    const authored = new WeakMap<HTMLElement, Run[]>();
+
+    const runsOf = (el: HTMLElement): Run[] => {
+      const cached = authored.get(el);
+      if (cached) return cached;
+      const runs: Run[] = [];
+      const walk = (node: Node, cls: string): void => {
+        for (const child of node.childNodes) {
+          if (child.nodeType === Node.TEXT_NODE) runs.push({ text: child.nodeValue ?? '', cls });
+          else if (child instanceof HTMLElement) walk(child, child.className);
+        }
+      };
+      walk(el, '');
+      authored.set(el, runs);
+      return runs;
     };
 
-    /* Text-only blocks, laid out as blocks. Anything carrying element children has
-       markup worth more than the cascade — a link, an emphasis, a nested span —
-       and rebuilding it from textContent would silently throw that away. */
+    /** Writes a run list back as authored. The restore path, and the one-line case. */
+    const writeRuns = (el: HTMLElement, runs: Run[]): void => {
+      el.textContent = '';
+      for (const run of runs) {
+        if (!run.cls) {
+          el.appendChild(document.createTextNode(run.text));
+          continue;
+        }
+        const span = document.createElement('span');
+        span.className = run.cls;
+        span.textContent = run.text;
+        el.appendChild(span);
+      }
+    };
+
+    /* Blocks laid out as blocks, whose markup the rebuild above can put back.
+       Plain text always qualifies. Anything with element children has to say so
+       with `data-reveal-rich`, because most of them — a link wrapping an
+       .sr-only label, an eyebrow wrapping an icon — carry structure the run list
+       would flatten into meaningless spans. Opting in per block keeps that
+       decision at the markup, where the author can see what is at stake. */
     const splittable = (el: HTMLElement): boolean =>
       // A block we split ourselves is still eligible: its only children are the
-      // `.reveal-line` spans this module created, and `sourceOf` kept the text
-      // they were built from. Requiring zero children unconditionally — as this
-      // did — meant the resize re-split below skipped every block it had
-      // already cut, so it had never actually re-cut anything.
-      (el.childElementCount === 0 || el.dataset.revealSplit !== undefined) &&
+      // `.reveal-line` spans this module created, and `runsOf` kept what they
+      // were built from. Requiring zero children unconditionally — as this did —
+      // meant the resize re-split below skipped every block it had already cut,
+      // so it had never actually re-cut anything.
+      (el.childElementCount === 0 ||
+        el.dataset.revealSplit !== undefined ||
+        el.dataset.revealRich !== undefined) &&
       (el.textContent ?? '').trim().length > 0 &&
       getComputedStyle(el).display.includes('block');
 
     const splitIntoLines = (el: HTMLElement, baseDelay: number): void => {
-      const source = sourceOf(el);
+      const runs = runsOf(el);
 
       /* Every break opportunity its own box, so offsetTop reports which line it
        * fell on.
@@ -109,41 +159,64 @@ export function mountReveals(opts: RevealOptions): void {
       interface Piece {
         span: HTMLElement;
         text: string;
+        /** Carried through the cut so the rebuild can re-wrap it. */
+        cls: string;
         spaceAfter: boolean;
       }
 
       el.textContent = '';
       const pieces: Piece[] = [];
-      for (const token of source.split(/(\s+)/)) {
-        if (!token) continue;
-        if (/^\s+$/.test(token)) {
-          el.appendChild(document.createTextNode(token));
-          const last = pieces[pieces.length - 1];
-          if (last) last.spaceAfter = true;
-          continue;
-        }
-        // Keep the hyphen on the fragment before it — that is the side it stays
-        // on when a browser breaks there.
-        for (const fragment of token.split(/(?<=-)/)) {
-          if (!fragment) continue;
-          const span = document.createElement('span');
-          span.textContent = fragment;
-          el.appendChild(span);
-          pieces.push({ span, text: fragment, spaceAfter: false });
+      for (const run of runs) {
+        for (const token of run.text.split(/(\s+)/)) {
+          if (!token) continue;
+          if (/^\s+$/.test(token)) {
+            el.appendChild(document.createTextNode(token));
+            const last = pieces[pieces.length - 1];
+            if (last) last.spaceAfter = true;
+            continue;
+          }
+          // Keep the hyphen on the fragment before it — that is the side it
+          // stays on when a browser breaks there.
+          for (const fragment of token.split(/(?<=-)/)) {
+            if (!fragment) continue;
+            const span = document.createElement('span');
+            span.textContent = fragment;
+            /* The measuring span wears the run's class too. The accent clause is
+               a different face at a different width, and a line cut against the
+               base face's metrics would break in the wrong place. */
+            if (run.cls) span.className = run.cls;
+            el.appendChild(span);
+            pieces.push({ span, text: fragment, cls: run.cls, spaceAfter: false });
+          }
         }
       }
 
+      /* Grouped by each piece's vertical MIDPOINT, against a half-line
+       * tolerance — not by its offsetTop against a 1px one.
+       *
+       * offsetTop is the top of an inline box, not the line it sits on, and two
+       * faces on the same line do not agree on it: the Didone the accent clause
+       * is set in has a taller ascent than the grotesque around it, so its box
+       * starts several pixels higher. Against a 1px tolerance that reads as a
+       * line break, and a four-line paragraph came out as six rows — "still",
+       * "driving for the eighth" and "." each on their own.
+       *
+       * A midpoint moves by a few pixels between faces and by a whole
+       * line-height at a real break, so the two cases stop overlapping. */
+      const leading = Number.parseFloat(getComputedStyle(el).lineHeight);
+      const tolerance = Number.isFinite(leading) ? leading / 2 : 2;
+
       const rows: Piece[][] = [];
       let current: Piece[] = [];
-      let lastTop: number | null = null;
+      let anchor: number | null = null;
       for (const piece of pieces) {
-        const top = piece.span.offsetTop;
-        // A tolerance rather than equality: superscripts and inline images sit a
-        // pixel or two off their neighbours without starting a new line.
-        if (lastTop === null || Math.abs(top - lastTop) > 1) {
+        const middle = piece.span.offsetTop + piece.span.offsetHeight / 2;
+        // Measured against the row's FIRST piece rather than the previous one,
+        // so a run of small drifts cannot accumulate into a false break.
+        if (anchor === null || Math.abs(middle - anchor) > tolerance) {
           current = [];
           rows.push(current);
-          lastTop = top;
+          anchor = middle;
         }
         current.push(piece);
       }
@@ -156,13 +229,31 @@ export function mountReveals(opts: RevealOptions): void {
        * lines, and without it the word boundary at every break disappeared:
        * "61 of" + "them from" read back as "61 ofthem" to `textContent`,
        * find-in-page, copy-paste and anything extracting the accessible name. */
-      const rowText = (row: Piece[]): string =>
-        row.map((p) => (p.spaceAfter ? `${p.text} ` : p.text)).join('');
+      const fillRow = (line: HTMLElement, row: Piece[]): void => {
+        /* Consecutive pieces sharing a class go into ONE span rather than one
+           each, so a clause set in the accent face stays a single run of text
+           and kerns as it was written. */
+        let wrapper: HTMLElement | null = null;
+        let open: string | null = null;
+        for (const piece of row) {
+          if (piece.cls !== open) {
+            open = piece.cls;
+            wrapper = null;
+            if (piece.cls) {
+              wrapper = document.createElement('span');
+              wrapper.className = piece.cls;
+              line.appendChild(wrapper);
+            }
+          }
+          const text = piece.spaceAfter ? `${piece.text} ` : piece.text;
+          (wrapper ?? line).appendChild(document.createTextNode(text));
+        }
+      };
 
       // One line is not a cascade, and wrapping it would swap its inline layout
-      // for a block one for no gain. Put the text back exactly as it was.
+      // for a block one for no gain. Put the block back exactly as it was.
       if (rows.length < 2) {
-        el.textContent = source;
+        writeRuns(el, runs);
         delete el.dataset.revealSplit;
         return;
       }
@@ -171,7 +262,7 @@ export function mountReveals(opts: RevealOptions): void {
       rows.forEach((row, i) => {
         const line = document.createElement('span');
         line.className = 'reveal-line';
-        line.textContent = rowText(row);
+        fillRow(line, row);
         line.style.setProperty('--reveal-delay', `${baseDelay + i * LINE_STAGGER}ms`);
         el.appendChild(line);
       });
@@ -198,7 +289,7 @@ export function mountReveals(opts: RevealOptions): void {
         return range.getBoundingClientRect().width > line.clientWidth + 1;
       });
       if (spills) {
-        el.textContent = source;
+        writeRuns(el, runs);
         delete el.dataset.revealSplit;
       }
     };
@@ -245,7 +336,7 @@ export function mountReveals(opts: RevealOptions): void {
        * fresh load at 360 did not have. Clearing first lets the column collapse
        * to its real width, and every block is then measured against it. */
       for (const el of targets) {
-        el.textContent = sourceOf(el);
+        writeRuns(el, runsOf(el));
         delete el.dataset.revealSplit;
       }
 

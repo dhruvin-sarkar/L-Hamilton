@@ -21,6 +21,7 @@ import { mountHelmets, mountHofDrift, mountSocials, mountStore } from './lib/sho
 import {
   age,
   driver,
+  eras,
   preF1Championships,
   preF1Span,
   preF1Titles,
@@ -39,6 +40,7 @@ import {
   winsNewestFirst,
 } from './content/live-stats';
 import type { CalendarRound, RaceSession } from './content/live-stats';
+import { countryCode } from './content/countries';
 
 /* ------------------------------------------------------------------ *
  * Smooth scroll
@@ -141,6 +143,12 @@ const bindings: Record<string, string> = {
   'driver-birthplace': driver.birthplace,
   'driver-seasons': String(career.seasonsContested),
   'debut-year': String(driver.debutYear),
+  /* The hero paragraph's two figures. Spelled rather than set as digits
+     because they sit inside a sentence, and counted rather than typed because
+     both move: the title count on a championship Sunday, the team count on a
+     transfer. */
+  'titles-word': spell(career.championships),
+  'teams-word': spell(eras.length),
 };
 
 for (const [key, value] of Object.entries(bindings)) {
@@ -150,54 +158,91 @@ for (const [key, value] of Object.entries(bindings)) {
 }
 
 /* ------------------------------------------------------------------ *
- * Previous / next race cards
+ * The hero card cluster
  *
- * The reference's hero carries both. Its "previous" panel shows the last
- * circuit and his finish there; its "next" panel shows the round number and
- * where it is going.
+ * Three panels, two subjects — the reference's arrangement exactly. A
+ * "previous" card showing how the last round went, and then the next round
+ * carried across TWO panels: the round number and where it is in the framed
+ * card, the circuit and the weekend dates in the wide one beside it.
  *
- * Both are chosen by the clock rather than by whether a result has been
- * recorded — see nextRound() and lastRound(). The two differ for most of a race
- * weekend, and going by the clock is what keeps the previous card from still
- * pointing at the race currently being run.
+ * Both subjects are chosen by the clock rather than by whether a result has
+ * been recorded — see nextRound() and lastRound(). The two differ for most of a
+ * race weekend, and going by the clock is what keeps the previous card from
+ * still pointing at the race currently being run.
+ *
+ * Every panel is hidden in the markup and revealed here. Either can
+ * legitimately have nothing to show — no previous round before a season opens,
+ * no next round after it ends — and an empty outlined panel reads as a failure
+ * rather than as an answer.
  * ------------------------------------------------------------------ */
 
-function raceCard(selector: string, round: CalendarRound | null): void {
-  const card = document.querySelector<HTMLElement>(selector);
-  if (!card) return;
-
-  /* Hidden in the markup and revealed here, rather than the reverse. Either
-     card can legitimately have nothing to show — no previous round before a
-     season opens, no next round after it ends — and an empty outlined panel
-     reads as a failure rather than as an answer. */
-  if (!round) return;
-  card.hidden = false;
-
-  const body = card.querySelector<HTMLElement>('.ot-race__body');
-  if (!body) return;
-
-  const finish = round.result
-    ? round.result.position
-      ? ordinal(round.result.position)
-      : round.result.status
-    : null;
-
-  const rows: [string, string][] = [
-    ['Round', `${round.round} of ${calendar.length}`],
-    ['Grand Prix', round.raceName.replace(/ Grand Prix$/, '')],
-    ['Circuit', round.locality],
-    finish ? ['Finished', finish] : ['Date', shortDate(round.date)],
-  ];
-
-  for (const [label, value] of rows) {
-    const pair = el('div', 'ot-race__pair');
-    pair.append(el('dt', 'ot-race__key', label), el('dd', 'ot-race__value', value));
-    body.appendChild(pair);
-  }
+/** Fills one `[data-x]` slot, and says so if the markup has moved out from under it. */
+function slot(name: string, value: string): void {
+  const node = document.querySelector<HTMLElement>(`[data-${name}]`);
+  if (!node) throw new Error(`[hero] no [data-${name}] in the markup`);
+  node.textContent = value;
 }
 
-raceCard('[data-race="previous"]', lastRound());
-raceCard('[data-race="next"]', nextRound());
+function reveal(selector: string): void {
+  const panel = document.querySelector<HTMLElement>(selector);
+  if (panel) panel.hidden = false;
+}
+
+/** The weekend as the calendar prints it: "21\u201323 Aug". */
+function weekend(round: CalendarRound): string {
+  const days = [
+    round.sessions.practice1?.date,
+    round.sessions.practice2?.date,
+    round.sessions.qualifying?.date,
+    round.sessions.sprint?.date,
+    round.date,
+  ].filter((d): d is string => typeof d === 'string');
+
+  const first = days.reduce((a, b) => (a < b ? a : b));
+  const opens = new Date(`${first}T00:00:00Z`).getUTCDate();
+  return `${opens}\u2013${shortDate(round.date)}`;
+}
+
+const previous = lastRound();
+if (previous) {
+  /* What actually happened, in the sport's own terms: a finished race gives a
+     position, a retirement gives the status the timing screens print. */
+  const outcome = previous.result
+    ? previous.result.position
+      ? `P${previous.result.position}`
+      : previous.result.status
+    : '\u2014';
+
+  slot('prev-result', outcome);
+  slot('prev-race', `${previous.raceName.replace(/ Grand Prix$/, '')} GP`);
+  slot('prev-points', previous.result ? `${points(previous.result.points)} pts` : '\u2014');
+  reveal('[data-prev]');
+}
+
+const next = nextRound();
+if (next) {
+  slot('next-round', String(next.round));
+  slot('next-code', countryCode(next.country));
+
+  /* Locality, except where it only repeats the race name — "Abu Dhabi" under a
+     card already labelled Abu Dhabi says nothing. */
+  const stripped = next.raceName.replace(/ Grand Prix$/, '');
+  slot('next-where', next.locality && next.locality !== stripped ? next.locality : next.circuitName);
+
+  /* "Ferrari F1 since 2025", where the reference has its own team and year.
+     Read off the era that has not ended rather than off driver.currentTeam, so
+     the year comes from the same record as the team. */
+  const era = eras.find((e) => e.to === null);
+  if (!era) throw new Error('[hero] no open era in the content model');
+  slot('next-team', `${era.team} F1 since ${era.from}`);
+
+  slot('round-circuit', next.circuitName);
+  slot('round-country', next.country);
+  slot('round-dates', weekend(next));
+
+  reveal('[data-next]');
+  reveal('[data-round]');
+}
 
 /* ------------------------------------------------------------------ *
  * The gigantic number
@@ -1034,6 +1079,11 @@ if (scheduleList && circuitPanel) {
  * ------------------------------------------------------------------ */
 
 const scrollRegions: [string, string][] = [
+  /* The hero cluster is five outlined panels drawn at fixed aspect ratios.
+     Below 992px it keeps those proportions and scrolls rather than reflowing,
+     which puts the next round's circuit and dates off the right of a phone
+     screen unless the region can be entered from the keyboard. */
+  ['.ot-hero__ui', 'Previous and next race, scrollable'],
   ['[data-seasons]', 'Season-by-season record, scrollable'],
   ['[data-wins]', 'Career race wins, scrollable'],
 ];

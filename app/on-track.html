@@ -38,103 +38,191 @@
 
     <main id="main">
       <!-- ==================================================== Page header
-           The reference stacks "ON TRACK" as huge display type with a helmet
-           render bleeding in from the left, then an identity strip beneath it
-           reading nickname / age / birthplace.
+           Rebuilt against the reference and measured rather than described. At
+           1728 its On Track hero is exactly one viewport tall on a four-column
+           grid of 23.55% columns inside a container inset by --gap, and:
 
-           Ours carries the same three facts and computes two of them: the age
-           comes from the date of birth in the content model, because a
-           hardcoded age is wrong within a year, and the season count comes from
-           the fetched record rather than a number typed here. -->
-      <header class="ot-hero" aria-labelledby="ot-hero-h">
-        <div class="shell">
-          <p class="ot-hero__eyebrow reveal-text">Scuderia Ferrari &middot; Car 44</p>
+             - the title is ONE line, an accent word left of a 22.3rem
+               grotesque TRACK, the two abutting at the column-3 boundary
+             - the identity row sits directly under it at the col-3 origin
+             - everything else — eyebrow, paragraph, card cluster — fills
+               columns 3 and 4 and is packed to the BOTTOM of the screen
 
-          <h1 class="ot-hero__title" id="ot-hero-h">
-            <span class="ot-hero__line reveal-text">On</span>
-            <span class="ot-hero__line ot-hero__line--serif reveal-text">Track</span>
-          </h1>
+           Two things in the reference's hero are its own artwork and are not
+           ours to republish: a 3D helmet render bleeding in from the left, and
+           a Rive script rendering of the word "on". The helmet's column is left
+           to the type; the script word is set in the site's own Didone italic,
+           which is the accent voice every other page already uses. -->
+      <header class="ot-hero">
+        <div class="ot-hero__c">
+          <!-- The visible title is two decorative spans that do not read as one
+               phrase, so the real heading is here and hidden. That is the
+               reference's own arrangement — a .screen-reader h1 above a
+               split-text title. -->
+          <h1 class="sr-only">On Track</h1>
 
-          <!-- The identity strip. A dl rather than a row of divs: these are
-               genuinely label/value pairs, and a screen reader should be able
-               to say "Age, 41" rather than reading two orphaned strings. -->
-          <dl class="ot-hero__meta">
-            <div class="ot-hero__meta-item">
-              <dt class="ot-hero__meta-label">Driver</dt>
-              <dd class="ot-hero__meta-value" data-bind="driver-name">Lewis Hamilton</dd>
+          <div class="ot-hero__title-layout">
+            <p class="ot-hero__title" aria-hidden="true">
+              <span class="ot-hero__on">On</span>
+              <span class="ot-hero__track">Track</span>
+            </p>
+
+            <div class="ot-hero__grid">
+              <div class="ot-hero__sub">
+                <!-- The reference's first cell is its driver's own catchphrase.
+                     Hamilton's equivalent is not a slogan we would be inventing
+                     but a fact: he was appointed Knight Bachelor in the 2021 New
+                     Year Honours. Same slot, same weight, nothing put in his
+                     mouth. -->
+                <p class="ot-hero__label reveal-text">Sir Lewis Hamilton</p>
+
+                <div class="ot-hero__sub-col">
+                  <!-- Computed from the date of birth in the content model. A
+                       hardcoded age is wrong within a year. -->
+                  <p class="ot-hero__label"><span data-bind="driver-age">&mdash;</span> y.o</p>
+
+                  <div class="ot-hero__label-flex">
+                    <p class="ot-hero__label reveal-text">Stevenage, UK</p>
+                    <!-- The reference prints a national flag here. Flags are
+                         bitmap artwork we do not have and may not rehost, so
+                         this is the other label the sport already puts in the
+                         same slot: the FIA three-letter country code. Hidden
+                         from assistive tech because the line beside it already
+                         says the country. -->
+                    <span class="ot-hero__code" aria-hidden="true">GBR</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="ot-hero__meta-item">
-              <dt class="ot-hero__meta-label">Age</dt>
-              <dd class="ot-hero__meta-value" data-bind="driver-age">&mdash;</dd>
+          </div>
+
+          <div class="ot-hero__stats ot-hero__grid">
+            <div class="ot-hero__stats-w">
+              <!-- Reference: .spacer.on-t-hero, flex 1 with a 4-8rem clamp. It
+                   is what lets the block below sit against the bottom of a tall
+                   screen without falling off a short one. -->
+              <div class="ot-hero__spacer" aria-hidden="true"></div>
+
+              <div class="ot-hero__stats-layout">
+                <p class="ot-hero__eyebrow reveal-text">driving for the eighth</p>
+
+                <div class="ot-hero__para-w">
+                  <!-- Third-person site copy, never a quote — CLAUDE.md forbids
+                       attributing a sentence to him. The reference closes its
+                       paragraph on an accent clause in a second face, so this
+                       does too, and the numbers inside it are bound from the
+                       data layer rather than typed. -->
+                  <h2 class="ot-hero__para reveal-text" data-reveal-rich>
+                    Since his F1 debut with McLaren in
+                    <span data-bind="debut-year">2007</span>, Lewis Hamilton has won
+                    <span data-bind="titles-word">seven</span> world championships across
+                    <span data-bind="teams-word">three</span> teams &mdash; and at Ferrari he is
+                    <span class="ot-hero__accent">still driving for the eighth</span>.
+                  </h2>
+                </div>
+
+                <!-- ================================ The card cluster
+                     Five panels across 52.4rem, in the reference's own
+                     proportions: a 119x244 notched "previous" card, a 275.5x244
+                     framed "next" card, a --gap-wide hatched connector, a 24rem
+                     round panel, and a --gap-wide rounded end cap.
+
+                     Both notched outlines are traced from the reference's own
+                     paths and defined once here rather than repeated. A CSS
+                     border cannot cut that diagonal and clip-path would lose
+                     the 1px stroke. -->
+                <div class="ot-hero__ui">
+                  <svg class="ot-hero__defs" aria-hidden="true" focusable="false">
+                    <defs>
+                      <path
+                        id="ot-notch-sm"
+                        d="M118.5 6v232a5.5 5.5 0 0 1-5.5 5.5H6A5.5 5.5 0 0 1 .5 238V25A5.5 5.5 0 0 1 6 19.5h46.346c4.695 0 9.167-2 12.297-5.498l7.46-8.337A15.5 15.5 0 0 1 83.653.5H113a5.5 5.5 0 0 1 5.5 5.5Z"
+                      />
+                      <path
+                        id="ot-notch-lg"
+                        d="M275 .5v243H6A5.5 5.5 0 0 1 .5 238V25A5.5 5.5 0 0 1 6 19.5h46.346c4.695 0 9.167-2 12.297-5.498l7.46-8.337A15.5 15.5 0 0 1 83.653.5H275Z"
+                      />
+                    </defs>
+                  </svg>
+
+                  <!-- Hidden until filled: before a season opens there is no
+                       previous round, and an empty outlined panel reads as a
+                       failure rather than as an answer. -->
+                  <article class="ot-hero__prev" data-prev hidden>
+                    <svg class="ot-hero__prev-frame" viewBox="0 0 119 244" aria-hidden="true">
+                      <use href="#ot-notch-sm" fill="none" stroke="currentColor" />
+                    </svg>
+                    <p class="ot-hero__ui-label reveal-text">Previous</p>
+                    <div class="ot-hero__prev-row">
+                      <p class="ot-hero__figure" data-prev-result>&mdash;</p>
+                      <p class="ot-hero__ui-eyebrow reveal-text" data-prev-race>&mdash;</p>
+                    </div>
+                    <div class="ot-hero__prev-rule" aria-hidden="true"></div>
+                    <div class="ot-hero__prev-row">
+                      <p class="ot-hero__figure" data-prev-points>&mdash;</p>
+                    </div>
+                  </article>
+
+                  <article class="ot-hero__next" data-next hidden>
+                    <p class="ot-hero__ui-label ot-hero__ui-label--abs reveal-text">Next</p>
+                    <div class="ot-hero__next-layout">
+                      <div class="ot-hero__next-row">
+                        <!-- The hatched cell. The reference fills it with a
+                             photographic texture; ours is drawn in CSS, which
+                             is one fewer asset and scales without a raster. -->
+                        <div class="ot-hero__next-cell ot-hero__next-cell--round">
+                          <p class="ot-hero__figure ot-hero__figure--quiet">Rnd.</p>
+                          <p class="ot-hero__figure" data-next-round>&mdash;</p>
+                        </div>
+                        <div class="ot-hero__next-cell">
+                          <span class="ot-hero__code" data-next-code aria-hidden="true"></span>
+                          <p class="ot-hero__ui-eyebrow reveal-text" data-next-where>&mdash;</p>
+                        </div>
+                      </div>
+                      <div class="ot-hero__next-row ot-hero__next-row--team">
+                        <!-- The reference sets a helmet render here. Ours is the
+                             site's own monogram, which is the mark this build
+                             already uses for him.
+
+                             Painted as a mask rather than loaded as an <img>:
+                             the file fills with currentColor, and an <img> has
+                             no colour to inherit — it resolved to black and the
+                             mark disappeared into the card. -->
+                        <span class="ot-hero__monogram" aria-hidden="true"></span>
+                        <p class="ot-hero__ui-eyebrow reveal-text" data-next-team>&mdash;</p>
+                      </div>
+                    </div>
+                    <svg class="ot-hero__next-frame" viewBox="0 0 276 244" aria-hidden="true">
+                      <use href="#ot-notch-lg" fill="none" stroke="currentColor" />
+                    </svg>
+                  </article>
+
+                  <div class="ot-hero__fill" aria-hidden="true"></div>
+
+                  <article class="ot-hero__round" data-round hidden>
+                    <div class="ot-hero__round-col">
+                      <!-- The reference draws the circuit here, as a traced Rive
+                           outline per track. We have no circuit geometry yet, so
+                           the slot carries the circuit by name at the same
+                           weight rather than a shape that is not the circuit. -->
+                      <p class="ot-hero__circuit" data-round-circuit>&mdash;</p>
+                      <div class="ot-hero__round-meta">
+                        <p class="ot-hero__ui-eyebrow reveal-text" data-round-country>&mdash;</p>
+                        <p class="ot-hero__ui-eyebrow reveal-text" data-round-dates>&mdash;</p>
+                      </div>
+                    </div>
+                    <div class="ot-hero__round-col2">
+                      <!-- His car number, in the accent, where the reference
+                           sets its driver's. -->
+                      <p class="ot-hero__number" data-driver-number>44</p>
+                      <div class="ot-hero__sign" aria-hidden="true"></div>
+                    </div>
+                  </article>
+
+                  <div class="ot-hero__fill ot-hero__fill--cap" aria-hidden="true"></div>
+                </div>
+              </div>
             </div>
-            <div class="ot-hero__meta-item">
-              <dt class="ot-hero__meta-label">Born</dt>
-              <dd class="ot-hero__meta-value" data-bind="driver-birthplace">&mdash;</dd>
-            </div>
-            <div class="ot-hero__meta-item">
-              <dt class="ot-hero__meta-label">Seasons</dt>
-              <dd class="ot-hero__meta-value" data-bind="driver-seasons">&mdash;</dd>
-            </div>
-          </dl>
-
-          <!-- Third-person site copy, never a quote. CLAUDE.md forbids putting
-               words in his mouth, and the reference's equivalent slot is a
-               signed first-person line — so this is written as narration and
-               carries no signature. -->
-          <p class="ot-hero__lead reveal-text">
-            Twenty seasons, three teams and seven world championships. Every figure
-            on this page is counted from the race-by-race record rather than
-            written down, so the page is only ever as current as the last Grand
-            Prix it has seen.
-          </p>
-          <!-- ============================== Previous / next race cards
-               The reference's hero carries these two panels: a "previous" card
-               with the last circuit and his finish, and a "next" card with the
-               round number and where it is. Both sit inside the same notched
-               outline the homepage's next-race card already uses — traced from
-               the reference's own 119x244 path, defined once below and used
-               twice rather than carried three times in the markup.
-
-               Panels, not links. The reference's previous card is a display
-               too, and the schedule further down this page is already the
-               interactive route to any round. -->
-          <div class="ot-races">
-            <svg class="ot-races__defs" aria-hidden="true" focusable="false">
-              <defs>
-                <path
-                  id="ot-race-outline"
-                  d="M118.5 6v232a5.5 5.5 0 0 1-5.5 5.5H6A5.5 5.5 0 0 1 .5 238V25A5.5 5.5 0 0 1 6 19.5h46.346c4.695 0 9.167-2 12.297-5.498l7.46-8.337A15.5 15.5 0 0 1 83.653.5H113a5.5 5.5 0 0 1 5.5 5.5Z"
-                />
-              </defs>
-            </svg>
-
-            <article class="ot-race" data-race="previous" aria-labelledby="ot-race-prev-h" hidden>
-              <svg
-                class="ot-race__outline"
-                viewBox="0 0 119 244"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-              >
-                <use href="#ot-race-outline" fill="none" stroke="currentColor" />
-              </svg>
-              <!-- The notch cuts the left half of the top edge down, leaving a
-                   raised strip on the right for the label. -->
-              <p class="ot-race__label" id="ot-race-prev-h">Previous</p>
-              <dl class="ot-race__body"></dl>
-            </article>
-
-            <article class="ot-race" data-race="next" aria-labelledby="ot-race-next-h" hidden>
-              <svg
-                class="ot-race__outline"
-                viewBox="0 0 119 244"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-              >
-                <use href="#ot-race-outline" fill="none" stroke="currentColor" />
-              </svg>
-              <p class="ot-race__label" id="ot-race-next-h">Next</p>
-              <dl class="ot-race__body"></dl>
-            </article>
           </div>
         </div>
       </header>
