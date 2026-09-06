@@ -85,6 +85,8 @@ export function mountReveals(opts: RevealOptions): void {
       text: string;
       /** Class of the inline element this run came from; '' at the top level. */
       cls: string;
+      /** A hard <br>. Carried because the author put a line there on purpose. */
+      br?: boolean;
     }
 
     const authored = new WeakMap<HTMLElement, Run[]>();
@@ -95,8 +97,16 @@ export function mountReveals(opts: RevealOptions): void {
       const runs: Run[] = [];
       const walk = (node: Node, cls: string): void => {
         for (const child of node.childNodes) {
-          if (child.nodeType === Node.TEXT_NODE) runs.push({ text: child.nodeValue ?? '', cls });
-          else if (child instanceof HTMLElement) walk(child, child.className);
+          if (child.nodeType === Node.TEXT_NODE) {
+            runs.push({ text: child.nodeValue ?? '', cls });
+          } else if (child instanceof HTMLElement) {
+            /* A <br> has no text to recurse into, so walking it found nothing
+               and the break vanished from the rebuild — a six-line statement
+               came back as five with its opening word pulled up into the
+               second. Recorded as a run of its own instead. */
+            if (child.tagName === 'BR') runs.push({ text: '', cls: '', br: true });
+            else walk(child, child.className);
+          }
         }
       };
       walk(el, '');
@@ -108,6 +118,10 @@ export function mountReveals(opts: RevealOptions): void {
     const writeRuns = (el: HTMLElement, runs: Run[]): void => {
       el.textContent = '';
       for (const run of runs) {
+        if (run.br) {
+          el.appendChild(document.createElement('br'));
+          continue;
+        }
         if (!run.cls) {
           el.appendChild(document.createTextNode(run.text));
           continue;
@@ -167,6 +181,14 @@ export function mountReveals(opts: RevealOptions): void {
       el.textContent = '';
       const pieces: Piece[] = [];
       for (const run of runs) {
+        /* Put the break into the MEASURING pass rather than handling it in the
+           grouping below: with a real <br> in the flow the pieces after it land
+           on a new line box on their own, and the row splitter sees it the same
+           way it sees a natural wrap. */
+        if (run.br) {
+          el.appendChild(document.createElement('br'));
+          continue;
+        }
         for (const token of run.text.split(/(\s+)/)) {
           if (!token) continue;
           if (/^\s+$/.test(token)) {

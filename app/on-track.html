@@ -227,50 +227,134 @@
         </div>
       </header>
 
-      <!-- ================================================ Career stat band
-           Reference section 1: a gigantic number, then a headline stat grid,
-           then a season table.
+      <!-- ================================================== The statement
+           Reference: `.impact-content-w.on-track`. Measured at 1728 — a 78rem
+           column centred in the page, 18rem of air above it, and inside it a
+           signature over an eyebrow, then a six-line statement set at 7.9375rem
+           with its accented words in the second face one step LARGER (8.25rem)
+           and in grey rather than in the accent.
 
-           The reference's gigantic number is its driver's podium count, and
-           ours is the same statistic — but 207 is three digits where 56 is two,
-           so the size is derived from the digit count in on-track.ts rather
-           than fixed. Otherwise a third digit simply runs off the side.
-
-           The number is `aria-hidden` with a screen-reader mirror beside it,
-           which is the reference's own pattern (125 elements) and the thing
-           that satisfies CLAUDE.md's requirement that every animated stat has a
-           static, screen-reader-readable equivalent. -->
-      <section class="ot-band" aria-labelledby="ot-band-h">
-        <div class="shell">
-          <div class="ot-gigantic">
-            <p class="sr-only" data-gigantic-sr>&mdash;</p>
-            <p class="ot-gigantic__num" data-gigantic aria-hidden="true"></p>
-            <p class="ot-gigantic__label" aria-hidden="true">Podiums</p>
-          </div>
-
-          <div class="ot-band__head">
-            <h2 class="ot-band__title" id="ot-band-h">
-              <span class="ot-band__title-line reveal-text">F1 career</span>
-              <span class="ot-band__title-line ot-band__title-line--serif reveal-text"
-                >since <span data-bind="debut-year">2007</span></span
-              >
-            </h2>
-            <p class="ot-band__blurb reveal-text">
-              A rookie seat at McLaren, twelve seasons at Mercedes, and a move to
-              Maranello that reshaped the grid. The table below is the whole of
-              it, season by season.
+           Over that statement the reference floats a 3D helmet, which shrinks
+           as the section scrolls until it lands between a pair of laurel
+           branches at the bottom. The helmet is its artwork; the mechanic is
+           not, so the object that makes that journey here is the monogram this
+           build already uses for him. -->
+      <section class="ot-impact">
+        <div class="ot-impact__inner">
+          <div class="ot-impact__icon">
+            <div class="ot-impact__sign" aria-hidden="true"></div>
+            <p class="ot-impact__eyebrow reveal-text" data-bind="team-since">
+              Ferrari F1 since 2025
             </p>
           </div>
 
-          <!-- Headline stats. Rendered from the data layer in on-track.ts —
-               there is deliberately no markup for the individual figures here,
-               because a number typed into HTML is a number nobody updates. -->
-          <ul class="ot-stats" data-stat-grid></ul>
+          <div class="ot-impact__text-w">
+            <div class="ot-impact__stage">
+              <!-- Third-person site copy. CLAUDE.md forbids attributing a
+                   sentence to him, and the reference's equivalent is its
+                   driver's own voice — so this is narration, and every claim in
+                   it is a matter of record: he holds the sport's win and pole
+                   records, he has seven titles, and he drives for Ferrari. -->
+              <h2 class="ot-impact__text reveal-text" data-reveal-rich>
+                Rewriting<br />
+                the <span class="ot-impact__accent">records</span>,
+                <span class="ot-impact__accent">chasing</span> the eighth. Doing
+                <span class="ot-impact__accent">it all</span> in Ferrari red now.
+              </h2>
 
-          <!-- Provenance. The reference has no equivalent and needs none; ours
-               does, because these totals move on a race weekend and presenting
-               them bare would imply a permanence they do not have. -->
-          <p class="ot-provenance" data-provenance></p>
+              <!-- Where the travelling mark starts. An empty anchor rather than
+                   the mark itself: the mark is absolutely placed against the
+                   section and interpolates between these two boxes, so both
+                   have to stay in normal flow to be measured. -->
+              <span class="ot-impact__anchor ot-impact__anchor--text" data-mark-anchor="0"></span>
+            </div>
+
+            <div class="ot-impact__wreath">
+              <!-- Built in on-track.ts from the same branch the pre-F1 section
+                   uses, opened out into a pair so the mark can land between
+                   them — which is the composition the reference ends on. -->
+              <span class="ot-impact__anchor ot-impact__anchor--wreath" data-mark-anchor="1"></span>
+            </div>
+          </div>
+        </div>
+
+        <span class="ot-impact__mark" data-mark aria-hidden="true"></span>
+      </section>
+
+      <!-- ================================================ Career stat band
+           Reference: the podium number, then the F1-career title layout.
+
+           Dark, as the reference is. Measured down its whole document, every
+           section of its On Track page paints the same near-black; this band
+           was the one place ours stepped to a light ground, and the step had no
+           counterpart there.
+
+           The gigantic number is `aria-hidden` with a screen-reader mirror
+           beside it — the reference's own pattern, and the thing that satisfies
+           CLAUDE.md's requirement that every animated stat has a static,
+           readable equivalent. -->
+      <section class="ot-band" aria-labelledby="ot-band-h">
+        <div class="shell">
+          <!-- ------------------------------------------- The podium number
+               Reference `.on-t-podium-text-layout`: the number fills the
+               container at 114rem for two digits, and the word PODIUMS is
+               absolutely placed against the layout's bottom-right at 17.5rem.
+               207 is three digits where 56 is two, so the size is derived from
+               the digit count in on-track.ts rather than fixed. -->
+          <div class="ot-podium" data-podium>
+            <p class="sr-only" data-gigantic-sr>&mdash;</p>
+            <p class="ot-podium__num" data-gigantic aria-hidden="true"></p>
+            <p class="ot-podium__label" data-gigantic-label aria-hidden="true">Podiums</p>
+
+            <!-- The reference reveals a different podium photograph under the
+                 cursor as it crosses the number, wiped in behind a flash of
+                 the accent. Pointer-driven and decorative, so it is hidden from
+                 assistive tech and never rendered under reduced motion. -->
+            <div class="ot-podium__photo" data-podium-photo aria-hidden="true" hidden>
+              <!-- No src attribute, deliberately. The source is chosen per
+                   pointer move, and `src=""` is not "empty" — it resolves to
+                   the page's own URL and fetches the document as an image. -->
+              <img class="ot-podium__photo-img" data-podium-img alt="" />
+              <span class="ot-podium__photo-wipe" data-podium-wipe></span>
+            </div>
+          </div>
+
+          <!-- --------------------------------------------------- F1 career
+               Reference `.title-layout.grid-main`: the headline in columns 1-2
+               with a portrait 80px below it, and a two-by-two stat grid in
+               columns 3-4 with a 120px row gap. -->
+          <div class="ot-career">
+            <div class="ot-career__head">
+              <h2 class="ot-career__title" id="ot-band-h">
+                <span class="ot-career__title-line reveal-text">F1 career</span>
+                <span class="ot-career__title-line ot-career__title-line--serif reveal-text"
+                  >since <span data-bind="debut-year">2007</span></span
+                >
+              </h2>
+
+              <!-- Wiped in from the top behind a band of the accent, which is
+                   the reference's `data-img-highlight="top, lime"`. -->
+              <div class="ot-career__img" data-career-img>
+                <img
+                  src="/assets/gallery/gallery-03.webp"
+                  alt="Lewis Hamilton on the podium in Ferrari colours"
+                  width="407"
+                  height="457"
+                  loading="lazy"
+                />
+              </div>
+            </div>
+
+            <!-- Rendered from the data layer in on-track.ts — there is
+                 deliberately no markup for the individual figures here, because
+                 a number typed into HTML is a number nobody updates. -->
+            <ul class="ot-stats" data-stat-grid></ul>
+
+            <!-- Provenance. The reference has no equivalent and needs none; its
+                 numbers are a CMS field. Ours are fetched, so the page says what
+                 they are current through. -->
+            <p class="ot-provenance" data-provenance></p>
+          </div>
 
           <!-- ------------------------------------------------ Season table
                The reference has seven rows and a fixed block. Hamilton has

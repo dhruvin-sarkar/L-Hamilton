@@ -549,190 +549,480 @@
   color: var(--grey-on-track);
 }
 
+/* ================================================== The statement
+ *
+ * Reference `.impact-content-w.on-track`, measured at 1728 where its root is
+ * 16px, so every rem below is its own rem.
+ *
+ *   .impact-content-w.on-track  78rem wide, centred, padding-top 18rem,
+ *                               flex column, align centre, gap 3 * --gap
+ *   .impact-icon-w              signature 4.5rem tall over an eyebrow, gap --gap
+ *   .text-impact-lg-mona        7.9375rem / 90.6% / -0.0625rem, uppercase
+ *   its accented words          Brier 8.25rem / 83% / -0.1875rem, grey
+ *   .on-track-impact-reef-rive  11.5rem wide, 184/81, in the accent
+ */
+
+.ot-impact {
+  position: relative;
+  background: var(--bg);
+  color: var(--off-white-1);
+  padding-block: 18rem 0;
+  overflow-x: clip;
+}
+
+.ot-impact__inner {
+  max-inline-size: 78rem;
+  margin-inline: auto;
+  padding-inline: var(--gap);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(3 * var(--gap));
+  text-align: center;
+}
+
+.ot-impact__icon {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  align-items: center;
+}
+
+/* The mark the homepage writes stroke by stroke, held still — which is what the
+   reference does with its own signature in this slot. Masked rather than loaded
+   as an <img>, because the file fills with currentColor and an <img> has no
+   colour to inherit. */
+.ot-impact__sign {
+  inline-size: 8.3125rem; /* 133/72 against a 4.5rem height */
+  block-size: 4.5rem;
+  background-color: var(--grey-on-track);
+  mask-image: url('/assets/brand/signature.svg');
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+}
+
+.ot-impact__eyebrow {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text--eyebrow);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--grey-on-track);
+}
+
+.ot-impact__text-w {
+  inline-size: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* The travelling mark is placed against the section, so this only has to be a
+   positioned box the anchor inside it can be measured against. */
+.ot-impact__stage {
+  position: relative;
+  inline-size: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.ot-impact__text {
+  margin: 0 0 6.25rem;
+  font-family: var(--font-display);
+  font-size: var(--text--impact); /* 7.9375rem */
+  font-weight: 660;
+  line-height: 0.906;
+  letter-spacing: -0.0625rem;
+  text-transform: uppercase;
+  color: var(--off-white-1);
+}
+
+/* The reference sets these in its second face one step LARGER than the
+   grotesque around them — 8.25rem against 7.9375 — and in grey rather than in
+   its accent colour. Both are load-bearing: the size difference is what stops
+   two faces on one line reading as a mistake, and the grey is what keeps the
+   accent for the wreath below. */
+.ot-impact__accent {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 8.25rem;
+  line-height: 0.83;
+  letter-spacing: -0.1875rem;
+  text-transform: none;
+  color: var(--grey-on-track);
+}
+
+.ot-impact__wreath {
+  position: relative;
+  inline-size: 11.5rem;
+  aspect-ratio: 184 / 81;
+  margin-inline: auto;
+  color: var(--accent);
+}
+
+.ot-impact__wreath svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+/* Measured, never painted. Both are zero-ink boxes whose position and size the
+   mark interpolates between. */
+.ot-impact__anchor {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.ot-impact__anchor--text {
+  /* Reference `.on-t-helm-scroll-pos2`: 32rem x 27.625rem, centred on the
+     statement and lifted 13rem. */
+  inline-size: 32rem;
+  block-size: 27.625rem;
+  inset-inline-start: 50%;
+  inset-block-start: 50%;
+  translate: -50% calc(-50% - 13rem);
+}
+
+.ot-impact__anchor--wreath {
+  /* Reference `.on-t-helm-scroll-pos3`: inset 0 20% of the wreath, lifted 1rem
+     — so it lands in the gap the two branches leave. */
+  inset: 0 20%;
+  translate: 0 -1rem;
+}
+
+/* The object that makes the journey. The reference's is a 3D helmet render;
+   ours is the monogram, masked so it takes a colour. */
+.ot-impact__mark {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  display: block;
+  background-color: var(--accent);
+  mask-image: url('/assets/brand/lh-monogram.svg');
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  transform-origin: 0 0;
+  pointer-events: none;
+  will-change: transform;
+}
+
 /* ================================================== Career stat band */
 
 .ot-band {
-  /* The light ground. This is the value the GL field actually renders as, not
-     the shader input — see the note on --field-ground in tokens.css. Anything
-     painting a flat ground that must sit flush with the field reads this. */
-  background: var(--field-ground);
-  color: var(--dark);
-  padding-block: 10rem 12rem;
+  /* Dark, as the reference's whole On Track page is. Sampled every 1000px down
+     its document: near-black from the hero to the footer, with no light band
+     anywhere. */
+  background: var(--bg);
+  color: var(--text);
+  padding-block: 12rem;
   /* The gigantic number is deliberately larger than its column and is allowed
      to bleed; clip rather than hidden so this does not become a scroll
      container and start capturing the page's scroll. */
   overflow-x: clip;
 }
 
-/* ---------------------------------------------- The gigantic number */
+/* ---------------------------------------------- The podium number */
 
-.ot-gigantic {
+.ot-podium {
   position: relative;
-  margin-block-end: 6rem;
+  /* Reference `.on-t-podium-text-layout` is `align-items: flex-end` with the
+     label absolutely placed against it, so the two share a baseline however
+     tall the number is.
+
+     The label is then translated down out of the digits (see on-track.ts), and
+     the same distance is added here — a word hanging past its own section would
+     otherwise land on the career grid below. */
+  margin-block-end: calc(8rem + var(--podium-label-drop, 0px));
 }
 
-.ot-gigantic__num {
-  /* Sized from the digit count in on-track.ts; see the note there. The
-     fallback is the reference's own two-digit value, so a failed script
-     degrades to its scale rather than to nothing. */
+.ot-podium__num {
+  /* Sized from the digit count in on-track.ts; see the note there. The fallback
+     is the reference's own two-digit value, so a failed script degrades to its
+     scale rather than to nothing. */
   font-size: var(--gigantic-size, 114rem);
   font-family: var(--font-display);
   font-weight: 700;
-  /* 0.85 is the reference's line-height on this element. At this size the
-     glyph box is mostly air, so anything looser leaves a visible gap that
-     reads as a layout error rather than as leading. */
+  /* 0.85 is the reference's line-height on this element. At this size the glyph
+     box is mostly air, so anything looser leaves a gap that reads as a layout
+     error rather than as leading. */
   line-height: 0.85;
   letter-spacing: -0.04em;
   margin: 0;
+  /* Flex so each digit is its own box and can be placed. NOT space-between,
+     which was an invention: the reference's own number computes to
+     `justify-content: normal` and simply lets the glyphs flow. Sized in
+     on-track.ts to span the container, so there is no slack to distribute. */
   display: flex;
-  justify-content: space-between;
-  color: var(--dark);
-  /* The number is decoration around a value carried by the sr-only mirror, so
-     it must never eat a pointer event meant for something behind it. */
+  color: var(--text);
+  /* Decoration around a value carried by the sr-only mirror, so it must never
+     eat a pointer event meant for something behind it. */
   pointer-events: none;
   -webkit-user-select: none; /* Safari, incl. iOS, still needs the prefix */
   user-select: none;
 }
 
-.ot-gigantic__char {
+.ot-podium__char {
   display: block;
   /* Each digit is placed rather than flowed, which is what lets them sit at
      different heights the way the reference's two chars do. */
   will-change: transform;
 }
 
-/* Every digit after the first sits a little higher, alternating — the
-   reference offsets its second char 42px above its first at a 1292px cap
-   height, which is 3.25% of it. Expressed as a ratio so it holds at any size. */
-.ot-gigantic__char:nth-child(even) {
+/* Every digit after the first sits a little higher, alternating — the reference
+   offsets its second char 42px above its first at a 1292px cap height, which is
+   3.25% of it. Expressed as a ratio so it holds at any size. */
+.ot-podium__char:nth-child(even) {
   transform: translateY(-3.25%);
 }
 
-.ot-gigantic__label {
-  font-family: var(--font-display);
-  font-size: var(--text--h3);
-  font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--accent-off);
-  margin: 0;
-}
+/* Reference `.on-t-podium-text-col`: absolute, right 0, with 72px of padding
+   under it so its baseline sits clear of the number's box bottom.
 
-/* ---------------------------------------------------------- Heading */
-
-.ot-band__head {
-  /* Two of this block's colours depend on the ground under it, and the block is
-     now used by four sections across two grounds. Declared as locals here and
-     re-declared once per dark section below, so a ground is stated once rather
-     than each rule being restated. */
-  --head-accent: var(--accent-off);
-  --head-body: var(--dark-tint-2);
-
-  /* The reference's .title-layout.grid-main: headline in the left two-column
-     span, body copy in one column on the right. Its grid is four equal columns
-     at 23.55% with a --gap between, which is what the fractions here
-     reproduce. */
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--gap);
-  align-items: end;
-  margin-block-end: 6rem;
-}
-
-.ot-band__title {
-  grid-column: 1 / span 2;
+   Its 17.5rem is a WIDTH expressed as a size, and is solved for in on-track.ts
+   against the same container the number is fitted to — the reference's word
+   spans 849 of its 1688 container, and holding that ratio is what keeps the
+   overlap legible at three digits. Everything below it is therefore in em, so
+   the whole block scales as one. */
+.ot-podium__label {
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-end: 0;
+  padding-block-end: 0.257em; /* ref 72/280 */
   margin: 0;
   font-family: var(--font-display);
-  /* .text-title-lg-mona — 4.5rem, 0.886 line-height, -1.667px tracking. */
-  font-size: 4.5rem;
-  font-weight: 750;
-  line-height: 0.886;
-  letter-spacing: -0.023em;
+  font-size: var(--podium-label-size, 17.5rem);
+  font-weight: 693;
+  line-height: 0.8;
+  letter-spacing: -0.0129em; /* ref -3.6/280 */
+  /* Solved in on-track.ts from the digits' measured baseline. Transform rather
+     than an inset so the drop costs no layout. */
+  translate: 0 var(--podium-label-drop, 0px);
   text-transform: uppercase;
+  color: var(--text);
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
-.ot-band__title-line {
+/* Reference `.f1-highlight-mouse-over-w`: 20.6rem x 24.6rem, moved to the
+   pointer, with a flash of the accent wiping each new photograph in. */
+.ot-podium__photo {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: 2;
+  inline-size: 20.6rem;
+  block-size: 24.6rem;
+  overflow: clip;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.ot-podium__photo-img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
   display: block;
 }
 
-.ot-band__title-line--serif {
+.ot-podium__photo-wipe {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: var(--accent);
+  opacity: 0;
+}
+
+/* ---------------------------------------------------------- F1 career */
+
+.ot-career {
+  /* Reference `.title-layout.grid-main`: the same four 23.55% columns the hero
+     runs on, headline in 1-2 and stats in 3-4. */
+  display: grid;
+  grid-template-columns: repeat(4, 23.55%);
+  column-gap: var(--gap);
+}
+
+.ot-career__head {
+  grid-column: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  /* Reference `.title-headline-w.img-below`: 4 * --gap between the headline and
+     the portrait under it. */
+  gap: calc(var(--gap) * 4);
+}
+
+.ot-career__title {
+  margin: 0;
+  /* Reference `.text-title-lg-mona`: 4.5rem, wght 750, 0.886, -0.125rem, and
+     capped at 25rem so it breaks where the reference's does. */
+  max-inline-size: 25rem;
+  font-family: var(--font-display);
+  font-size: 4.5rem;
+  font-weight: 750;
+  line-height: 0.886;
+  letter-spacing: -0.125rem;
+  text-transform: uppercase;
+}
+
+.ot-career__title-line {
+  display: block;
+  inline-size: fit-content;
+}
+
+/* Reference `.text-title-lg-brier.c-grey-on-track`: the second face at
+   4.6875rem in GREY, not in the accent. The accent belongs to the wreath and
+   the wins scribble in this section; spending it here would flatten both. */
+.ot-career__title-line--serif {
   font-family: var(--font-serif);
   font-style: italic;
   font-weight: 400;
+  font-size: 4.6875rem;
+  letter-spacing: normal;
   text-transform: none;
-  /* --accent-off on the cream ground: #ff2800 measures 2.60:1 there and misses
-     the 3:1 large-text floor. Established on the homepage's impact wall. On the
-     dark sections the local below returns it to the raw accent, where it
-     measures 4.66:1 and is the more correct red. */
-  color: var(--head-accent);
+  color: var(--grey-on-track);
 }
 
-.ot-band__blurb {
-  grid-column: 4 / span 1;
-  margin: 0;
-  font-size: var(--step-0);
-  line-height: 1.5;
-  color: var(--head-body);
+/* Reference `.f1-car-img-w`: 407/457 at a 28.5625rem height, clipped. */
+.ot-career__img {
+  inline-size: 100%;
+  max-inline-size: 25.4375rem;
+  aspect-ratio: 407 / 457;
+  overflow: clip;
+  position: relative;
 }
 
-/* ---------------------------------------------------- Headline stats */
+.ot-career__img img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* The accent band that wipes the picture in from the top — the reference's
+   `data-img-highlight="top, lime"`. Driven from on-track.ts, which is why the
+   custom property is declared rather than animated here. */
+.ot-career__img::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform-origin: 50% 100%;
+  scale: 1 var(--img-wipe, 0);
+}
+
+/* --------------------------------------------------- Headline stats */
 
 .ot-stats {
+  grid-column: 3 / 5;
   list-style: none;
-  margin: 0 0 2rem;
+  margin: 0;
   padding: 0;
+  /* Reference `.f1-car-stats-grid`: two columns, --gap across, six * --gap
+     down. The row gap is the striking value — 120px is what stops two rows of
+     17.5rem figures reading as one block of numbers. */
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4rem var(--gap);
+  grid-template-columns: 1fr 1fr;
+  gap: calc(var(--gap) * 6) var(--gap);
+  align-content: start;
 }
 
 .ot-stats__item {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  padding-block-start: 1.5rem;
-  /* The rule is structure here, and at full ink it competes with the figures
-     it separates. */
-  border-block-start: 1px solid color-mix(in srgb, var(--dark) 22%, transparent);
+  gap: var(--gap);
+}
+
+/* Reference `.text-descriptor`: 1rem, wght 800 wdth 87.5, 0.97, uppercase. */
+.ot-stats__label {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 0.97;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  /* Two words, two lines — the reference breaks "FORMULA 1 / WINS" rather than
+     running it across. */
+  max-inline-size: 6.8125rem;
+}
+
+.ot-stats__figure {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  /* Shrink-wrapped, as the reference's `.f1-car-stats-item` is: its grid
+     columns are 397.5px and its items 262px, sized to the number rather than
+     stretched to the track.
+
+     Not cosmetic. The scribble is centred on this box, and while it stretched
+     to the full 377px column the mark sat 65px right of the number it is
+     supposed to be drawn over. */
+  inline-size: fit-content;
 }
 
 .ot-stats__value {
   font-family: var(--font-display);
-  /* .text-on-t-stat-label-major — 4.375rem at 0.93. */
-  font-size: 4.375rem;
+  /* Reference `.text-on-t-large-number`: 17.5rem on a 0.8 line, and 17.5rem is
+     what this resolves to wherever three digits still fit the column. Where
+     they do not, on-track.ts sets --stat-size once for the whole grid — see the
+     note there. */
+  font-size: var(--stat-size, 17.5rem);
   font-weight: 700;
-  line-height: 0.93;
-  letter-spacing: -0.02em;
-  /* The counter must not reflow its neighbours as it spins. main.css already
-     sets tabular figures on body; restated because this is the element where
-     it actually matters. */
+  line-height: 0.8;
+  letter-spacing: -0.1rem;
+  /* The counter must not reflow its neighbours as it spins. */
   font-variant-numeric: tabular-nums;
 }
 
-.ot-stats__label {
-  font-family: var(--font-display);
-  font-size: var(--text--btn-primary);
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--dark-tint-2);
+/* The lime "P1" the reference scribbles over its win count, in our accent.
+   Sits over the figure and takes no pointer events.
+
+   Reference `.f1-car-stats-win-rive` against the number it covers: 3.5px of
+   inset top and bottom on a 224px figure, and horizontally centred with 23px
+   either side of a 262px number. So it is sized from the figure's HEIGHT and
+   centred — not, as it was here, pinned to the left at a fixed 13.5rem, which
+   on a three-digit number left it scrawled across the first digit and a half. */
+.ot-stats__scribble {
+  position: absolute;
+  inset-block: 1.6%; /* ref 3.5/224 */
+  inset-inline-start: 50%;
+  aspect-ratio: 1;
+  translate: -50% 0;
+  color: var(--accent);
+  pointer-events: none;
+}
+
+.ot-stats__scribble svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+
+/* Spans the grid rather than sitting in column 1 under the portrait, where it
+   was 377px wide and broke into seven lines. It qualifies all four figures, so
+   it belongs under all four. */
+.ot-career .ot-provenance {
+  grid-column: 1 / -1;
+  margin-block: 6rem 0;
+  max-inline-size: 46rem;
+  color: var(--text-muted);
 }
 
 .ot-stats__note {
   font-size: var(--text--eyebrow);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--accent-off);
-}
-
-.ot-provenance {
-  max-inline-size: 74ch;
-  margin-block: 0 6rem;
-  font-size: var(--text--eyebrow);
-  line-height: 1.6;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--dark-tint-2);
+  color: var(--grey-on-track);
 }
 
 /* ------------------------------------------------------ Season table */
@@ -770,8 +1060,8 @@
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--dark-tint-2);
-  border-block-end: 1px solid color-mix(in srgb, var(--dark) 40%, transparent);
+  color: var(--text-muted);
+  border-block-end: 1px solid color-mix(in srgb, var(--cream) 45%, transparent);
   /* NOT sticky, deliberately.
    *
    * A sticky header over twenty rows is the obvious thing to reach for and it
@@ -784,7 +1074,7 @@
    * Measured before removing: with `inset-block-start: var(--nav-height)` the
    * header still sat at -8px while the nav's band ended at 126px. It was doing
    * nothing at all. Twenty rows is a short enough table to read without it. */
-  background: var(--field-ground);
+  background: transparent;
 }
 
 .ot-seasons__th--num {
@@ -828,7 +1118,7 @@
   font-size: var(--text--h5);
   font-weight: 500;
   text-align: start;
-  border-block-end: 1px solid color-mix(in srgb, var(--dark) 12%, transparent);
+  border-block-end: 1px solid color-mix(in srgb, var(--cream) 14%, transparent);
   white-space: nowrap;
 }
 
@@ -872,8 +1162,11 @@
   color: var(--accent-off);
 }
 
+/* A lift off the ground, not the accent flip the wins table uses. The year
+   cell carries a team stripe whose Ferrari value IS the accent, and an accent
+   row would erase the one channel that says which era a season belongs to. */
 .ot-seasons__row:hover {
-  background: color-mix(in srgb, var(--dark) 6%, transparent);
+  background: color-mix(in srgb, var(--cream) 6%, transparent);
 }
 
 /* ==================================================== Race wins
@@ -912,17 +1205,13 @@
   outline-offset: 4px;
 }
 
-/* The table classes are shared with the season table, which is coloured for the
-   cream ground. Only the values that actually depend on the ground change. */
-.ot-wins .ot-seasons__th {
-  background: transparent;
-  color: var(--text-muted);
-  border-block-end-color: color-mix(in srgb, var(--cream) 45%, transparent);
-}
+/* The two colour overrides that used to sit here are gone. They existed
+   because the season table was coloured for a cream ground and this one is not
+   — but the season table moved onto the dark band too, so those values are the
+   base now and restating them here was a second source of truth for one ink.
 
-.ot-wins .ot-seasons__cell {
-  border-block-end-color: color-mix(in srgb, var(--cream) 14%, transparent);
-}
+   The hover below stays: it is a behaviour of the wins table, not a correction
+   to the shared one. */
 
 /* The reference's row hover: the row fills with the accent and the ink flips to
    the page's black. [source] site.css:5602. #ff2800 against #1a1416 measures

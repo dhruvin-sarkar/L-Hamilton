@@ -14,7 +14,7 @@
 
 import './styles/on-track.css';
 import Lenis from 'lenis';
-import { gsap, reducedMotion, ScrollTrigger } from './lib/motion';
+import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './lib/motion';
 import { mountChrome } from './lib/chrome';
 import { mountReveals } from './lib/reveal';
 import { mountHelmets, mountHofDrift, mountSocials, mountStore } from './lib/showcase';
@@ -122,6 +122,124 @@ function ordinal(n: number): string {
   return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
 }
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/* ------------------------------------------------------------------ *
+ * Drawn marks
+ *
+ * Three pure builders with no dependency on anything else on the page, kept
+ * together and kept HERE rather than beside the section that first needed them.
+ * The statement section near the top of the document draws a wreath and the
+ * stat grid draws the scribble, so leaving these down beside the pre-F1 list
+ * put both callers inside the temporal dead zone of `const LAUREL_LEAVES`.
+ * ------------------------------------------------------------------ */
+
+const LAUREL_LEAVES: [number, number, number, number, number][] = [
+  // cx, cy, rx, ry, rotation
+  [10.5, 17, 4.6, 2.4, -66],
+  [12.5, 25, 4.6, 2.4, -50],
+  [16, 32.5, 4.4, 2.3, -34],
+  [20.5, 38.5, 4, 2.2, -18],
+];
+
+/** One branch, drawn in a 48x48 box with its base bottom-centre and its tip
+    curling up and to the left. Both wreath shapes on this page are two of
+    these, so the leaf geometry has one home. */
+function laurelBranch(transform?: string): SVGGElement {
+  const branch = document.createElementNS(SVG_NS, 'g');
+  if (transform) branch.setAttribute('transform', transform);
+
+  const stem = document.createElementNS(SVG_NS, 'path');
+  stem.setAttribute('d', 'M23 43C12.5 38.5 8 27.5 9.5 14.5');
+  stem.setAttribute('fill', 'none');
+  stem.setAttribute('stroke', 'currentColor');
+  stem.setAttribute('stroke-width', '1.6');
+  stem.setAttribute('stroke-linecap', 'round');
+  branch.appendChild(stem);
+
+  for (const [cx, cy, rx, ry, angle] of LAUREL_LEAVES) {
+    const leaf = document.createElementNS(SVG_NS, 'ellipse');
+    leaf.setAttribute('cx', String(cx));
+    leaf.setAttribute('cy', String(cy));
+    leaf.setAttribute('rx', String(rx));
+    leaf.setAttribute('ry', String(ry));
+    leaf.setAttribute('transform', `rotate(${angle} ${cx} ${cy})`);
+    leaf.setAttribute('fill', 'currentColor');
+    branch.appendChild(leaf);
+  }
+  return branch;
+}
+
+/** The closed wreath the pre-F1 list marks its titles with. */
+function laurel(): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 48 48');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  svg.append(laurelBranch(), laurelBranch('translate(48 0) scale(-1 1)'));
+  return svg;
+}
+
+/**
+ * The same branch twice, opened out — the reference's 184x81 "reef", whose two
+ * halves stand apart so the travelling mark can land in the gap between them.
+ * Each branch is scaled to the 81px height, which leaves the middle clear and
+ * matches the 20% inset its own landing anchor uses.
+ */
+function laurelPair(): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 184 81');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  const scale = 81 / 48;
+  svg.append(
+    laurelBranch(`scale(${scale})`),
+    laurelBranch(`translate(184 0) scale(${-scale} ${scale})`),
+  );
+  return svg;
+}
+
+/**
+ * The accent scrawl the reference draws over its win count — a Rive-animated
+ * "P1" in lime. Drawn here rather than fetched: it is four strokes, and an
+ * asset for four strokes is an asset to keep in step with the palette.
+ */
+function p1Scribble(): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 100 100');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+
+  /* The reference's mark is a Rive animation of a CURSIVE "P1" — one flowing
+     gesture in its accent, slanted, with a long tail that sweeps out to the
+     right past the number. The first attempt here drew a geometric outline in
+     four disconnected strokes at nine viewBox units, which at ~13.5rem is 19
+     device pixels: the P's stem, its bowl and the 1 all touched and it rendered
+     as a solid lozenge.
+
+     Redrawn as script. Three gestures rather than four — the 1 and its flourish
+     are a single stroke, because in the reference they are a single movement —
+     and at 7 units, which keeps the brush weight without closing the counters. */
+  const strokes = [
+    'M34 12C30 38 26 64 20 90', // the P's stem, leaning as it descends
+    'M34 14C50 8 64 16 60 30C56 44 40 46 27 44', // its bowl
+    'M62 34C68 28 74 24 80 20C78 42 74 62 70 82', // the 1: entry flick into the stem
+    'M52 80C66 84 82 78 96 66', // the tail, sweeping out past the number
+  ];
+  for (const d of strokes) {
+    const path = document.createElementNS(SVG_NS, 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('stroke', 'currentColor');
+    path.setAttribute('stroke-width', '5');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    svg.appendChild(path);
+  }
+  return svg;
+}
+
+
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   className?: string,
@@ -149,6 +267,14 @@ const bindings: Record<string, string> = {
      transfer. */
   'titles-word': spell(career.championships),
   'teams-word': spell(eras.length),
+  /* "Ferrari F1 since 2025", where the reference has its own team and year.
+     Read off the era that has not ended, so the year comes from the same
+     record as the team rather than from a second place that can disagree. */
+  'team-since': (() => {
+    const era = eras.find((e) => e.to === null);
+    if (!era) throw new Error('[content] no open era in the content model');
+    return `${era.team} F1 since ${era.from}`;
+  })(),
 };
 
 for (const [key, value] of Object.entries(bindings)) {
@@ -258,29 +384,157 @@ if (next) {
  * a generalisation of its value rather than a replacement for it.
  * ------------------------------------------------------------------ */
 
-const GIGANTIC_SPAN_REM = 228; // 114rem x 2 digits, from the reference
+/**
+ * Runs a measurement again whenever the numbers it depends on can have changed.
+ *
+ * `document.fonts.ready` alone is not enough and the podium proved it. It
+ * resolves once nothing is PENDING — and at module-evaluation time nothing is
+ * pending yet, because layout has not asked for a face. So it fired
+ * immediately, against the fallback, and the value stuck: the label was sized
+ * from Oswald's much narrower glyphs and hung 192px clear of the digits it is
+ * meant to sit against.
+ *
+ * `loadingdone` is the event that actually says "faces arrived". Both are
+ * kept — `ready` covers the case where they were already cached, `loadingdone`
+ * the case where they were not — and `refreshInit` covers a resize, since every
+ * rem on this page is solved from the viewport.
+ */
+const remeasure = (fn: () => void): void => {
+  void document.fonts.ready.then(fn);
+  document.fonts.addEventListener('loadingdone', fn);
+  ScrollTrigger.addEventListener('refreshInit', fn);
+};
+
+/**
+ * Scales an element's type so its rendered text spans a target width.
+ *
+ * The reference's two sizes here — 114rem for the number, 17.5rem for the word
+ * — are widths expressed as font sizes IN ITS FACE. Reusing them assumed our
+ * face has its advance width, and it does not: Mona Sans at wdth 75 is far more
+ * condensed than Archivo Narrow. Hamilton's podium count is also three digits
+ * where Lando's is two. The two errors compounded — "207" came out some 400px
+ * wider than the container and lost a digit off each edge, while "PODIUMS",
+ * still at its absolute 17.5rem, grew to 65% of the number's width and buried
+ * it.
+ *
+ * Measured instead: render at a probe size, read what the glyphs actually
+ * occupy, scale by the ratio. Correct for any face and any digit count.
+ */
+const PROBE_REM = 20;
+
+/** Width of the ink, not of the box — the number is a full-width flex row. */
+const inkWidth = (host: HTMLElement): number =>
+  host.childElementCount > 0
+    ? [...host.children].reduce((w, c) => w + c.getBoundingClientRect().width, 0)
+    : host.getBoundingClientRect().width;
+
+/**
+ * Distance from an element's own top to the baseline its text sits on.
+ *
+ * A zero-sized inline-block sits ON the baseline by definition, so dropping one
+ * in and reading its top is the only way at a value the box model otherwise
+ * hides. Removed immediately; it never survives a frame.
+ *
+ * Returned as an OFFSET, not as a viewport y, and that is the whole point.
+ * `getBoundingClientRect` reports post-transform positions, and every digit of
+ * the podium number is parked 18% low by the `gsap.from` below until its
+ * ScrollTrigger fires. An absolute reading therefore came back 192px past the
+ * real baseline, and the word was placed against a position the digit only
+ * occupies before it animates in. Subtracting the host's own rect cancels any
+ * transform on it, because both readings carry the same one.
+ */
+const baselineOffset = (host: HTMLElement): number => {
+  const probe = document.createElement('span');
+  probe.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
+  host.appendChild(probe);
+  const y = probe.getBoundingClientRect().top - host.getBoundingClientRect().top;
+  probe.remove();
+  return y;
+};
+
+const fitToWidth = (host: HTMLElement, prop: string, target: number): void => {
+  if (target <= 0) return;
+  host.style.setProperty(prop, `${PROBE_REM}rem`);
+  const ink = inkWidth(host);
+  if (ink <= 0) return;
+  host.style.setProperty(prop, `${(PROBE_REM * target) / ink}rem`);
+};
+
+/* ------------------------------------------------------------------ *
+ * The gigantic podium number
+ *
+ * Reference `.on-t-podium-text-layout`, measured at a 1728 viewport: the
+ * number's glyphs span 1649 of the 1688 container and the word spans 849.
+ * Ratios rather than sizes, so the composition survives a change of face or of
+ * digit count.
+ *
+ * The word overlapping the number's bottom-right is the reference's own doing,
+ * not a defect to design around — both are the same cream and they merge where
+ * they meet. It reads only because the number is seven times the word's height,
+ * so the collision lands where the digit is a thin curve. Holding both ratios
+ * is what keeps that true at three digits.
+ * ------------------------------------------------------------------ */
+
+const NUMBER_SPAN = 1649 / 1688;
+const LABEL_SPAN = 849 / 1688;
 
 const gigantic = document.querySelector<HTMLElement>('[data-gigantic]');
 const giganticSr = document.querySelector<HTMLElement>('[data-gigantic-sr]');
+const giganticLabel = document.querySelector<HTMLElement>('[data-gigantic-label]');
 
 if (gigantic && giganticSr) {
   const value = career.podiums;
-  const digits = String(value);
 
   // The accessible mirror carries the real value as one readable string. The
   // visual copy is split into per-character spans and is aria-hidden, because
   // a screen reader announcing three separate digit nodes is not a number.
   giganticSr.textContent = `${groups.format(value)} podiums`;
 
-  gigantic.style.setProperty('--gigantic-size', `${GIGANTIC_SPAN_REM / digits.length}rem`);
   gigantic.textContent = '';
-  for (const ch of digits) gigantic.appendChild(el('span', 'ot-gigantic__char', ch));
+  for (const ch of String(value)) gigantic.appendChild(el('span', 'ot-podium__char', ch));
+
+  const fit = (): void => {
+    const host = gigantic.parentElement;
+    const room = host?.clientWidth ?? 0;
+    fitToWidth(gigantic, '--gigantic-size', room * NUMBER_SPAN);
+    if (!host || !giganticLabel) return;
+    fitToWidth(giganticLabel, '--podium-label-size', room * LABEL_SPAN);
+
+    /* Drop the word clear of the digits.
+     *
+     * The reference does NOT do this, and at first that looked like the thing
+     * to copy: its word bites the bottom 14% of its digits and stays perfectly
+     * readable. Ours reproduces that bite to the percent — and came out
+     * illegible, because the band it bites is glyph-dependent. The reference's
+     * right digit is a 6, whose bowl is open counter exactly there, so its word
+     * crosses black. Hamilton's are a 0 and a 7, solid strokes at that height,
+     * and "PODIUMS" read as "OD/MS" with the P and the IU eaten.
+     *
+     * So the relationship survives — right-aligned, hung off the number's
+     * bottom, same two width ratios — and only the collision goes. Measured
+     * from the rendered baseline rather than set as an em, because the offset
+     * depends on the face's ascent and would be a magic number in any other
+     * font. */
+    const last = gigantic.lastElementChild;
+    if (!(last instanceof HTMLElement)) return;
+    host.style.setProperty('--podium-label-drop', '0px');
+    /* The chars are flex items on a stretched cross axis, so an untransformed
+       char's top is the row's top — which is what makes it safe to add the
+       offset to the row's rect rather than to the digit's own. */
+    const baseline = gigantic.getBoundingClientRect().top + baselineOffset(last);
+    const drop = baseline - giganticLabel.getBoundingClientRect().top;
+    host.style.setProperty('--podium-label-drop', `${Math.max(0, Math.round(drop))}px`);
+  };
+  /* Run once now — that first pass is what keeps the number sized correctly if
+     a face never arrives at all — then again whenever the metrics change. */
+  fit();
+  remeasure(fit);
 
   if (!reducedMotion) {
     // Each digit rises into place on its own beat. The reference places its
     // chars individually — its second digit sits 42px higher than its first —
     // so a per-character offset is its idiom, not an invention here.
-    gsap.from(gigantic.querySelectorAll('.ot-gigantic__char'), {
+    gsap.from(gigantic.querySelectorAll('.ot-podium__char'), {
       yPercent: 18,
       opacity: 0,
       duration: 1.1,
@@ -307,15 +561,19 @@ interface Stat {
   display?: string;
   /** Shown under the figure where the number needs qualifying. */
   note?: string;
+  /** Carries the accent scribble the reference draws over its win count. */
+  scribble?: boolean;
 }
 
 const STATS: Stat[] = [
+  /* The reference's four, with its "average finish" replaced by the number
+     that is the whole point of him. Two by two, as its grid is — starts and
+     points are not dropped, they move to the provenance line under the grid,
+     which is where a figure that qualifies the others belongs. */
   { label: 'World championships', value: career.championships },
-  { label: 'Grand Prix wins', value: career.wins },
+  { label: 'Formula 1 wins', value: career.wins, scribble: true },
   { label: 'Pole positions', value: career.poles, note: 'Sprint-era rule applied' },
   { label: 'Fastest laps', value: career.fastestLaps },
-  { label: 'Race starts', value: career.starts },
-  { label: 'Career points', value: career.points, display: points(career.points) },
 ];
 
 const statGrid = document.querySelector<HTMLElement>('[data-stat-grid]');
@@ -331,15 +589,26 @@ if (statGrid) {
       el('span', 'sr-only', `${stat.label}: ${stat.display ?? groups.format(stat.value)}`),
     );
 
-    const figure = el('span', 'ot-stats__value', stat.display ?? groups.format(stat.value));
-    figure.setAttribute('aria-hidden', 'true');
-    figure.dataset.count = String(stat.value);
-    if (stat.display) figure.dataset.countDisplay = stat.display;
-
     const label = el('span', 'ot-stats__label', stat.label);
     label.setAttribute('aria-hidden', 'true');
 
-    item.append(figure, label);
+    /* The reference puts the descriptor ABOVE the figure. The old order here
+       was the other way up. */
+    const figureWrap = el('span', 'ot-stats__figure');
+    figureWrap.setAttribute('aria-hidden', 'true');
+
+    const figure = el('span', 'ot-stats__value', stat.display ?? groups.format(stat.value));
+    figure.dataset.count = String(stat.value);
+    if (stat.display) figure.dataset.countDisplay = stat.display;
+    figureWrap.appendChild(figure);
+
+    if (stat.scribble) {
+      const scribble = el('span', 'ot-stats__scribble');
+      scribble.appendChild(p1Scribble());
+      figureWrap.appendChild(scribble);
+    }
+
+    item.append(label, figureWrap);
     if (stat.note) {
       const note = el('span', 'ot-stats__note', stat.note);
       note.setAttribute('aria-hidden', 'true');
@@ -347,6 +616,58 @@ if (statGrid) {
     }
     statGrid.appendChild(item);
   }
+
+  /* One size for the whole grid, solved from its widest figure.
+   *
+   * 17.5rem is the reference's size and stays the size wherever it fits — its
+   * numbers are two digits and clear their column with room. Hamilton's win and
+   * pole counts are three, and three digits at 17.5rem measured 447px in a
+   * 377px column: the figures overflowed and ran into each other across the
+   * grid's 38px gutter.
+   *
+   * Sized as a SET rather than per item, because four numbers at four sizes
+   * read as four unrelated facts instead of one career. Measured before the
+   * count-up below starts, while each figure still holds its settled string —
+   * a figure showing "0" would measure one digit wide and size the grid for a
+   * number that is about to grow. */
+  /* Reference `.f1-car-stats-grid`, measured at 1728: its columns are 397.5px
+     wide and its two-digit figures 262px, so a figure takes 0.659 of its column
+     and the next one starts 155px clear. That gap is the grid's legibility, and
+     it is what the first fix here spent — sized only to avoid overflow, "105"
+     filled 98% of its column and sat 46px from "69", so the two read as one
+     number.
+   *
+   * Holding the ratio instead reproduces the reference's own 17.5rem at two
+   * digits, which is the check that this generalises its value rather than
+   * replacing it, and it degrades correctly at three. Capped at 17.5rem so a
+   * set of single-digit figures is not inflated past the size it designed. */
+  const STAT_SPAN = 262 / 397.5;
+
+  const figures = [...statGrid.querySelectorAll<HTMLElement>('.ot-stats__value')];
+
+  const fitStats = (): void => {
+    statGrid.style.removeProperty('--stat-size');
+    const column = statGrid.firstElementChild?.clientWidth ?? 0;
+    if (column <= 0) return;
+
+    let widest = 0;
+    for (const figure of figures) {
+      /* Measure the SETTLED string. Once the count-up below is running a figure
+         reads "0", and a grid sized from that would be sized for one digit. */
+      const showing = figure.textContent;
+      figure.textContent =
+        figure.dataset.countDisplay ?? groups.format(Number(figure.dataset.count));
+      widest = Math.max(widest, inkWidth(figure));
+      figure.textContent = showing;
+    }
+
+    if (widest <= 0) return;
+    const scale = Math.min(1, (column * STAT_SPAN) / widest);
+    statGrid.style.setProperty('--stat-size', `${17.5 * scale}rem`);
+  };
+
+  fitStats();
+  remeasure(fitStats);
 
   /* Count-ups.
    *
@@ -377,6 +698,208 @@ if (statGrid) {
 }
 
 /* ------------------------------------------------------------------ *
+ * The statement, and the mark that travels through it
+ *
+ * The reference floats a 3D helmet over this section's text and shrinks it as
+ * the section scrolls until it lands between a pair of laurel branches. The
+ * helmet is its artwork and not ours to republish; the journey is the point, so
+ * the object making it here is the monogram this build already uses for him.
+ *
+ * Two empty anchors carry the start and end boxes. The mark is positioned
+ * against the section and interpolates between them, which keeps the geometry
+ * in the stylesheet — where the reference keeps its own — instead of as numbers
+ * in here that a layout change would silently invalidate.
+ * ------------------------------------------------------------------ */
+
+const impact = document.querySelector<HTMLElement>('.ot-impact');
+const wreath = document.querySelector<HTMLElement>('.ot-impact__wreath');
+const mark = document.querySelector<HTMLElement>('[data-mark]');
+const markAnchors = [...document.querySelectorAll<HTMLElement>('[data-mark-anchor]')];
+
+if (wreath) wreath.prepend(laurelPair());
+
+if (impact && mark && markAnchors[0] && markAnchors[1]) {
+  const [startAnchor, endAnchor] = [markAnchors[0], markAnchors[1]];
+
+  /** An anchor's box relative to the section the mark is positioned against. */
+  const boxOf = (node: HTMLElement): { x: number; y: number; w: number } => {
+    const a = node.getBoundingClientRect();
+    const b = impact.getBoundingClientRect();
+    return { x: a.left - b.left, y: a.top - b.top, w: a.width };
+  };
+
+  /* The mark wears the first anchor's SIZE and is moved and scaled from there,
+     so only one box is ever laid out and everything after it is transform. */
+  const resize = (): void => {
+    const a = startAnchor.getBoundingClientRect();
+    mark.style.inlineSize = `${a.width}px`;
+    mark.style.blockSize = `${a.height}px`;
+  };
+  resize();
+
+  if (reducedMotion) {
+    /* Parked where the journey ends. The wreath reads as a wreath around
+       something; leaving it empty would read as a missing image. */
+    const from = boxOf(startAnchor);
+    const to = boxOf(endAnchor);
+    gsap.set(mark, { x: to.x, y: to.y, scale: to.w / from.w });
+  } else {
+    mm.add(WIDE_AND_ANIMATED, () => {
+      const tween = gsap.fromTo(
+        mark,
+        { x: () => boxOf(startAnchor).x, y: () => boxOf(startAnchor).y, scale: 1 },
+        {
+          x: () => boxOf(endAnchor).x,
+          y: () => boxOf(endAnchor).y,
+          scale: () => boxOf(endAnchor).w / boxOf(startAnchor).w,
+          ease: 'none',
+          scrollTrigger: {
+            trigger: impact,
+            /* Was `top top` to `bottom bottom`. The section is 1103px tall in a
+               1080px viewport, so those two resolved 23px apart and the mark
+               snapped into the wreath within a single frame of scroll.
+
+               Centre to centre instead: the range is the section's own height
+               however tall it grows, and the mark starts moving as the section
+               passes the middle of the screen and lands as it leaves. */
+            start: 'top center',
+            end: 'bottom center',
+            scrub: 0.6,
+            // The anchors are sized in rem against a fluid root, so every box
+            // above moves on resize. Without this the tween keeps the values it
+            // was built with and the mark misses the wreath.
+            invalidateOnRefresh: true,
+            onRefresh: resize,
+          },
+        },
+      );
+      return () => {
+        tween.scrollTrigger?.kill();
+        tween.kill();
+        gsap.set(mark, { clearProps: 'transform' });
+      };
+    });
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * The podium photograph under the cursor
+ *
+ * The reference reveals a different podium picture wherever the pointer
+ * crosses its gigantic number, each one wiped in behind a flash of its accent.
+ * Same mechanic here, over our own gallery.
+ *
+ * Pointer-driven decoration: hidden from assistive tech, never built under
+ * reduced motion, and never built for a device without a fine pointer — on a
+ * touch screen there is no hover to reveal it with and the images would be
+ * fetched for nothing.
+ * ------------------------------------------------------------------ */
+
+const PODIUM_PHOTOS = [
+  '/assets/gallery/gallery-01.webp',
+  '/assets/gallery/gallery-03.webp',
+  '/assets/gallery/gallery-05.webp',
+  '/assets/gallery/gallery-07.webp',
+  '/assets/gallery/gallery-09.webp',
+  '/assets/gallery/gallery-11.webp',
+];
+
+/** How far the pointer travels before the next photograph is swapped in. */
+const PHOTO_SWAP_DISTANCE = 190;
+
+const podium = document.querySelector<HTMLElement>('[data-podium]');
+const podiumPhoto = document.querySelector<HTMLElement>('[data-podium-photo]');
+const podiumImg = document.querySelector<HTMLImageElement>('[data-podium-img]');
+const podiumWipe = document.querySelector<HTMLElement>('[data-podium-wipe]');
+
+if (
+  podium &&
+  podiumPhoto &&
+  podiumImg &&
+  podiumWipe &&
+  !reducedMotion &&
+  window.matchMedia('(hover: hover) and (pointer: fine)').matches
+) {
+  let shown = -1;
+  let lastX = 0;
+  let lastY = 0;
+  let travelled = PHOTO_SWAP_DISTANCE; // so the first move already swaps
+
+  // quickTo retargets one running tween rather than starting a new one per
+  // pointermove, which is the difference between the photo following the
+  // cursor and the photo fighting itself.
+  const moveX = gsap.quickTo(podiumPhoto, 'x', { duration: 0.5, ease: 'power3.out' });
+  const moveY = gsap.quickTo(podiumPhoto, 'y', { duration: 0.5, ease: 'power3.out' });
+
+  const swap = (): void => {
+    shown = (shown + 1) % PODIUM_PHOTOS.length;
+    podiumImg.src = PODIUM_PHOTOS[shown] as string;
+    gsap.fromTo(
+      podiumWipe,
+      { opacity: 1, scaleY: 1, transformOrigin: '50% 100%' },
+      { scaleY: 0, duration: 0.45, ease: 'power3.inOut' },
+    );
+  };
+
+  podium.addEventListener('pointermove', (event) => {
+    const box = podium.getBoundingClientRect();
+    const x = event.clientX - box.left - podiumPhoto.offsetWidth / 2;
+    const y = event.clientY - box.top - podiumPhoto.offsetHeight / 2;
+
+    travelled += Math.hypot(event.clientX - lastX, event.clientY - lastY);
+    lastX = event.clientX;
+    lastY = event.clientY;
+
+    if (podiumPhoto.hidden) {
+      podiumPhoto.hidden = false;
+      // Placed before the first tween so it does not fly in from the corner.
+      gsap.set(podiumPhoto, { x, y });
+      gsap.fromTo(podiumPhoto, { opacity: 0 }, { opacity: 1, duration: 0.3 });
+    }
+    if (travelled >= PHOTO_SWAP_DISTANCE) {
+      travelled = 0;
+      swap();
+    }
+
+    moveX(x);
+    moveY(y);
+  });
+
+  podium.addEventListener('pointerleave', () => {
+    gsap.to(podiumPhoto, {
+      opacity: 0,
+      duration: 0.3,
+      onComplete: () => {
+        podiumPhoto.hidden = true;
+      },
+    });
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * The career portrait's accent wipe
+ *
+ * The reference's `data-img-highlight="top, lime"` — a band of colour covering
+ * the picture, which lifts away downward so the image arrives from the top. The
+ * same idea as the text reveal, on the other axis.
+ * ------------------------------------------------------------------ */
+
+const careerImg = document.querySelector<HTMLElement>('[data-career-img]');
+
+if (careerImg && !reducedMotion) {
+  gsap.fromTo(
+    careerImg,
+    { '--img-wipe': 1 },
+    {
+      '--img-wipe': 0,
+      duration: 0.9,
+      ease: 'power3.inOut',
+      scrollTrigger: { trigger: careerImg, start: 'top 85%' },
+    },
+  );
+}
+
+/* ------------------------------------------------------------------ *
  * Provenance
  *
  * The reference has nothing like this and does not need it — its numbers are a
@@ -394,6 +917,7 @@ if (provenanceNode) {
     year: 'numeric',
   });
   provenanceNode.textContent =
+    `${groups.format(career.starts)} starts and ${points(career.points)} championship points. ` +
     `Current through the ${race.season} ${race.name}, round ${race.round}, ${when}. ` +
     `Counted from the race-by-race record. ${provenance.polesDefinition}`;
 }
@@ -609,48 +1133,6 @@ if (winsBody) {
 const juniorGrid = document.querySelector<HTMLElement>('[data-junior-grid]');
 
 /** One laurel branch, mirrored in the markup to make the wreath. */
-const LAUREL_LEAVES: [number, number, number, number, number][] = [
-  // cx, cy, rx, ry, rotation
-  [10.5, 17, 4.6, 2.4, -66],
-  [12.5, 25, 4.6, 2.4, -50],
-  [16, 32.5, 4.4, 2.3, -34],
-  [20.5, 38.5, 4, 2.2, -18],
-];
-
-function laurel(): SVGSVGElement {
-  const NS = 'http://www.w3.org/2000/svg';
-  const svg = document.createElementNS(NS, 'svg');
-  svg.setAttribute('viewBox', '0 0 48 48');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('focusable', 'false');
-
-  for (const mirror of [false, true]) {
-    const branch = document.createElementNS(NS, 'g');
-    if (mirror) branch.setAttribute('transform', 'translate(48 0) scale(-1 1)');
-
-    const stem = document.createElementNS(NS, 'path');
-    stem.setAttribute('d', 'M23 43C12.5 38.5 8 27.5 9.5 14.5');
-    stem.setAttribute('fill', 'none');
-    stem.setAttribute('stroke', 'currentColor');
-    stem.setAttribute('stroke-width', '1.6');
-    stem.setAttribute('stroke-linecap', 'round');
-    branch.appendChild(stem);
-
-    for (const [cx, cy, rx, ry, angle] of LAUREL_LEAVES) {
-      const leaf = document.createElementNS(NS, 'ellipse');
-      leaf.setAttribute('cx', String(cx));
-      leaf.setAttribute('cy', String(cy));
-      leaf.setAttribute('rx', String(rx));
-      leaf.setAttribute('ry', String(ry));
-      leaf.setAttribute('transform', `rotate(${angle} ${cx} ${cy})`);
-      leaf.setAttribute('fill', 'currentColor');
-      branch.appendChild(leaf);
-    }
-    svg.appendChild(branch);
-  }
-  return svg;
-}
-
 if (juniorGrid) {
   for (const entry of preF1Championships) {
     const item = el('li', 'ot-junior__item');
@@ -1138,7 +1620,12 @@ const navInner = document.querySelector<HTMLElement>('.nav-inner');
  * and store sections this page shares with Home — both carry their own light
  * ground rather than taking it from the field, which is why they are still
  * cream on a page that has no field at all. */
-const lightBands = ['.ot-band', '.socials', '.shop']
+/* `.ot-band` used to be here. It is dark now — the reference's On Track page
+   paints one near-black from its hero to its footer, sampled every 1000px down
+   its document, and this band was the only place ours stepped to a light
+   ground. Leaving it listed inverted the nav over four thousand pixels of dark
+   page. */
+const lightBands = ['.socials', '.shop']
   .map((selector) => document.querySelector<HTMLElement>(selector))
   .filter((el): el is HTMLElement => el !== null);
 
