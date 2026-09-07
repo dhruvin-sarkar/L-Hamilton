@@ -16,6 +16,7 @@ import './styles/on-track.css';
 import Lenis from 'lenis';
 import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './lib/motion';
 import { mountChrome } from './lib/chrome';
+import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountReveals } from './lib/reveal';
 import { mountHelmets, mountHofDrift, mountSocials, mountStore } from './lib/showcase';
 import {
@@ -365,6 +366,30 @@ if (next) {
   slot('round-circuit', next.circuitName);
   slot('round-country', next.country);
   slot('round-dates', weekend(next));
+
+  /* The traced outline of the circuit itself, which is what the reference puts
+   * in this slot rather than the circuit's name.
+   *
+   * Guarded on `hasTrack` rather than attempted and caught: the file carries 24
+   * tracks and the 2026 calendar has two it does not know (Madrid and Sepang),
+   * so a round without a shape is an ordinary state, not a failure. Those keep
+   * the name, which is why the name is still in the markup.
+   *
+   * Not awaited — the hero must not wait on a 36KB fetch and a wasm boot to
+   * render. The name is on screen from the first frame and steps aside only
+   * once a shape is actually drawing. */
+  const circuitHost = document.querySelector<HTMLElement>('[data-round-circuit-host]');
+  if (circuitHost && hasTrack(next.circuitId)) {
+    void mountCircuit(circuitHost, { circuitId: next.circuitId }).then(
+      () => {
+        circuitHost.dataset.circuitDrawn = '';
+      },
+      (error: unknown) => {
+        // Never fatal: the card is still complete without it.
+        console.warn('[on-track] hero circuit did not load', error);
+      },
+    );
+  }
 
   reveal('[data-next]');
   reveal('[data-round]');
@@ -831,9 +856,19 @@ if (
   const moveX = gsap.quickTo(podiumPhoto, 'x', { duration: 0.5, ease: 'power3.out' });
   const moveY = gsap.quickTo(podiumPhoto, 'y', { duration: 0.5, ease: 'power3.out' });
 
+  /* Swapping the picture is just swapping the picture.
+   *
+   * The accent band used to fire on every swap, so crossing the number strobed
+   * red between photographs and each one arrived from behind a full-bleed
+   * flash. The band belongs to the frame's ARRIVAL — it is how the picture
+   * enters the page once — and the reference wipes it in the same way: one
+   * reveal, then the image simply follows the cursor and changes. */
   const swap = (): void => {
     shown = (shown + 1) % PODIUM_PHOTOS.length;
     podiumImg.src = PODIUM_PHOTOS[shown] as string;
+  };
+
+  const wipeIn = (): void => {
     gsap.fromTo(
       podiumWipe,
       { opacity: 1, scaleY: 1, transformOrigin: '50% 100%' },
@@ -855,6 +890,10 @@ if (
       // Placed before the first tween so it does not fly in from the corner.
       gsap.set(podiumPhoto, { x, y });
       gsap.fromTo(podiumPhoto, { opacity: 0 }, { opacity: 1, duration: 0.3 });
+      // The first frame needs a picture before the band lifts off it.
+      swap();
+      travelled = 0;
+      wipeIn();
     }
     if (travelled >= PHOTO_SWAP_DISTANCE) {
       travelled = 0;
@@ -1237,6 +1276,27 @@ if (countdownSection && countdownDigits) {
     // the reference's own countdown sits frozen at 00 and reads as broken.
     countdownSection.hidden = true;
   } else {
+    /* The circuit being counted down to, in the accent. Mounted here rather
+       than beside the hero's so it is only ever built for a race that is
+       actually still ahead — the branch above hides the whole section once the
+       season is done, and a canvas booting into a hidden section is work for
+       nothing. */
+    const countdownCircuit = document.querySelector<HTMLElement>('[data-countdown-circuit]');
+    if (countdownCircuit && hasTrack(upcoming.circuitId)) {
+      void mountCircuit(countdownCircuit, {
+        circuitId: upcoming.circuitId,
+        accent: true,
+      }).then(
+        () => {
+          // Revealed only once there is something in it — see the markup.
+          countdownCircuit.hidden = false;
+        },
+        (error: unknown) => {
+          console.warn('[on-track] countdown circuit did not load', error);
+        },
+      );
+    }
+
     const target = roundStart(upcoming);
 
     /* The row has to fit its container, and days is the one field whose width
@@ -1357,8 +1417,34 @@ if (scheduleList && circuitPanel) {
   const roundState = (round: CalendarRound): 'past' | 'next' | 'upcoming' =>
     round.result ? 'past' : nowRound && round.round === nowRound.round ? 'next' : 'upcoming';
 
+  /* The panel's traced circuit, built once and retargeted — which is exactly
+   * how the reference does it. Its `.f1-highlight-circuit-rive` is a single
+   * canvas whose track input the rows switch on hover; a canvas per row would
+   * be 23 wasm-backed surfaces to draw one shape.
+   *
+   * Held as a promise rather than awaited, so the panel renders immediately and
+   * every later retarget queues behind the same single load. */
+  const shapeHost = circuitPanel.querySelector<HTMLElement>('[data-circuit-shape]');
+  let shape: ReturnType<typeof mountCircuit> | null = null;
+
+  /** Points the drawing at a round, building it on the first one that has a shape. */
+  const drawCircuit = (round: CalendarRound): void => {
+    if (!shapeHost || !hasTrack(round.circuitId)) return;
+    shape ??= mountCircuit(shapeHost, { circuitId: round.circuitId, accent: true });
+    void shape.then(
+      (handle) => handle.select(round.circuitId),
+      (error: unknown) => {
+        console.warn('[on-track] schedule circuit did not load', error);
+        // Cleared so a later round retries rather than resolving the same
+        // rejection forever.
+        shape = null;
+      },
+    );
+  };
+
   /** Fill the detail panel from one round. */
   const showRound = (round: CalendarRound): void => {
+    drawCircuit(round);
     const record = circuitById.get(round.circuitId);
 
     const set = (sel: string, value: string) => {
@@ -1514,6 +1600,32 @@ if (scheduleList && circuitPanel) {
     button.addEventListener('click', () => select(round, index));
     buttons.push(button);
     scheduleList.appendChild(button);
+  });
+
+  /* Hover retargets the drawing without changing the selection — the
+   * reference's own gesture, where each row carries a
+   * `data-rive-circuit-hover-target` naming the track its one canvas should
+   * switch to. Reading a row is a different act from choosing one, and only the
+   * shape follows the pointer; the panel's figures stay with what was selected,
+   * so nothing a reader is mid-way through reading moves under them.
+   *
+   * Delegated and bound to `pointerover`, which bubbles — `mouseenter` does
+   * not, and would need 23 listeners to say the same thing. Touch is excluded
+   * because a tap fires pointerover immediately before click, which would draw
+   * a circuit the reader is already selecting. */
+  scheduleList.addEventListener('pointerover', (event) => {
+    if (event.pointerType === 'touch') return;
+    const row = (event.target as Element | null)?.closest('.ot-round');
+    if (!row) return;
+    const round = calendar[buttons.indexOf(row as HTMLButtonElement)];
+    if (round) drawCircuit(round);
+  });
+
+  /* Back to the selected round when the pointer leaves the list, so the shape
+     and the figures beside it agree again. */
+  scheduleList.addEventListener('pointerleave', () => {
+    const active = calendar[buttons.findIndex((b) => b.classList.contains('is-active'))];
+    if (active) drawCircuit(active);
   });
 
   /* Arrow keys move between rounds — the other half of the roving tabindex

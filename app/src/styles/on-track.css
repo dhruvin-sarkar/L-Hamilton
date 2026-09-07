@@ -410,14 +410,21 @@
   );
 }
 
-.ot-hero__monogram {
-  inline-size: 3rem;
-  block-size: 3.2rem;
-  background-color: var(--grey-on-track);
-  mask-image: url('/assets/brand/lh-monogram.svg');
-  mask-repeat: no-repeat;
-  mask-position: center;
-  mask-size: contain;
+/* The helmet-and-laurels crest, as the reference does it: its
+   `.base-helmet-rive` in this slot is a `helmet-reef` artboard 97x51, not a
+   wordmark. Ours is the same drawing the homepage's next-race card uses, so the
+   two cards carry one mark rather than two.
+
+   Height matched to the reference's 51px and the width left to the artwork's
+   own 64/44 aspect; --crest-ground paints the knocked-out visor, which has to
+   be the colour of whatever the crest sits on. */
+.ot-hero__crest {
+  --crest-ground: var(--bg);
+  block-size: 3.1875rem;
+  inline-size: auto;
+  aspect-ratio: 64 / 44;
+  color: var(--grey-on-track);
+  flex: none;
 }
 
 /* ------------------------------------------------------- Connectors */
@@ -463,7 +470,44 @@
 
 /* Where the reference draws the circuit. Set at stat-label weight so the panel
    keeps its mass without a shape we cannot honestly draw yet. */
+/* ------------------------------------------------------------- Circuits
+ *
+ * Traced outlines drawn from circuits.riv by lib/circuit.ts. The file is the
+ * reference's own and only knows the reference's palette, so anything that has
+ * to be in OUR accent is drawn in its black and repainted by the filter in the
+ * page's defs. This is where that filter gets its colour: as a CSS property it
+ * resolves --accent, which the attribute in the markup cannot. */
+.circuit-canvas--accent {
+  filter: url('#circuit-tint-accent');
+}
+
+#circuit-tint-accent feFlood {
+  flood-color: var(--accent);
+}
+
+/* The circuit's box, at the reference's own 206x145 (`.on-t-hero-stats-ui-box2
+   -rive`). A fixed box rather than one sized by its contents, because what goes
+   in it is a canvas the drawing is fitted INTO — and because the name that
+   stands in for it has to occupy the same space, or the card reflows the moment
+   the file loads. */
 .ot-hero__circuit {
+  position: relative;
+  inline-size: 12.875rem; /* 206/16 */
+  block-size: 9.0625rem; /* 145/16 */
+  display: grid;
+  place-items: center;
+}
+
+/* Fills its host, so the drawing is fitted to the box above rather than to
+   whatever intrinsic size the artboard happens to carry. */
+.ot-hero__circuit .circuit-canvas {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.ot-hero__circuit-name {
   margin: 0;
   font-family: var(--font-display);
   font-size: 1.9rem;
@@ -474,6 +518,17 @@
   text-align: center;
   text-wrap: balance;
   color: var(--white);
+}
+
+/* Once a shape is drawing, the name is its label rather than its stand-in — it
+   stays in the accessibility tree and goes out of the picture. */
+.ot-hero__circuit[data-circuit-drawn] .ot-hero__circuit-name {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .ot-hero__round-meta {
@@ -571,7 +626,11 @@
 }
 
 .ot-impact__inner {
-  max-inline-size: 78rem;
+  /* 78rem of CONTENT, which is what the reference's 1248px block is. The cap
+     used to be 78rem including this padding, so the statement wrapped at 1172
+     and then shrink-wrapped to 1121 inside the flex stage below — 127px short
+     of the reference's measure, which is most of why the wall read small. */
+  max-inline-size: calc(78rem + 2 * var(--gap));
   margin-inline: auto;
   padding-inline: var(--gap);
   display: flex;
@@ -631,6 +690,10 @@
 }
 
 .ot-impact__text {
+  /* Fills the measure rather than shrink-wrapping to its longest line — it is a
+     flex item of .ot-impact__stage, which would otherwise size it to content
+     and wrap it narrower than the block it is centred in. */
+  inline-size: 100%;
   margin: 0 0 6.25rem;
   font-family: var(--font-display);
   font-size: var(--text--impact); /* 7.9375rem */
@@ -639,6 +702,14 @@
   letter-spacing: -0.0625rem;
   text-transform: uppercase;
   color: var(--off-white-1);
+}
+
+/* The lines are shrink-wrapped (see .reveal-line in home.css), and a
+   shrink-wrapped block ignores the text-align above — so it needs a margin to
+   sit where the words used to. This is the one centred reveal block on either
+   page; every other one is left-aligned and correctly keeps margin 0. */
+.ot-impact__text .reveal-line {
+  margin-inline: auto;
 }
 
 /* The reference sets these in its second face one step LARGER than the
@@ -653,7 +724,15 @@
   font-size: 8.25rem;
   line-height: 0.83;
   letter-spacing: -0.1875rem;
-  text-transform: none;
+  /* Caps, like the rest of the statement. The reference's <strong> computes
+     `text-transform: uppercase` exactly as its base text does — the accent is a
+     change of FACE, not of case, and setting it lowercase here made the clause
+     read as an aside dropped into a headline instead of part of it. It also
+     narrowed the words enough to change where every line broke.
+     The italic is ours, not the reference's: its Brier is upright at 700, and
+     Playfair is the house serif substitute we already set this way in the
+     wordmark and the hero marquee. */
+  text-transform: uppercase;
   color: var(--grey-on-track);
 }
 
@@ -729,6 +808,13 @@
 }
 
 /* ---------------------------------------------- The podium number */
+
+/* Reference `.c`: the page less its 1.25rem gutters — 1688px at a 1728
+   viewport. Padding rather than 100vw, so the scrollbar cannot push it wide. */
+.ot-band__page {
+  inline-size: 100%;
+  padding-inline: 1.25rem;
+}
 
 .ot-podium {
   position: relative;
@@ -1349,6 +1435,20 @@
   color: var(--text-muted);
 }
 
+/* The circuit under the countdown, at the reference's 88x75. Sized in rem like
+   everything else on the page, so it tracks the fluid root rather than staying
+   88 CSS pixels while the type around it grows. */
+.ot-countdown__circuit {
+  inline-size: 5.5rem; /* 88/16 */
+  block-size: 4.6875rem; /* 75/16 */
+  margin: 2.5rem auto 0;
+}
+
+.ot-countdown__circuit .circuit-canvas {
+  inline-size: 100%;
+  block-size: 100%;
+}
+
 /* ==================================================== Season schedule
  *
  * Reference section 6. Its upper half is a neon 3D circuit rendered in WebGL
@@ -1372,7 +1472,9 @@
 
 .ot-circuit {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  /* The shape takes a column of its own on the left, which is where the
+     reference puts its own 184x184 circuit render relative to the schedule. */
+  grid-template-columns: auto 1.2fr 1fr;
   gap: 3rem var(--gap);
   align-items: start;
   padding: 3rem;
@@ -1380,6 +1482,21 @@
   background: var(--bg-elevated);
   border: 1px solid var(--hairline);
   border-radius: var(--radius--small);
+}
+
+/* 184x184, the reference's own box for this drawing. Keeps its space whether or
+   not a shape is in it — the file has no track for two rounds of the 2026
+   calendar, and the panel must not jump between rounds that have one and rounds
+   that do not. */
+.ot-circuit__shape {
+  inline-size: 11.5rem; /* 184/16 */
+  block-size: 11.5rem;
+  flex: none;
+}
+
+.ot-circuit__shape .circuit-canvas {
+  inline-size: 100%;
+  block-size: 100%;
 }
 
 .ot-circuit__head {

@@ -1183,6 +1183,21 @@
   position: relative;
   display: block;
   white-space: nowrap;
+  /* SHRUNK TO ITS WORDS, because the bar is what the reader actually sees.
+   *
+   * A block-level line fills its container whatever the words do, and the bar
+   * is `inset` on that box — so a 640px line centred in a 1248px measure sat
+   * under a 1248px slab of accent that retracted across 600px of empty space
+   * before it uncovered a single letter. The reference's own `.line` is an
+   * inline-block and its `.high-line-reveal` measures the same box to the
+   * pixel: line [521,687], bar [521,687]; line [370,988], bar [370,988].
+   *
+   * fit-content rather than inline-block: it shrink-wraps the same way while
+   * staying block-level, so two short rows can never end up sharing a row the
+   * way two inline-blocks would. Centring is then a margin, which
+   * .ot-impact__text sets; a left-aligned block keeps margin 0 and does not
+   * move at all. */
+  inline-size: fit-content;
 }
 
 /* One rule now, covering both the unsplit block and every line of a split one.

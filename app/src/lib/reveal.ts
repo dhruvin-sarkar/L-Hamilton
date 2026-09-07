@@ -304,11 +304,18 @@ export function mountReveals(opts: RevealOptions): void {
        * so it covers descenders, and because the line is the containing block
        * that overhang inflates its scrollWidth by ~4px at this size. Testing
        * scrollWidth therefore detects the bar rather than the text, and reverted
-       * every split block on the page. */
+       * every split block on the page.
+       *
+       * Compared against the BLOCK's width, not the line's. A `.reveal-line` is
+       * `inline-size: fit-content` — it is sized BY its text, so its own width
+       * can never be exceeded by that text and the test would pass for every
+       * line however far it hung off the page. The block is the box the words
+       * actually have to fit inside. */
+      const limit = el.clientWidth;
       const range = document.createRange();
       const spills = [...el.querySelectorAll<HTMLElement>('.reveal-line')].some((line) => {
         range.selectNodeContents(line);
-        return range.getBoundingClientRect().width > line.clientWidth + 1;
+        return range.getBoundingClientRect().width > limit + 1;
       });
       if (spills) {
         writeRuns(el, runs);

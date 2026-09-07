@@ -142,6 +142,37 @@
                         id="ot-notch-lg"
                         d="M275 .5v243H6A5.5 5.5 0 0 1 .5 238V25A5.5 5.5 0 0 1 6 19.5h46.346c4.695 0 9.167-2 12.297-5.498l7.46-8.337A15.5 15.5 0 0 1 83.653.5H275Z"
                       />
+                      <!-- The helmet-in-laurels crest, shared with the
+                           homepage's next-race card. One source; both pages
+                           <use> it. -->
+                      <!--#include "partials/crest.html"-->
+
+                      <!-- Recolours a circuit drawing to our accent.
+                           circuits.riv only knows the reference's palette — its
+                           colours are lime, black and a flouro green — so a
+                           circuit that has to be Ferrari red is drawn in the
+                           file's black and repainted here: flood the accent,
+                           keep only where the drawing already has ink. The
+                           alpha survives, so antialiased edges stay clean, and
+                           because the compositor applies it per frame it holds
+                           through the file's own hover transition. -->
+                      <filter
+                        id="circuit-tint-accent"
+                        x="0"
+                        y="0"
+                        width="100%"
+                        height="100%"
+                        color-interpolation-filters="sRGB"
+                      >
+                        <!-- Rosso Corsa literal so the filter is correct with
+                             no stylesheet at all; on-track.css re-declares
+                             flood-color from --accent, which is where the
+                             colour actually belongs. A var() in a presentation
+                             ATTRIBUTE is not reliably resolved, so this is a
+                             value, not a token reference. -->
+                        <feFlood flood-color="#ff2800" result="ink" />
+                        <feComposite in="ink" in2="SourceAlpha" operator="in" />
+                      </filter>
                     </defs>
                   </svg>
 
@@ -180,15 +211,16 @@
                         </div>
                       </div>
                       <div class="ot-hero__next-row ot-hero__next-row--team">
-                        <!-- The reference sets a helmet render here. Ours is the
-                             site's own monogram, which is the mark this build
-                             already uses for him.
+                        <!-- The helmet in its laurels, which is what the
+                             reference puts here (`.base-helmet-rive`, a
+                             `helmet-reef` artboard at 97x51) — not a wordmark.
 
-                             Painted as a mask rather than loaded as an <img>:
-                             the file fills with currentColor, and an <img> has
-                             no colour to inherit — it resolved to black and the
-                             mark disappeared into the card. -->
-                        <span class="ot-hero__monogram" aria-hidden="true"></span>
+                             The same drawing the homepage's next-race card
+                             uses, pulled in through `<use>` so the two cards
+                             share one mark and cannot drift apart. -->
+                        <svg class="ot-hero__crest" viewBox="0 0 64 44" aria-hidden="true">
+                          <use href="#nr-crest" />
+                        </svg>
                         <p class="ot-hero__ui-eyebrow reveal-text" data-next-team>&mdash;</p>
                       </div>
                     </div>
@@ -201,11 +233,18 @@
 
                   <article class="ot-hero__round" data-round hidden>
                     <div class="ot-hero__round-col">
-                      <!-- The reference draws the circuit here, as a traced Rive
-                           outline per track. We have no circuit geometry yet, so
-                           the slot carries the circuit by name at the same
-                           weight rather than a shape that is not the circuit. -->
-                      <p class="ot-hero__circuit" data-round-circuit>&mdash;</p>
+                      <!-- The traced circuit, drawn by Rive, exactly as the
+                           reference does it (`.on-t-hero-stats-ui-box2-rive`,
+                           a `circuits` artboard at 206x145).
+
+                           The name stays in the markup as the accessible
+                           equivalent and as what renders before the file
+                           arrives — or instead of it, for the two 2026 rounds
+                           the file has no shape for (Madrid and Sepang). It is
+                           hidden only once a canvas is actually drawing. -->
+                      <div class="ot-hero__circuit" data-round-circuit-host>
+                        <p class="ot-hero__circuit-name" data-round-circuit>&mdash;</p>
+                      </div>
                       <div class="ot-hero__round-meta">
                         <p class="ot-hero__ui-eyebrow reveal-text" data-round-country>&mdash;</p>
                         <p class="ot-hero__ui-eyebrow reveal-text" data-round-dates>&mdash;</p>
@@ -258,8 +297,9 @@
               <h2 class="ot-impact__text reveal-text" data-reveal-rich>
                 Rewriting<br />
                 the <span class="ot-impact__accent">records</span>,
-                <span class="ot-impact__accent">chasing</span> the eighth. Doing
-                <span class="ot-impact__accent">it all</span> in Ferrari red now.
+                <span class="ot-impact__accent">chasing</span> an eighth. Bringing
+                <span class="ot-impact__accent">it all</span> to Ferrari, each and every
+                weekend.
               </h2>
 
               <!-- Where the travelling mark starts. An empty anchor rather than
@@ -294,7 +334,14 @@
            CLAUDE.md's requirement that every animated stat has a static,
            readable equivalent. -->
       <section class="ot-band" aria-labelledby="ot-band-h">
-        <div class="shell">
+        <!-- The number spans the PAGE, not the content column.
+             Reference `.on-t-podium-text-layout` sits in its `.c` container,
+             which is `100% - 2 * 1.25rem` — 1688px at a 1728 viewport. Ours was
+             inside `.shell`, which caps at 1600, so the number was built 88px
+             narrower than its own and read as the smaller thing it was. This
+             wrapper restates the reference's container exactly, and does it with
+             padding rather than 100vw so a scrollbar cannot push it wide. -->
+        <div class="ot-band__page">
           <!-- ------------------------------------------- The podium number
                Reference `.on-t-podium-text-layout`: the number fills the
                container at 114rem for two digits, and the word PODIUMS is
@@ -318,7 +365,9 @@
               <span class="ot-podium__photo-wipe" data-podium-wipe></span>
             </div>
           </div>
+        </div>
 
+        <div class="shell">
           <!-- --------------------------------------------------- F1 career
                Reference `.title-layout.grid-main`: the headline in columns 1-2
                with a portrait 80px below it, and a two-by-two stat grid in
@@ -502,6 +551,19 @@
           <div class="ot-countdown__digits" data-countdown-digits aria-hidden="true"></div>
 
           <p class="ot-countdown__race" data-countdown-race></p>
+
+          <!-- The circuit being counted down to. The reference draws one here
+               too (a `circuits` artboard at 88x75, in its lime); ours is the
+               same drawing tinted to the accent, because the colour is one of
+               the three things this rebuild changes. Decorative — the race it
+               belongs to is named in the line above.
+
+               Hidden until a shape is actually in it. Unlike the hero's slot,
+               nothing stands in for it, so reserving the box for a round the
+               file has no track for (Madrid and Sepang, on the 2026 calendar)
+               would leave a measured gap under the countdown with nothing in
+               it. -->
+          <div class="ot-countdown__circuit" data-countdown-circuit aria-hidden="true" hidden></div>
         </div>
       </section>
 
@@ -536,6 +598,16 @@
                puts its circuit render above its schedule, and a panel below a
                long table would be off-screen at the moment it changes. -->
           <div class="ot-circuit" data-circuit>
+            <!-- The traced shape of whichever round is showing. The reference
+                 puts one here as well (`.f1-highlight-circuit-rive`, 184x184 in
+                 its black) and retargets it as the pointer crosses the rows;
+                 ours follows both the selection and the hover, so the shape
+                 tracks whatever the reader is looking at either way.
+
+                 Decorative: the circuit is named beside it, and hover is not a
+                 keyboard gesture — selection is what a keyboard reader drives,
+                 and that moves this too. -->
+            <div class="ot-circuit__shape" data-circuit-shape aria-hidden="true"></div>
             <div class="ot-circuit__head">
               <p class="ot-circuit__round" data-circuit-round></p>
               <h3 class="ot-circuit__name" data-circuit-name></h3>

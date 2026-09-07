@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "From-scratch rebuild. Own code, own architecture \u2014 reuses only the asset files from ../public.",
+  "description": "From-scratch rebuild. Own code, own architecture — reuses only the asset files from ../public.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -12,6 +12,7 @@
     "fetch-stats": "node tools/fetch-stats.mjs"
   },
   "dependencies": {
+    "@rive-app/canvas-lite": "^2.26.4",
     "gsap": "^3.15.0",
     "lenis": "^1.3.25",
     "three": "^0.174.0"
