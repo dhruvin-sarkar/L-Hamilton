@@ -340,9 +340,30 @@ if (previous) {
       : previous.result.status
     : '\u2014';
 
-  slot('prev-result', outcome);
   slot('prev-race', `${previous.raceName.replace(/ Grand Prix$/, '')} GP`);
-  slot('prev-points', previous.result ? `${points(previous.result.points)} pts` : '\u2014');
+
+  /* Spoken, not drawn \u2014 the card shows the circuit and the race name, as the
+     reference's does. Phrased as a sentence rather than the "P3 / 15 pts" the
+     figures used to carry, because it is only ever read aloud. */
+  slot(
+    'prev-outcome',
+    previous.result
+      ? `Finished ${outcome}, ${points(previous.result.points)} points.`
+      : 'Result not yet published.',
+  );
+
+  /* The fourth circuit. Same guard as the other three: two rounds of the 2026
+     calendar have no shape in the file, and the race eyebrow below carries the
+     card either way. */
+  const prevCircuitHost = document.querySelector<HTMLElement>('[data-prev-circuit-host]');
+  if (prevCircuitHost && hasTrack(previous.circuitId)) {
+    void mountCircuit(prevCircuitHost, { circuitId: previous.circuitId }).catch(
+      (error: unknown) => {
+        console.warn('[on-track] previous-race circuit did not load', error);
+      },
+    );
+  }
+
   reveal('[data-prev]');
 }
 

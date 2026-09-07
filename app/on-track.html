@@ -185,13 +185,29 @@
                     </svg>
                     <p class="ot-hero__ui-label reveal-text">Previous</p>
                     <div class="ot-hero__prev-row">
-                      <p class="ot-hero__figure" data-prev-result>&mdash;</p>
+                      <!-- The circuit, which is what the reference puts here
+                           (`.home-hero-next-race-rive`, 88x75 at [871,838]) —
+                           its fourth and last use of circuits.riv.
+
+                           It replaced a result figure. The reference's card
+                           carries no result at all: eyebrow, circuit, race
+                           name, rule, and an empty second row. Ours printed an
+                           em dash there for the whole gap between a race being
+                           run and its result being published — which is exactly
+                           where the page sits today, two dashes and no shape. -->
+                      <div class="ot-hero__prev-circuit" data-prev-circuit-host></div>
                       <p class="ot-hero__ui-eyebrow reveal-text" data-prev-race>&mdash;</p>
                     </div>
                     <div class="ot-hero__prev-rule" aria-hidden="true"></div>
-                    <div class="ot-hero__prev-row">
-                      <p class="ot-hero__figure" data-prev-points>&mdash;</p>
-                    </div>
+                    <!-- Empty, as the reference's `.on-t-hero-stats-ui-sec1-row
+                         .is-2` is: 110px of reserved height with nothing in it.
+                         Both rows size the card, so it cannot just be dropped. -->
+                    <div class="ot-hero__prev-row"></div>
+                    <!-- Not drawn by the reference and not drawn here — but we
+                         have the result, and a card announcing the previous race
+                         that never says how it went is a worse card for someone
+                         listening to it than for someone looking at it. -->
+                    <p class="sr-only" data-prev-outcome></p>
                   </article>
 
                   <article class="ot-hero__next" data-next hidden>
