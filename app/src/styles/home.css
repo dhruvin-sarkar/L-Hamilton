@@ -905,9 +905,35 @@
 
 /* Hover lifts the circuit to full white the way the reference's Rive circuit
    swaps colour on hover. */
+/* The real circuit's box, matching the fallback loop it replaces so the row
+   does not reflow when the drawing arrives. */
+.next-race__circuit-host {
+  display: block;
+  inline-size: 5.5rem; /* 97px */
+  block-size: 4.7rem;
+  flex: none;
+}
+
+.next-race__circuit-host .circuit-canvas {
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+/* One of the two is drawn, never both: the traced outline when the file has
+   this track, the hand-drawn loop when it does not. */
+.next-race__circuit-host:not([data-circuit-drawn]) {
+  display: none;
+}
+
+.next-race__circuit-host[data-circuit-drawn] ~ .next-race__circuit {
+  display: none;
+}
+
+/* Holds the accent on hover. It used to go to --text, which read as the circuit
+   draining of colour at the exact moment the reader reached for it. */
 .next-race__row:hover .next-race__circuit,
 .next-race__row:focus-visible .next-race__circuit {
-  color: var(--text);
+  color: var(--accent);
 }
 
 .next-race__line {

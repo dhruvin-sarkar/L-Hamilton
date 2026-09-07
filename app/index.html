@@ -143,11 +143,16 @@
           <p class="next-race__label reveal-text" id="next-race-h">Next Race</p>
 
           <a class="next-race__row" href="/calendar.html">
+            <!-- The real traced circuit, drawn into this host from
+                 circuits.riv — exactly what the reference puts in its own
+                 next-race card (`.home-hero-next-race-rive`, 88x75). -->
+            <span class="next-race__circuit-host" data-home-circuit-host></span>
             <svg class="next-race__circuit" viewBox="0 0 97 74" aria-hidden="true">
-              <!-- A closed loop, because that is what a circuit is. Generic on
-                   purpose: the race is TBC, so drawing any real track's layout
-                   here would assert a fixture that is not known yet. Swapped
-                   for the real outline once the calendar feed lands. -->
+              <!-- The fallback loop, and still the right answer for a round the
+                   file has no track for — the 2026 calendar visits two, Madrid
+                   and Sepang. Generic on purpose: drawing another circuit's
+                   layout here would assert a shape that is not this track.
+                   Hidden the moment a real outline is drawing above it. -->
               <path
                 d="M14 60Q9 46 12 32Q15 18 30 14Q46 10 55 20Q62 28 72 22Q84 15 88 30Q91 44 78 50Q64 56 54 58Q40 61 30 66Q18 70 14 60Z"
                 fill="none"

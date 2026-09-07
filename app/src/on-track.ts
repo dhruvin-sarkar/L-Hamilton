@@ -357,7 +357,10 @@ if (previous) {
      card either way. */
   const prevCircuitHost = document.querySelector<HTMLElement>('[data-prev-circuit-host]');
   if (prevCircuitHost && hasTrack(previous.circuitId)) {
-    void mountCircuit(prevCircuitHost, { circuitId: previous.circuitId }).catch(
+    /* `accent`, not the file's own colour. circuits.riv only knows the
+       reference's palette, and left to itself it draws in McLaren lime — the
+       one colour this rebuild exists to replace. Every circuit is Ferrari red. */
+    void mountCircuit(prevCircuitHost, { circuitId: previous.circuitId, accent: true }).catch(
       (error: unknown) => {
         console.warn('[on-track] previous-race circuit did not load', error);
       },
@@ -401,7 +404,7 @@ if (next) {
    * once a shape is actually drawing. */
   const circuitHost = document.querySelector<HTMLElement>('[data-round-circuit-host]');
   if (circuitHost && hasTrack(next.circuitId)) {
-    void mountCircuit(circuitHost, { circuitId: next.circuitId }).then(
+    void mountCircuit(circuitHost, { circuitId: next.circuitId, accent: true }).then(
       () => {
         circuitHost.dataset.circuitDrawn = '';
       },

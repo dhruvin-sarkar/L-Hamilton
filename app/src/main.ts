@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import Lenis from 'lenis';
 import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './lib/motion';
 import { mountChrome } from './lib/chrome';
+import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountReveals } from './lib/reveal';
 import { mountHelmets, mountHofDrift, mountSocials, mountStore } from './lib/showcase';
 import { BackgroundField } from './BackgroundField';
@@ -1161,6 +1162,27 @@ mountReveals({ immediate: '.hero', sideways: '.gallery', whenReady: onReady });
 /* ------------------------------------------------------------------ *
  * Circuit outline — drawn on rather than faded in.
  * ------------------------------------------------------------------ */
+
+/* The real traced circuit, from the same file On Track draws from. The hand
+ * drawn loop below stays in the markup as the fallback: two rounds of the 2026
+ * calendar have no shape in the file, and a generic loop is a more honest
+ * answer there than some other track's outline.
+ *
+ * In the accent, like every circuit on the site — left to itself the file draws
+ * in the reference's lime, which is the one colour this rebuild replaces. */
+const homeCircuitHost = document.querySelector<HTMLElement>('[data-home-circuit-host]');
+const homeRound = nextRound();
+if (homeCircuitHost && homeRound && hasTrack(homeRound.circuitId)) {
+  void mountCircuit(homeCircuitHost, { circuitId: homeRound.circuitId, accent: true }).then(
+    () => {
+      // The loop steps aside only once a real shape is drawing over it.
+      homeCircuitHost.dataset.circuitDrawn = '';
+    },
+    (error: unknown) => {
+      console.warn('[home] next-race circuit did not load', error);
+    },
+  );
+}
 
 const circuit = document.querySelector<SVGPathElement>('.next-race__circuit path');
 if (circuit) {
