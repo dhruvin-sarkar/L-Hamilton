@@ -501,6 +501,129 @@
         </div>
       </section>
 
+      <!-- ============================================ Side-scrolling gallery
+           Reference section 4: `s is-horizontal-track`. The same component Home
+           runs, which is exactly why it is the same markup and the same driver
+           (lib/gallery.ts) rather than a second implementation.
+
+           Its shape, read off the reference's own CSS: a flex track wider than
+           the screen inside a sticky viewport, three column groups separated by
+           `--grid-spacer` gaps, the middle one holding a text callout above a
+           large photograph and pulled up 7rem (`.large-img.is-ont1`), the third
+           pulled up the same (`.neg-margin`). There is no pin — the section is
+           made tall and the track is translated on X by scroll progress.
+
+           Two deliberate departures, both on the brief:
+
+           - The reference's callout is a first-person line from Lando. We do
+             not put words in Hamilton's mouth (CLAUDE.md), so this is site copy
+             in the third person, like Home's.
+           - The reference captions each photo with a Grand Prix and a year. Our
+             photographs are our own and we cannot truthfully date them to a
+             race, so they carry descriptive captions, as Home's do.
+
+           `--gallery-ink: 1` because On Track has no WebGL field to darken
+           beneath this. Home crossfades the ink as the ground goes to black;
+           here the ground is already `--dark`, so the type is simply cream. -->
+      <section
+        class="gallery gallery--on-track"
+        data-gallery
+        aria-labelledby="ot-gallery-h"
+      >
+        <h2 class="sr-only" id="ot-gallery-h">Trackside gallery</h2>
+        <div class="gallery__pin">
+          <div class="gallery__track" data-gallery-track>
+            <!-- 1 -->
+            <div class="gallery__col">
+              <figure class="gallery__item" style="--w: 15rem; --top: 3.9rem">
+                <figcaption class="gallery__cap reveal-text">Visor down</figcaption>
+                <div class="gallery__frame" style="--ar: 0.897">
+                  <img
+                    src="/assets/gallery/gallery-05.webp"
+                    alt=""
+                    width="1050"
+                    height="1400"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              </figure>
+              <figure class="gallery__item" style="--w: 16.3rem; --top: 5.8rem">
+                <figcaption class="gallery__cap reveal-text">Out lap</figcaption>
+                <div class="gallery__frame" style="--ar: 0.808">
+                  <img
+                    src="/assets/gallery/gallery-06.webp"
+                    alt=""
+                    width="1050"
+                    height="1400"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              </figure>
+            </div>
+
+            <div class="gallery__spacer"></div>
+
+            <!-- 2 — the large one, callout above it, the pair pulled up 7rem -->
+            <div class="gallery__col gallery__col--raised">
+              <div class="gallery__callout" style="--w: 17.4rem; --top: 4.8rem">
+                <p class="gallery__quote reveal-text">
+                  Nineteen seasons photographed from inside the fight — the grid,
+                  the garage, and the laps nobody sees.
+                </p>
+              </div>
+              <figure class="gallery__item" style="--w: 48.2rem; --top: 6rem">
+                <figcaption class="gallery__cap reveal-text">Parc fermé</figcaption>
+                <div class="gallery__frame" style="--ar: 1.098">
+                  <img
+                    src="/assets/gallery/gallery-10.webp"
+                    alt=""
+                    width="1050"
+                    height="1400"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              </figure>
+            </div>
+
+            <div class="gallery__spacer"></div>
+
+            <!-- 3 -->
+            <div class="gallery__col gallery__col--raised">
+              <figure class="gallery__item" style="--w: 18.8rem; --top: 0">
+                <figcaption class="gallery__cap reveal-text">Cool-down</figcaption>
+                <div class="gallery__frame" style="--ar: 1">
+                  <img
+                    src="/assets/gallery/gallery-07.webp"
+                    alt=""
+                    width="1050"
+                    height="1400"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              </figure>
+              <figure class="gallery__item" style="--w: 25.4rem; --top: 5.2rem">
+                <figcaption class="gallery__cap reveal-text">The flag</figcaption>
+                <div class="gallery__frame" style="--ar: 1.023">
+                  <img
+                    src="/assets/gallery/gallery-09.webp"
+                    alt=""
+                    width="1055"
+                    height="1400"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              </figure>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
       <!-- ================================================= Pre-F1 career
            Reference section 4: "pre-f1 career" + a year span in the serif, body
            copy, a photograph, and a grid of eight achievements — each with a

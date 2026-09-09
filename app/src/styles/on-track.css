@@ -2265,3 +2265,35 @@
     margin-inline-start: 0;
   }
 }
+
+/* ================================================== Side-scrolling gallery
+ *
+ * The component itself is in home.css and is shared — main.css is linked from
+ * both documents, so it is already here. These are On Track's two variations
+ * on it, and both come straight off the reference.
+ *
+ * Ink: Home crossfades the gallery's type as its WebGL field goes to black,
+ * which is what --gallery-ink drives. On Track has no field; the ground under
+ * this section is already --dark. So the crossfade is pinned at its far end
+ * rather than left at 0, which would put dark type on a dark ground.
+ *
+ * Raised columns: the reference pulls its second and third column groups up by
+ * 7rem (`.horizontal-grid-col.large-img.is-ont1` and `.neg-margin`, both
+ * `margin-top: -7rem`). That offset is what stops three columns of pictures
+ * reading as a table. */
+
+.gallery--on-track {
+  --gallery-ink: 1;
+}
+
+.gallery__col--raised {
+  margin-block-start: -7rem;
+}
+
+/* Below 992px the gallery is a plain column — see the component's own query in
+ * home.css — and a negative top margin there just collides the stack. */
+@media (max-width: 991px) {
+  .gallery__col--raised {
+    margin-block-start: 0;
+  }
+}

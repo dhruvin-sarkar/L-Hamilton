@@ -17,6 +17,7 @@ import Lenis from 'lenis';
 import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './lib/motion';
 import { mountChrome } from './lib/chrome';
 import { hasTrack, mountCircuit } from './lib/circuit';
+import { mountGalleryScroll } from './lib/gallery';
 import { mountReveals } from './lib/reveal';
 import { mountHelmets, mountHofDrift, mountSocials, mountStore } from './lib/showcase';
 import {
@@ -88,6 +89,7 @@ if (!reducedMotion) {
  * the same either way.
  * ------------------------------------------------------------------ */
 
+mountGalleryScroll();
 mountHelmets();
 mountHofDrift();
 mountSocials();

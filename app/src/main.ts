@@ -7,6 +7,7 @@ import Lenis from 'lenis';
 import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './lib/motion';
 import { mountChrome } from './lib/chrome';
 import { hasTrack, mountCircuit } from './lib/circuit';
+import { mountGalleryScroll } from './lib/gallery';
 import { mountReveals } from './lib/reveal';
 import { mountHelmets, mountHofDrift, mountSocials, mountStore } from './lib/showcase';
 import { BackgroundField } from './BackgroundField';
@@ -543,7 +544,6 @@ if (impactText) {
  * ------------------------------------------------------------------ */
 
 const gallery = document.querySelector<HTMLElement>('[data-gallery]');
-const galleryTrack = document.querySelector<HTMLElement>('[data-gallery-track]');
 
 /* Declared up here rather than beside its own block because applyGround, below,
    has to hand this section the same ink the gallery ends on. The two sit on one
@@ -580,60 +580,13 @@ const otot = document.querySelector<HTMLElement>('[data-otot]');
 mountHelmets();
 
 
+/* The horizontal scroll itself is a component -- On Track runs the same one --
+   so it lives in lib/gallery.ts. What stays here is the half that is Home's
+   alone: the WebGL ground darkening under it as it scrubs past. */
+mountGalleryScroll();
+
 mm.add(WIDE_AND_ANIMATED, () => {
-  if (!gallery || !galleryTrack) return;
-  /** Every photo, with the frame it slides inside. Resolved once. */
-  const panes = [...galleryTrack.querySelectorAll<HTMLElement>('.gallery__frame')].map(
-    (frame) => ({ frame, img: frame.querySelector('img') }),
-  );
-
-  /** How far the track has to travel: everything past one screenful. */
-  let travel = 0;
-
-  const measure = () => {
-    travel = Math.max(0, galleryTrack.scrollWidth - window.innerWidth);
-    // Scroll distance and travel distance are the same number, which is what
-    // makes the mapping 1:1 rather than a ratio that changes with the content.
-    gallery.style.height = `${travel}px`;
-  };
-
-  /**
-   * Slide each photo inside its own frame.
-   *
-   * 0 while the frame is still off the right edge, 1 once it has left past the
-   * left — so a photo pans across its crop exactly once per pass, and two
-   * frames of different widths travel the same 4rem at different rates.
-   */
-  const pan = () => {
-    const vw = window.innerWidth;
-    for (const { frame, img } of panes) {
-      if (!img) continue;
-      const box = frame.getBoundingClientRect();
-      const t = (vw - box.left) / (vw + box.width);
-      img.style.setProperty('--pan', String(gsap.utils.clamp(0, 1, t)));
-    }
-  };
-
-  measure();
-
-  gsap.to(
-    {},
-    {
-      ease: 'none',
-      scrollTrigger: {
-        trigger: gallery,
-        start: 'top bottom',
-        end: 'bottom bottom',
-        scrub: true,
-        invalidateOnRefresh: true,
-        onRefresh: measure,
-        onUpdate: (self) => {
-          galleryTrack.style.setProperty('--gallery-x', `${-travel * self.progress}px`);
-          pan();
-        },
-      },
-    },
-  );
+  if (!gallery) return;
 
   /**
    * Put the ground, the section's ink and the nav at `progress` through the
@@ -711,11 +664,8 @@ mm.add(WIDE_AND_ANIMATED, () => {
      — the one that actually loses content — a dark field with dark ink on it,
      because the ground is a GL uniform that nothing else resets. */
   return () => {
-    gallery.style.removeProperty('height');
     gallery.style.removeProperty('--gallery-dark');
     gallery.style.removeProperty('--gallery-ink');
-    galleryTrack.style.removeProperty('--gallery-x');
-    for (const { img } of panes) img?.style.removeProperty('--pan');
     otot?.style.removeProperty('--otot-ink');
     // Withdraw this section's contribution rather than clearing the value: the
     // store still has a say, and in the column layout there is no darkening
