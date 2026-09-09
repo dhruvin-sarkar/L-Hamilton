@@ -335,20 +335,6 @@
   justify-content: center;
 }
 
-/* 88x75, the reference's box for this drawing. Holds its space whether or not a
-   shape lands in it, so the card does not resize between a round the file knows
-   and one it does not. */
-.ot-hero__prev-circuit {
-  inline-size: 5.5rem; /* 88/16 */
-  block-size: 4.6875rem; /* 75/16 */
-  flex: none;
-}
-
-.ot-hero__prev-circuit .circuit-canvas {
-  inline-size: 100%;
-  block-size: 100%;
-}
-
 /* Reference: .home-hero-next-race-line, 80% wide, 1px, centred. */
 .ot-hero__prev-rule {
   inline-size: 80%;
