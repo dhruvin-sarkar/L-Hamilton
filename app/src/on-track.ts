@@ -1005,19 +1005,21 @@ if (seasonsBody) {
     }
     row.appendChild(year);
 
-    row.appendChild(el('td', 'ot-seasons__cell', season.team));
+    /* Finish, with the ordinal's letters split off.
+     *
+     * The reference sets the digits at 2.0625rem and the "nd"/"th" at 1rem in
+     * grey, nudged .1rem down and right -- `.text-descriptor.is-stat-offset`.
+     * Splitting is what makes that possible; `ordinal()` returns one string.
+     * The cell still reads as "2nd" to a screen reader because the two spans
+     * are adjacent inline text with no separator between them. */
+    const finish = el('td', 'ot-seasons__cell');
+    const place = ordinal(season.position);
+    const digits = place.replace(/\D+$/, '');
+    finish.appendChild(el('span', 'ot-seasons__place', digits));
+    finish.appendChild(el('span', 'ot-seasons__suffix', place.slice(digits.length)));
+    row.appendChild(finish);
 
-    const cells: string[] = [
-      ordinal(season.position),
-      groups.format(season.entries),
-      groups.format(season.wins),
-      groups.format(season.podiums),
-      groups.format(season.poles),
-      points(season.points),
-    ];
-    for (const value of cells) {
-      row.appendChild(el('td', 'ot-seasons__cell ot-seasons__cell--num', value));
-    }
+    row.appendChild(el('td', 'ot-seasons__cell', groups.format(season.podiums)));
 
     seasonsBody.appendChild(row);
   }

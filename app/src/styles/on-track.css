@@ -1114,9 +1114,9 @@
 /* ------------------------------------------------------ Season table */
 
 .ot-seasons {
-  /* Twenty rows of eight columns will not fit 360px, and the honest answer to
-     that is a scroll rather than a font size nobody can read. Only this
-     element scrolls — the page never does. */
+  /* Three columns fit 360px, so the horizontal scroll this carried while the
+     table had eight is gone along with them. Kept as a guard only: if a long
+     value ever does overflow, this element scrolls — the page never does. */
   overflow-x: auto;
   scrollbar-width: thin;
 }
@@ -1134,10 +1134,14 @@
   border-collapse: collapse;
   font-variant-numeric: tabular-nums;
   /* Below the point where the columns fit, hold a legible measure and let the
-     container scroll rather than crushing eight columns together. */
+     container scroll rather than crushing the columns together. The seasons
+     table overrides this — three columns fit anywhere. */
   min-inline-size: 52rem;
 }
 
+/* Shared by both tables on this page — the seasons list and the wins list.
+   The seasons table narrows these to the reference's own values further down;
+   this is the base the wins table keeps. */
 .ot-seasons__th {
   text-align: start;
   padding: 1rem var(--gap) 1rem 0;
@@ -1215,6 +1219,56 @@
 
 .ot-seasons__cell--year {
   font-weight: 700;
+}
+
+/* ---- The seasons list, at the reference's own measure ----
+ *
+ * Scoped to .ot-seasons because the wins list below reuses these same classes
+ * and is a different, denser table. Values measured off the reference:
+ *
+ *   header  .text-eyebrow             0.625rem / 700 / uppercase / no tracking
+ *   cell    .text-on-t-stat-label-reg 2.0625rem / 700 / -.00625rem / lh .97
+ *   suffix  .text-descriptor          1rem / 800 / grey, nudged .1rem
+ *
+ * The header row is padded 1.5x the gap where the data rows get 0.5x, which is
+ * what makes the head read as a head without needing a rule above it. The 1px
+ * rule beneath each row is what separates them, so the padding stays tight and
+ * the type stays large. */
+.ot-seasons .ot-seasons__table {
+  /* Three equal columns, as the reference's grid is, and no minimum: unlike
+     the wins list these fit 360px without scrolling. */
+  table-layout: fixed;
+  min-inline-size: 0;
+}
+
+.ot-seasons .ot-seasons__th {
+  padding-block: 1.875rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  color: var(--grey-on-track);
+}
+
+.ot-seasons .ot-seasons__cell {
+  padding-block: 0.625rem;
+  font-size: 2.0625rem;
+  font-weight: 700;
+  line-height: 0.97;
+  letter-spacing: -0.00625rem;
+  text-transform: uppercase;
+}
+
+/* The ordinal's letters, set small and grey beside the digits rather than
+   riding at their size — the reference's `.text-descriptor.is-stat-offset`,
+   nudged .1rem down and right off the baseline it would otherwise share. */
+.ot-seasons__suffix {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--grey-on-track);
+  position: relative;
+  inset-block-start: 0.1rem;
+  inset-inline-start: 0.1rem;
 }
 
 .ot-seasons__year {

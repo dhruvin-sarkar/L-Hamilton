@@ -426,9 +426,16 @@
                genuinely changes the layout — so this is the element that grows,
                per CLAUDE.md, rather than becoming a page of its own.
 
-               A real <table>: twenty rows of eight columns is tabular data, and
-               building it from divs would throw away row and column
-               association for anyone not looking at it. -->
+               Three columns, because that is what the reference has: Year,
+               Finish, Podiums. We had eight -- Season, Team, Pos, Starts, Wins,
+               Podiums, Poles, Points -- which is a statistics table where the
+               reference has a spare list, and it read as a different design
+               because it was one. The brief sanctions MORE ROWS for Hamilton's
+               twenty seasons, not more columns.
+
+               A real <table>: this is tabular data, and building it from divs
+               would throw away row and column association for anyone not
+               looking at it. -->
           <div class="ot-seasons" data-seasons>
             <table class="ot-seasons__table">
               <caption class="sr-only" data-seasons-caption>
@@ -436,14 +443,9 @@
               </caption>
               <thead>
                 <tr>
-                  <th scope="col" class="ot-seasons__th">Season</th>
-                  <th scope="col" class="ot-seasons__th">Team</th>
-                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Pos</th>
-                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Starts</th>
-                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Wins</th>
-                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Podiums</th>
-                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Poles</th>
-                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Points</th>
+                  <th scope="col" class="ot-seasons__th">Year</th>
+                  <th scope="col" class="ot-seasons__th">Finish</th>
+                  <th scope="col" class="ot-seasons__th">Podiums</th>
                 </tr>
               </thead>
               <tbody data-seasons-body></tbody>
