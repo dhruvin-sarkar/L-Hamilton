@@ -580,10 +580,10 @@ if (next) {
   /* The traced outline of the circuit itself, which is what the reference puts
    * in this slot rather than the circuit's name.
    *
-   * Guarded on `hasTrack` rather than attempted and caught: the file carries 24
-   * tracks and the 2026 calendar has two it does not know (Madrid and Sepang),
-   * so a round without a shape is an ordinary state, not a failure. Those keep
-   * the name, which is why the name is still in the markup.
+   * Guarded on `hasTrack` rather than attempted and caught: circuits.riv
+   * carries 24 tracks and circuit-outline.ts the two it lacks (Madring and
+   * Sepang), and a venue outside both is an ordinary state, not a failure. It
+   * keeps the name, which is why the name is still in the markup.
    *
    * Not awaited — the hero must not wait on a 36KB fetch and a wasm boot to
    * render. The name is on screen from the first frame and steps aside only
