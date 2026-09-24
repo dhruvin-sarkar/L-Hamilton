@@ -3415,160 +3415,668 @@ button.ot-cal__row:focus-visible {
   }
 }
 
-/* ==================================================== Pre-F1 career
+/* ================================================== Side-scrolling gallery
  *
- * Reference section 4. Its grid is two columns with a --gap between and twice
- * that between rows, and each item is a flex row whose laurel is a 3.75rem
- * square hung 5.25rem to the left by an absolute transform.
- * [source] site.css:5720-5747.
+ * The component itself is in home.css and is shared -- main.css is linked from
+ * both documents, so it is already here. This is On Track's layout of it, off
+ * the reference's own rules for `.s.is-horizontal-track` on this page.
  *
- * One deviation, deliberate: the hang is per-item padding here rather than a
- * negative offset into the grid. With two columns and a 1.25rem column gap, an
- * icon translated 5.25rem left of column two lands on top of column one's text.
- * The look is identical; the collision is not possible. */
+ * Every frame, the spacer and the track's top padding are in vh, as the
+ * reference writes them (`calc(var(--vh) * N)`), so the composition is fitted
+ * to the viewport's height and the track's length follows from it. Type and
+ * the gaps between parts are in --u, which is the reference's own rem at every
+ * width: the fluid root here, and its narrower scales below 992px, where ours
+ * locks at 16px (see the queries under this block).
+ *
+ * Ground: the page's dark, flat. The reference changes nothing under this
+ * section on On Track -- its colour tween is Home's alone.
+ *
+ * Ink: Home crossfades the gallery's type as its WebGL field goes to black,
+ * which is what --gallery-ink drives. Pinned at its far end here, so the base
+ * colours resolve for a dark ground; the captions and the callout then take
+ * the reference's own greys. */
 
-.ot-junior {
+.gallery--on-track {
+  --u: 1rem;
+  /* Reference `--grid-spacer`. */
+  --grid-spacer: 31.51vh;
+  --gallery-ink: 1;
   background: var(--bg);
-  color: var(--text);
-  padding-block: 8rem;
 }
 
-.ot-junior .ot-band__head {
-  --head-accent: var(--accent);
-  --head-body: var(--text-muted);
+/* Reference `.horizontal-track`: 75vw of lead-in, 7vh over the columns and
+   two gaps under them, the full height of the sticky viewport. The columns
+   stretch to it, so a picture can be pushed to the foot of its group. */
+.gallery--on-track .gallery__track {
+  block-size: 100dvh;
+  padding-block: 7vh calc(2.5 * var(--u));
+  padding-inline: 75vw calc(1.25 * var(--u));
+  align-items: stretch;
 }
 
-.ot-junior__lead {
-  max-inline-size: 62ch;
-  margin-block: 0 6rem;
-  font-size: var(--text--reg);
-  line-height: 1.45;
-  color: var(--text-muted);
+.gallery--on-track .gallery__spacer {
+  inline-size: var(--grid-spacer);
 }
 
-.ot-junior__grid {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  column-gap: var(--gap);
-  row-gap: calc(var(--gap) * 2);
-}
-
-.ot-junior__item {
-  position: relative;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.5rem var(--gap);
-  padding-inline-start: 5.25rem;
-  padding-block-end: 1.2rem;
-  border-block-end: 1px solid color-mix(in srgb, var(--cream) 12%, transparent);
-}
-
-/* The laurel. Drawn in on-track.ts, not lifted — and coloured by whether the
-   result was a title, which is the reference's own device and the reason the
-   mark is here at all. Never the only signal: the word is written out too. */
-.ot-junior__mark {
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline-start: 0;
-  inline-size: 3.75rem;
-  block-size: 3.75rem;
-  display: flex;
-  color: var(--accent);
-}
-
-.ot-junior__mark svg {
-  inline-size: 100%;
-  block-size: 100%;
-}
-
-.ot-junior__year {
-  font-family: var(--font-display);
-  font-size: var(--text--h3);
-  font-weight: 700;
+/* Reference `.eyebrow-w.c-grey-on-track` > `.text-eyebrow`: 0.625rem at wght
+   700, set solid, no tracking, in the on-track grey. */
+.gallery--on-track .gallery__cap {
+  margin-block-end: calc(1.25 * var(--u));
+  font-size: calc(0.625 * var(--u));
   line-height: 1;
-  font-variant-numeric: tabular-nums;
-  color: var(--accent);
-}
-
-.ot-junior__series {
-  /* Grows to fill the row, but wraps to its own line rather than squeezing the
-     year and the verdict off the ends. */
-  flex: 1 1 16rem;
-  font-family: var(--font-display);
-  font-size: var(--text--h4);
-  font-weight: 700;
-  line-height: 1.15;
-  text-transform: uppercase;
-}
-
-/* The class, and the entrant where there was one. Two championships share a
-   name in this list — Champions of the Future and Super One were each won
-   twice, in different categories — so without these the grid reads as a
-   duplicate rather than as two results. */
-.ot-junior__class {
-  font-family: var(--font-display);
-  font-size: var(--text--eyebrow);
-  font-weight: 800;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius--btn);
-  padding: 0.35rem 0.7rem;
-}
-
-.ot-junior__place {
-  margin-inline-start: auto;
-  font-family: var(--font-display);
-  font-size: var(--text--btn-primary);
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent);
-}
-
-/* --grey-on-track is this site's mapping of the reference's own
-   --color--grey-on-track, which is exactly the token its greyed laurel uses. */
-.ot-junior__item[data-place='2'] .ot-junior__mark,
-.ot-junior__item[data-place='2'] .ot-junior__year,
-.ot-junior__item[data-place='2'] .ot-junior__place {
+  letter-spacing: 0;
   color: var(--grey-on-track);
 }
 
-.ot-junior__note-line {
-  flex: 1 0 100%;
-  margin: 0.2rem 0 0;
-  font-size: var(--step-0);
-  line-height: 1.5;
-  color: var(--text-muted);
+/* Reference `.horizontal-item-img-w` + `.image.is-horizontal-scroll`: the
+   photo is 4rem larger than its frame both ways, pinned to the frame's right
+   edge and centred on its height, and slides 4rem to the RIGHT as the frame
+   crosses the screen -- so it lags the track rather than racing it. */
+.gallery--on-track .gallery__frame {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  /* A box sized by aspect-ratio will not shrink below its content, and the
+     photo inside is 4rem taller than the frame on purpose. Without this the
+     frame grows to fit it and the crop is lost. */
+  min-block-size: 0;
 }
 
-/* The citation on each result. Small and set apart from the note it follows,
-   but a real link with a real focus ring — twelve of them is twelve tab stops,
-   which is what a cited list costs. */
-.ot-junior__cite {
-  white-space: nowrap;
-  font-family: var(--font-display);
-  font-size: var(--text--eyebrow);
-  font-weight: 800;
-  letter-spacing: 0.12em;
+.gallery--on-track .gallery__frame img {
+  flex: none;
+  inline-size: calc(100% + 4 * var(--u));
+  block-size: calc(100% + 4 * var(--u));
+  transform: translate3d(calc(var(--pan, 0) * 4 * var(--u)), 0, 0);
+}
+
+/* Column 1. `.is-on-t-1` at the top; `.is-on-t-2` at the foot, 8.42vh up and
+   14.42vh in. */
+.gallery__item--ot1 {
+  --w: 27vh;
+  --ar: 27 / 33.46;
+}
+
+.gallery__item--ot2 {
+  --w: 29.3vh;
+  --ar: 1;
+  --top: auto;
+  position: relative;
+  inset-inline-start: 14.42vh;
+  margin-block-end: 8.42vh;
+}
+
+/* Column 2. The callout 1.67vh down, the large picture at the foot. */
+.gallery--on-track .gallery__callout {
+  --w: calc(17.375 * var(--u));
+  --top: 1.67vh;
+}
+
+/* Reference `.horizontal-item-text`: 1.5rem, 94.6% leading, 0.05rem tracking,
+   in the second off-white with its emphasis in the first. */
+.gallery--on-track .gallery__quote {
+  font-size: calc(1.5 * var(--u));
+  letter-spacing: calc(0.05 * var(--u));
+  color: var(--off-white-2);
+}
+
+.gallery__quote-em {
+  color: var(--off-white-1);
+}
+
+.gallery__item--ot3 {
+  --w: 65.48vh;
+  --ar: 65.48 / 59.48;
+  --top: auto;
+}
+
+/* Column 3. `.is-on-t-4` pokes half a spacer back into the gap; `.is-on-t-5`
+   sits 8.17vh off the foot with the result pill under it. */
+.gallery__item--ot4 {
+  --w: 21.98vh;
+  --ar: 21.98 / 20.96;
+  position: relative;
+  inset-inline-start: calc(var(--grid-spacer) * -0.5);
+}
+
+.gallery__item--ot5 {
+  --w: 31.75vh;
+  --ar: 31.75 / 28.75;
+  --top: auto;
+  margin-block-end: 8.17vh;
+}
+
+/* Reference `.horizontal-item-pill.on-track`: a hairline box 4.44vh tall, the
+   position in one 3.25rem cell and the flags in the next, split by a hairline
+   in the second off-white. */
+.gallery__pill:not([hidden]) {
+  display: flex;
+  inline-size: fit-content;
+  block-size: 4.44vh;
+  margin: calc(1.25 * var(--u)) 0 0;
+  border: 0.5px solid var(--grey-on-track);
+  border-radius: calc(0.2 * var(--u));
+  color: var(--grey-on-track);
+}
+
+.gallery__pill-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  inline-size: calc(3.25 * var(--u));
+}
+
+.gallery__pill-box--place {
+  border-inline-end: 0.44px solid var(--off-white-2);
+  font-size: calc(1.5 * var(--u));
+  font-weight: 400;
+  line-height: 1;
+  font-variant-numeric: normal;
+}
+
+.gallery__pill-flags {
+  inline-size: 80%;
+  block-size: auto;
+  aspect-ratio: 44 / 20;
+}
+
+/* The reveal, as the reference runs it on THIS section's captions and callout
+ * (`C_()` in lando-gl.js) rather than as it runs everywhere else: each line is
+ * hidden behind a clip, wiped open left to right over 0.6s (power2.out) with
+ * its accent bar inside it, and the bar retracts 0.3s later over another 0.6s
+ * (power2.inOut). So the accent sweeps in and back out, where the site's
+ * standard reveal starts with the bar already covering the line.
+ *
+ * Same trigger, same bar, same line splitting -- lib/reveal.ts -- with only the
+ * keyframes swapped. The clip is inset past the line box on three sides so it
+ * never trims the bar's own overhang.
+ *
+ * Held at opacity 0, not behind the clip, until it triggers: a caption is its
+ * own observed element, and Chrome reports an element clipped away by its own
+ * clip-path as never intersecting, so a caption waiting behind the clip was
+ * never revealed. The animation's first frame takes the clip over. */
+[data-reveal-animated] .gallery--on-track .reveal-text:not([data-reveal-split]),
+[data-reveal-animated] .gallery--on-track .reveal-line {
+  opacity: 0;
+}
+
+.gallery--on-track .reveal-text.is-in:not([data-reveal-split]),
+.gallery--on-track .reveal-text.is-in .reveal-line {
+  opacity: 1;
+  animation: gallery-line-open 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.gallery--on-track .reveal-text.is-in::after,
+.gallery--on-track .reveal-text.is-in .reveal-line::after {
+  animation-duration: 0.6s;
+  animation-timing-function: cubic-bezier(0.455, 0.03, 0.515, 0.955);
+  animation-delay: calc(var(--reveal-delay, 0ms) + 300ms);
+}
+
+.gallery--on-track .reveal-text.is-done:not([data-reveal-split]),
+.gallery--on-track .reveal-text.is-done .reveal-line {
+  opacity: 1;
+  animation: none;
+  clip-path: none;
+}
+
+@keyframes gallery-line-open {
+  from {
+    clip-path: inset(-0.2em 100% -0.2em -0.2em);
+  }
+
+  to {
+    clip-path: inset(-0.2em -0.2em -0.2em -0.2em);
+  }
+}
+
+/* Below 992px the reference stops translating and stacks the groups -- a
+ * column, 5rem apart, with its frames still sized in vh. Ours follows, over
+ * the component's own column layout in home.css. --u becomes the reference's
+ * rem at these widths: its fluid root runs on a 20px design unit between 480
+ * and 991, which is the viewport over 86.4. */
+@media (max-width: 991px) {
+  .gallery--on-track {
+    --u: calc(100vw / 86.4);
+  }
+
+  .gallery--on-track .gallery__track {
+    block-size: auto;
+    gap: calc(5 * var(--u));
+    padding-block: 7vh calc(2.5 * var(--u));
+    padding-inline: var(--padding--container);
+  }
+
+  .gallery--on-track .gallery__col {
+    gap: calc(5 * var(--u));
+  }
+
+  .gallery--on-track .gallery__item,
+  .gallery--on-track .gallery__callout {
+    inline-size: var(--w);
+  }
+
+  /* home.css right-aligns every third track child for rhythm; the reference's
+     large group sits on the left edge. */
+  .gallery--on-track .gallery__col:nth-child(4n + 3) .gallery__item,
+  .gallery--on-track .gallery__col:nth-child(4n + 3) .gallery__callout {
+    align-self: auto;
+  }
+
+  /* `.text-eyebrow` steps up to .8rem here (1rem at 480-767, below). */
+  .gallery--on-track .gallery__cap {
+    font-size: calc(0.8 * var(--u));
+  }
+
+  /* `.large-img`: the picture above its callout, a rem apart -- at every
+     width, so it outranks the column gap set below 480. */
+  .gallery--on-track .gallery__col.gallery__col--ot-large {
+    flex-direction: column-reverse;
+    gap: var(--u);
+  }
+
+  .gallery__item--ot2,
+  .gallery__item--ot4 {
+    inset-inline-start: 0;
+    margin-inline-start: auto;
+  }
+
+  .gallery__item--ot2,
+  .gallery__item--ot5 {
+    margin-block-end: 0;
+  }
+
+  /* Still 1.67vh under the picture above it, as on the desktop track. */
+  .gallery--on-track .gallery__callout {
+    --w: calc(31 * var(--u));
+    gap: calc(1.25 * var(--u));
+    margin-block-start: var(--top);
+  }
+
+  /* The reference signs its callout: a 9rem signature (5rem below 480) a gap
+     under the words. Ours is site copy and carries no signature, but keeps
+     the slot, so the pictures stacked below land where the reference's do. */
+  .gallery--on-track .gallery__callout::after {
+    content: '';
+    inline-size: calc(9 * var(--u));
+    aspect-ratio: 54.16 / 25.41;
+  }
+
+  .gallery--on-track .gallery__quote {
+    font-size: calc(1.9 * var(--u));
+  }
+
+  .gallery--on-track .gallery__frame img {
+    transform: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .gallery--on-track .gallery__cap {
+    font-size: var(--u);
+  }
+}
+
+/* Below 480 the reference's design unit is 48px -- a rem of the viewport over
+ * 36 -- and the frames leave vh for fixed sizes, the second and third groups
+ * pulled up 7rem into the one before. */
+@media (max-width: 479px) {
+  .gallery--on-track {
+    --u: calc(100vw / 36);
+  }
+
+  .gallery--on-track .gallery__track {
+    padding-block: 0;
+  }
+
+  .gallery--on-track .gallery__cap {
+    font-size: calc(0.8 * var(--u));
+  }
+
+  .gallery--on-track .gallery__col {
+    gap: calc(3 * var(--u));
+  }
+
+  .gallery__col--ot-large,
+  .gallery__col--ot-last {
+    margin-block-start: calc(-7 * var(--u));
+  }
+
+  .gallery--on-track .gallery__item {
+    inline-size: 100%;
+  }
+
+  /* Scoped so the auto width outranks the 100% above: pushed 20% in, the
+     item takes the rest of the row rather than overflowing it. */
+  .gallery--on-track .gallery__item--ot1 {
+    --ar: 27 / 33;
+    inline-size: auto;
+    margin-inline-start: 20%;
+  }
+
+  .gallery__item--ot1 .gallery__frame {
+    inline-size: calc(13 * var(--u));
+  }
+
+  /* `.horizontal-item-layout.is-on-t-2 / -4`: caption and picture to the right. */
+  .gallery__item--ot2,
+  .gallery__item--ot4 {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .gallery__item--ot2 .gallery__frame {
+    inline-size: calc(10 * var(--u));
+  }
+
+  .gallery__item--ot3 .gallery__frame {
+    inline-size: 50%;
+  }
+
+  .gallery__item--ot4 {
+    --ar: 10 / 12;
+    margin-block-start: calc(-3 * var(--u));
+  }
+
+  .gallery__item--ot4 .gallery__frame {
+    inline-size: calc(10 * var(--u));
+  }
+
+  .gallery__item--ot5 {
+    --ar: 1;
+    margin-block-start: calc(-3 * var(--u));
+  }
+
+  .gallery__item--ot5 .gallery__frame {
+    inline-size: calc(20 * var(--u));
+    max-inline-size: 100%;
+  }
+
+  .gallery--on-track .gallery__frame img {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  .gallery--on-track .gallery__callout {
+    --w: calc(20 * var(--u));
+    margin-block-start: 0;
+  }
+
+  .gallery--on-track .gallery__callout::after {
+    inline-size: calc(5 * var(--u));
+  }
+
+  .gallery--on-track .gallery__quote {
+    font-size: calc(1.5 * var(--u));
+  }
+
+  .gallery__pill:not([hidden]) {
+    block-size: calc(4 * var(--u));
+  }
+
+  .gallery__pill-box {
+    inline-size: calc(4 * var(--u));
+  }
+}
+
+/* Reduced motion: home.css turns the pin into an ordinary sideways scroller.
+   The 75vw run-up is only there for the track to travel in from, so without
+   the travel it would open on an empty screen. */
+@media (prefers-reduced-motion: reduce) and (min-width: 992px) {
+  .gallery--on-track .gallery__track {
+    padding-inline: var(--padding--container);
+  }
+}
+
+/* ==================================================== Pre-F1 career
+ *
+ * Reference: the `.s` after the gallery. Its two `.title-layout.grid-main`
+ * rows, on the same four 23.55% columns: headline (1-2) and paragraph (3),
+ * then 5rem under them the photograph (1) and the championship grid (3-4).
+ * Built as ONE grid here, which is what lets the photograph move above the
+ * headline on a phone without a second copy of it -- see the markup.
+ *
+ * Sizes are in --u, the reference's rem at every width (the note on the
+ * gallery above); edges are the site's container padding, so the section
+ * lines up with its neighbours. */
+
+.ot-pref1 {
+  --u: 1rem;
+  display: grid;
+  grid-template-columns: repeat(4, 23.55%);
+  grid-template-areas:
+    'title title para .'
+    'img img grid grid';
+  column-gap: calc(1.25 * var(--u));
+  align-items: start;
+  /* Reference spacers: 14rem over, 10rem under. */
+  padding: calc(14 * var(--u)) var(--padding--container) calc(10 * var(--u));
+  background: var(--bg);
+  color: var(--text);
+  /* Proportional figures, as the reference sets its years. */
+  font-variant-numeric: normal;
+}
+
+/* Reference `.text-title-lg-mona.split-flex`, the same face as the F1 career
+   heading: 4.5rem at wdth 93, wght 750, 0.886 leading, -0.125rem tracking. */
+.ot-pref1__title {
+  grid-area: title;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 0;
+  font-family: var(--font-body);
+  font-stretch: 93%;
+  font-size: calc(4.5 * var(--u));
+  font-weight: 750;
+  line-height: 0.886;
+  letter-spacing: calc(-0.125 * var(--u));
   text-transform: uppercase;
-  color: var(--accent);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 0.3em;
 }
 
-.ot-junior__cite:hover {
+.ot-pref1__title-line {
+  display: block;
+  inline-size: fit-content;
+  white-space: nowrap;
+}
+
+/* `.text-title-lg-brier.c-grey-on-track`: the second face, upright capitals,
+   in grey. Playfair stands in for Brier, as it does on every serif line. */
+.ot-pref1__title-line--serif {
+  font-family: var(--font-serif);
+  font-style: normal;
+  font-weight: 500;
+  font-size: calc(4.6875 * var(--u));
+  font-variant-numeric: lining-nums;
+  color: var(--grey-on-track);
+}
+
+/* `.text-body-reg-mona` in `.title-para-w.c-grey-on-track`. */
+.ot-pref1__para {
+  grid-area: para;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: calc(1.25 * var(--u));
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: calc(-0.0125 * var(--u));
+  color: var(--grey-on-track);
+}
+
+/* `.f1-car-img-w`: 407/457 at 28.5625rem tall, clipped, wiped in from the top
+   behind a band of the accent (`data-img-highlight="top, lime"`) -- the same
+   wipe the F1 career portrait runs, driven from on-track.ts. */
+.ot-pref1__img {
+  grid-area: img;
+  position: relative;
+  justify-self: start;
+  block-size: calc(28.5625 * var(--u));
+  aspect-ratio: 407 / 457;
+  margin-block-start: calc(5 * var(--u));
+  overflow: clip;
+}
+
+.ot-pref1__img img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+.ot-pref1__img::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--accent);
+  transform-origin: 50% 100%;
+  scale: 1 var(--img-wipe, 0);
+}
+
+/* `.pre-f1-car-stats-grid`: two columns, a gap across and two down. */
+.ot-pref1__grid {
+  grid-area: grid;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: calc(2.5 * var(--u)) calc(1.25 * var(--u));
+  align-content: start;
+  margin: calc(5 * var(--u)) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* `.pre-f1-car-stats-item`, with its laurel hung 5.25rem to the left of the
+   text by a transform -- into the column gap for the first column, into the
+   empty run past the first column's 12rem of text for the second. */
+.ot-pref1__item {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: calc(1.25 * var(--u));
+}
+
+.ot-pref1__mark {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: calc(3.75 * var(--u));
+  block-size: calc(3.75 * var(--u));
+  translate: calc(-5.25 * var(--u)) 0;
+  color: var(--accent);
+}
+
+/* A placing, not a title: the reference's grey laurel. The label says so in
+   words as well, so the colour is never the only signal. */
+.ot-pref1__item[data-place='2'] .ot-pref1__mark {
+  color: var(--grey-on-track);
+}
+
+.ot-pref1__mark svg {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: visible;
+}
+
+.ot-pref1__text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(0.625 * var(--u));
+  max-inline-size: calc(12 * var(--u));
+}
+
+/* `.text-on-t-stat-label-sm`: 1.5rem at wdth 75, wght 700, set solid. */
+.ot-pref1__label {
+  font-family: var(--font-body);
+  font-stretch: 75%;
+  font-size: calc(1.5 * var(--u));
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
   color: var(--text);
 }
 
-.ot-junior__cite:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
+/* `.text-descriptor` in `.eyebrow-w.pre-f1-car-item`: 1rem at wdth 87.5,
+   wght 800, 0.97, grey, no wider than 6.8125rem. */
+.ot-pref1__year {
+  max-inline-size: calc(6.8125 * var(--u));
+  font-family: var(--font-body);
+  font-stretch: 87.5%;
+  font-size: var(--u);
+  font-weight: 800;
+  line-height: 0.97;
+  text-transform: uppercase;
+  color: var(--grey-on-track);
+}
+
+/* 480-991: the reference keeps the desktop grid and scales it on its 20px
+   design unit; only the paragraph steps up, below 768. */
+@media (max-width: 991px) {
+  .ot-pref1 {
+    --u: calc(100vw / 86.4);
+  }
+}
+
+@media (max-width: 767px) {
+  .ot-pref1__para {
+    font-size: calc(1.75 * var(--u));
+  }
+}
+
+/* Below 480: two columns. The photograph goes first, full width and 24rem
+ * tall; the headline and paragraph share a row two gaps apart; the grid runs
+ * the full width under them with its laurels back in the flow. */
+@media (max-width: 479px) {
+  .ot-pref1 {
+    --u: calc(100vw / 36);
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      'img img'
+      'title para'
+      'grid grid';
+    column-gap: calc(2.5 * var(--u));
+    padding-block-end: calc(12.5 * var(--u));
+  }
+
+  .ot-pref1__title {
+    font-size: calc(2.6 * var(--u));
+  }
+
+  .ot-pref1__title-line {
+    white-space: normal;
+  }
+
+  .ot-pref1__title-line--serif {
+    font-size: calc(2.6 * var(--u));
+  }
+
+  .ot-pref1__para {
+    font-size: calc(1.3 * var(--u));
+  }
+
+  .ot-pref1__img {
+    justify-self: stretch;
+    block-size: calc(24 * var(--u));
+    aspect-ratio: auto;
+    margin-block: 0 calc(1.25 * var(--u));
+  }
+
+  .ot-pref1__grid {
+    margin-block-start: calc(10 * var(--u));
+  }
+
+  .ot-pref1__mark {
+    position: relative;
+    flex: none;
+    translate: none;
+  }
+
+  .ot-pref1__label {
+    position: relative;
+    inset-block-start: calc(0.1 * var(--u));
+    font-size: calc(1.3 * var(--u));
+  }
 }
 
 /* ============================================== Reduced motion
@@ -3780,70 +4288,3 @@ button.ot-cal__row:focus-visible {
   }
 }
 
-@media (max-width: 991px) {
-  .ot-junior {
-    padding-block: 4rem;
-  }
-
-  .ot-junior__lead {
-    margin-block-end: 3rem;
-    /* Six sentences at the desktop lead size is ten lines on a phone. */
-    font-size: var(--text--h5);
-  }
-
-  .ot-junior__grid {
-    /* Two columns of a multi-line item do not fit a phone. One column, and the
-       laurel shrinks with the indent that reserves its space. */
-    grid-template-columns: 1fr;
-    row-gap: var(--gap);
-  }
-
-  .ot-junior__item {
-    padding-inline-start: 3.5rem;
-  }
-
-  .ot-junior__mark {
-    inline-size: 2.5rem;
-    block-size: 2.5rem;
-  }
-
-  .ot-junior__series {
-    flex-basis: 100%;
-  }
-
-  .ot-junior__place {
-    margin-inline-start: 0;
-  }
-}
-
-/* ================================================== Side-scrolling gallery
- *
- * The component itself is in home.css and is shared — main.css is linked from
- * both documents, so it is already here. These are On Track's two variations
- * on it, and both come straight off the reference.
- *
- * Ink: Home crossfades the gallery's type as its WebGL field goes to black,
- * which is what --gallery-ink drives. On Track has no field; the ground under
- * this section is already --dark. So the crossfade is pinned at its far end
- * rather than left at 0, which would put dark type on a dark ground.
- *
- * Raised columns: the reference pulls its second and third column groups up by
- * 7rem (`.horizontal-grid-col.large-img.is-ont1` and `.neg-margin`, both
- * `margin-top: -7rem`). That offset is what stops three columns of pictures
- * reading as a table. */
-
-.gallery--on-track {
-  --gallery-ink: 1;
-}
-
-.gallery__col--raised {
-  margin-block-start: -7rem;
-}
-
-/* Below 992px the gallery is a plain column — see the component's own query in
- * home.css — and a negative top margin there just collides the stack. */
-@media (max-width: 991px) {
-  .gallery__col--raised {
-    margin-block-start: 0;
-  }
-}
