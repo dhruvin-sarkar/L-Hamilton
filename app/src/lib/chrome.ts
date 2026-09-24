@@ -107,7 +107,8 @@ function mountStoreFill(): void {
 
 /**
  * Every Rosso button below the nav: the two On Track / Off Track arrows, the
- * hall of fame's closing callout, and On Track's buttons.
+ * callout under the helmet wall (and On Track's store callout, the same
+ * component), and On Track's buttons.
  *
  * Same fill as the store button, mounted the same way — these are the only
  * other Rosso buttons on the site, so they should answer the pointer the way
@@ -116,7 +117,7 @@ function mountStoreFill(): void {
  */
 function mountSectionFills(): void {
   const buttons = document.querySelectorAll<HTMLAnchorElement>(
-    '.otot__link, .hof__cta-link, .store-cta__link, .footer-cta__link, .ot-btn',
+    '.otot__link, .callout__link, .store-cta__link, .footer-cta__link, .ot-btn',
   );
   for (const link of buttons) {
     mountLiquidFill(link, (level) => link.style.setProperty('--liquid-level', String(level)));

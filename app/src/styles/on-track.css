@@ -4296,3 +4296,39 @@ button.ot-cal__row:focus-visible {
   }
 }
 
+/* ================================================== The tail, on one ground
+ *
+ * Reference sections 7 and 8. After its full-screen picture the reference runs
+ * the helmets, the socials and the store callout on ONE `.s-group.bg-black`,
+ * and puts its footer on that same black — sampled down the whole range, the
+ * ground never moves again once the wall has taken over from the picture.
+ *
+ * The components are Home's (home.css), and Home sets two of them on its light
+ * screen: the socials on the field's cream, and the footer's lead-in on it too.
+ * Here both take the wall's ground instead, --gl-bg, so the one change of
+ * colour is INTO the wall and nothing after it steps back to cream.
+ *
+ * Page-qualified rather than relying on this sheet loading after home.css: in
+ * a build the two land as separate files, and a tie on specificity would be
+ * decided by link order nobody wrote down. */
+
+[data-page='on-track'] .socials {
+  background: var(--gl-bg);
+  color: var(--cream);
+}
+
+/* The reference's ornament here is its own grey on the black, well under the
+   heading's ink — a mark, not a second headline. */
+[data-page='on-track'] .socials__ball {
+  color: var(--dark-tint-2);
+}
+
+[data-page='on-track'] .socials__links a {
+  color: var(--cream);
+}
+
+/* The accent still pools around the panel; it pools out of the wall's ground
+   rather than out of cream, which is how the reference's does it. */
+[data-page='on-track'] .footer {
+  background: var(--gl-bg);
+}
