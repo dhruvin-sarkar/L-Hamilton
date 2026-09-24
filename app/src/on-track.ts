@@ -752,31 +752,36 @@ if (gigantic && giganticSr) {
 /* ------------------------------------------------------------------ *
  * Headline career stats
  *
- * The reference shows four. CLAUDE.md asks for championships to join them
- * rather than becoming a section of its own, and starts and points belong here
- * too — they are the two figures the season table sums to, so showing them lets
- * a reader check the table against its own total.
+ * The reference's four, in its order: wins under the P1 scribble, poles,
+ * average finish, fastest laps. Titles are not made a fifth figure -- the
+ * reference has none -- and each title season is starred in the list below.
+ * Starts and points go to the small print under the portrait.
  * ------------------------------------------------------------------ */
 
 interface Stat {
   label: string;
+  /** The counted figure, a whole number. */
   value: number;
-  /** Rendered instead of the plain grouped number, where one is needed. */
-  display?: string;
-  /** Shown under the figure where the number needs qualifying. */
-  note?: string;
+  /** Decimals set small and grey after the figure, as the reference sets its
+      average finish: ".89". */
+  fraction?: string;
   /** Carries the accent scribble the reference draws over its win count. */
   scribble?: boolean;
 }
 
+/* "3.89" -> 3 and ".89". Already rounded to two places by the generator and
+   checked against the seasons in live-stats.ts, so this only splits it. */
+const averageFinish = career.averageFinish.toFixed(2);
+const averagePoint = averageFinish.indexOf('.');
+
 const STATS: Stat[] = [
-  /* The reference's four, with its "average finish" replaced by the number
-     that is the whole point of him. Two by two, as its grid is — starts and
-     points are not dropped, they move to the provenance line under the grid,
-     which is where a figure that qualifies the others belongs. */
-  { label: 'World championships', value: career.championships },
   { label: 'Formula 1 wins', value: career.wins, scribble: true },
-  { label: 'Pole positions', value: career.poles, note: 'Sprint-era rule applied' },
+  { label: 'Pole positions', value: career.poles },
+  {
+    label: 'Average finish',
+    value: Number(averageFinish.slice(0, averagePoint)),
+    fraction: averageFinish.slice(averagePoint),
+  },
   { label: 'Fastest laps', value: career.fastestLaps },
 ];
 
@@ -785,13 +790,12 @@ const statGrid = document.querySelector<HTMLElement>('[data-stat-grid]');
 if (statGrid) {
   for (const stat of STATS) {
     const item = el('li', 'ot-stats__item');
+    const settled = `${groups.format(stat.value)}${stat.fraction ?? ''}`;
 
     // Same mirror pattern as the gigantic number: the counter is aria-hidden
     // and an sr-only twin carries the settled value, so a count-up never reads
     // out as a stream of changing numbers.
-    item.appendChild(
-      el('span', 'sr-only', `${stat.label}: ${stat.display ?? groups.format(stat.value)}`),
-    );
+    item.appendChild(el('span', 'sr-only', `${stat.label}: ${settled}`));
 
     const label = el('span', 'ot-stats__label', stat.label);
     label.setAttribute('aria-hidden', 'true');
@@ -801,10 +805,14 @@ if (statGrid) {
     const figureWrap = el('span', 'ot-stats__figure');
     figureWrap.setAttribute('aria-hidden', 'true');
 
-    const figure = el('span', 'ot-stats__value', stat.display ?? groups.format(stat.value));
+    const figure = el('span', 'ot-stats__value', groups.format(stat.value));
     figure.dataset.count = String(stat.value);
-    if (stat.display) figure.dataset.countDisplay = stat.display;
     figureWrap.appendChild(figure);
+
+    if (stat.fraction) {
+      figure.classList.add('ot-stats__value--whole');
+      figureWrap.appendChild(el('span', 'ot-stats__fraction', stat.fraction));
+    }
 
     if (stat.scribble) {
       const scribble = el('span', 'ot-stats__scribble');
@@ -813,39 +821,25 @@ if (statGrid) {
     }
 
     item.append(label, figureWrap);
-    if (stat.note) {
-      const note = el('span', 'ot-stats__note', stat.note);
-      note.setAttribute('aria-hidden', 'true');
-      item.appendChild(note);
-    }
     statGrid.appendChild(item);
   }
 
   /* One size for the whole grid, solved from its widest figure.
    *
-   * 17.5rem is the reference's size and stays the size wherever it fits — its
-   * numbers are two digits and clear their column with room. Hamilton's win and
-   * pole counts are three, and three digits at 17.5rem measured 447px in a
-   * 377px column: the figures overflowed and ran into each other across the
-   * grid's 38px gutter.
+   * 17.5rem is the reference's size, and in Mona Sans at "wdth" 75 Hamilton's
+   * three-digit counts fit it: "106" sets about 305px in a 397.5px column,
+   * where the reference's widest two-digit figure is 209px. So this holds the
+   * reference's size at every desktop width -- the root is fluid, figure and
+   * column scale together -- and only steps in where a figure would otherwise
+   * crowd the next column: to 92% of its own, which leaves at least a gutter
+   * and a half of air between two numbers.
    *
    * Sized as a SET rather than per item, because four numbers at four sizes
    * read as four unrelated facts instead of one career. Measured before the
-   * count-up below starts, while each figure still holds its settled string —
+   * count-up below starts, while each figure still holds its settled string --
    * a figure showing "0" would measure one digit wide and size the grid for a
    * number that is about to grow. */
-  /* Reference `.f1-car-stats-grid`, measured at 1728: its columns are 397.5px
-     wide and its two-digit figures 262px, so a figure takes 0.659 of its column
-     and the next one starts 155px clear. That gap is the grid's legibility, and
-     it is what the first fix here spent — sized only to avoid overflow, "105"
-     filled 98% of its column and sat 46px from "69", so the two read as one
-     number.
-   *
-   * Holding the ratio instead reproduces the reference's own 17.5rem at two
-   * digits, which is the check that this generalises its value rather than
-   * replacing it, and it degrades correctly at three. Capped at 17.5rem so a
-   * set of single-digit figures is not inflated past the size it designed. */
-  const STAT_SPAN = 262 / 397.5;
+  const STAT_SPAN = 0.92;
 
   const figures = [...statGrid.querySelectorAll<HTMLElement>('.ot-stats__value')];
 
@@ -859,8 +853,7 @@ if (statGrid) {
       /* Measure the SETTLED string. Once the count-up below is running a figure
          reads "0", and a grid sized from that would be sized for one digit. */
       const showing = figure.textContent;
-      figure.textContent =
-        figure.dataset.countDisplay ?? groups.format(Number(figure.dataset.count));
+      figure.textContent = groups.format(Number(figure.dataset.count));
       widest = Math.max(widest, inkWidth(figure));
       figure.textContent = showing;
     }
@@ -873,16 +866,12 @@ if (statGrid) {
   fitStats();
   remeasure(fitStats);
 
-  /* Count-ups.
-   *
-   * Integers count as integers. Points is the one fractional total, and
-   * counting through fractional intermediates would spin a decimal place that
-   * means nothing — so it counts on the whole part and lands on the real value
-   * at the end. */
+  /* Count-ups, on the whole part only. The average finish's decimals are
+     static beside it: counting through fractional intermediates would spin a
+     decimal place that means nothing. */
   if (!reducedMotion) {
-    for (const figure of statGrid.querySelectorAll<HTMLElement>('.ot-stats__value')) {
+    for (const figure of figures) {
       const target = Number(figure.dataset.count);
-      const display = figure.dataset.countDisplay;
       const state = { n: 0 };
       figure.textContent = '0';
       gsap.to(state, {
@@ -892,9 +881,6 @@ if (statGrid) {
         scrollTrigger: { trigger: figure, start: 'top 90%' },
         onUpdate: () => {
           figure.textContent = groups.format(Math.round(state.n));
-        },
-        onComplete: () => {
-          figure.textContent = display ?? groups.format(target);
         },
       });
     }
@@ -1106,26 +1092,32 @@ if (provenanceNode) {
   provenanceNode.textContent =
     `${groups.format(career.starts)} starts and ${points(career.points)} championship points. ` +
     `Current through the ${race.season} ${race.name}, round ${race.round}, ${when}. ` +
-    `Counted from the race-by-race record. ${provenance.polesDefinition}`;
+    `Counted from the race-by-race record. Average finish is taken over the Grands Prix ` +
+    `he was classified in; a race without a classified finish has no position to average. ` +
+    provenance.polesDefinition;
 }
 
 /* ------------------------------------------------------------------ *
  * Season-by-season table
  *
- * Twenty rows where the reference has seven. Championship seasons are marked,
- * and each row carries its team, because with three teams the era is part of
- * reading the row rather than a caption above it.
+ * Completed seasons only, newest first -- the reference lists 2024 back to 2019
+ * while its 2025 is being raced, because a finishing position is not one until
+ * the last round has run. Nineteen rows where it has six; the title seasons are
+ * starred.
  * ------------------------------------------------------------------ */
 
 const seasonsBody = document.querySelector<HTMLElement>('[data-seasons-body]');
 const seasonsCaption = document.querySelector<HTMLElement>('[data-seasons-caption]');
 
+/* The calendar is the season being raced. While any of its rounds is still to
+   start, that season's standing is provisional and stays off the list. */
+const pastSeasons = seasonsNewestFirst.filter(
+  (season) => !(next && season.year === next.season),
+);
+
 if (seasonsBody) {
-  // Newest first, matching the helmet wall and the way results are read.
-  for (const season of seasonsNewestFirst) {
+  for (const season of pastSeasons) {
     const row = el('tr', 'ot-seasons__row');
-    row.dataset.team = season.teamId;
-    if (season.isChampion) row.classList.add('is-champion');
 
     // The year is the row's header — that is what lets a screen reader say
     // "2020, Wins, 11" rather than reading a bare 11.
@@ -1811,11 +1803,11 @@ if (scheduleList && circuitPanel) {
 /* ------------------------------------------------------------------ *
  * Keyboard access to the tables' sideways overflow
  *
- * Below about 992px both tables are wider than their column and their wrapper
- * scrolls them sideways. A scroll container is only operable by pointer unless
- * it is focusable, so without this the last few columns — poles and points on
- * one, laps and race time on the other — are simply unreachable for anyone
- * driving the page from the keyboard. WCAG 2.1.1.
+ * Below about 992px the wins table is wider than its column and its wrapper
+ * scrolls it sideways. A scroll container is only operable by pointer unless
+ * it is focusable, so without this the last few columns — laps and race time —
+ * are simply unreachable for anyone driving the page from the keyboard.
+ * WCAG 2.1.1. (The seasons list is three columns and fits any width.)
  *
  * Applied only while it actually overflows: an unconditional tabindex would add
  * a tab stop on every desktop width, where there is nothing to scroll and the
@@ -1828,7 +1820,6 @@ const scrollRegions: [string, string][] = [
      which puts the next round's circuit and dates off the right of a phone
      screen unless the region can be entered from the keyboard. */
   ['.ot-hero__ui', 'Previous and next race, scrollable'],
-  ['[data-seasons]', 'Season-by-season record, scrollable'],
   ['[data-wins]', 'Career race wins, scrollable'],
 ];
 

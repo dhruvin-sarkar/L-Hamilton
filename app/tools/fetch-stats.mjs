@@ -149,6 +149,9 @@ async function main() {
         year,
         entries: 0, wins: 0, podiums: 0, poles: 0, qualifyingWins: 0,
         fastestLaps: 0, sprintWins: 0, dnfs: 0,
+        // Classified finishes and the sum of their positions: the two halves of
+        // the average finish, kept per season so the average can be re-derived.
+        finishes: 0, finishPositionSum: 0,
       });
     }
     return seasons.get(year);
@@ -162,6 +165,10 @@ async function main() {
     if (pos === 1) b.wins++;
     if (pos !== null && pos <= 3) b.podiums++;
     if (pos === null) b.dnfs++;
+    if (pos !== null) {
+      b.finishes++;
+      b.finishPositionSum += pos;
+    }
     // `rank` is the fastest-lap rank across the field; "1" is the fastest lap.
     if (r.FastestLap?.rank === '1') b.fastestLaps++;
   }
@@ -223,6 +230,10 @@ async function main() {
     points: Number(sum('points').toFixed(2)),
     sprintWins: sum('sprintWins'),
     dnfs: sum('dnfs'),
+    // Mean finishing position over the Grands Prix he was classified in. An
+    // unclassified result ("R", "D" and the rest) has no position to average,
+    // so it is left out rather than counted as last.
+    averageFinish: Number((sum('finishPositionSum') / sum('finishes')).toFixed(2)),
     championships: seasonRows.filter((s) => s.position === 1).length,
     seasonsContested: seasonRows.length,
   };

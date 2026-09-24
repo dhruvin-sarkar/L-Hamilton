@@ -816,7 +816,9 @@
      anywhere. */
   background: var(--bg);
   color: var(--text);
-  padding-block: 12rem;
+  /* The reference's 12rem spacer above the number, and nothing below: its
+     section ends on the last line of the career grid. */
+  padding-block: 12rem 0;
   /* The gigantic number is deliberately larger than its column and is allowed
      to bleed; clip rather than hidden so this does not become a scroll
      container and start capturing the page's scroll. */
@@ -950,6 +952,9 @@
   display: grid;
   grid-template-columns: repeat(4, 23.55%);
   column-gap: var(--gap);
+  /* Proportional figures, as the reference sets them: its "11" is 171px and its
+     "18" 209px. The body's tabular default made every pair of digits 266px. */
+  font-variant-numeric: normal;
 }
 
 .ot-career__head {
@@ -957,17 +962,26 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  /* Reference `.title-headline-w.img-below`: 4 * --gap between the headline and
-     the portrait under it. */
-  gap: calc(var(--gap) * 4);
+  /* One gap between the portrait and the small print under it; the portrait
+     adds the rest of its own distance from the headline. */
+  gap: var(--gap);
+}
+
+/* Columns 3-4: the stat grid, then the seasons list the same 120px under it
+   that the grid's own rows are apart -- one rhythm down the whole column. */
+.ot-career__side {
+  grid-column: 3 / 5;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--gap) * 6);
 }
 
 .ot-career__title {
   margin: 0;
-  /* Reference `.text-title-lg-mona`: 4.5rem, wght 750, 0.886, -0.125rem, and
-     capped at 25rem so it breaks where the reference's does. */
-  max-inline-size: 25rem;
-  font-family: var(--font-display);
+  /* Reference `.text-title-lg-mona`: 4.5rem at "wdth" 93 "wght" 750, 0.886,
+     -0.125rem -- the hero's wider cut, not the condensed one the figures use. */
+  font-family: var(--font-body);
+  font-stretch: 93%;
   font-size: 4.5rem;
   font-weight: 750;
   line-height: 0.886;
@@ -975,28 +989,37 @@
   text-transform: uppercase;
 }
 
+/* One line each, never wrapped. The reference caps the heading at 25rem to
+   break it after CAREER; ours breaks there by markup, and Playfair's capitals
+   run wider than Brier's, so a cap would only fold SINCE away from its year. */
 .ot-career__title-line {
   display: block;
   inline-size: fit-content;
+  white-space: nowrap;
 }
 
 /* Reference `.text-title-lg-brier.c-grey-on-track`: the second face at
    4.6875rem in GREY, not in the accent. The accent belongs to the wreath and
-   the wins scribble in this section; spending it here would flatten both. */
+   the wins scribble in this section; spending it here would flatten both.
+   Upright capitals, as Brier's are, so the change is of face and not of case
+   or slant -- the rule every accent word on the page follows. */
 .ot-career__title-line--serif {
   font-family: var(--font-serif);
-  font-style: italic;
-  font-weight: 400;
+  font-style: normal;
+  font-weight: 500;
   font-size: 4.6875rem;
-  letter-spacing: normal;
-  text-transform: none;
+  font-variant-numeric: lining-nums;
+  letter-spacing: -0.125rem;
+  text-transform: uppercase;
   color: var(--grey-on-track);
 }
 
-/* Reference `.f1-car-img-w`: 407/457 at a 28.5625rem height, clipped. */
+/* Reference `.f1-car-img-w`: 407/457 at a 28.5625rem height, clipped, and
+   4 * --gap under the headline (`.title-headline-w.img-below`). */
 .ot-career__img {
   inline-size: 100%;
   max-inline-size: 25.4375rem;
+  margin-block-start: calc(var(--gap) * 3);
   aspect-ratio: 407 / 457;
   overflow: clip;
   position: relative;
@@ -1024,7 +1047,6 @@
 /* --------------------------------------------------- Headline stats */
 
 .ot-stats {
-  grid-column: 3 / 5;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1045,7 +1067,8 @@
 
 /* Reference `.text-descriptor`: 1rem, wght 800 wdth 87.5, 0.97, uppercase. */
 .ot-stats__label {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
+  font-stretch: 87.5%;
   font-size: 1rem;
   font-weight: 800;
   line-height: 0.97;
@@ -1059,8 +1082,10 @@
 .ot-stats__figure {
   position: relative;
   display: flex;
-  align-items: center;
-  justify-content: flex-start;
+  /* Reference `.f1-car-stats-large-num-w.flex-top`: top-aligned, with a
+     quarter gap before the decimals where a figure has them. */
+  align-items: flex-start;
+  gap: calc(var(--gap) * 0.25);
   /* Shrink-wrapped, as the reference's `.f1-car-stats-item` is: its grid
      columns are 397.5px and its items 262px, sized to the number rather than
      stretched to the track.
@@ -1081,8 +1106,25 @@
   font-weight: 700;
   line-height: 0.8;
   letter-spacing: -0.1rem;
-  /* The counter must not reflow its neighbours as it spins. */
-  font-variant-numeric: tabular-nums;
+}
+
+/* The whole part of a figure with decimals, held in the reference's
+   `.fixed-width` box (8.1rem at 17.5rem, so 0.463em at any size) so the
+   decimals beside it stay put while it counts. */
+.ot-stats__value--whole {
+  inline-size: 0.463em;
+}
+
+/* Reference `.f1-car-stat-label-w` + `.text-on-t-stat-label-large`: the
+   decimals at 2.75rem in grey, dropped 0.8rem from the figure's top. */
+.ot-stats__fraction {
+  position: relative;
+  inset-block-start: 0.8rem;
+  font-family: var(--font-display);
+  font-size: 2.75rem;
+  font-weight: 700;
+  line-height: 0.97;
+  color: var(--grey-on-track);
 }
 
 /* The lime "P1" the reference scribbles over its win count, in our accent.
@@ -1110,39 +1152,37 @@
   overflow: visible;
 }
 
-/* Spans the grid rather than sitting in column 1 under the portrait, where it
-   was 377px wide and broke into seven lines. It qualifies all four figures, so
-   it belongs under all four. */
+/* Small print under the portrait, in the empty run of column 1 the reference
+   leaves below its picture. Set at the portrait's width so it reads as a note
+   on the figures, not as a paragraph of the section. */
 .ot-career .ot-provenance {
-  grid-column: 1 / -1;
-  margin-block: 6rem 0;
-  max-inline-size: 46rem;
+  max-inline-size: 25.4375rem;
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.45;
   color: var(--text-muted);
-}
-
-.ot-stats__note {
-  font-size: var(--text--eyebrow);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--grey-on-track);
 }
 
 /* ------------------------------------------------------ Season table */
 
+/* Reference `.f1-car-stat-past-v2-w`: the eyebrow, the list flush under it,
+   and the button 40px below the last row. */
 .ot-seasons {
-  /* Three columns fit 360px, so the horizontal scroll this carried while the
-     table had eight is gone along with them. Kept as a guard only: if a long
-     value ever does overflow, this element scrolls — the page never does. */
-  overflow-x: auto;
-  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
 }
 
-/* on-track.ts makes this focusable only while it actually overflows, so the
-   hidden columns are reachable from the keyboard. A focus stop with no visible
-   ring is worse than none — the caret goes somewhere nobody can see. */
-.ot-seasons:focus-visible {
-  outline: 2px solid var(--accent-off);
-  outline-offset: 4px;
+/* Reference `.text-descriptor`, in the ink rather than the grey: the same
+   label the figures above carry, so the list reads as the fifth item of their
+   grid -- which, in the reference's markup, it is. */
+.ot-seasons__title {
+  margin: 0;
+  font-family: var(--font-body);
+  font-stretch: 87.5%;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 0.97;
+  text-transform: uppercase;
 }
 
 .ot-seasons__table {
@@ -1207,8 +1247,13 @@
 /* The reference's .item-reveal: an accent bar wiping across the row, resting at
    scaleX(0) and growing to cover. Ours retreats instead, matching the text
    reveal on the rest of the site — the bar starts over the row and pulls off
-   it, so the first frame already shows the numbers. */
-.is-ready .ot-seasons__row::after {
+   it, so the first frame already shows the numbers.
+
+   Hung off the row's first cell and sized to the row (the row is its containing
+   block), never off the row itself: Chrome counts a row's own ::after as a
+   column even when it is absolutely positioned, and a fixed-layout table then
+   splits its last column in two to make room for it. */
+.is-ready .ot-seasons__row > :first-child::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -1242,87 +1287,121 @@
  * Scoped to .ot-seasons because the wins list below reuses these same classes
  * and is a different, denser table. Values measured off the reference:
  *
- *   header  .text-eyebrow             0.625rem / 700 / uppercase / no tracking
- *   cell    .text-on-t-stat-label-reg 2.0625rem / 700 / -.00625rem / lh .97
- *   suffix  .text-descriptor          1rem / 800 / grey, nudged .1rem
+ *   header  .text-eyebrow             0.625rem / "wdth" 100 "wght" 700
+ *   cell    .text-on-t-stat-label-reg 2.0625rem / "wdth" 75 "wght" 700 / .97
+ *   suffix  .text-descriptor          1rem / "wdth" 87.5 "wght" 800 / grey
+ *   rows    1.5 * --gap above and below the head, 0.5 * --gap the rest, and a
+ *           1px rule in the first step up off the ground -- 71px and 53px.
  *
- * The header row is padded 1.5x the gap where the data rows get 0.5x, which is
- * what makes the head read as a head without needing a rule above it. The 1px
- * rule beneath each row is what separates them, so the padding stays tight and
- * the type stays large. */
+ * No hover, no team colour, no tint on the title years: the reference's rows
+ * have none of those, and the titles are marked by the star alone. */
 .ot-seasons .ot-seasons__table {
-  /* Three equal columns, as the reference's grid is, and no minimum: unlike
-     the wins list these fit 360px without scrolling. */
   table-layout: fixed;
   min-inline-size: 0;
+  /* Separate, so each rule is a cell's own 1px and the rows measure the
+     reference's 71 and 53 rather than splitting the rule between two rows. */
+  border-collapse: separate;
+  border-spacing: 0;
+  font-variant-numeric: normal;
 }
 
 .ot-seasons .ot-seasons__th {
-  padding-block: 1.875rem;
+  padding: 1.875rem 0;
+  font-family: var(--font-body);
   font-size: 0.625rem;
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1;
   color: var(--grey-on-track);
+  border-block-end-color: var(--dark-tint-1);
+}
+
+/* The reference's four-column grid with the year across the first two: of its
+   815px, 417.5 / 208.75 / 188.75 once each column takes the gutter after it.
+   A fixed table sizes its columns from the head, so the head carries them. */
+.ot-seasons .ot-seasons__th:nth-child(1) {
+  inline-size: 51.23%;
+}
+.ot-seasons .ot-seasons__th:nth-child(2) {
+  inline-size: 25.61%;
 }
 
 .ot-seasons .ot-seasons__cell {
-  padding-block: 0.625rem;
+  padding: 0.625rem 0;
+  vertical-align: top;
   font-size: 2.0625rem;
   font-weight: 700;
   line-height: 0.97;
   letter-spacing: -0.00625rem;
-  text-transform: uppercase;
+  border-block-end-color: var(--dark-tint-1);
 }
 
-/* The ordinal's letters, set small and grey beside the digits rather than
-   riding at their size — the reference's `.text-descriptor.is-stat-offset`,
-   nudged .1rem down and right off the baseline it would otherwise share. */
+/* The ordinal's letters, small and grey at the TOP of the digits -- the
+   reference's `.text-descriptor.is-stat-offset`, a flex item beside the number
+   and so aligned to its top, then nudged .1rem down and right. */
 .ot-seasons__suffix {
-  font-size: 1rem;
-  font-weight: 800;
-  color: var(--grey-on-track);
   position: relative;
   inset-block-start: 0.1rem;
   inset-inline-start: 0.1rem;
+  vertical-align: top;
+  font-family: var(--font-body);
+  font-stretch: 87.5%;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 0.97;
+  text-transform: uppercase;
+  color: var(--grey-on-track);
 }
 
-.ot-seasons__year {
-  /* The team stripe. Two channels, not one: the colour says which team and the
-     stripe's presence says "this row belongs to a run", so the grouping
-     survives for anyone who cannot separate the three hues. */
-  border-inline-start: 0.25rem solid var(--era, var(--accent));
-  padding-inline-start: 0.75rem;
-}
-
-.ot-seasons__row[data-team='mclaren'] {
-  --era: #ff8000;
-}
-.ot-seasons__row[data-team='mercedes'] {
-  --era: #00d2be;
-}
-.ot-seasons__row[data-team='ferrari'] {
-  --era: var(--accent);
-}
-
-.ot-seasons__row.is-champion {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-}
-
-.ot-seasons__row.is-champion .ot-seasons__cell {
-  font-weight: 700;
-}
-
+/* A title season's star, set as the suffix is: small, at the top of the year,
+   in the accent. The row's sr-only "world champion" says it aloud. */
 .ot-seasons__crown {
-  margin-inline-start: 0.5rem;
-  color: var(--accent-off);
+  position: relative;
+  inset-block-start: 0.1rem;
+  margin-inline-start: 0.35rem;
+  vertical-align: top;
+  font-size: 1rem;
+  line-height: 0.97;
+  color: var(--accent);
 }
 
-/* A lift off the ground, not the accent flip the wins table uses. The year
-   cell carries a team stripe whose Ferrari value IS the accent, and an accent
-   row would erase the one channel that says which era a season belongs to. */
-.ot-seasons__row:hover {
-  background: color-mix(in srgb, var(--cream) 6%, transparent);
+/* ---- The button under the list ----
+ *
+ * Reference `.btn-w`: 3rem tall, 1rem either side, 0.54rem corners, the label
+ * at 1rem "wdth" 86 "wght" 800 and the arrow half a gap after it, 2 * --gap
+ * under the last row. The fill is the one every button on the site shares:
+ * chrome.ts drives --liquid-level. */
+.ot-btn {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: calc(var(--gap) * 0.5);
+  block-size: 3rem;
+  margin-block-start: calc(var(--gap) * 2);
+  padding-inline: 1rem;
+  border-radius: var(--radius--btn);
+  background: linear-gradient(
+    to top,
+    var(--giallo-modena) calc(var(--liquid-level) * 100%),
+    var(--rosso-corsa) calc((var(--liquid-level) + var(--liquid-gap)) * 100%)
+  );
+  color: var(--dark);
+  font-family: var(--font-body);
+  font-stretch: 86%;
+  font-size: 1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.ot-btn .btn-text {
+  line-height: 1;
+}
+
+.ot-btn__arrow {
+  flex: none;
+  inline-size: 1.2rem;
+  block-size: 1.2rem;
 }
 
 /* ==================================================== Race wins
@@ -1986,7 +2065,7 @@
     opacity: 1;
   }
 
-  .is-ready .ot-seasons__row::after {
+  .is-ready .ot-seasons__row > :first-child::after {
     content: none;
   }
 
@@ -2112,7 +2191,27 @@
   }
 
   .ot-band {
-    padding-block: 5rem 6rem;
+    padding-block: 5rem 0;
+  }
+
+  /* One column: the headline and portrait, then the figures and the list. */
+  .ot-career {
+    grid-template-columns: 1fr;
+    row-gap: 4rem;
+  }
+
+  .ot-career__head,
+  .ot-career__side {
+    grid-column: 1 / -1;
+    min-inline-size: 0;
+  }
+
+  .ot-career__title {
+    font-size: clamp(2.75rem, 12vw, 4.5rem);
+  }
+
+  .ot-career__title-line--serif {
+    font-size: clamp(2.85rem, 12.5vw, 4.6875rem);
   }
 
   .ot-gigantic__num {

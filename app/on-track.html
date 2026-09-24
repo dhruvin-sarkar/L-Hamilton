@@ -358,11 +358,12 @@
           </div>
         </div>
 
-        <div class="shell">
-          <!-- --------------------------------------------------- F1 career
-               Reference `.title-layout.grid-main`: the headline in columns 1-2
-               with a portrait 80px below it, and a two-by-two stat grid in
-               columns 3-4 with a 120px row gap. -->
+        <!-- ----------------------------------------------------- F1 career
+             Reference `.title-layout.grid-main`, in the same page-wide container
+             as the number above: the headline in columns 1-2 with a portrait
+             80px under it; in columns 3-4 the two-by-two stat grid and, 120px
+             under that, the F1 SEASONS list and its button. -->
+        <div class="ot-band__page">
           <div class="ot-career">
             <div class="ot-career__head">
               <h2 class="ot-career__title" id="ot-band-h">
@@ -383,49 +384,59 @@
                   loading="lazy"
                 />
               </div>
+
+              <!-- Provenance, set as small print under the portrait. The
+                   reference has no equivalent -- its numbers are a CMS field --
+                   but ours are fetched, and CONTENT-DATA.md asks for what they
+                   are current through beside any stat block. -->
+              <p class="ot-provenance" data-provenance></p>
             </div>
 
-            <!-- Rendered from the data layer in on-track.ts — there is
-                 deliberately no markup for the individual figures here, because
-                 a number typed into HTML is a number nobody updates. -->
-            <ul class="ot-stats" data-stat-grid></ul>
+            <div class="ot-career__side">
+              <!-- Rendered from the data layer in on-track.ts — there is
+                   deliberately no markup for the individual figures here,
+                   because a number typed into HTML is a number nobody updates. -->
+              <ul class="ot-stats" data-stat-grid></ul>
 
-            <!-- Provenance. The reference has no equivalent and needs none; its
-                 numbers are a CMS field. Ours are fetched, so the page says what
-                 they are current through. -->
-            <p class="ot-provenance" data-provenance></p>
-          </div>
+              <!-- ---------------------------------------------- F1 seasons
+                   Reference `.f1-car-stat-past-v2-w`: an eyebrow, a list of
+                   Year / Finish / Podiums on a four-column grid with the year
+                   across the first two, and a button to the full results. It
+                   lists its six completed seasons; Hamilton has nineteen, which
+                   is the one place his volume changes the block -- more rows,
+                   per CLAUDE.md, not more columns.
 
-          <!-- ------------------------------------------------ Season table
-               The reference has seven rows and a fixed block. Hamilton has
-               twenty across three teams, which is the one place his volume
-               genuinely changes the layout — so this is the element that grows,
-               per CLAUDE.md, rather than becoming a page of its own.
+                   A real <table>: this is tabular data, and building it from
+                   divs would throw away row and column association for anyone
+                   not looking at it. -->
+              <div class="ot-seasons" data-seasons>
+                <p class="ot-seasons__title" aria-hidden="true">F1 seasons</p>
+                <table class="ot-seasons__table">
+                  <caption class="sr-only" data-seasons-caption>
+                    Formula 1 season-by-season record
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col" class="ot-seasons__th">Year</th>
+                      <th scope="col" class="ot-seasons__th">Finish</th>
+                      <th scope="col" class="ot-seasons__th">Podiums</th>
+                    </tr>
+                  </thead>
+                  <tbody data-seasons-body></tbody>
+                </table>
 
-               Three columns, because that is what the reference has: Year,
-               Finish, Podiums. We had eight -- Season, Team, Pos, Starts, Wins,
-               Podiums, Poles, Points -- which is a statistics table where the
-               reference has a spare list, and it read as a different design
-               because it was one. The brief sanctions MORE ROWS for Hamilton's
-               twenty seasons, not more columns.
-
-               A real <table>: this is tabular data, and building it from divs
-               would throw away row and column association for anyone not
-               looking at it. -->
-          <div class="ot-seasons" data-seasons>
-            <table class="ot-seasons__table">
-              <caption class="sr-only" data-seasons-caption>
-                Formula 1 season-by-season record
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col" class="ot-seasons__th">Year</th>
-                  <th scope="col" class="ot-seasons__th">Finish</th>
-                  <th scope="col" class="ot-seasons__th">Podiums</th>
-                </tr>
-              </thead>
-              <tbody data-seasons-body></tbody>
-            </table>
+                <a class="ot-btn" href="/calendar.html">
+                  <span class="sr-only">Full schedule &amp; results</span>
+                  <span class="btn-text" aria-hidden="true" data-split-chars
+                    >Full schedule &amp; results</span
+                  >
+                  <svg class="ot-btn__arrow" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </section>

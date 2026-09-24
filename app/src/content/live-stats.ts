@@ -32,6 +32,9 @@ export interface CareerSeason {
   fastestLaps: number;
   sprintWins: number;
   dnfs: number;
+  /** Races classified, and the sum of those finishing positions. */
+  finishes: number;
+  finishPositionSum: number;
   /** Derived, not sourced: position === 1. */
   isChampion: boolean;
 }
@@ -46,6 +49,8 @@ export interface CareerRecord {
   points: number;
   sprintWins: number;
   dnfs: number;
+  /** Mean finishing position over classified Grands Prix, to two places. */
+  averageFinish: number;
   championships: number;
   seasonsContested: number;
 }
@@ -60,12 +65,12 @@ export interface StatsProvenance {
 
 const REQUIRED_TOTALS = [
   'starts', 'wins', 'podiums', 'poles', 'qualifyingWins', 'fastestLaps',
-  'points', 'sprintWins', 'dnfs', 'championships', 'seasonsContested',
+  'points', 'sprintWins', 'dnfs', 'averageFinish', 'championships', 'seasonsContested',
 ] as const;
 
 const REQUIRED_SEASON = [
   'year', 'position', 'points', 'entries', 'wins', 'podiums', 'poles',
-  'qualifyingWins', 'fastestLaps', 'sprintWins', 'dnfs',
+  'qualifyingWins', 'fastestLaps', 'sprintWins', 'dnfs', 'finishes', 'finishPositionSum',
 ] as const;
 
 function fail(what: string): never {
@@ -133,6 +138,8 @@ export const seasons: CareerSeason[] = raw.seasons.map((s, i) => {
     fastestLaps: row.fastestLaps as number,
     sprintWins: row.sprintWins as number,
     dnfs: row.dnfs as number,
+    finishes: row.finishes as number,
+    finishPositionSum: row.finishPositionSum as number,
     isChampion: position === 1,
   };
 });
@@ -153,6 +160,15 @@ if (championSeasons.length !== career.championships) {
 
 if (seasons.length !== career.seasonsContested) {
   fail(`totals.seasonsContested is ${career.seasonsContested} but ${seasons.length} seasons exist`);
+}
+
+{
+  const finishes = seasons.reduce((n, s) => n + s.finishes, 0);
+  const positions = seasons.reduce((n, s) => n + s.finishPositionSum, 0);
+  const average = Number((positions / finishes).toFixed(2));
+  if (average !== career.averageFinish) {
+    fail(`totals.averageFinish is ${career.averageFinish} but the seasons average to ${average}`);
+  }
 }
 
 /** The title years, derived from results rather than declared. */
