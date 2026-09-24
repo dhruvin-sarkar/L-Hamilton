@@ -1328,6 +1328,12 @@ if (stage) {
     lockBtn.setAttribute('aria-pressed', String(locked));
   });
 
+  // Hovering the team row brings the whole helmet up over the head -- the
+  // reference's [data-gl-helmet="hover"] on the same row of the same card.
+  const helmetRow = document.querySelector<HTMLElement>('.next-race__row.is-2');
+  helmetRow?.addEventListener('mouseenter', () => head.setHelmetHover(true));
+  helmetRow?.addEventListener('mouseleave', () => head.setHelmetHover(false));
+
   window.addEventListener(
     'pointermove',
     (e) => {
