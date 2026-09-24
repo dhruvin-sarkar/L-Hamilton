@@ -1404,113 +1404,426 @@
   block-size: 1.2rem;
 }
 
-/* ==================================================== Race wins
+/* ============================================= F1 result highlights
  *
- * Reference section 2 — a table of career wins on the dark ground. The cream
- * band above is one section, not the page, so this returns to `--bg`.
+ * Reference `section.s` "F1 RESULT HIGHLIGHTS", measured at 1728x1080, where
+ * its rem and ours are both 16px:
  *
- * The reference's rows are full-bleed grid items whose hover fill runs to the
- * viewport edge; ours are table rows inside the shell. Same fill, same flip of
- * the ink — but this page already has one table held by the shell, and two
- * tables that disagree about their own edges read as an accident rather than a
- * decision. */
+ *   14rem     spacer
+ *             .title-layout.grid-main   headline in columns 1-2, blurb in 3
+ *   8.75rem   spacer
+ *             .f1-highlight-grid.top    the five eyebrows              30px
+ *   2.5rem    .f1-highlight-collection  margin
+ *             .f1-highlight-grid        seven rows                 7 x 85.1px
+ *   14rem     spacer                                             = 1385px
+ *
+ * The rows are full-bleed: the container around them has no gutter, each row
+ * carries its own 1.25rem, and so a row's hover fill runs to the page's edges.
+ *
+ * Every size is written against --hl-u rather than rem. From 992px up the two
+ * are the same length -- tokens.css scales the root exactly as the reference
+ * does there. Below 992 they part: tokens.css locks our root at 16px, while
+ * the reference keeps scaling its rem with the viewport, 20/1728ths of it down
+ * to 480px and 48/1728ths below that. Resolving this section against the
+ * reference's rem rather than ours is what keeps its proportions -- the column
+ * split, the row height, the flag against the name -- at tablet and phone
+ * widths as well. */
 
-.ot-wins {
+.ot-hl {
+  --hl-u: 1rem;
   background: var(--bg);
   color: var(--text);
-  padding-block: 10rem 8rem;
+  padding-block: calc(14 * var(--hl-u));
+  /* Proportional figures, as the reference sets them. The body's tabular
+     default spaces "1:39:09.440" like a timing screen, not like type. */
+  font-variant-numeric: normal;
+  /* The cursor photograph trails 20px right of the pointer, so over the Time
+     column it hangs ~180px past the page. The reference cuts it at its page
+     wrapper's edge; cut here, the document does not grow sideways under it.
+     One axis only: below the last row it may still overlap the next section. */
+  overflow-x: clip;
 }
 
-.ot-wins .ot-band__head {
-  --head-accent: var(--accent);
-  --head-body: var(--text-muted);
+/* Reference `.c.is-f1-highlight-outer`: the fluid container with its gutters
+   taken off, capped where the root stops growing (1920px) and centred beyond. */
+.ot-hl__c {
+  max-inline-size: 108rem;
+  margin-inline: auto;
 }
 
-.ot-wins__table {
-  /* Six columns of race names and lap times will not fit 360px. Same answer as
-     the season table: this wrapper scrolls, the page never does. */
-  overflow-x: auto;
-  scrollbar-width: thin;
+/* Reference `.title-layout.grid-main` inside a `.c`: four 23.55% columns
+   within 1.25rem gutters, the headline across the first two and the blurb in
+   the third. */
+.ot-hl__head {
+  display: grid;
+  grid-template-columns: repeat(4, 23.55%);
+  column-gap: calc(1.25 * var(--hl-u));
+  align-items: start;
+  padding-inline: calc(1.25 * var(--hl-u));
+  margin-block-end: calc(8.75 * var(--hl-u));
 }
 
-/* Focusable only while it actually overflows — see on-track.ts. A focus stop
-   with no visible ring puts the caret somewhere nobody can see. */
-.ot-wins__table:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 4px;
+/* Reference `.text-title-lg-mona`, the career heading's cut: 4.5rem at "wdth"
+   93 "wght" 750, on 0.886, -0.125rem, in capitals. */
+.ot-hl__title {
+  grid-column: 1 / 3;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-family: var(--font-body);
+  font-stretch: 93%;
+  font-size: calc(4.5 * var(--hl-u));
+  font-weight: 750;
+  line-height: 0.886;
+  letter-spacing: calc(-0.125 * var(--hl-u));
+  text-transform: uppercase;
 }
 
-/* The two colour overrides that used to sit here are gone. They existed
-   because the season table was coloured for a cream ground and this one is not
-   — but the season table moved onto the dark band too, so those values are the
-   base now and restating them here was a second source of truth for one ink.
-
-   The hover below stays: it is a behaviour of the wins table, not a correction
-   to the shared one. */
-
-/* The reference's row hover: the row fills with the accent and the ink flips to
-   the page's black. [source] site.css:5602. #ff2800 against #1a1416 measures
-   4.66:1, which clears AA at this size rather than only the large-text floor. */
-.ot-wins .ot-seasons__row:hover {
-  background: var(--accent);
-  color: var(--dark);
+/* Shrink-wrapped by the column flex above, so each line's reveal bar is the
+   width of its words. */
+.ot-hl__title-line {
+  display: block;
+  white-space: nowrap;
 }
 
-.ot-wins .ot-seasons__row:hover .ot-wins__date,
-.ot-wins .ot-seasons__row:hover .ot-wins__pole {
-  color: var(--dark);
-}
+/* Reference `.text-title-lg-brier.c-grey-on-track`: the second face, one step
+   larger at 4.6875rem, in grey. Playfair stands in for the commercial Brier.
 
-.ot-wins__season {
-  font-weight: 700;
-}
-
-.ot-wins__date {
-  color: var(--text-muted);
+   The line box is set, not inherited. The reference's serif sits inline in a
+   line that keeps the heading's own strut, and between the two faces that line
+   measures 67.78px at 1728 -- 0.9037 of the serif's size. Built the same way,
+   Playfair's taller metrics make it a pixel deeper, and the 0.886 the first
+   line uses makes it a pixel and a half shallower; either moves every row
+   below it off the reference's. */
+.ot-hl__title-line--serif {
+  font-family: var(--font-serif);
+  font-size: calc(4.6875 * var(--hl-u));
   font-weight: 500;
+  line-height: 0.9037;
+  font-variant-numeric: lining-nums;
+  color: var(--grey-on-track);
 }
 
-/* Pole-to-flag. Decorative — the row carries "won from pole position" as an
-   sr-only twin — so this marks the win without being the only thing that says
-   it. */
-.ot-wins__pole {
-  margin-inline-start: 0.5rem;
-  font-size: 0.7em;
-  vertical-align: 0.15em;
+/* Reference `.text-body-reg-mona` in `.title-para-w.c-grey-on-track`. */
+.ot-hl__blurb {
+  grid-column: 3 / 4;
+  margin: 0;
+  font-family: var(--font-body);
+  font-stretch: 100%;
+  font-size: calc(1.25 * var(--hl-u));
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: calc(-0.0125 * var(--hl-u));
+  color: var(--grey-on-track);
+}
+
+/* The photograph's containing block. */
+.ot-hl__list {
+  position: relative;
+}
+
+/* A table in the markup, a stack of grids on screen -- the roles in
+   on-track.html are what keep it a table to assistive tech. */
+.ot-hl__table,
+.ot-hl__thead,
+.ot-hl__rows {
+  display: block;
+}
+
+/* Reference `.f1-highlight-grid`: 11.775 / 35.325 / 23.55% of the row and two
+   equal shares of the rest, a --gap between, half a gap above and below. */
+.ot-hl__grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: 11.775% 35.325% 23.55% 1fr 1fr;
+  column-gap: calc(1.25 * var(--hl-u));
+  padding: calc(0.625 * var(--hl-u)) calc(1.25 * var(--hl-u));
+}
+
+/* Reference `.f1-highlight-grid-item`: top-aligned flex, half a gap apart. The
+   rest undoes what a browser gives a table cell. */
+.ot-hl__th,
+.ot-hl__cell {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: calc(0.625 * var(--hl-u));
+  min-inline-size: 0;
+  padding: 0;
+  font-weight: inherit;
+  text-align: start;
+}
+
+/* Reference `.eyebrow-w.c-grey-on-track`. */
+.ot-hl__th {
+  overflow: clip;
+  color: var(--grey-on-track);
+}
+
+/* Reference `.text-eyebrow`: 0.625rem, "wdth" 100 "wght" 700, set solid. */
+.ot-hl__eyebrow {
+  font-family: var(--font-body);
+  font-stretch: 100%;
+  font-size: calc(0.625 * var(--hl-u));
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+/* Reference `.f1-highlight-collection`: two gaps under the eyebrows. */
+.ot-hl__rows {
+  margin-block-start: calc(2.5 * var(--hl-u));
+}
+
+/* The reference's own, set on each row so its bar cannot spill. */
+.ot-hl__row {
+  overflow: hidden;
+}
+
+/* Reference `.f1-highlight-grid-line`: a hairline across the top of each row,
+   a gap in from either edge -- the first step up off the ground, as every rule
+   on this page is. */
+.ot-hl__row::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  inline-size: calc(100% - 2.5 * var(--hl-u));
+  block-size: 1px;
+  margin-inline: auto;
+  background: var(--dark-tint-1);
+}
+
+/* Reference `.item-reveal`: the accent bar a row is revealed behind. It rests
+   at 0, so nothing covers a row unless on-track.ts has committed to uncovering
+   it; the entrance sets it to 1 and then pulls it off to the right. */
+.ot-hl__row::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: var(--accent);
+  transform: scaleX(var(--hl-bar, 0));
+  transform-origin: right center;
+  pointer-events: none;
+}
+
+/* Reference `.text-on-t-stat-label-major`: 4.375rem at "wdth" 75 "wght" 700 on
+   a 0.93 line -- the series, the venue, the date and the finish. */
+.ot-hl__major {
+  font-family: var(--font-display);
+  font-size: calc(4.375 * var(--hl-u));
+  font-weight: 700;
+  line-height: 0.93;
+  text-transform: uppercase;
+}
+
+/* Reference `.flag-w.is-md.is-f1-hl`: 2.12438 x 1.4125rem with rounded
+   corners, dropped 0.4rem to sit on the cap line rather than the box top. */
+.ot-hl__flag {
+  position: relative;
+  inset-block-start: calc(0.4 * var(--hl-u));
+  display: flex;
+  flex: none;
+  inline-size: calc(2.12438 * var(--hl-u));
+  block-size: calc(1.4125 * var(--hl-u));
+  border-radius: calc(0.2 * var(--hl-u));
+  overflow: clip;
+}
+
+.ot-hl__flag img,
+.ot-hl__photo-img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+/* The date, then its two-figure year half a gap after it. */
+.ot-hl__when {
+  display: flex;
+  gap: calc(0.625 * var(--hl-u));
+}
+
+/* Reference `data-text-format="position"`: the figure, then its ordinal
+   letters as a second flex item. */
+.ot-hl__place {
+  display: flex;
+}
+
+/* Reference `.text-on-t-stat-label-sm.is-super.c-lime`: 1.5rem, nudged 0.4rem
+   down and 0.2rem right, in the accent. */
+.ot-hl__sup {
+  position: relative;
+  inset-block-start: calc(0.4 * var(--hl-u));
+  inset-inline-start: calc(0.2 * var(--hl-u));
+  font-size: calc(1.5 * var(--hl-u));
+  line-height: 1;
   color: var(--accent);
 }
 
-/* The disclosure holding the rest of the rows. A real button with
-   aria-expanded, where the reference's equivalent control is a
-   non-focusable div. */
-.ot-wins__more {
-  margin-block-start: 3rem;
-  padding: 1.1rem 2.4rem;
+/* Reference `.f1-highlight-trophy-w`: a square as tall as the row, hung 5.6rem
+   left of the finish, holding the drawing to its right-hand side. */
+.ot-hl__trophy {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: calc(-5.6 * var(--hl-u));
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  block-size: 100%;
+  aspect-ratio: 1;
+}
+
+.ot-hl__trophy img {
+  display: block;
+  inline-size: 100%;
+  block-size: 90%;
+  object-fit: contain;
+}
+
+/* Reference `.text-on-t-stat-label-reg`: 2.0625rem on a 0.97 line. */
+.ot-hl__time {
   font-family: var(--font-display);
-  font-size: var(--text--btn-primary);
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-size: calc(2.0625 * var(--hl-u));
+  font-weight: 700;
+  line-height: 0.97;
+  letter-spacing: calc(-0.00625 * var(--hl-u));
   text-transform: uppercase;
-  color: var(--text);
-  background: transparent;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius--btn);
-  cursor: pointer;
-  transition:
-    background-color var(--dur-micro) var(--ease-out),
-    border-color var(--dur-micro) var(--ease-out),
-    color var(--dur-micro) var(--ease-out);
 }
 
-.ot-wins__more:hover {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--dark);
+/* Reference `.f1-highlight-mouse-over-w`: 20.6 x 24.6rem at the list's top
+   left, moved by on-track.ts and opened from the top as an ellipse. It rests
+   shut, and its [hidden] attribute keeps it out of the page until the pointer
+   code is built -- which is why nothing here sets a display. */
+.ot-hl__photo {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  z-index: 10;
+  inline-size: calc(20.6 * var(--hl-u));
+  block-size: calc(24.6 * var(--hl-u));
+  overflow: hidden;
+  clip-path: ellipse(120% 0% at 50% 0%);
+  pointer-events: none;
 }
 
-.ot-wins__more:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
+/* Reference `.f1-highlight-grid:hover`: the row fills with the accent and every
+   ink on it turns to the page's black -- the ordinal's letters and the trophy
+   with it -- and its rule steps aside. Instant, as the reference's is, and for
+   a desktop pointer only: below 992 the reference switches it off. */
+@media (min-width: 992px) and (hover: hover) {
+  .ot-hl__row:hover {
+    background: var(--accent);
+    color: var(--black);
+  }
+
+  .ot-hl__row:hover::before {
+    display: none;
+  }
+
+  .ot-hl__row:hover .ot-hl__sup {
+    color: inherit;
+  }
+
+  /* The reference inverts its lime drawing to near-black. Inverted, Rosso
+     comes out a pale grey that disappears into the fill, so the drawing is
+     taken to black directly. */
+  .ot-hl__row:hover .ot-hl__trophy img {
+    filter: brightness(0);
+  }
+}
+
+/* Tablet: the reference's rem is 20/1728ths of the width here. The blurb takes
+   two columns and the eyebrows grow a step. */
+@media (max-width: 991px) {
+  .ot-hl {
+    --hl-u: calc(clamp(480px, 100vw, 991px) / 1728 * 20);
+  }
+
+  .ot-hl__blurb {
+    grid-column: 3 / 5;
+  }
+
+  .ot-hl__eyebrow {
+    font-size: calc(0.8 * var(--hl-u));
+  }
+}
+
+@media (max-width: 767px) {
+  .ot-hl__eyebrow {
+    font-size: var(--hl-u);
+  }
+
+  .ot-hl__blurb {
+    font-size: calc(1.75 * var(--hl-u));
+  }
+}
+
+/* Phone: 48/1728ths of the width. Headline and blurb become two halves, and the
+   rows keep the venue, the date and the finish, dropping the series, the year
+   and the time. */
+@media (max-width: 479px) {
+  .ot-hl {
+    --hl-u: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
+  }
+
+  .ot-hl__head {
+    grid-template-columns: 1fr 1fr;
+    gap: calc(2.5 * var(--hl-u));
+    /* Two gaps under the grid, then the reference's 4rem spacer. */
+    margin-block-end: calc(6.5 * var(--hl-u));
+  }
+
+  .ot-hl__title,
+  .ot-hl__blurb {
+    grid-column: auto;
+  }
+
+  .ot-hl__title,
+  .ot-hl__title-line--serif {
+    font-size: calc(2.6 * var(--hl-u));
+  }
+
+  .ot-hl__blurb {
+    font-size: calc(1.3 * var(--hl-u));
+  }
+
+  .ot-hl__eyebrow {
+    font-size: calc(0.8 * var(--hl-u));
+  }
+
+  .ot-hl__grid {
+    grid-template-columns: 2fr 1fr 0.6fr;
+  }
+
+  .ot-hl__col--series,
+  .ot-hl__col--time,
+  .ot-hl__yy {
+    display: none;
+  }
+
+  .ot-hl__major {
+    font-size: calc(2.2 * var(--hl-u));
+  }
+
+  .ot-hl__flag {
+    inset-block-start: calc(0.2 * var(--hl-u));
+    inline-size: calc(1.4 * var(--hl-u));
+    block-size: calc(0.9 * var(--hl-u));
+    border-radius: calc(0.1 * var(--hl-u));
+  }
+
+  .ot-hl__sup {
+    inset-block-start: calc(0.1 * var(--hl-u));
+    font-size: calc(1.3 * var(--hl-u));
+  }
+
+  .ot-hl__trophy {
+    inset-inline-start: calc(-2.6 * var(--hl-u));
+  }
 }
 
 /* ==================================================== Countdown
@@ -2265,10 +2578,6 @@
  * have to be restated rather than left to shrink on their own. */
 
 @media (max-width: 991px) {
-  .ot-wins {
-    padding-block: 5rem 4rem;
-  }
-
   .ot-countdown {
     padding-block: 4rem 5rem;
   }

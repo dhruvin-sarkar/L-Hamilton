@@ -441,51 +441,75 @@
         </div>
       </section>
 
-      <!-- ============================================= Result highlights
-           Reference section 2: a table of career wins, one row per race —
-           country, date, finishing position, race time, gap.
+      <!-- ========================================== F1 result highlights
+           Reference section 2, "F1 RESULT HIGHLIGHTS": a headline and blurb on
+           the grid-main columns, then a full-bleed list of seven Grands Prix --
+           series, venue and flag, date, finish with the race's trophy beside
+           it, and the race time. A row fills with the accent under the pointer,
+           and a photograph of that race follows the cursor across the list.
 
-           The reference driver has seven wins and the block is a fixed height.
-           Hamilton has 106, which is the one place his volume genuinely breaks
-           the layout. Rather than invent a page the reference does not have, or
-           silently truncate, the section keeps the row design and puts the tail
-           behind a disclosure: the ten most recent are open, the rest one button
-           away. That button is a real <button> with aria-expanded, not the
-           reference's non-focusable div. -->
-      <section class="ot-wins" aria-labelledby="ot-wins-h">
-        <div class="shell">
-          <div class="ot-band__head">
-            <h2 class="ot-band__title" id="ot-wins-h">
-              <span class="ot-band__title-line reveal-text">Race wins</span>
-              <span class="ot-band__title-line ot-band__title-line--serif reveal-text"
-                >every one of them</span
-              >
+           The reference lists every win its driver has, which is seven.
+           Hamilton has more than a hundred, so the seven rows are a selection,
+           made in content/hamilton.ts and filled there from the fetched record
+           -- nothing a row prints is typed into this file.
+
+           A real table: series, venue, date, finish and time are fields of one
+           record. It is laid out as a grid, and a table whose display changes
+           can lose its semantics in some browsers, so every part carries its
+           role back explicitly. -->
+      <section class="ot-hl" aria-labelledby="ot-hl-h">
+        <div class="ot-hl__c">
+          <div class="ot-hl__head">
+            <h2 class="ot-hl__title" id="ot-hl-h">
+              <span class="ot-hl__title-line reveal-text">F1 result</span>
+              <span class="ot-hl__title-line ot-hl__title-line--serif reveal-text">highlights</span>
             </h2>
-            <p class="ot-band__blurb reveal-text" data-wins-blurb></p>
+
+            <!-- Third-person site copy, as the reference's blurb is narration
+                 about its driver rather than his own words. The count is bound
+                 from the data layer. "Formula 1" is held together: a line
+                 that ends on "Formula" and opens on "1," reads as a typo. -->
+            <p class="ot-hl__blurb reveal-text" data-reveal-rich>
+              Throughout his <span data-bind="seasons-word">twenty</span> seasons in Formula&nbsp;1,
+              Lewis has achieved a range of memorable results on tracks across the world.
+            </p>
           </div>
 
-          <div class="ot-wins__table" data-wins>
-            <table class="ot-seasons__table">
-              <caption class="sr-only" data-wins-caption>
-                Career Grand Prix wins
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col" class="ot-seasons__th">Grand Prix</th>
-                  <th scope="col" class="ot-seasons__th">Season</th>
-                  <th scope="col" class="ot-seasons__th">Team</th>
-                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Grid</th>
-                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Laps</th>
-                  <th scope="col" class="ot-seasons__th ot-seasons__th--num">Race time</th>
+          <!-- The rows are the pointer area; the photograph is placed within
+               this wrapper, which is why it sits outside the table. -->
+          <div class="ot-hl__list" data-hl-list>
+            <table class="ot-hl__table" role="table">
+              <caption class="sr-only" data-hl-caption>F1 result highlights</caption>
+              <thead class="ot-hl__thead" role="rowgroup">
+                <tr class="ot-hl__grid" role="row">
+                  <th class="ot-hl__th ot-hl__col--series" scope="col" role="columnheader">
+                    <span class="ot-hl__eyebrow reveal-text">Series</span>
+                  </th>
+                  <th class="ot-hl__th" scope="col" role="columnheader">
+                    <span class="ot-hl__eyebrow reveal-text">Name</span>
+                  </th>
+                  <th class="ot-hl__th" scope="col" role="columnheader">
+                    <span class="ot-hl__eyebrow reveal-text">When</span>
+                  </th>
+                  <th class="ot-hl__th" scope="col" role="columnheader">
+                    <span class="ot-hl__eyebrow reveal-text">Finish</span>
+                  </th>
+                  <th class="ot-hl__th ot-hl__col--time" scope="col" role="columnheader">
+                    <span class="ot-hl__eyebrow reveal-text">Time / Gap</span>
+                  </th>
                 </tr>
               </thead>
-              <tbody data-wins-body></tbody>
+              <tbody class="ot-hl__rows" role="rowgroup" data-hl-rows></tbody>
             </table>
-          </div>
 
-          <button class="ot-wins__more" type="button" data-wins-toggle aria-expanded="false">
-            <span data-wins-toggle-label>Show all wins</span>
-          </button>
+            <!-- Decoration under the pointer: the same pictures are not
+                 information, so it is hidden from assistive tech, and it is
+                 only ever built for a fine pointer with motion allowed. No src
+                 until a row asks for one -- `src=""` would fetch this page. -->
+            <div class="ot-hl__photo" data-hl-photo aria-hidden="true" hidden>
+              <img class="ot-hl__photo-img" data-hl-photo-img alt="" />
+            </div>
+          </div>
         </div>
       </section>
 

@@ -14,7 +14,8 @@
  * See docs/CONTENT-DATA.md. Do not hardcode a number anywhere else in the app.
  */
 
-import { career, provenance } from './live-stats';
+import { career, provenance, wins } from './live-stats';
+import type { Win } from './live-stats';
 
 export type TeamId = 'mclaren' | 'mercedes' | 'ferrari';
 
@@ -290,6 +291,70 @@ export const careerTotals: CareerTotals = {
  * does not have.
  */
 export const statsCurrentThrough = provenance.latestRace;
+
+/* ------------------------------------------------------------------ *
+ * F1 result highlights
+ * ------------------------------------------------------------------ */
+
+/**
+ * The Grands Prix On Track lists under "F1 result highlights".
+ *
+ * The reference fills that block with every win its driver has, which is
+ * seven. Hamilton has more than a hundred, so the same seven rows are a
+ * selection -- and the selection is all this file holds: a season and a round.
+ * The venue, the date and the race time each row prints are read off the
+ * fetched wins record, and a pick that matches no win there throws at load
+ * rather than rendering a row nobody can trace.
+ *
+ * `photo` is the picture that follows the cursor over the row, and every one
+ * below is a PLACEHOLDER from the site's own gallery until photography of the
+ * race itself is supplied. `trophy` is the drawing beside the finish: the
+ * reference draws each race's own trophy, and until those are supplied every
+ * row carries the same cup, drawn for this site. Swapping either is a change to
+ * one path here and nowhere else.
+ */
+interface HighlightPick {
+  season: number;
+  round: number;
+  photo: string;
+  trophy: string;
+}
+
+const TROPHY = '/assets/highlights/trophy.svg';
+
+const HIGHLIGHT_PICKS: readonly HighlightPick[] = [
+  // His first win with Ferrari.
+  { season: 2026, round: 7, photo: '/assets/gallery/gallery-04.webp', trophy: TROPHY },
+  // From tenth on the grid, after being sent to the back of the sprint.
+  { season: 2021, round: 19, photo: '/assets/gallery/gallery-11.webp', trophy: TROPHY },
+  // The win that sealed his seventh world title.
+  { season: 2020, round: 14, photo: '/assets/gallery/gallery-01.webp', trophy: TROPHY },
+  // Win number 92, which took the all-time record.
+  { season: 2020, round: 12, photo: '/assets/gallery/gallery-09.webp', trophy: TROPHY },
+  // From fourteenth on the grid, the furthest back he has ever won from.
+  { season: 2018, round: 11, photo: '/assets/gallery/gallery-10.webp', trophy: TROPHY },
+  // Silverstone in the wet, won by more than a minute.
+  { season: 2008, round: 9, photo: '/assets/gallery/gallery-07.webp', trophy: TROPHY },
+  // His first Grand Prix win.
+  { season: 2007, round: 6, photo: '/assets/gallery/gallery-03.webp', trophy: TROPHY },
+];
+
+export interface ResultHighlight {
+  win: Win;
+  /** The winner's race time, required here: a highlight row prints it. */
+  time: string;
+  photo: string;
+  trophy: string;
+}
+
+/** The picks resolved against the record, newest first as the reference lists them. */
+export const resultHighlights: readonly ResultHighlight[] = HIGHLIGHT_PICKS.map((pick) => {
+  const win = wins.find((w) => w.season === pick.season && w.round === pick.round);
+  const where = `result highlight ${pick.season} round ${pick.round}`;
+  if (!win) throw new Error(`[content] ${where} is not a win in career.json`);
+  if (!win.raceTime) throw new Error(`[content] ${where} has no race time in career.json`);
+  return { win, time: win.raceTime, photo: pick.photo, trophy: pick.trophy };
+}).sort((a, b) => b.win.date.localeCompare(a.win.date));
 
 /* ------------------------------------------------------------------ *
  * Derived

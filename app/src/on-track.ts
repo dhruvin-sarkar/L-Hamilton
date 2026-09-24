@@ -8,7 +8,7 @@
  *
  * Section order follows the reference (docs/ON-TRACK-REFERENCE.md §1). Built so
  * far: the page header, the career stat band (including the twenty-season table
- * that the reference's seven-row block becomes), the full wins table, the
+ * that the reference's seven-row block becomes), the F1 result highlights, the
  * countdown to the next race, and the season schedule with its circuit panel.
  */
 
@@ -28,7 +28,9 @@ import {
   preF1Championships,
   preF1Span,
   preF1Titles,
+  resultHighlights,
 } from './content/hamilton';
+import type { ResultHighlight } from './content/hamilton';
 import {
   calendar,
   career,
@@ -39,11 +41,9 @@ import {
   roundStart,
   seasons,
   seasonsNewestFirst,
-  wins,
-  winsNewestFirst,
 } from './content/live-stats';
 import type { CalendarRound, RaceSession } from './content/live-stats';
-import { flagUrl } from './content/countries';
+import { countryName, flagUrl } from './content/countries';
 
 /* ------------------------------------------------------------------ *
  * Smooth scroll
@@ -109,15 +109,42 @@ const points = (n: number): string =>
 
 const SMALL_NUMBERS = [
   'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight',
-  'nine', 'ten', 'eleven', 'twelve',
+  'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen',
+  'sixteen', 'seventeen', 'eighteen', 'nineteen',
 ];
 
+const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+
 /**
- * Small numbers spelled out, for the places where a figure sits inside a
- * sentence rather than in a table. Still derived — the value comes from the
- * data either way; this only decides how it reads.
+ * Numbers under a hundred spelled out, for the places where a figure sits
+ * inside a sentence rather than in a table -- "twenty seasons", as the
+ * reference writes "seven seasons". Still derived: the value comes from the
+ * data either way; this only decides how it reads. Anything else stays digits.
  */
-const spell = (n: number): string => SMALL_NUMBERS[n] ?? groups.format(n);
+function spell(n: number): string {
+  if (!Number.isInteger(n) || n < 0 || n >= 100) return groups.format(n);
+  if (n < SMALL_NUMBERS.length) return SMALL_NUMBERS[n] as string;
+  const unit = n % 10;
+  return `${TENS[Math.floor(n / 10)]}${unit ? `-${SMALL_NUMBERS[unit]}` : ''}`;
+}
+
+/**
+ * Three-letter months, as the reference prints them. `toLocaleDateString`
+ * cannot be trusted with this: en-GB's short September is "Sept".
+ */
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * "2008-07-06" -> "6 Jul". Read in UTC, because the record's dates are
+ * calendar days rather than instants, and a local zone west of Greenwich would
+ * otherwise print every one of them a day early.
+ */
+function shortDate(iso: string): string {
+  const day = new Date(`${iso}T00:00:00Z`);
+  const month = MONTHS[day.getUTCMonth()];
+  if (month === undefined) throw new Error(`[on-track] "${iso}" is not an ISO date`);
+  return `${day.getUTCDate()} ${month}`;
+}
 
 /** 1 -> 1st, 2 -> 2nd, 3 -> 3rd, 11 -> 11th. */
 function ordinal(n: number): string {
@@ -403,6 +430,10 @@ const bindings: Record<string, string> = {
      transfer. */
   'titles-word': spell(career.championships),
   'teams-word': spell(eras.length),
+  /* The result highlights' blurb, "throughout his twenty seasons". Counted
+     from the seasons record, the current one included, as the reference
+     counts its own. */
+  'seasons-word': spell(career.seasonsContested),
   /* "Ferrari F1 since 2025", where the reference has its own team and year.
      Read off the era that has not ended, so the year comes from the same
      record as the team rather than from a second place that can disagree. */
@@ -1184,121 +1215,255 @@ if (seasonsBody) {
 }
 
 /* ------------------------------------------------------------------ *
- * Race wins
+ * F1 result highlights
  *
- * The reference's section 2 is a seven-row block of career wins. Hamilton has
- * 106, so the rows stay and the tail goes behind a disclosure: the ten most
- * recent render open, the rest are built once and revealed by the button.
- *
- * Built eagerly rather than on first open, so the hidden rows are in the
- * accessible tree and findable by browser find-in-page from the start.
+ * Reference section 2: seven Grands Prix in a full-bleed list. Which seven is
+ * decided in content/hamilton.ts, which resolves each pick against the fetched
+ * record and throws on one it cannot find -- so every venue, date and race time
+ * below is the record's own, and nothing here is typed.
  * ------------------------------------------------------------------ */
 
-const WINS_VISIBLE = 10;
+/* A win is P1 by definition. Its figure and ordinal letters are split, as the
+   reference's "position" format sets them: "1" and a raised "st". */
+const WON = ordinal(1);
+const WON_DIGITS = WON.replace(/\D+$/, '');
 
-const winsBody = document.querySelector<HTMLElement>('[data-wins-body]');
-const winsToggle = document.querySelector<HTMLButtonElement>('[data-wins-toggle]');
-const winsToggleLabel = document.querySelector<HTMLElement>('[data-wins-toggle-label]');
-const winsBlurb = document.querySelector<HTMLElement>('[data-wins-blurb]');
-const winsCaption = document.querySelector<HTMLElement>('[data-wins-caption]');
+const hlList = document.querySelector<HTMLElement>('[data-hl-list]');
+const hlRows = document.querySelector<HTMLElement>('[data-hl-rows]');
+const hlCaption = document.querySelector<HTMLElement>('[data-hl-caption]');
+const hlPhoto = document.querySelector<HTMLElement>('[data-hl-photo]');
+const hlPhotoImg = document.querySelector<HTMLImageElement>('[data-hl-photo-img]');
 
-function shortDate(iso: string): string {
-  return new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    timeZone: 'UTC',
+/**
+ * One row: series, venue, date, finish and time -- the reference's five
+ * columns. Every part carries its table role, because the row is laid out as a
+ * grid and a table whose display changes can drop its semantics.
+ */
+function highlightRow({ win, time, photo, trophy }: ResultHighlight): HTMLTableRowElement {
+  const row = el('tr', 'ot-hl__grid ot-hl__row');
+  row.setAttribute('role', 'row');
+  row.dataset.photo = photo;
+
+  const series = el('td', 'ot-hl__cell ot-hl__col--series');
+  series.setAttribute('role', 'cell');
+  series.appendChild(el('span', 'ot-hl__major', 'F1'));
+
+  /* The venue is the row's header, so each figure is announced against it:
+     "Turkey, When, 15 Nov 2020". The flag says the same thing again, so it is
+     decoration. */
+  const venue = el('th', 'ot-hl__cell');
+  venue.scope = 'row';
+  venue.setAttribute('role', 'rowheader');
+  const flag = el('img');
+  flag.src = flagUrl(win.country);
+  flag.alt = '';
+  flag.width = 34;
+  flag.height = 23;
+  flag.decoding = 'async';
+  const flagBox = el('span', 'ot-hl__flag');
+  flagBox.appendChild(flag);
+  venue.append(el('span', 'ot-hl__major', countryName(win.country)), flagBox);
+
+  /* Day and month, then the year in two figures, as the reference writes it.
+     Read aloud, "08" is a number rather than a year, so the two figures are
+     hidden and the full year is what a screen reader hears. */
+  const when = el('td', 'ot-hl__cell');
+  when.setAttribute('role', 'cell');
+  const date = el('time', 'ot-hl__when');
+  date.dateTime = win.date;
+  const year = el('span', 'ot-hl__major ot-hl__yy', String(win.season).slice(-2));
+  year.setAttribute('aria-hidden', 'true');
+  date.append(
+    el('span', 'ot-hl__major', shortDate(win.date)),
+    year,
+    el('span', 'sr-only', ` ${win.season}`),
+  );
+  when.appendChild(date);
+
+  /* Drawn as a figure and its raised letters; heard as one word. The trophy
+     beside it is the race's own in the reference, and decoration either way. */
+  const finish = el('td', 'ot-hl__cell');
+  finish.setAttribute('role', 'cell');
+  const place = el('span', 'ot-hl__major ot-hl__place');
+  place.setAttribute('aria-hidden', 'true');
+  place.append(WON_DIGITS, el('span', 'ot-hl__sup', WON.slice(WON_DIGITS.length)));
+  const cup = el('span', 'ot-hl__trophy');
+  cup.setAttribute('aria-hidden', 'true');
+  const cupImg = el('img');
+  cupImg.src = trophy;
+  cupImg.alt = '';
+  cupImg.width = 64;
+  cupImg.height = 64;
+  cupImg.decoding = 'async';
+  cup.appendChild(cupImg);
+  finish.append(place, el('span', 'sr-only', WON), cup);
+
+  const clock = el('td', 'ot-hl__cell ot-hl__col--time');
+  clock.setAttribute('role', 'cell');
+  clock.appendChild(el('span', 'ot-hl__time', time));
+
+  row.append(series, venue, when, finish, clock);
+  return row;
+}
+
+if (hlRows) {
+  for (const highlight of resultHighlights) hlRows.appendChild(highlightRow(highlight));
+
+  if (hlCaption) {
+    hlCaption.textContent =
+      `F1 result highlights: ${spell(resultHighlights.length)} of his ` +
+      `${groups.format(career.wins)} Grand Prix wins, newest first.`;
+  }
+
+  /* Row entry, the reference's own to the number. The rows wait, clipped to
+   * nothing, until the list's top crosses 90% of the screen. Then each opens
+   * left to right over 0.6s, 50ms behind the one above, uncovering the accent
+   * bar that lies over it -- and 0.3s into that the bar pulls off to the right,
+   * so the row itself arrives in reading order.
+   *
+   * One timeline for the list, not a trigger per row: that is what makes seven
+   * rows read as one cascade rather than seven separate arrivals. Under reduced
+   * motion none of it is built and the rows are simply there. */
+  mm.add('(prefers-reduced-motion: no-preference)', () => {
+    const rows = [...hlRows.querySelectorAll<HTMLElement>('.ot-hl__row')];
+    gsap.set(rows, { clipPath: 'inset(0 100% 0 0)', '--hl-bar': 1 });
+    const entry = gsap.timeline({
+      scrollTrigger: { trigger: hlRows, start: 'top 90%', once: true },
+    });
+    rows.forEach((row, i) => {
+      const at = i * 0.05;
+      entry.to(row, { clipPath: 'inset(0 0% 0 0)', duration: 0.6, ease: 'power2.out' }, at);
+      entry.to(row, { '--hl-bar': 0, duration: 0.6, ease: 'power2.inOut' }, at + 0.3);
+    });
   });
 }
 
-if (winsBody) {
-  winsNewestFirst.forEach((win, index) => {
-    const row = el('tr', 'ot-seasons__row ot-wins__row');
-    row.dataset.team = win.teamId;
-    if (index >= WINS_VISIBLE) row.hidden = true;
+/* ------------------------------------------------------------------ *
+ * The photograph under the cursor
+ *
+ * A port of the reference's mechanics rather than a lookalike. Over the rows, a
+ * 20.6 x 24.6rem picture of the race under the pointer follows it, 20px right
+ * of and 20px above the tip, easing to each new position over 0.5s. It enters
+ * by opening down from its top edge as an ellipse (0.8s, power2.out) and leaves
+ * by closing the same way at double speed. The reference also stacks a lime
+ * layer inside it that wipes away on entry -- but that layer is `opacity: 0` in
+ * its stylesheet and nothing ever raises it, so what a reader sees there is the
+ * ellipse alone, and that is what is built here.
+ *
+ * Two of its habits are kept, because they are part of how it feels:
+ *   - entering with the mouse replays the opening at whatever speed the last
+ *     exit left it (after the first visit, double); scrolling the list under a
+ *     still pointer opens it at normal speed.
+ *   - the picture keeps its place between visits, so it glides in from where
+ *     the pointer last left -- from the list's top-left corner the first time.
+ *
+ * Decoration: aria-hidden, desktop and a fine pointer only (the reference hides
+ * it below 992 as well), and never built under reduced motion.
+ * ------------------------------------------------------------------ */
 
-    const name = el('th', 'ot-seasons__cell ot-seasons__cell--year');
-    name.setAttribute('scope', 'row');
-    name.appendChild(el('span', 'ot-seasons__year', win.raceName.replace(/ Grand Prix$/, '')));
-    if (win.fromPole) {
-      // Pole-to-flag is the win worth marking. Mark plus word, so it is never
-      // glyph-only.
-      name.appendChild(el('span', 'sr-only', ' — won from pole position'));
-      const mark = el('span', 'ot-wins__pole', '◆');
-      mark.setAttribute('aria-hidden', 'true');
-      name.appendChild(mark);
-    }
-    row.appendChild(name);
+/** The reference's offset from the pointer, in CSS pixels at every size. */
+const PHOTO_OFFSET = 20;
 
-    const season = el('td', 'ot-seasons__cell');
-    season.append(
-      el('span', 'ot-wins__season', String(win.season)),
-      el('span', 'ot-wins__date', ` ${shortDate(win.date)}`),
-    );
-    row.appendChild(season);
+if (hlList && hlRows && hlPhoto && hlPhotoImg) {
+  mm.add(
+    '(min-width: 992px) and (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine)',
+    () => {
+      hlPhoto.hidden = false;
+      gsap.set(hlPhoto, { x: 0, y: 0 });
 
-    row.appendChild(el('td', 'ot-seasons__cell', win.team));
-    for (const value of [`P${win.grid}`, groups.format(win.laps), win.raceTime ?? '—']) {
-      row.appendChild(el('td', 'ot-seasons__cell ot-seasons__cell--num', value));
-    }
-    winsBody.appendChild(row);
-  });
-
-  const fromPole = wins.filter((w) => w.fromPole).length;
-
-  if (winsBlurb) {
-    winsBlurb.textContent =
-      `${groups.format(career.wins)} Grand Prix victories across three teams, ` +
-      `${groups.format(fromPole)} of them from pole position. Listed newest first.`;
-  }
-  if (winsCaption) {
-    winsCaption.textContent = `Career Grand Prix wins, ${groups.format(
-      career.wins,
-    )} in total, newest first.`;
-  }
-
-  /* Same row entry as the season table, and for the same reason: the reference
-   * gives its wins rows the `.item-reveal` wipe too (§6.1). Batched, so the
-   * hundred-odd rows read downward rather than each finding its own trigger.
-   *
-   * The hidden tail is included. A `hidden` row has no box, so its trigger
-   * resolves to nothing until the disclosure opens — which is why the toggle
-   * calls `ScrollTrigger.refresh()`. */
-  if (!reducedMotion) {
-    ScrollTrigger.batch(winsBody.querySelectorAll('.ot-wins__row'), {
-      start: 'top 92%',
-      onEnter: (batch) =>
-        gsap.to(batch, {
-          '--row-wipe': 1,
-          opacity: 1,
-          duration: 0.62,
-          ease: 'power3.out',
-          stagger: 0.045,
-          overwrite: true,
-        }),
-    });
-  }
-
-  if (winsToggle && winsToggleLabel) {
-    if (winsNewestFirst.length <= WINS_VISIBLE) {
-      winsToggle.hidden = true;
-    } else {
-      winsToggleLabel.textContent = `Show all ${groups.format(career.wins)} wins`;
-      winsToggle.addEventListener('click', () => {
-        const open = winsToggle.getAttribute('aria-expanded') === 'true';
-        winsToggle.setAttribute('aria-expanded', String(!open));
-        for (const [i, row] of [...winsBody.children].entries()) {
-          if (i >= WINS_VISIBLE) (row as HTMLElement).hidden = open;
-        }
-        winsToggleLabel.textContent = open
-          ? `Show all ${groups.format(career.wins)} wins`
-          : 'Show only the ten most recent';
-        // Collapsing removes thousands of pixels above the reader; put them back
-        // on the control they just pressed rather than wherever that lands them.
-        if (open) winsToggle.scrollIntoView({ block: 'center', behavior: 'auto' });
-        ScrollTrigger.refresh();
+      const open = gsap.timeline({ paused: true }).to(hlPhoto, {
+        clipPath: 'ellipse(120% 120% at 50% 0%)',
+        duration: 0.8,
+        ease: 'power2.out',
       });
-    }
-  }
+      /* quickTo retargets one running tween per axis, which moves exactly as the
+         reference's fresh 0.5s tween per mousemove does, without piling them up. */
+      const toX = gsap.quickTo(hlPhoto, 'x', { duration: 0.5, ease: 'power2.out' });
+      const toY = gsap.quickTo(hlPhoto, 'y', { duration: 0.5, ease: 'power2.out' });
+
+      let over = false;
+      let inView = false;
+      // Unknown until the pointer first moves -- never a corner of the screen.
+      let pointerX = Number.NaN;
+      let pointerY = Number.NaN;
+
+      /** The pointer against the rows: re-read on every move AND every scroll,
+          because the list travels under a pointer that has not moved. */
+      const track = (): void => {
+        if (!inView) return;
+        const rows = hlRows.getBoundingClientRect();
+        const inside =
+          pointerX >= rows.left &&
+          pointerX <= rows.right &&
+          pointerY >= rows.top &&
+          pointerY <= rows.bottom;
+        if (inside && !over) {
+          over = true;
+          open.timeScale(1).play();
+        } else if (!inside && over) {
+          over = false;
+          open.timeScale(2).reverse();
+        }
+        if (inside) {
+          const box = hlList.getBoundingClientRect();
+          toX(pointerX - box.left + PHOTO_OFFSET);
+          toY(pointerY - box.top - PHOTO_OFFSET);
+        }
+      };
+
+      const onMove = (event: MouseEvent): void => {
+        pointerX = event.clientX;
+        pointerY = event.clientY;
+        track();
+      };
+      const onEnter = (): void => {
+        over = true;
+        open.play();
+      };
+      const onLeave = (): void => {
+        over = false;
+        open.timeScale(2).reverse();
+      };
+      /* The race under the pointer, swapped outright as the reference swaps it:
+         no fade between two races. */
+      const onOver = (event: MouseEvent): void => {
+        const target = event.target instanceof Element ? event.target : null;
+        const src = target?.closest<HTMLElement>('.ot-hl__row')?.dataset.photo;
+        if (src && hlPhotoImg.getAttribute('src') !== src) hlPhotoImg.src = src;
+      };
+
+      /* Fetched as the list comes into view rather than on the first hover, so
+         a picture is never still arriving while it opens. */
+      let fetched = false;
+      const watch = new IntersectionObserver(
+        ([entry]) => {
+          inView = entry?.isIntersecting ?? false;
+          if (!inView || fetched) return;
+          fetched = true;
+          for (const { photo } of resultHighlights) new Image().src = photo;
+        },
+        { threshold: 0.1 },
+      );
+      watch.observe(hlRows);
+
+      hlRows.addEventListener('mouseenter', onEnter);
+      hlRows.addEventListener('mouseleave', onLeave);
+      hlRows.addEventListener('mouseover', onOver);
+      document.addEventListener('mousemove', onMove, { passive: true });
+      window.addEventListener('scroll', track, { passive: true });
+
+      return () => {
+        watch.disconnect();
+        hlRows.removeEventListener('mouseenter', onEnter);
+        hlRows.removeEventListener('mouseleave', onLeave);
+        hlRows.removeEventListener('mouseover', onOver);
+        document.removeEventListener('mousemove', onMove);
+        window.removeEventListener('scroll', track);
+        hlPhoto.hidden = true;
+        hlPhotoImg.removeAttribute('src');
+      };
+    },
+  );
 }
 
 /* ------------------------------------------------------------------ *
@@ -1666,7 +1831,7 @@ if (scheduleList && circuitPanel) {
       // not tabs, and aria-selected outside a listbox or tablist means nothing.
       b.setAttribute('aria-pressed', String(active));
       /* Roving tabindex. Without it the schedule is 23 tab stops standing
-       * between the wins disclosure and the footer, and every one of them has
+       * between the rest of the page and the footer, and every one of them has
        * to be pressed past to leave the section. One stop enters the list, and
        * the arrow keys below move inside it — the ARIA toolbar pattern, which
        * is why the container carries that role. */
@@ -1801,13 +1966,13 @@ if (scheduleList && circuitPanel) {
 }
 
 /* ------------------------------------------------------------------ *
- * Keyboard access to the tables' sideways overflow
+ * Keyboard access to sideways overflow
  *
- * Below about 992px the wins table is wider than its column and its wrapper
- * scrolls it sideways. A scroll container is only operable by pointer unless
- * it is focusable, so without this the last few columns — laps and race time —
- * are simply unreachable for anyone driving the page from the keyboard.
- * WCAG 2.1.1. (The seasons list is three columns and fits any width.)
+ * A scroll container is only operable by pointer unless it is focusable, so
+ * without this whatever it holds past the edge is simply unreachable for
+ * anyone driving the page from the keyboard. WCAG 2.1.1. (Neither table on the
+ * page scrolls: the seasons list is three columns and the result highlights
+ * drop to three below 480px, so both fit any width.)
  *
  * Applied only while it actually overflows: an unconditional tabindex would add
  * a tab stop on every desktop width, where there is nothing to scroll and the
@@ -1820,7 +1985,6 @@ const scrollRegions: [string, string][] = [
      which puts the next round's circuit and dates off the right of a phone
      screen unless the region can be entered from the keyboard. */
   ['.ot-hero__ui', 'Previous and next race, scrollable'],
-  ['[data-wins]', 'Career race wins, scrollable'],
 ];
 
 for (const [selector, label] of scrollRegions) {
