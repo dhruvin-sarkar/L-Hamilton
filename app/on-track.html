@@ -748,17 +748,53 @@
         </div>
       </section>
       <!-- ============================== The tail Home and On Track share
-           Reference section 8: helmets, then socials, then the store call to
-           action, in that order — which is not Home's order (Home puts the
-           store between them and adds a partners block that does not appear
-           here). Same three components either way.
+           Reference sections 7 and 8, measured at 1728x1080: the full-screen
+           picture (`.s.is-otot-end`, 1080), then ONE dark group holding the
+           helmets (2036), the socials (1158) and a store callout (572), then
+           the footer on that same ground.
+
+           Two things about that order are easy to get wrong, and both were:
+
+             - The picture is Home's riser, the same partial and the same
+               motion. The reference carries the identical section, image and
+               tween on both pages.
+             - The ground does NOT change after the helmets. The socials sit on
+               the wall's own ground, not Home's cream, and there is no big store
+               section — only the short callout, the same component Home puts
+               under its wall. The one change of ground is INTO the wall, where
+               the picture hands over to it.
 
            Its own study of this section says plainly: reuse the component, do
            not re-implement it. So these are the partials Home renders and the
            behaviour Home runs — see src/lib/showcase.ts. -->
+      <!--#include "partials/otot-end.html"-->
       <!--#include "partials/helmets.html"-->
       <!--#include "partials/socials.html"-->
-      <!--#include "partials/store.html"-->
+
+      <!-- ============================================== The store callout
+           Reference: `.c.is-callout` after the socials, pointing at the store's
+           scale replicas. The same component Home closes its wall with; the
+           line here is site copy about the official store and names only what
+           the store's own products carry — the +44 mark. -->
+      <section class="callout">
+        <div class="callout__layout">
+          <svg class="callout__icon" viewBox="0 0 64 44" aria-hidden="true">
+            <use href="#nr-crest" />
+          </svg>
+          <p class="callout__text reveal-text">
+            Explore the official collection of +44 apparel and accessories
+          </p>
+          <a class="callout__link" href="https://store.lewishamilton.com" target="_blank"
+            rel="noopener noreferrer">
+            <span class="sr-only">Visit the store (opens in a new tab)</span>
+            <span class="btn-text" aria-hidden="true" data-split-chars>Visit the store</span>
+            <svg class="callout__arrow" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9.5 9.5H19M15 5.5l4 4-4 4M9.5 9.5a4.5 4.5 0 0 0 0 9h5" fill="none" stroke="currentColor"
+                stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+        </div>
+      </section>
     </main>
 
     <!--#include "partials/menu.html"-->

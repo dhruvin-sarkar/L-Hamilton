@@ -41,24 +41,11 @@
           </header>
 
           <ul class="hof__grid" data-hof-grid></ul>
-
-          <div class="hof__cta">
-            <!-- The same crest as the next-race card and the menu, by reference
-                 rather than by a third copy that would drift out of sync. -->
-            <svg class="hof__cta-crest" viewBox="0 0 64 44" aria-hidden="true">
-              <use href="#nr-crest" />
-            </svg>
-            <p class="hof__cta-line reveal-text">
-              See more helmets and highlights from Lewis on the track
-            </p>
-            <a class="hof__cta-link" href="/on-track.html">
-              <span class="sr-only">View on Track</span>
-              <span class="btn-text" aria-hidden="true" data-split-chars>View on Track</span>
-              <svg class="hof__cta-arrow" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor"
-                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </a>
-          </div>
         </div>
+
+        <!-- No closing callout in here. The reference ends this section on the
+             grid and runs its callout as a section of its own, because the two
+             pages close the wall differently: Home points on to On Track, and On
+             Track — already there — goes on to the socials instead. See
+             .callout in home.css. -->
       </section>

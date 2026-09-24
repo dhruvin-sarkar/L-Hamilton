@@ -2400,6 +2400,8 @@
 .footer__eyebrow {
   margin: 0;
   font-size: var(--text--eyebrow);
+  /* The reference's .text-eyebrow: "wdth" 100 "wght" 700. */
+  font-weight: 700;
   line-height: 1;
   text-transform: uppercase;
   color: var(--off-white-2);
@@ -2421,9 +2423,13 @@
   inline-size: fit-content;
 }
 
+/* "wdth" 86 on every label in the panel, as the reference sets them: at full
+   width "Off Track" ran 177px against its 139, which pulled both columns in
+   towards the portrait. */
 .footer__link .btn-text {
   font-size: 1.875rem;
   font-weight: 800;
+  font-stretch: 86%;
   text-transform: uppercase;
   line-height: 1;
 }
@@ -2437,6 +2443,7 @@
 .footer__store .btn-text {
   font-size: var(--text--btn-nav);
   font-weight: 800;
+  font-stretch: 86%;
   text-transform: uppercase;
   line-height: 1;
 }
@@ -2523,8 +2530,8 @@
   align-items: flex-end;
 }
 
-/* Overhangs the panel's bottom by 3rem and is cropped by the PANEL's mask,
-   which is what runs the shoulders off the bottom edge.
+/* Overhangs the panel's bottom and is cropped by the PANEL's mask, which is
+   what runs the shoulders off the bottom edge.
  *
  * No mask of its own. lewis-hero.webp is already RGBA with the cutout baked in
  * — 35% of it is fully transparent — so it sits on the panel unaided. It
@@ -2533,18 +2540,23 @@
  * into the edge. */
 .footer__portrait {
   position: relative;
-  inset-block-end: -3rem;
   flex: none;
-  /* Sized by HEIGHT rather than by width, because height is what sets the
-     composition: the picture is anchored to the panel's bottom and hangs 3rem
-     below it, so its height alone decides where the head lands.
-     Solved against the render rather than nudged. The crown sits 4.3% down the
-     frame, which makes crownTop = 58.5 - 0.957 * H from the panel's top; the
-     headline's last line has its glyph bottom at 16.5rem, so 44.5rem puts the
-     crown at 15.9 and it clips the descenders by about half a rem. Also 12%
-     larger than the reference's 39.875rem box. */
+  /* Sized against the reference's HEAD, not its box. Its footer figure is a
+     helmet on shoulders, and the helmet is what reads as the size of the
+     thing: 335px at its widest at 1728, its crown 320.5px down the panel, over
+     the foot of the headline's second line. The same box here left the head
+     301px wide — visibly the smaller figure beside a helmet — so the portrait
+     is scaled until its own widest row (1200 of 3780, ears included) is 335
+     too, and hung so the crown lands on the helmet's.
+
+     Both solved off the file's own alpha rather than nudged: at 49.45rem the
+     picture is 791px tall with the crown 109.4px down it, so the crown sits
+     at 320.5 when the frame's top is at 211 — which is a 6.64rem overhang
+     below a 56rem panel. The shoulders take the extra crop, as the
+     reference's own do. */
+  inset-block-end: -6.64rem;
   inline-size: auto;
-  block-size: 44.5rem;
+  block-size: 49.45rem;
 }
 
 .footer__cta {
@@ -2559,12 +2571,13 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: calc(var(--gap) * 0.5);
   block-size: 3rem;
   padding-inline: 1rem;
   border-radius: var(--radius--btn);
   font-size: var(--text--btn-primary);
   font-weight: 800;
+  font-stretch: 86%;
   text-transform: uppercase;
   line-height: 1;
   background: linear-gradient(
@@ -2577,8 +2590,8 @@
 }
 
 .footer-cta__icon {
-  inline-size: 1rem;
-  block-size: 1rem;
+  inline-size: 1.2rem;
+  block-size: 1.2rem;
   flex: none;
 }
 
@@ -2675,8 +2688,11 @@
      lighter than the static text beside them. */
   font-size: var(--text--btn-primary);
   font-weight: 800;
+  font-stretch: 86%;
   text-transform: uppercase;
-  line-height: 1.25;
+  /* 1, as the reference's: the links are the row's tallest item, so at 1.25
+     they stood the whole row 4px higher than its 16px. */
+  line-height: 1;
 }
 
 /* ---- narrow ----
@@ -2768,7 +2784,11 @@
     inline-size: 100%;
   }
 
+  /* The overhang goes back to 3rem with the width sizing: the wide one is
+     solved for a crown against a 56rem panel's headline, and on the portrait
+     cut it would just take the shoulders off a figure this size. */
   .footer__portrait {
+    inset-block-end: -3rem;
     inline-size: 80%;
     block-size: auto;
     max-inline-size: 30rem;
@@ -3242,11 +3262,13 @@
      of red used in the menu screen", and this is literally that token rather
      than a second red mixed to look like it. */
   background: var(--gl-bg);
-  /* The reference's helmets section carries no padding at either end and lets
-     its heading block and grid margins do the spacing. 2.5rem/8.75rem is the
-     40px/140px it ends up with; 8rem/10rem here was 288px of section nobody
-     asked for. */
-  padding-block: 2.5rem 8.75rem;
+  /* The reference's `.c.home-helmets`: 2 * --gap above, one --gap below. The
+     section ends 20px under the grid, and whatever follows it — the callout on
+     Home, the socials on On Track — brings its own space. The trailing columns
+     are still drifting at that point and hang past this edge; they paint over
+     the next section because this one is positioned and above it, which is the
+     reference's arrangement too. */
+  padding-block: calc(var(--gap) * 2) var(--gap);
   /* The gutter lives here rather than on a .shell wrapper, so the grid runs
      almost the full width of the page. Measured off the reference: 20px each
      side at a 1728 viewport, which is exactly --padding--container. */
@@ -3535,81 +3557,135 @@
   color: var(--accent);
 }
 
-/* ---- the closing callout ---- */
+/* ==================================================================== *
+ * The callout
+ *
+ * The reference's `.c.is-callout`, a short section of its own: a crest, one
+ * line in the second face, a button, all centred. Home puts it under the
+ * helmet wall to point on to On Track; On Track puts it after the socials to
+ * point at the store. One component, two lines of copy.
+ *
+ * Every value is the reference's own rule, and at the 1728 design width, where
+ * both roots are 16px, it lays out to the pixel: 12rem above, 8.75rem below,
+ * 2 * --gap between the three parts, a 90x45 crest, 2rem type on a 1.04 line
+ * across at most 32.5rem, and a 3rem button — 572px of section.
+ *
+ * It sits on the wall's ground because it belongs to the wall. The reference
+ * runs the helmets, the socials and this on one `.s-group.bg-black`, and here
+ * that ground is --gl-bg, the menu's red-black the wall was built on.
+ *
+ * Positioned at z-index 1, and it has to be both. Home's field is a FIXED
+ * layer at z-index 0, which paints over any section left in normal flow — the
+ * crest and the button vanished under it and only the transformed lines of
+ * type showed through. 1 clears the field and stays under the wall's 3, so the
+ * wall's trailing columns, still drifting as this comes up, paint over it
+ * rather than being cut off at the seam.
+ * ==================================================================== */
 
-.hof__cta {
+.callout {
+  position: relative;
+  z-index: 1;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 2rem;
-  /* Measured, not reasoned about. On the running reference the top of its
-     button sits 7px ABOVE the foot of its grid — its callout is a separate
-     section and it simply lets the trailing columns pass over the band. Ours
-     stood 274px clear of the grid, which was 274px of empty section.
-
-     The old value was sized to clear a 36rem overhang that no longer exists:
-     the column drift is now the reference's 44/219px rather than 180/540, so
-     the trailing columns hang 234px below the grid, not 576. */
-  margin-block-start: 5rem;
-  text-align: center;
-}
-
-.hof__cta-crest {
-  inline-size: 5.5rem;
-  block-size: 3.8rem;
-  color: var(--accent);
-  /* The crest draws its visor as a KNOCKOUT filled with --bg, so on any ground
-     that is not --bg the helmet loses its shape into the surround. This section
-     sits on --gl-bg, so the token is rebound for the mark rather than the mark
-     being redrawn — the same override the crest's own comment calls for. */
-  --bg: var(--gl-bg);
-}
-
-/* The Didone again, and large enough to carry the section out — this is the
-   last thing on the page before the footer, so it reads as a closing line
-   rather than as a caption on the button below it. */
-.hof__cta-line {
-  max-inline-size: 30rem;
-  margin: 0;
-  font-family: var(--font-serif);
-  font-size: var(--text--h3);
-  font-weight: 400;
-  line-height: 1.15;
+  padding-block: 12rem 8.75rem;
+  padding-inline: var(--padding--container);
+  background: var(--gl-bg);
   color: var(--cream);
 }
 
-.hof__cta-link {
+.callout__layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(var(--gap) * 2);
+}
+
+/* The reference's slot is 5.625rem wide and draws its mark at 2:1, so the box
+   is 90x45 and the crest is contained in it rather than stretched to it. */
+.callout__icon {
+  inline-size: 5.625rem;
+  block-size: 2.8125rem;
+  color: var(--accent);
+  /* The crest draws its visor as a KNOCKOUT in --crest-ground, which falls back
+     to --bg. This ground is --gl-bg, so the hook the crest provides is set
+     rather than the mark being redrawn. */
+  --crest-ground: var(--gl-bg);
+}
+
+/* `.text-cta-short-intro.font-brier`: 2rem on 1.04 with 0.05rem of tracking,
+   set in our Didone where the reference sets Brier. */
+.callout__text {
+  max-inline-size: 32.5rem;
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: 0.05rem;
+  text-align: center;
+}
+
+/* The reveal cuts the line into shrink-wrapped blocks, so centring them is a
+   margin — text-align alone would leave every row flush left. */
+.callout__text .reveal-line {
+  margin-inline: auto;
+}
+
+/* `.btn-w`, exactly: 3rem tall, 1rem either side, 0.54rem corners, half a gap
+   between label and arrow, the label at 1rem, 800, "wdth" 86. The fill is the
+   one every Rosso button on the site shares — chrome.ts drives --liquid-level. */
+.callout__link {
   display: inline-flex;
   align-items: center;
-  gap: 0.9rem;
-  block-size: 3.5rem;
-  padding-inline: 2rem;
+  justify-content: center;
+  gap: calc(var(--gap) * 0.5);
+  block-size: 3rem;
+  padding-inline: 1rem;
   border-radius: var(--radius--btn);
-  /* No font-family override. The condensed display face was wrong here — the
-     nav's store button is the pattern every other button on the site follows,
-     and it sets weight and case on the inherited body face rather than
-     switching to Archivo Narrow. */
+  font-family: var(--font-body);
+  font-stretch: 86%;
   font-size: var(--text--btn-primary);
   font-weight: 800;
   text-transform: uppercase;
   line-height: 1;
-  /* The same liquid fill as the store, menu and On/Off Track buttons, and the
-     same declaration rather than a lookalike. main.ts drives --liquid-level. */
   background: linear-gradient(
     to top,
     var(--giallo-modena) calc(var(--liquid-level) * 100%),
     var(--rosso-corsa) calc((var(--liquid-level) + var(--liquid-gap)) * 100%)
   );
   color: var(--dark);
+  text-decoration: none;
 }
 
-.hof__cta-arrow {
-  inline-size: 1.25rem;
-  block-size: 1.25rem;
+.callout__link .btn-text {
+  line-height: 1;
+}
+
+/* The reference's icon box is 19.19px. */
+.callout__arrow {
+  inline-size: 1.2rem;
+  block-size: 1.2rem;
   flex: none;
 }
 
-/* Same box as .hof__cta-arrow — it is the same mark on a smaller button, and
+/* Below 992px our root locks at 16px where the reference's keeps shrinking
+   (10.8px at 390), so its rem values cannot be copied across. Measured
+   instead: its 12rem / 8.75rem run is 130 / 95px at 390, which 8rem / 6rem
+   lands on. The line is the reference's `.text-cta-short-intro.font-brier` —
+   the same class as the socials' "Follow" line — so it takes the size that
+   line takes here rather than a size of its own. */
+@media (max-width: 991px) {
+  .callout {
+    padding-block: 8rem 6rem;
+  }
+
+  .callout__text {
+    font-size: 1.5rem;
+  }
+}
+
+/* Same box as .callout__arrow — it is the same mark on the same button, and
    the gap comes from .store-cta__link's own inline-flex. */
 .store-cta__arrow {
   inline-size: 1.25rem;
@@ -3656,14 +3732,6 @@
   .hof__item:nth-child(4n + 2),
   .hof__item:nth-child(4n + 4) {
     transform: none;
-  }
-
-  .hof__cta {
-    margin-block-start: 4rem;
-  }
-
-  .hof__cta-line {
-    font-size: var(--text--h4);
   }
 }
 
@@ -4278,10 +4346,13 @@
   inline-size: 80rem;
   max-inline-size: 100%;
   block-size: 36rem;
-  /* 2.875rem, not 5.7. Measured on the running reference the heading's last
-     line clears the top of the fan by 46px; 5.7rem put 91px there and pushed
-     the whole fan — and the section with it — half a heading too low. */
-  margin: 2.875rem auto 0;
+  /* Measured as boxes, on the running reference at 1728: its heading runs
+     224 to 352.6 and its card layout starts at 392.6. Ours is 1.6px taller —
+     the Didone line is set a step up to match cap heights — so the gap that
+     lands the fan on 392.6 is 2.4rem. 2.875rem put it 8px low, and with the
+     two margins below that was the whole of the 18px this section ran over
+     the reference's 1158. */
+  margin: 2.4rem auto 0;
 }
 
 /* The card composes FOUR independent signals into one transform:
@@ -4317,7 +4388,7 @@
       calc(var(--fan-x, 0rem) * var(--spread, 1) + var(--push, 0rem)),
       calc(
         var(--fan-y, 0rem) * var(--spread, 1) - var(--pop, 0) * 2.5rem + var(--rise, 0) *
-          26rem
+          10rem
       )
     )
     rotate(calc(var(--fan-rot, 0deg) * var(--spread, 1) + var(--lean, 0deg)))
@@ -4326,7 +4397,8 @@
         (1 + (var(--fan-scale, 1) - 1) * var(--spread, 1)) * (1 + var(--pop, 0) * 0.08)
       )
     );
-  opacity: calc(1 - var(--rise, 0));
+  /* No fade: the reference's cards rise at full opacity from 10rem down, which
+     is below the fold at the moment the deal fires. */
   /* Fixed, never touched by hover. The reference holds 1,2,3,10,3,2,1 through
      every hover state: the fan's depth order IS the composition, and lifting a
      card out of it to dodge an overlap trades one artefact for a worse one. The
@@ -4435,8 +4507,11 @@
 
 /* ---- follow ---- */
 
+/* 100px under the fan (the reference's flex gap plus its 3 * --gap margin),
+   then the links 2 * --gap under this, 16px tall, and the section ends on
+   them: 1068.6, 1141.8 and 1157.8 on the reference, and here. */
 .socials__follow {
-  margin: 6.3rem auto 0;
+  margin: 6.25rem auto 0;
   font-family: var(--font-serif);
   font-size: 2rem;
   line-height: 1.04;
@@ -4450,9 +4525,13 @@
   display: flex;
   justify-content: center;
   gap: 2rem;
-  margin: 2.6rem 0 0;
+  margin: 2.5rem 0 0;
   padding: 0;
   list-style: none;
+  /* One line of 1rem type and nothing else: the reference's row is 16px tall.
+     The body's 1.5 made each item 24px and hung 8px of dead line under the
+     last thing in the section. */
+  line-height: 1;
 }
 
 .socials__links a {
@@ -4462,6 +4541,12 @@
   text-transform: uppercase;
   text-decoration: none;
   color: var(--dark);
+}
+
+/* The roll's clip is one line box, so it follows the row down to 16px. These
+   are capitals — nothing descends below the box to be cut. */
+.socials__links .btn-text {
+  line-height: 1;
 }
 
 /* ---- narrow screens ----
@@ -4528,6 +4613,8 @@
     /* Flat: the fan is a wide-screen composition, and a rotated card in a
        swipe row reads as a broken layout rather than as a stack. */
     transform: none;
+    /* With no transform to carry the entrance, the rise shows as a fade. */
+    opacity: calc(1 - var(--rise, 0));
     scroll-snap-align: center;
   }
 

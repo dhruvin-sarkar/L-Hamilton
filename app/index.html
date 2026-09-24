@@ -488,26 +488,7 @@
           </div>
         </div>
 
-        <!-- The riser. Taller than its frame so it can drift inside the crop
-             as the frame climbs, which is what stops it reading as a flat
-             card sliding up. -->
-        <div class="otot__end">
-          <div class="otot__end-frame">
-            <!-- Two layers, the same arrangement the hall of fame cards use. The
-                 photograph is 16:9 and this frame is a whole viewport, so
-                 `cover` alone was taking 69px off the top and the same off the
-                 bottom — the raised hands and the ground he stands on. The
-                 blurred copy fills the frame and carries the setting; the sharp
-                 copy over it is contained, so the picture reads whole. One src,
-                 so it stays one download and one decode. -->
-            <img class="otot__end-img otot__end-img--bed" src="/assets/otot/hall-of-fame.webp"
-              alt="" aria-hidden="true" width="2400" height="1350" loading="lazy"
-              decoding="async" />
-            <img class="otot__end-img otot__end-img--sharp" src="/assets/otot/hall-of-fame.webp"
-              alt="Lewis Hamilton with both arms raised, seen from behind" width="2400"
-              height="1350" loading="lazy" decoding="async" />
-          </div>
-        </div>
+        <!--#include "partials/otot-end.html"-->
       </section>
 
       <!-- ============================================ Helmets hall of fame
@@ -521,6 +502,32 @@
            of markup to keep in sync by hand, and every value in it already
            lives in the data module. -->
       <!--#include "partials/helmets.html"-->
+
+      <!-- ================================================== The callout
+           Reference: `.c.is-callout`, a section of its own under the wall — a
+           crest, one line in the second face and a button, centred, with 12rem
+           above and 8.75rem below. On Track runs the same component to point at
+           the store; here it points on to On Track. -->
+      <section class="callout">
+        <div class="callout__layout">
+          <!-- The same crest as the next-race card and the menu, by reference
+               rather than by a copy that would drift out of sync. -->
+          <svg class="callout__icon" viewBox="0 0 64 44" aria-hidden="true">
+            <use href="#nr-crest" />
+          </svg>
+          <p class="callout__text reveal-text">
+            See more helmets and highlights from Lewis on the track
+          </p>
+          <a class="callout__link" href="/on-track.html">
+            <span class="sr-only">View on Track</span>
+            <span class="btn-text" aria-hidden="true" data-split-chars>View on Track</span>
+            <svg class="callout__arrow" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9.5 9.5H19M15 5.5l4 4-4 4M9.5 9.5a4.5 4.5 0 0 0 0 9h5" fill="none" stroke="currentColor"
+                stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+        </div>
+      </section>
 
       <!-- ================================================ Store callout
            The closing section, on the light screen the gallery took away.

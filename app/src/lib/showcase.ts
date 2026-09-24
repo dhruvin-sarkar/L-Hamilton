@@ -1,12 +1,13 @@
 /**
- * The three sections Home and On Track both carry.
+ * The sections Home and On Track both carry.
  *
- * The reference runs the same helmet wall, the same socials block and the same
- * store call-to-action at the foot of both pages, and its own study of that says
- * plainly: reuse the component, do not re-implement it
+ * The reference runs the same full-screen picture into the same helmet wall,
+ * and the same socials block, at the foot of both pages, and its own study of
+ * that says plainly: reuse the component, do not re-implement it
  * (docs/ON-TRACK-REFERENCE.md §13). This module is that reuse. The markup lives
- * in partials/helmets.html, partials/socials.html and partials/store.html; the
- * behaviour lives here; both entry points call the mounts.
+ * in partials/otot-end.html, partials/helmets.html and partials/socials.html
+ * (and Home's store in partials/store.html); the behaviour lives here; both
+ * entry points call the mounts.
  *
  * Moved out of main.ts unchanged, with one exception, which is the only thing
  * about these sections that actually differs between the two pages: the store's
@@ -17,6 +18,57 @@
 
 import { gsap, mm, ScrollTrigger, reducedMotion, WIDE_AND_ANIMATED } from './motion';
 import { helmets, helmetSrc, helmetAlt, revealSrc, revealAlt, pendingHelmets } from '../content/helmets';
+
+/* ------------------------------------------------------------------ *
+ * The riser — one screen of photograph handing on to the wall.
+ *
+ * The reference's `.s.is-otot-end`, which it runs on both pages: Home as the
+ * second screen of On Track / Off Track, On Track straight after its
+ * schedule. Same picture, same tween, so one mount.
+ *
+ * A slow push-in over exactly the span in which the frame covers the screen —
+ * its top entering at the bottom to its top reaching the top — and then it
+ * scrolls away whole. See .otot__end-img in home.css for why the push-in, and
+ * not the reference's lift, is what this photograph can take.
+ *
+ * The progress is written on the riser itself, not on a section around it: on
+ * On Track there is no section around it.
+ * ------------------------------------------------------------------ */
+
+export function mountRiser(): void {
+  mm.add(WIDE_AND_ANIMATED, () => {
+    const riser = document.querySelector<HTMLElement>('[data-riser]');
+    if (!riser) return;
+
+    const apply = (progress: number): void => {
+      riser.style.setProperty('--otot-rise', String(progress));
+    };
+
+    gsap.to(
+      {},
+      {
+        ease: 'none',
+        scrollTrigger: {
+          trigger: riser,
+          start: 'top bottom',
+          end: 'top top',
+          scrub: true,
+          invalidateOnRefresh: true,
+          // Also on refresh: a reload landing inside the range fires no update
+          // until something moves, and the picture would sit at its opening
+          // scale rather than where the scroll position puts it.
+          onUpdate: (self) => apply(self.progress),
+          onRefresh: (self) => apply(self.progress),
+        },
+      },
+    );
+
+    /* Our own inline write, so the context will not clear it. Removed, the CSS
+       falls back to the resting value, which is what the stacked layout and
+       reduced motion both want. */
+    return () => riser.style.removeProperty('--otot-rise');
+  });
+}
 
 /* ------------------------------------------------------------------ *
  * Helmets hall of fame — the wall itself.
@@ -310,40 +362,54 @@ export function mountSocials(): void {
         card.style.setProperty('--lean', '0deg');
       }
 
+      /* Timed off the reference frame by frame, from a fresh load, at 1728:
+       *
+       *   trigger  fires with the fan's top at 90% of the viewport (its section
+       *            top between 588 and 578 of 1080). 80% dealt the cards a
+       *            108px later than the reference does.
+       *   rise     160px (10rem) to 0 over 0.8s on a CUBIC out — GSAP's power2;
+       *            its power3 is quartic, and ran visibly ahead of the samples —
+       *            with no fade: the cards come up from below the fold, where
+       *            they were never visible. LAST card first, 83ms apart: the
+       *            right-hand card starts at 0ms, the centre at 252, the
+       *            left-hand at 501.
+       *   spread   the centre's slot at 910ms, before the last card is home, then
+       *            65ms per step outwards. It overshoots and rings — the outer
+       *            card reaches 110% of its offset about 370ms in, dips to 99.4%
+       *            and settles — which is an elastic, not a back: a back never
+       *            comes up short on the way down. Fitted against 40 samples
+       *            across three cards, elastic.out(1, 0.78) over 1.12s lands
+       *            within 0.01 of every one.
+       *
+       * `amount` rather than `each` in both staggers, because from a centre or an
+       * end GSAP spreads `each * (count - 1)` over the largest distance, which
+       * made `each` mean twice the gap it reads as.
+       *
+       * The old deal ran 0.5s from 26rem with a fade, then spread on a quartic
+       * with no give at the end, so the fan arrived flat where the reference's
+       * lands. */
       ScrollTrigger.create({
         trigger: fan,
-        start: 'top 80%',
+        start: 'top 90%',
         once: true,
         onEnter: () => {
           gsap
             .timeline({ onComplete: () => fan.classList.add('is-settled') })
-            /* One at a time, and quickly. They arrive in document order rather
-               than from the centre, because this is a stack being built: each
-               card lands on the one before it. 55ms apart is fast enough that the
-               seven read as one gesture and slow enough to see them arrive
-               separately. */
             .to(cards, {
               '--rise': 0,
-              duration: 0.5,
-              ease: 'power3.out',
-              stagger: 0.055,
+              duration: 0.8,
+              ease: 'power2.out',
+              stagger: { amount: 0.5, from: 'end' },
             })
-            /* Then the stack opens. From the CENTRE OUT this time — the middle
-               card is already home while the outer pair is still travelling,
-               which is what reads as a deal rather than as a queue.
-             *
-               Overlapped by 0.15s so the last card has not quite settled when the
-               spread begins. Waiting for a full stop puts a beat between the two
-               halves and they stop reading as one move. */
             .to(
               cards,
               {
                 '--spread': 1,
-                duration: 1.1,
-                ease: 'power3.out',
-                stagger: { each: 0.075, from: 'center' },
+                duration: 1.12,
+                ease: 'elastic.out(1, 0.78)',
+                stagger: { amount: 0.195, from: 'center' },
               },
-              '-=0.15',
+              0.91,
             );
         },
       });

@@ -8,14 +8,16 @@ import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './lib
 import { mountChrome } from './lib/chrome';
 import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountGalleryScroll } from './lib/gallery';
+import { mountFooterMarquee, mountMarquee } from './lib/marquee';
 import { mountReveals } from './lib/reveal';
-import { mountHelmets, mountHofDrift, mountSocials, mountStore } from './lib/showcase';
+import { mountHelmets, mountHofDrift, mountRiser, mountSocials, mountStore } from './lib/showcase';
 import { BackgroundField } from './BackgroundField';
 import { mountBlurText } from './BlurText';
 import { HeadScene } from './HeadScene';
 import { Signature } from './Signature';
 import { age, driver, eras, seasonsRacing } from './content/hamilton';
 import { nextRound } from './content/live-stats';
+import { PARTNERS } from './content/partners';
 
 /** The era he is in now — the one with no end date. */
 const currentEra = eras.find((e) => e.to === null);
@@ -677,20 +679,23 @@ mm.add(WIDE_AND_ANIMATED, () => {
 });
 
 /* ------------------------------------------------------------------ *
- * On Track / Off Track — the two cutouts closing in, and the riser.
+ * On Track / Off Track — the two cutouts closing in.
  *
- * Three curves over one section, all measured off the reference at
- * 1728x1080 and each verified by predicting values at scroll positions that
- * were not used to fit them:
+ * Two curves over one section, both measured off the reference at 1728x1080
+ * and each verified by predicting values at scroll positions that were not
+ * used to fit them:
  *
  *   cutouts   20rem -> 0, power3.out, across the whole two-screen range
  *   type       5rem -> 0, LINEAR, finishing at 60% of that range
- *   riser      climbs 10vh and grows 5% as its frame covers the screen
  *
  * The type settling well before the cutouts do is the whole effect. Run both
  * on one curve and the section arrives all at once; staggered, the words come
  * to rest and the images are still closing behind them, which is what reads
  * as depth. The reference does exactly this and it is worth not smoothing out.
+ *
+ * The riser that climbs over this section's second screen is not here: On
+ * Track runs the same picture into its own hall of fame, so it is a shared
+ * partial with a shared mount — mountRiser, in lib/showcase.ts.
  * ------------------------------------------------------------------ */
 
 /* Same breakpoint and the same reasoning as the gallery, on the same context
@@ -698,7 +703,6 @@ mm.add(WIDE_AND_ANIMATED, () => {
    it one only holds if no transform is being written underneath it. */
 mm.add(WIDE_AND_ANIMATED, () => {
   if (!otot) return;
-  const ototEnd = otot.querySelector<HTMLElement>('.otot__end');
 
   const applyCutouts = (progress: number): void => {
     const rest = 1 - progress;
@@ -733,26 +737,6 @@ mm.add(WIDE_AND_ANIMATED, () => {
     },
   );
 
-  if (ototEnd) {
-    gsap.to(
-      {},
-      {
-        ease: 'none',
-        scrollTrigger: {
-          trigger: ototEnd,
-          // Exactly the span in which the riser covers the screen: from its
-          // top entering at the bottom to its top reaching the top.
-          start: 'top bottom',
-          end: 'top top',
-          scrub: true,
-          invalidateOnRefresh: true,
-          onUpdate: (self) => otot.style.setProperty('--otot-rise', String(self.progress)),
-          onRefresh: (self) => otot.style.setProperty('--otot-rise', String(self.progress)),
-        },
-      },
-    );
-  }
-
   /* Same reasoning as the gallery's: the offsets are our own inline writes, so
      the context will not clear them. Left behind, the cutouts would stay parked
      at whatever offset the last frame wrote while the stacked layout expects
@@ -760,10 +744,10 @@ mm.add(WIDE_AND_ANIMATED, () => {
   return () => {
     otot.style.removeProperty('--otot-cut');
     otot.style.removeProperty('--otot-txt');
-    otot.style.removeProperty('--otot-rise');
   };
 });
 
+mountRiser();
 mountHofDrift();
 mountStore({
   /* Home has a field to report into; the model in this file owns what the
@@ -790,156 +774,10 @@ mountStore({
  *                run to zero on scroll, which is how the menu draws its
  *                current-page mark. Length from getTotalLength rather than a
  *                constant, so a path edit cannot silently break it.
+ *
+ * The row itself is lib/marquee.ts and the names are content/partners.ts:
+ * the footer's row is the same object, and On Track carries the footer too.
  * ------------------------------------------------------------------ */
-
-/**
- * Every partner, in the order they appear on the row.
- *
- * Set as type rather than as logo files: these are third-party trademarks and
- * this build does not redistribute them. Grouped the way they were supplied -
- * personal partners first, then the Scuderia Ferrari partners he carries on
- * race gear as part of the team contract.
- */
-const PARTNERS = [
-  'Tommy Hilfiger',
-  'Puma',
-  'Dior',
-  'IWC Schaffhausen',
-  'Police',
-  'Sanpellegrino',
-  'Perplexity AI',
-  'CFI',
-  'Monster Energy',
-  'Sony',
-  'HP',
-  'Shell',
-  'IBM',
-  'Ceva Logistics',
-  'UniCredit',
-] as const;
-
-/**
- * A looping row of partner names.
- *
- * Extracted because the page has two of them — the partners row on the cream
- * ground and the one inside the footer panel — and they are the same object in
- * two colours, not two components. The reference treats its marquees the same
- * way: one behaviour, driven by attributes.
- *
- * `drift` is the footer's extra. The reference scrubs its footer row bodily
- * across the viewport as you pass it, on top of the loop, which is what makes
- * that row feel attached to the scroll rather than merely running near it. The
- * partners row above has no drift, so it stays at 0 there.
- */
-function mountMarquee(opts: {
-  track: HTMLElement;
-  box: HTMLElement;
-  items: readonly string[];
-  itemClass: string;
-  /** vw travelled across the row's viewport pass. 0 leaves the row put. */
-  drift?: number;
-  /** The element the drift moves. Must not be the looping track. */
-  scroller?: HTMLElement | null;
-  /** Travel direction. The reference runs both of its rows to the RIGHT. */
-  direction?: 'left' | 'right';
-  /** Loop rate. Measured off the reference at ~92px/s on both of its rows. */
-  pxPerSecond?: number;
-  /** The reference does not slow either row under the pointer. */
-  slowOnHover?: boolean;
-}): void {
-  const {
-    track, box, items, itemClass, drift = 0, scroller = null,
-    direction = 'right', pxPerSecond = 92, slowOnHover = false,
-  } = opts;
-
-  /* Two copies minimum, then as many more as it takes for the track to span
-     the viewport twice — the loop needs copyWidth * (copies - 1) to cover the
-     screen or the tail is visible as the head comes round. */
-  const buildCopy = (): HTMLElement => {
-    const frag = document.createElement('div');
-    frag.style.display = 'contents';
-    for (const name of items) frag.append(el('span', itemClass, name));
-    return frag;
-  };
-
-  track.append(buildCopy());
-  const copyWidth = track.scrollWidth;
-  let copies = 1;
-  while (copyWidth * copies < window.innerWidth * 2 || copies < 2) {
-    track.append(buildCopy());
-    copies++;
-  }
-
-  if (reducedMotion) return;
-
-  const step = 100 / copies;
-  /* Travel is step% of the track's BORDER-BOX width, because that is what
-     GSAP resolves xPercent against — not scrollWidth. Computing the duration
-     off scrollWidth made the row run about 1.5x its nominal rate, which is why
-     it measured 134px/s against a nominal 92. Derived from width rather than
-     fixed so the rate holds whatever the list length does. */
-  const travelPx = (step / 100) * track.getBoundingClientRect().width;
-  const duration = travelPx / pxPerSecond;
-
-  /* Rightward means starting one copy to the LEFT and travelling to 0, so the
-     row is already full at t=0 rather than sliding in from an empty edge. */
-  const loop =
-    direction === 'right'
-      ? gsap.fromTo(track, { xPercent: -step }, { xPercent: 0, duration, ease: 'none', repeat: -1 })
-      : gsap.fromTo(track, { xPercent: 0 }, { xPercent: -step, duration, ease: 'none', repeat: -1 });
-
-  /* Scroll velocity and pointer hover are two inputs to ONE rate, combined
-     here rather than each writing timeScale. Two writers on a rate is how the
-     hero marquee ended up stuck at whatever the last event said. */
-  let scrollTarget = 1;
-  let hoverTarget = 1;
-  let rate = 1;
-
-  lenis?.on('scroll', ({ velocity }: { velocity: number }) => {
-    scrollTarget = gsap.utils.clamp(-5, 5, 1 + velocity * 0.06);
-  });
-
-  if (slowOnHover) {
-    box.addEventListener('pointerenter', () => {
-      hoverTarget = 0.15;
-    });
-    box.addEventListener('pointerleave', () => {
-      hoverTarget = 1;
-    });
-  }
-
-  gsap.ticker.add(() => {
-    scrollTarget += (1 - scrollTarget) * 0.08;
-    const want = scrollTarget * hoverTarget;
-    rate += (want - rate) * 0.12;
-    /* Snap on arrival and write it. Returning early here left the LAST value
-       written as whatever it was a frame before convergence, so the row settled
-       at a rate slightly off the one it was easing toward. */
-    if (Math.abs(rate - want) < 0.001) rate = want;
-    loop.timeScale(rate);
-  });
-
-  new IntersectionObserver(
-    ([entry]) => {
-      entry?.isIntersecting ? loop.play() : loop.pause();
-    },
-    { threshold: 0 },
-  ).observe(box);
-
-  /* The positional drift, on its own element so it never fights the loop for
-     the track's transform. Scrubbed across the row's whole viewport pass. */
-  if (drift && scroller) {
-    gsap.fromTo(
-      scroller,
-      { xPercent: drift },
-      {
-        xPercent: -drift,
-        ease: 'none',
-        scrollTrigger: { trigger: box, start: 'top bottom', end: 'bottom top', scrub: 0 },
-      },
-    );
-  }
-}
 
 const collabs = document.querySelector<HTMLElement>('[data-collabs]');
 
@@ -955,7 +793,7 @@ if (collabs) {
   const marqueeBox = collabs.querySelector<HTMLElement>('[data-collab-marquee]');
 
   if (track && marqueeBox) {
-    mountMarquee({ track, box: marqueeBox, items: PARTNERS, itemClass: 'collabs__item' });
+    mountMarquee({ track, box: marqueeBox, items: PARTNERS, itemClass: 'collabs__item', lenis });
   }
 
   /* ---- the drawn word ---- */
@@ -1050,19 +888,7 @@ if (footerPanel) {
 /* The footer's row: the same names and the same behaviour as the partners row
    above, in the accent instead of the ink, plus the drift that row does not
    have. aria-hidden in the markup — the readable list is the one up there. */
-const footerMarquee = document.querySelector<HTMLElement>('[data-footer-marquee]');
-const footerTrack = footerMarquee?.querySelector<HTMLElement>('.footer__track');
-
-if (footerMarquee && footerTrack) {
-  mountMarquee({
-    track: footerTrack,
-    box: footerMarquee,
-    items: PARTNERS,
-    itemClass: 'footer__item',
-    drift: 5,
-    scroller: footerMarquee.querySelector<HTMLElement>('.footer__marquee-scroll'),
-  });
-}
+mountFooterMarquee(lenis);
 mountSocials();
 
 /* ------------------------------------------------------------------ *
