@@ -14,11 +14,12 @@
 
 import './styles/on-track.css';
 import Lenis from 'lenis';
-import { gsap, mm, reducedMotion, ScrollTrigger } from './lib/motion';
+import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './lib/motion';
 import { mountChrome } from './lib/chrome';
 import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountGalleryScroll } from './lib/gallery';
 import { mountHelmetScroll } from './HelmetScroll';
+import { Signature } from './Signature';
 import { mountReveals } from './lib/reveal';
 import { mountHelmets, mountHofDrift, mountSocials, mountStore } from './lib/showcase';
 import {
@@ -434,6 +435,8 @@ const bindings: Record<string, string> = {
      from the seasons record, the current one included, as the reference
      counts its own. */
   'seasons-word': spell(career.seasonsContested),
+  /* The statement's "chasing eight": the title after the ones he has. */
+  'next-title-word': spell(career.championships + 1),
   /* "Ferrari F1 since 2025", where the reference has its own team and year.
      Read off the era that has not ended, so the year comes from the same
      record as the team rather than from a second place that can disagree. */
@@ -605,20 +608,6 @@ if (next) {
   reveal('[data-round]');
 }
 
-/* ------------------------------------------------------------------ *
- * The gigantic number
- *
- * The reference sets its two-digit number at 114rem and lets it span most of
- * the container. Ours is 207 — three digits — and holding 114rem would simply
- * run it off the side.
- *
- * So the size is solved from the digit count instead of fixed: total width is
- * roughly digits x size, so `size = REFERENCE_SPAN / digits` keeps the number
- * spanning the same measure however many digits it grows to. Two digits
- * resolves to exactly the reference's 114rem, which is the check that this is
- * a generalisation of its value rather than a replacement for it.
- * ------------------------------------------------------------------ */
-
 /**
  * Runs a measurement again whenever the numbers it depends on can have changed.
  *
@@ -640,84 +629,36 @@ const remeasure = (fn: () => void): void => {
   ScrollTrigger.addEventListener('refreshInit', fn);
 };
 
-/**
- * Scales an element's type so its rendered text spans a target width.
- *
- * The reference's two sizes here — 114rem for the number, 17.5rem for the word
- * — are widths expressed as font sizes IN ITS FACE. Reusing them assumed our
- * face has its advance width, and it does not: Mona Sans at wdth 75 is far more
- * condensed than Archivo Narrow. Hamilton's podium count is also three digits
- * where Lando's is two. The two errors compounded — "207" came out some 400px
- * wider than the container and lost a digit off each edge, while "PODIUMS",
- * still at its absolute 17.5rem, grew to 65% of the number's width and buried
- * it.
- *
- * Measured instead: render at a probe size, read what the glyphs actually
- * occupy, scale by the ratio. Correct for any face and any digit count.
- */
-const PROBE_REM = 20;
-
 /** Width of the ink, not of the box — the number is a full-width flex row. */
 const inkWidth = (host: HTMLElement): number =>
   host.childElementCount > 0
     ? [...host.children].reduce((w, c) => w + c.getBoundingClientRect().width, 0)
     : host.getBoundingClientRect().width;
 
-/**
- * Distance from an element's own top to the baseline its text sits on.
- *
- * A zero-sized inline-block sits ON the baseline by definition, so dropping one
- * in and reading its top is the only way at a value the box model otherwise
- * hides. Removed immediately; it never survives a frame.
- *
- * Returned as an OFFSET, not as a viewport y, and that is the whole point.
- * `getBoundingClientRect` reports post-transform positions, and every digit of
- * the podium number is parked 18% low by the `gsap.from` below until its
- * ScrollTrigger fires. An absolute reading therefore came back 192px past the
- * real baseline, and the word was placed against a position the digit only
- * occupies before it animates in. Subtracting the host's own rect cancels any
- * transform on it, because both readings carry the same one.
- */
-const baselineOffset = (host: HTMLElement): number => {
-  const probe = document.createElement('span');
-  probe.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
-  host.appendChild(probe);
-  const y = probe.getBoundingClientRect().top - host.getBoundingClientRect().top;
-  probe.remove();
-  return y;
-};
-
-const fitToWidth = (host: HTMLElement, prop: string, target: number): void => {
-  if (target <= 0) return;
-  host.style.setProperty(prop, `${PROBE_REM}rem`);
-  const ink = inkWidth(host);
-  if (ink <= 0) return;
-  host.style.setProperty(prop, `${(PROBE_REM * target) / ink}rem`);
-};
-
 /* ------------------------------------------------------------------ *
  * The gigantic podium number
  *
- * Reference `.on-t-podium-text-layout`, measured at a 1728 viewport: the
- * number's glyphs span 1649 of the 1688 container and the word spans 849.
- * Ratios rather than sizes, so the composition survives a change of face or of
- * digit count.
+ * Reference `.on-t-podium-text-layout`: "56" at 114rem, in the face this page
+ * shares with it. Its two digits span 1649px of their 1824px size, 0.904 of
+ * an em. 207 at that size would run 2430px, so it is scaled until it spans the
+ * same: the ratio goes to --podium-fit and the CSS multiplies the reference's
+ * size by it, which lands 207 at 77.4rem. Two digits resolve to exactly 114.
  *
- * The word overlapping the number's bottom-right is the reference's own doing,
- * not a defect to design around — both are the same cream and they merge where
- * they meet. It reads only because the number is seven times the word's height,
- * so the collision lands where the digit is a thin curve. Holding both ratios
- * is what keeps that true at three digits.
+ * Then the scroll, the reference's own (its bundle's L_): over the layout's
+ * `top bottom` to `bottom center`, eased power1.in and scrubbed, the digits
+ * after the first rise 17.5rem while PODIUMS rises from 17.5rem below into the
+ * space they leave. Both are one progress value here, --podium-p, and the
+ * distances live in the CSS, so the narrow sizes need no second copy.
  * ------------------------------------------------------------------ */
 
-const NUMBER_SPAN = 1649 / 1688;
-const LABEL_SPAN = 849 / 1688;
+/** What the reference's number spans, as a share of its font size: 1648.92 / 1824. */
+const REFERENCE_SPAN_EM = 1648.92 / 1824;
 
+const podium = document.querySelector<HTMLElement>('[data-podium]');
 const gigantic = document.querySelector<HTMLElement>('[data-gigantic]');
 const giganticSr = document.querySelector<HTMLElement>('[data-gigantic-sr]');
-const giganticLabel = document.querySelector<HTMLElement>('[data-gigantic-label]');
 
-if (gigantic && giganticSr) {
+if (podium && gigantic && giganticSr) {
   const value = career.podiums;
 
   // The accessible mirror carries the real value as one readable string. The
@@ -728,56 +669,31 @@ if (gigantic && giganticSr) {
   gigantic.textContent = '';
   for (const ch of String(value)) gigantic.appendChild(el('span', 'ot-podium__char', ch));
 
+  /* Measured at the reference's own size, so the ratio is exact rather than
+     scaled up from a probe. */
   const fit = (): void => {
-    const host = gigantic.parentElement;
-    const room = host?.clientWidth ?? 0;
-    fitToWidth(gigantic, '--gigantic-size', room * NUMBER_SPAN);
-    if (!host || !giganticLabel) return;
-    fitToWidth(giganticLabel, '--podium-label-size', room * LABEL_SPAN);
-
-    /* Drop the word clear of the digits.
-     *
-     * The reference does NOT do this, and at first that looked like the thing
-     * to copy: its word bites the bottom 14% of its digits and stays perfectly
-     * readable. Ours reproduces that bite to the percent — and came out
-     * illegible, because the band it bites is glyph-dependent. The reference's
-     * right digit is a 6, whose bowl is open counter exactly there, so its word
-     * crosses black. Hamilton's are a 0 and a 7, solid strokes at that height,
-     * and "PODIUMS" read as "OD/MS" with the P and the IU eaten.
-     *
-     * So the relationship survives — right-aligned, hung off the number's
-     * bottom, same two width ratios — and only the collision goes. Measured
-     * from the rendered baseline rather than set as an em, because the offset
-     * depends on the face's ascent and would be a magic number in any other
-     * font. */
-    const last = gigantic.lastElementChild;
-    if (!(last instanceof HTMLElement)) return;
-    host.style.setProperty('--podium-label-drop', '0px');
-    /* The chars are flex items on a stretched cross axis, so an untransformed
-       char's top is the row's top — which is what makes it safe to add the
-       offset to the row's rect rather than to the digit's own. */
-    const baseline = gigantic.getBoundingClientRect().top + baselineOffset(last);
-    const drop = baseline - giganticLabel.getBoundingClientRect().top;
-    host.style.setProperty('--podium-label-drop', `${Math.max(0, Math.round(drop))}px`);
+    podium.style.removeProperty('--podium-fit');
+    const size = Number.parseFloat(getComputedStyle(gigantic).fontSize);
+    const ink = inkWidth(gigantic);
+    if (!(size > 0) || !(ink > 0)) return;
+    podium.style.setProperty('--podium-fit', String((size * REFERENCE_SPAN_EM) / ink));
   };
   /* Run once now — that first pass is what keeps the number sized correctly if
      a face never arrives at all — then again whenever the metrics change. */
   fit();
   remeasure(fit);
 
-  if (!reducedMotion) {
-    // Each digit rises into place on its own beat. The reference places its
-    // chars individually — its second digit sits 42px higher than its first —
-    // so a per-character offset is its idiom, not an invention here.
-    gsap.from(gigantic.querySelectorAll('.ot-podium__char'), {
-      yPercent: 18,
-      opacity: 0,
-      duration: 1.1,
-      ease: 'expo.out',
-      stagger: 0.08,
-      scrollTrigger: { trigger: gigantic, start: 'top 85%' },
-    });
-  }
+  mm.add('(prefers-reduced-motion: no-preference)', () => {
+    gsap.fromTo(
+      podium,
+      { '--podium-p': 0 },
+      {
+        '--podium-p': 1,
+        ease: 'power1.in',
+        scrollTrigger: { trigger: podium, start: 'top bottom', end: 'bottom center', scrub: true },
+      },
+    );
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -967,6 +883,62 @@ if (wreath) {
   });
 }
 
+/* The signature over the eyebrow. The reference's is a Rive `signature_play`
+   that fades in and writes itself once its top reaches 80% of the screen;
+   stepped frame by frame, half its ink is down by 0.72s and all of it by
+   1.63s, with a slow last tenth. Ours is the homepage's mark written by the
+   homepage's pen, on that trigger and over that time. Under reduced motion the
+   CSS mask draws it whole and none of this runs. */
+const impactSign = document.querySelector<HTMLElement>('[data-impact-sign]');
+
+if (impactSign && !reducedMotion) {
+  fetch('/assets/brand/signature.svg')
+    .then((res) => {
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      return res.text();
+    })
+    .then((markup) => {
+      const colour = getComputedStyle(document.documentElement)
+        .getPropertyValue('--grey-on-track')
+        .trim();
+      impactSign.dataset.writing = '';
+      const pen = new Signature(impactSign, markup, colour);
+      const canvas = impactSign.querySelector('canvas');
+
+      /* The pen pins its canvas to the pixel size it measured, and this slot is
+         sized in the fluid rem -- so on a resize the pin comes off and the CSS
+         gets to size it again before the pen re-measures. */
+      ScrollTrigger.addEventListener('refreshInit', () => {
+        canvas?.style.removeProperty('width');
+        canvas?.style.removeProperty('height');
+        pen.resize();
+      });
+
+      const ink = { p: 0 };
+      ScrollTrigger.create({
+        trigger: impactSign,
+        start: 'top 80%',
+        once: true,
+        onEnter: () => {
+          gsap.to(ink, {
+            p: 1,
+            duration: 1.65,
+            ease: 'sine.out',
+            onUpdate: () => {
+              pen.progress = ink.p;
+            },
+          });
+        },
+      });
+    })
+    .catch((err: unknown) => {
+      // Decorative: the statement is complete without it. Loud to us, silent to
+      // the reader, and the mask is put back so the mark is not simply missing.
+      delete impactSign.dataset.writing;
+      console.error('[statement] signature failed to load', err);
+    });
+}
+
 if (hero && impact && helmStops.length === 3) {
   const stops = helmStops as [HTMLElement, HTMLElement, HTMLElement];
   mm.add('(min-width: 992px)', () =>
@@ -975,110 +947,109 @@ if (hero && impact && helmStops.length === 3) {
 }
 
 /* ------------------------------------------------------------------ *
- * The podium photograph under the cursor
+ * The podium photograph beside the cursor
  *
- * The reference reveals a different podium picture wherever the pointer
- * crosses its gigantic number, each one wiped in behind a flash of its accent.
- * Same mechanic here, over our own gallery.
+ * The reference's `.f1-highlight-mouse-over-w`, rebuilt from its bundle (V_):
  *
- * Pointer-driven decoration: hidden from assistive tech, never built under
- * reduced motion, and never built for a device without a fine pointer — on a
- * touch screen there is no hover to reveal it with and the images would be
- * fetched for nothing.
+ *   - shown while the pointer is inside the number's layout, which is checked
+ *     on every pointer move AND every scroll -- the layout moves under a still
+ *     pointer, and the photo has to arrive and leave with it;
+ *   - its top-left corner eased to 20px right of and 20px above the pointer,
+ *     0.5s power2.out, from wherever it last was;
+ *   - the photograph picked by how far across the layout the pointer is, one
+ *     per tenth of its width, swapped outright;
+ *   - revealed by an ellipse opening down from its top edge, 0.8s power2.out,
+ *     and closed the same way at twice the speed.
+ *
+ * Its code also sweeps a lime panel off the photograph, but that panel's CSS
+ * holds it at opacity 0 and nothing raises it: on screen there is no flash of
+ * colour, so there is none here.
+ *
+ * Decoration: hidden from assistive tech, and built only from 992px up with a
+ * fine pointer and motion allowed. Placeholder photographs until the real
+ * podium set is supplied.
  * ------------------------------------------------------------------ */
 
-const PODIUM_PHOTOS = [
-  '/assets/gallery/gallery-01.webp',
-  '/assets/gallery/gallery-03.webp',
-  '/assets/gallery/gallery-05.webp',
-  '/assets/gallery/gallery-07.webp',
-  '/assets/gallery/gallery-09.webp',
-  '/assets/gallery/gallery-11.webp',
-];
+const PODIUM_PHOTOS = Array.from(
+  { length: 10 },
+  (_, i) => `/assets/gallery/gallery-${String(i + 1).padStart(2, '0')}.webp`,
+);
 
-/** How far the pointer travels before the next photograph is swapped in. */
-const PHOTO_SWAP_DISTANCE = 190;
-
-const podium = document.querySelector<HTMLElement>('[data-podium]');
 const podiumPhoto = document.querySelector<HTMLElement>('[data-podium-photo]');
 const podiumImg = document.querySelector<HTMLImageElement>('[data-podium-img]');
-const podiumWipe = document.querySelector<HTMLElement>('[data-podium-wipe]');
 
-if (
-  podium &&
-  podiumPhoto &&
-  podiumImg &&
-  podiumWipe &&
-  !reducedMotion &&
-  window.matchMedia('(hover: hover) and (pointer: fine)').matches
-) {
-  let shown = -1;
-  let lastX = 0;
-  let lastY = 0;
-  let travelled = PHOTO_SWAP_DISTANCE; // so the first move already swaps
+if (podium && podiumPhoto && podiumImg) {
+  mm.add(`${WIDE_AND_ANIMATED} and (hover: hover) and (pointer: fine)`, () => {
+    // Fetched up front, as the reference's hidden list of them is, so a swap
+    // under the pointer never shows an empty frame.
+    for (const src of PODIUM_PHOTOS) new Image().src = src;
+    podiumPhoto.hidden = false;
 
-  // quickTo retargets one running tween rather than starting a new one per
-  // pointermove, which is the difference between the photo following the
-  // cursor and the photo fighting itself.
-  const moveX = gsap.quickTo(podiumPhoto, 'x', { duration: 0.5, ease: 'power3.out' });
-  const moveY = gsap.quickTo(podiumPhoto, 'y', { duration: 0.5, ease: 'power3.out' });
-
-  /* Swapping the picture is just swapping the picture.
-   *
-   * The accent band used to fire on every swap, so crossing the number strobed
-   * red between photographs and each one arrived from behind a full-bleed
-   * flash. The band belongs to the frame's ARRIVAL — it is how the picture
-   * enters the page once — and the reference wipes it in the same way: one
-   * reveal, then the image simply follows the cursor and changes. */
-  const swap = (): void => {
-    shown = (shown + 1) % PODIUM_PHOTOS.length;
-    podiumImg.src = PODIUM_PHOTOS[shown] as string;
-  };
-
-  const wipeIn = (): void => {
-    gsap.fromTo(
-      podiumWipe,
-      { opacity: 1, scaleY: 1, transformOrigin: '50% 100%' },
-      { scaleY: 0, duration: 0.45, ease: 'power3.inOut' },
-    );
-  };
-
-  podium.addEventListener('pointermove', (event) => {
-    const box = podium.getBoundingClientRect();
-    const x = event.clientX - box.left - podiumPhoto.offsetWidth / 2;
-    const y = event.clientY - box.top - podiumPhoto.offsetHeight / 2;
-
-    travelled += Math.hypot(event.clientX - lastX, event.clientY - lastY);
-    lastX = event.clientX;
-    lastY = event.clientY;
-
-    if (podiumPhoto.hidden) {
-      podiumPhoto.hidden = false;
-      // Placed before the first tween so it does not fly in from the corner.
-      gsap.set(podiumPhoto, { x, y });
-      gsap.fromTo(podiumPhoto, { opacity: 0 }, { opacity: 1, duration: 0.3 });
-      // The first frame needs a picture before the band lifts off it.
-      swap();
-      travelled = 0;
-      wipeIn();
-    }
-    if (travelled >= PHOTO_SWAP_DISTANCE) {
-      travelled = 0;
-      swap();
-    }
-
-    moveX(x);
-    moveY(y);
-  });
-
-  podium.addEventListener('pointerleave', () => {
-    gsap.to(podiumPhoto, {
-      opacity: 0,
-      duration: 0.3,
-      onComplete: () => {
-        podiumPhoto.hidden = true;
-      },
+    const reveal = gsap.to(podiumPhoto, {
+      clipPath: 'ellipse(120% 120% at 50% 0%)',
+      duration: 0.8,
+      ease: 'power2.out',
+      paused: true,
     });
+    const moveX = gsap.quickTo(podiumPhoto, 'x', { duration: 0.5, ease: 'power2.out' });
+    const moveY = gsap.quickTo(podiumPhoto, 'y', { duration: 0.5, ease: 'power2.out' });
+
+    let pointerX = Number.NaN;
+    let pointerY = Number.NaN;
+    let over = false;
+    let inView = false;
+
+    const update = (): void => {
+      if (!inView) return;
+      const box = podium.getBoundingClientRect();
+      const inside =
+        pointerX >= box.left &&
+        pointerX <= box.right &&
+        pointerY >= box.top &&
+        pointerY <= box.bottom;
+      if (inside !== over) {
+        over = inside;
+        if (inside) reveal.timeScale(1).play();
+        else reveal.timeScale(2).reverse();
+      }
+      if (!inside) return;
+
+      moveX(pointerX - box.left + 20);
+      moveY(pointerY - box.top - 20);
+
+      const at = Math.min(
+        Math.floor(((pointerX - box.left) / box.width) * PODIUM_PHOTOS.length),
+        PODIUM_PHOTOS.length - 1,
+      );
+      const src = PODIUM_PHOTOS[at];
+      if (src && podiumImg.getAttribute('src') !== src) podiumImg.src = src;
+    };
+
+    const onPointer = (event: PointerEvent): void => {
+      pointerX = event.clientX;
+      pointerY = event.clientY;
+      update();
+    };
+
+    /* The LAST entry, not the first: a tab that was in the background delivers
+       its queued crossings in one batch, oldest first, and reading [0] left
+       the photo believing the number was still off screen. */
+    const watch = new IntersectionObserver(
+      (entries) => {
+        inView = entries[entries.length - 1]?.isIntersecting ?? false;
+      },
+      { threshold: 0.1 },
+    );
+    watch.observe(podium);
+    document.addEventListener('pointermove', onPointer, { passive: true });
+    window.addEventListener('scroll', update, { passive: true });
+
+    return () => {
+      watch.disconnect();
+      document.removeEventListener('pointermove', onPointer);
+      window.removeEventListener('scroll', update);
+      podiumPhoto.hidden = true;
+    };
   });
 }
 

@@ -674,11 +674,16 @@
   text-align: center;
 }
 
+/* Reference `.impact-icon-w`: a column as wide as its widest child, with the
+   signature centred in it by auto margins and the eyebrow's flex row starting
+   at its left edge. So the eyebrow is NOT centred -- it hangs from the
+   signature's left side (x=797.5 at 1728 on both sites), and only a line
+   wider than the signature would move it. */
 .ot-impact__icon {
   display: flex;
   flex-direction: column;
   gap: var(--gap);
-  align-items: center;
+  align-items: flex-start;
 }
 
 /* The mark the homepage writes stroke by stroke, held still — which is what the
@@ -688,11 +693,33 @@
 .ot-impact__sign {
   inline-size: 8.3125rem; /* 133/72 against a 4.5rem height */
   block-size: 4.5rem;
+  margin-inline: auto;
   background-color: var(--grey-on-track);
   mask-image: url('/assets/brand/signature.svg');
   mask-repeat: no-repeat;
   mask-position: center;
   mask-size: contain;
+}
+
+/* Written instead of stamped once on-track.ts has a pen on it: the reference's
+   signature draws itself as it scrolls into view. The mask above stays the
+   rendering whenever that does not happen -- reduced motion, no script. */
+.ot-impact__sign[data-writing] {
+  display: flex;
+  justify-content: center;
+  background: none;
+  mask-image: none;
+}
+
+/* Contained in the slot as the mask is: full height, width from the asset's
+   own 960 x 764 viewBox. Flex rather than grid, whose auto row left the 100%
+   height indefinite; and no automatic minimum, which is the canvas's 300px
+   default width and would stretch the pen across the slot. */
+.ot-impact__sign canvas {
+  display: block;
+  block-size: 100%;
+  aspect-ratio: 960 / 764;
+  min-inline-size: 0;
 }
 
 .ot-impact__eyebrow {
@@ -733,7 +760,11 @@
   font-stretch: 93%;
   font-size: var(--text--impact); /* 7.9375rem */
   font-weight: 660;
-  line-height: 0.906;
+  /* The reference's own declaration, kept as a percentage on purpose: Chrome
+     truncates a fractional line-height percentage, so its 90.6% renders as
+     90% -- 114.3px lines, not the 115.06 a unitless 0.906 gives. Declared the
+     same way, ours renders whatever the reference renders in each browser. */
+  line-height: 90.6%;
   letter-spacing: -0.0625rem;
   text-transform: uppercase;
   color: var(--off-white-1);
@@ -757,7 +788,12 @@
   font-style: italic;
   font-weight: 500;
   font-size: 8.25rem;
-  line-height: 0.83;
+  /* Not the reference's 83%, which is tuned to Brier's metrics (ascent 1.0em,
+     descent 0.2em). Playfair's are 1.082 and 0.25, so at 83% its line box
+     stands 2px taller than Brier's and every accented line grew from 116.3 to
+     118.3. 80% puts the box's top where Brier's is: accented lines 116.3 tall
+     with the baseline 107px down, as the reference's are. */
+  line-height: 0.8;
   letter-spacing: -0.1875rem;
   /* Caps and upright, like the reference's Brier: the accent is a change of
      FACE, not of case or slant. */
@@ -818,6 +854,87 @@
   pointer-events: none;
 }
 
+/* Narrow widths.
+ *
+ * As with the podium below, the reference's rem keeps shrinking under 992
+ * where ours locks at 16px, so its sizes are restated against --ref-rem, its
+ * rem. Its own narrow values on top: the statement at 7rem with the accent
+ * words no larger than the rest, 3vw inside the page's gutter, the eyebrow at
+ * .8rem; 1rem under 768; and under 480 the statement at 3.5rem across the whole
+ * gutter, the eyebrow back to .8rem and the wreath 9rem wide. */
+@media (max-width: 991px) {
+  .ot-impact {
+    --ref-rem: calc(clamp(768px, 100vw, 991px) / 1728 * 20);
+    padding-block-start: calc(18 * var(--ref-rem));
+  }
+
+  .ot-impact__inner {
+    max-inline-size: calc(80.5 * var(--ref-rem)); /* 78 + its 1.25 gutters */
+    padding-inline: calc(1.25 * var(--ref-rem) + 3vw);
+    gap: calc(3.75 * var(--ref-rem));
+  }
+
+  .ot-impact__icon {
+    gap: calc(1.25 * var(--ref-rem));
+  }
+
+  .ot-impact__sign {
+    inline-size: calc(8.3125 * var(--ref-rem));
+    block-size: calc(4.5 * var(--ref-rem));
+  }
+
+  .ot-impact__eyebrow {
+    font-size: calc(0.8 * var(--ref-rem));
+  }
+
+  .ot-impact__text {
+    margin-block-end: calc(6.25 * var(--ref-rem));
+    font-size: calc(7 * var(--ref-rem));
+    letter-spacing: calc(-0.0625 * var(--ref-rem));
+  }
+
+  .ot-impact__accent {
+    font-size: inherit;
+    letter-spacing: calc(-0.1875 * var(--ref-rem));
+  }
+
+  .ot-impact__wreath {
+    inline-size: calc(11.5 * var(--ref-rem));
+  }
+}
+
+@media (max-width: 767px) {
+  .ot-impact {
+    --ref-rem: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
+  }
+
+  .ot-impact__eyebrow {
+    font-size: var(--ref-rem);
+  }
+}
+
+@media (max-width: 479px) {
+  .ot-impact {
+    --ref-rem: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
+  }
+
+  .ot-impact__inner {
+    padding-inline: calc(1.25 * var(--ref-rem));
+  }
+
+  .ot-impact__eyebrow {
+    font-size: calc(0.8 * var(--ref-rem));
+  }
+
+  .ot-impact__text {
+    font-size: calc(3.5 * var(--ref-rem));
+  }
+
+  .ot-impact__wreath {
+    inline-size: calc(9 * var(--ref-rem));
+  }
+}
+
 /* ================================================== Career stat band */
 
 .ot-band {
@@ -844,35 +961,67 @@
   padding-inline: 1.25rem;
 }
 
-.ot-podium {
-  position: relative;
-  /* Reference `.on-t-podium-text-layout` is `align-items: flex-end` with the
-     label absolutely placed against it, so the two share a baseline however
-     tall the number is.
+/* Reference `.on-t-podium-text-layout`, measured at 1728:
+ *
+ *   the number    114rem, "wdth" 75 "wght" 700, line-height 0.85, NO tracking,
+ *                 proportional figures -- "56" spans 808 + 841 = 1649px
+ *   PODIUMS       17.5rem, "wght" 693, 0.8, -0.225rem, absolute bottom-right
+ *                 over 4.5rem of padding, its baseline 3.6px above the digits'
+ *   the scroll    over the layout's `top bottom` -> `bottom center`, power1.in,
+ *                 scrubbed: the second digit rises 17.5rem while PODIUMS rises
+ *                 from 17.5rem below into the room it leaves
+ *
+ * One progress value, --podium-p, carries that scroll (on-track.ts scrubs it);
+ * everything it moves is geometry here. It rests at 1, the finished
+ * composition, so reduced motion and a page without script both get the
+ * arrangement the scroll ends on rather than the collision it starts from.
+ *
+ * Every digit after the first rises, not just the second: the reference has
+ * two, so that IS its second, and Hamilton's word sits under both the 0 and
+ * the 7 of 207. */
+@property --podium-p {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
 
-     The label is then translated down out of the digits (see on-track.ts), and
-     the same distance is added here — a word hanging past its own section would
-     otherwise land on the career grid below. */
-  margin-block-end: calc(8rem + var(--podium-label-drop, 0px));
+.ot-podium {
+  /* The reference's sizes, in the reference's rem (see the narrow-width rules
+     at the end of this block for why that is not always ours). */
+  --ref-rem: 1rem;
+  --podium-ref: calc(114 * var(--ref-rem));
+  --podium-rise: calc(17.5 * var(--ref-rem));
+  --podium-label-from: calc(17.5 * var(--ref-rem));
+  /* 207 is three digits where the reference's 56 is two, so at 114rem it would
+     run 780px off the page. on-track.ts scales it (--podium-fit) until it spans
+     exactly what the reference's number spans: 77.4rem for 207. */
+  --podium-font: calc(var(--podium-ref) * var(--podium-fit, 1));
+  position: relative;
+  /* Scaled down from 114rem, the number's box keeps its top but the glyphs'
+     cap line rises with the shrinking half-leading -- 53px above the
+     reference's at 1728, closing the gap under the wreath. This sets it where
+     the reference's falls: 0.0889em of its number below the box top in its
+     variable Mona Sans, 0.0884em of ours in the Condensed cut (measured off
+     flat-topped digits, its 5 and our 7). Padding, not a margin on the number,
+     so the layout's own top -- the scroll trigger -- stays where it is. */
+  padding-block-start: calc(var(--podium-ref) * 0.0889 - var(--podium-font) * 0.0884);
+  /* The reference's 8rem spacer between the number and the career grid. */
+  margin-block-end: calc(8 * var(--ref-rem));
 }
 
 .ot-podium__num {
-  /* Sized from the digit count in on-track.ts; see the note there. The fallback
-     is the reference's own two-digit value, so a failed script degrades to its
-     scale rather than to nothing. */
-  font-size: var(--gigantic-size, 114rem);
+  font-size: var(--podium-font);
   font-family: var(--font-display);
   font-weight: 700;
-  /* 0.85 is the reference's line-height on this element. At this size the glyph
-     box is mostly air, so anything looser leaves a gap that reads as a layout
-     error rather than as leading. */
   line-height: 0.85;
-  letter-spacing: -0.04em;
+  /* The reference's own: no tracking, and proportional figures. The body's
+     tabular default sets every digit 0.44em wide, which is not its 5 and 6. */
+  letter-spacing: normal;
+  font-variant-numeric: normal;
   margin: 0;
-  /* Flex so each digit is its own box and can be placed. NOT space-between,
-     which was an invention: the reference's own number computes to
-     `justify-content: normal` and simply lets the glyphs flow. Sized in
-     on-track.ts to span the container, so there is no slack to distribute. */
+  /* Flex so each digit is its own box and can be placed, as the reference
+     splits its number into chars. It computes to `justify-content: normal`
+     and lets the glyphs flow. */
   display: flex;
   color: var(--text);
   /* Decoration around a value carried by the sr-only mirror, so it must never
@@ -884,40 +1033,33 @@
 
 .ot-podium__char {
   display: block;
-  /* Each digit is placed rather than flowed, which is what lets them sit at
-     different heights the way the reference's two chars do. */
-  will-change: transform;
 }
 
-/* Every digit after the first sits a little higher, alternating — the reference
-   offsets its second char 42px above its first at a 1292px cap height, which is
-   3.25% of it. Expressed as a ratio so it holds at any size. */
-.ot-podium__char:nth-child(even) {
-  transform: translateY(-3.25%);
+.ot-podium__char + .ot-podium__char {
+  translate: 0 calc(var(--podium-rise) * var(--podium-p) * -1);
+  /* A thousand-pixel glyph moved every scrolled frame: its own layer, so the
+     move is a composite rather than a repaint. */
+  will-change: translate;
 }
 
-/* Reference `.on-t-podium-text-col`: absolute, right 0, with 72px of padding
-   under it so its baseline sits clear of the number's box bottom.
-
-   Its 17.5rem is a WIDTH expressed as a size, and is solved for in on-track.ts
-   against the same container the number is fitted to — the reference's word
-   spans 849 of its 1688 container, and holding that ratio is what keeps the
-   overlap legible at three digits. Everything below it is therefore in em, so
-   the whole block scales as one. */
 .ot-podium__label {
   position: absolute;
   inset-inline-end: 0;
   inset-block-end: 0;
-  padding-block-end: 0.257em; /* ref 72/280 */
+  /* The reference's 4.5rem is what seats its word on its digits' baseline
+     (3.6px above it) at 114rem. Ours is set smaller, so the padding is solved
+     from the same two facts instead: the digits' baseline stands 0.0402em of
+     the number above the box's bottom, the word's 0.0179em of itself above
+     its own. At the reference's sizes this is 72px exactly. */
+  padding-block-end: calc(var(--podium-font) * 0.04221 - 0.01786em);
   margin: 0;
   font-family: var(--font-display);
-  font-size: var(--podium-label-size, 17.5rem);
+  font-size: calc(17.5 * var(--ref-rem));
   font-weight: 693;
   line-height: 0.8;
-  letter-spacing: -0.0129em; /* ref -3.6/280 */
-  /* Solved in on-track.ts from the digits' measured baseline. Transform rather
-     than an inset so the drop costs no layout. */
-  translate: 0 var(--podium-label-drop, 0px);
+  letter-spacing: -0.01286em; /* -0.225rem at 17.5rem */
+  translate: 0 calc(var(--podium-label-from) * (1 - var(--podium-p)));
+  will-change: translate;
   text-transform: uppercase;
   color: var(--text);
   pointer-events: none;
@@ -925,18 +1067,21 @@
   user-select: none;
 }
 
-/* Reference `.f1-highlight-mouse-over-w`: 20.6rem x 24.6rem, moved to the
-   pointer, with a flash of the accent wiping each new photograph in. */
+/* Reference `.f1-highlight-mouse-over-w`: 20.6rem x 24.6rem, its top-left
+   corner held 20px right of and 20px above the pointer, above the number and
+   the word. Closed to nothing along its top edge until the pointer is over the
+   layout; see on-track.ts for the reveal. */
 .ot-podium__photo {
   position: absolute;
   inset-block-start: 0;
   inset-inline-start: 0;
-  z-index: 2;
+  z-index: 10;
   inline-size: 20.6rem;
   block-size: 24.6rem;
   overflow: clip;
+  clip-path: ellipse(120% 0% at 50% 0%);
   pointer-events: none;
-  will-change: transform;
+  will-change: transform, clip-path;
 }
 
 .ot-podium__photo-img {
@@ -946,12 +1091,46 @@
   display: block;
 }
 
-.ot-podium__photo-wipe {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  background: var(--accent);
-  opacity: 0;
+/* Narrow widths.
+ *
+ * The reference's root keeps scaling below 992 -- clamp(768, vw, 991) and
+ * clamp(480, vw, 767) over 1728 x 20, and clamp(320, vw, 479) over 1728 x 48 --
+ * where ours locks at 16px. So its rem is restated here as --ref-rem and its
+ * own narrow values are set against it: 96rem for the number, 4rem for the
+ * word's start, then 38.8rem, 5.6rem and a 6rem rise under 480. The photo is
+ * a pointer effect and goes, as the reference's does. */
+@media (max-width: 991px) {
+  .ot-podium {
+    --ref-rem: calc(clamp(768px, 100vw, 991px) / 1728 * 20);
+    --podium-ref: calc(96 * var(--ref-rem));
+    --podium-label-from: calc(4 * var(--ref-rem));
+  }
+
+  .ot-podium__label {
+    font-size: calc(14 * var(--ref-rem));
+  }
+
+  .ot-podium__photo {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .ot-podium {
+    --ref-rem: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
+  }
+}
+
+@media (max-width: 479px) {
+  .ot-podium {
+    --ref-rem: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
+    --podium-ref: calc(38.8 * var(--ref-rem));
+    --podium-rise: calc(6 * var(--ref-rem));
+  }
+
+  .ot-podium__label {
+    font-size: calc(5.6 * var(--ref-rem));
+  }
 }
 
 /* ---------------------------------------------------------- F1 career */

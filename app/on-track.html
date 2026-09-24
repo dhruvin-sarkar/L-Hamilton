@@ -276,7 +276,7 @@
       <section class="ot-impact">
         <div class="ot-impact__inner">
           <div class="ot-impact__icon">
-            <div class="ot-impact__sign" aria-hidden="true"></div>
+            <div class="ot-impact__sign" data-impact-sign aria-hidden="true"></div>
             <p class="ot-impact__eyebrow reveal-text" data-bind="team-since">
               Ferrari F1 since 2025
             </p>
@@ -288,13 +288,22 @@
                    sentence to him, and the reference's equivalent is its
                    driver's own voice — so this is narration, and every claim in
                    it is a matter of record: he holds the sport's win and pole
-                   records, he has seven titles, and he drives for Ferrari. -->
+                   records, and the title he is chasing is the one after his
+                   seven (counted in on-track.ts, not typed here).
+
+                   Worded to the reference's rag, line for line at 1728:
+                   REWRITING / THE RECORDS, / CHASING EIGHT. / BRINGING IT ALL /
+                   EACH AND EVERY / WEEKEND. -- its last three lines are the
+                   reference's own. "Chasing an eighth" and "to Ferrari" set
+                   a line flush with the full 1248 measure, where the line
+                   reveal's overflow guard gives up on the block and sweeps it
+                   under one bar. The eyebrow above already names the team. -->
               <h2 class="ot-impact__text reveal-text" data-reveal-rich>
                 Rewriting<br />
                 the <span class="ot-impact__accent">records</span>,
-                <span class="ot-impact__accent">chasing</span> an eighth. Bringing
-                <span class="ot-impact__accent">it all</span> to Ferrari, each and every
-                weekend.
+                <span class="ot-impact__accent">chasing</span>
+                <span data-bind="next-title-word">eight</span>. Bringing
+                <span class="ot-impact__accent">it all</span> each and every weekend.
               </h2>
 
               <!-- The helmet's middle stop, centred on the statement. -->
@@ -334,26 +343,31 @@
              padding rather than 100vw so a scrollbar cannot push it wide. -->
         <div class="ot-band__page">
           <!-- ------------------------------------------- The podium number
-               Reference `.on-t-podium-text-layout`: the number fills the
-               container at 114rem for two digits, and the word PODIUMS is
-               absolutely placed against the layout's bottom-right at 17.5rem.
-               207 is three digits where 56 is two, so the size is derived from
-               the digit count in on-track.ts rather than fixed. -->
+               Reference `.on-t-podium-text-layout`: the number at 114rem for
+               two digits, and the word PODIUMS absolutely placed against the
+               layout's bottom-right at 17.5rem. 207 is three digits where 56 is
+               two, so its size is derived in on-track.ts from what the
+               reference's number spans rather than fixed. -->
           <div class="ot-podium" data-podium>
             <p class="sr-only" data-gigantic-sr>&mdash;</p>
             <p class="ot-podium__num" data-gigantic aria-hidden="true"></p>
             <p class="ot-podium__label" data-gigantic-label aria-hidden="true">Podiums</p>
 
-            <!-- The reference reveals a different podium photograph under the
-                 cursor as it crosses the number, wiped in behind a flash of
-                 the accent. Pointer-driven and decorative, so it is hidden from
-                 assistive tech and never rendered under reduced motion. -->
+            <!-- The reference reveals a podium photograph beside the cursor
+                 while it is over the number, a different one for each tenth of
+                 the width it crosses. Pointer-driven and decorative: hidden
+                 from assistive tech, and shown only from 992px up, with a fine
+                 pointer and motion allowed. Lazy, so until then it costs
+                 nothing; placeholders until the real photographs land. -->
             <div class="ot-podium__photo" data-podium-photo aria-hidden="true" hidden>
-              <!-- No src attribute, deliberately. The source is chosen per
-                   pointer move, and `src=""` is not "empty" — it resolves to
-                   the page's own URL and fetches the document as an image. -->
-              <img class="ot-podium__photo-img" data-podium-img alt="" />
-              <span class="ot-podium__photo-wipe" data-podium-wipe></span>
+              <img
+                class="ot-podium__photo-img"
+                data-podium-img
+                src="/assets/gallery/gallery-01.webp"
+                alt=""
+                loading="lazy"
+                decoding="async"
+              />
             </div>
           </div>
         </div>
