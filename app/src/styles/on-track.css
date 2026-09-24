@@ -196,6 +196,16 @@
   pointer-events: none;
 }
 
+/* The flight is mounted from 992px up only (on-track.ts), so below that the
+   stops measure nothing -- and at 390 this 1241px box hanging off the hero made
+   the whole page scroll sideways. Gone rather than clipped. */
+@media (max-width: 991px) {
+  .ot-hero__helm-pos,
+  .ot-impact__anchor {
+    display: none;
+  }
+}
+
 .ot-hero__stats-w {
   grid-column: 3 / 5;
   display: flex;
