@@ -184,23 +184,155 @@ function laurel(): SVGSVGElement {
   return svg;
 }
 
+/* ------------------------------------------------------------------ *
+ * The reef
+ *
+ * The reference's 184x81 wreath under the statement ("reef" in its files) is a
+ * Rive animation scrubbed by scroll: two laurel branches sprout together at the
+ * bottom centre, then grow and part until they stand at the sides, leaving the
+ * gap the helmet lands in. Measured off its canvas frame by frame, the growth
+ * runs from 22% to 66% of its trigger (the wreath's top at the bottom of the
+ * screen, to its bottom at the middle). Redrawn here as an original branch --
+ * nine leaves alternating up a curved stem, and one at the tip -- and grown on
+ * the same schedule.
+ * ------------------------------------------------------------------ */
+
+/** The left branch's stem, in the wreath's 184x81 box: base, two controls, tip. */
+const REEF_STEM = [
+  [48, 67],
+  [25, 60],
+  [20, 30],
+  [42, 7],
+] as const;
+
+/** Where the base starts, relative to where it ends: at the wreath's centre line. */
+const REEF_TRAVEL = 38;
+
+interface ReefLeaf {
+  readonly el: SVGPathElement;
+  /** Where the leaf joins the stem, and the way it points. */
+  readonly x: number;
+  readonly y: number;
+  readonly angle: number;
+  /** How far up the stem it sits, 0 at the base and 1 at the tip. */
+  readonly at: number;
+}
+
+interface ReefBranch {
+  readonly group: SVGGElement;
+  readonly stem: SVGPathElement;
+  readonly stemLength: number;
+  readonly leaves: readonly ReefLeaf[];
+  /** "" for the left branch; the mirror that makes the right one. */
+  readonly mirror: string;
+}
+
+function reefPoint(t: number): [number, number] {
+  const [p0, p1, p2, p3] = REEF_STEM;
+  const u = 1 - t;
+  const a = u * u * u;
+  const b = 3 * u * u * t;
+  const c = 3 * u * t * t;
+  const d = t * t * t;
+  return [a * p0[0] + b * p1[0] + c * p2[0] + d * p3[0], a * p0[1] + b * p1[1] + c * p2[1] + d * p3[1]];
+}
+
+/** The stem's direction at `t`, in degrees, pointing toward the tip. */
+function reefHeading(t: number): number {
+  const [p0, p1, p2, p3] = REEF_STEM;
+  const u = 1 - t;
+  const dx = 3 * u * u * (p1[0] - p0[0]) + 6 * u * t * (p2[0] - p1[0]) + 3 * t * t * (p3[0] - p2[0]);
+  const dy = 3 * u * u * (p1[1] - p0[1]) + 6 * u * t * (p2[1] - p1[1]) + 3 * t * t * (p3[1] - p2[1]);
+  return (Math.atan2(dy, dx) * 180) / Math.PI;
+}
+
+function reefBranch(mirror: string): ReefBranch {
+  const group = document.createElementNS(SVG_NS, 'g');
+
+  const [p0, p1, p2, p3] = REEF_STEM;
+  const stem = document.createElementNS(SVG_NS, 'path');
+  stem.setAttribute('d', `M${p0} C${p1} ${p2} ${p3}`);
+  stem.setAttribute('fill', 'none');
+  stem.setAttribute('stroke', 'currentColor');
+  stem.setAttribute('stroke-width', '1.4');
+  stem.setAttribute('stroke-linecap', 'round');
+  group.appendChild(stem);
+
+  let stemLength = 0;
+  for (let i = 0, prev = reefPoint(0); i < 24; i++) {
+    const next = reefPoint((i + 1) / 24);
+    stemLength += Math.hypot(next[0] - prev[0], next[1] - prev[1]);
+    prev = next;
+  }
+
+  /* Eleven leaves alternating outer and inner, shrinking toward the tip, and a
+     twelfth continuing the stem -- packed tight enough to overlap and hide it,
+     as the reference's do. Outer ones splay a little wider than inner ones. A
+     leaf is a pointed lens drawn along +x from its own base, so a rotation aims
+     it and a scale grows it from the stem outward. */
+  const leaves: ReefLeaf[] = [];
+  const spots = Array.from({ length: 11 }, (_, i) => 0.06 + i * 0.085);
+  spots.push(1);
+  spots.forEach((at, i) => {
+    const [x, y] = reefPoint(at);
+    const tip = at === 1;
+    const splay = tip ? 0 : i % 2 === 0 ? -34 : 28;
+    const length = 13.5 - at * 3.5;
+    const half = length * 0.25;
+    const el = document.createElementNS(SVG_NS, 'path');
+    el.setAttribute(
+      'd',
+      `M0 0C${length * 0.3} ${-half} ${length * 0.72} ${-half} ${length} 0` +
+        `C${length * 0.72} ${half} ${length * 0.3} ${half} 0 0Z`,
+    );
+    el.setAttribute('fill', 'currentColor');
+    group.appendChild(el);
+    leaves.push({ el, x, y, angle: reefHeading(at) + splay, at });
+  });
+
+  return { group, stem, stemLength, leaves, mirror };
+}
+
+const clamp01 = (v: number): number => Math.min(1, Math.max(0, v));
+
 /**
- * The same branch twice, opened out — the reference's 184x81 "reef", whose two
- * halves stand apart so the travelling mark can land in the gap between them.
- * Each branch is scaled to the 81px height, which leaves the middle clear and
- * matches the 20% inset its own landing anchor uses.
+ * Draws both branches at growth `g` (0 unseen, 1 full). The base slides out
+ * from the centre line as the branch scales up about it; the stem draws in
+ * just ahead of the leaves, which open one after another from the base, so
+ * the branch sprouts rather than being traced and then filled.
  */
-function laurelPair(): SVGSVGElement {
+function drawReef(branches: readonly ReefBranch[], g: number): void {
+  const [bx, by] = REEF_STEM[0];
+  const scale = 0.15 + 0.85 * g;
+  const slide = REEF_TRAVEL * (1 - g) ** 1.5;
+  const drawn = clamp01(g / 0.8);
+  for (const branch of branches) {
+    branch.group.setAttribute(
+      'transform',
+      `${branch.mirror} translate(${slide} 0) translate(${bx} ${by}) scale(${scale}) translate(${-bx} ${-by})`,
+    );
+    branch.stem.setAttribute('stroke-dasharray', String(branch.stemLength));
+    branch.stem.setAttribute('stroke-dashoffset', String(branch.stemLength * (1 - drawn)));
+    for (const leaf of branch.leaves) {
+      const open = clamp01((g - leaf.at * 0.8) / 0.2);
+      leaf.el.setAttribute(
+        'transform',
+        `translate(${leaf.x} ${leaf.y}) rotate(${leaf.angle}) scale(${open})`,
+      );
+    }
+  }
+}
+
+/** The wreath's SVG, drawn full-grown, and its two branches for animating. */
+function reef(): { svg: SVGSVGElement; branches: ReefBranch[] } {
   const svg = document.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('viewBox', '0 0 184 81');
   svg.setAttribute('aria-hidden', 'true');
   svg.setAttribute('focusable', 'false');
-  const scale = 81 / 48;
-  svg.append(
-    laurelBranch(`scale(${scale})`),
-    laurelBranch(`translate(184 0) scale(${-scale} ${scale})`),
-  );
-  return svg;
+  const branches = [reefBranch(''), reefBranch('translate(184 0) scale(-1 1)')];
+  for (const branch of branches) svg.appendChild(branch.group);
+  drawReef(branches, 1);
+  return { svg, branches };
 }
 
 /**
@@ -788,7 +920,33 @@ const impact = document.querySelector<HTMLElement>('.ot-impact');
 const wreath = document.querySelector<HTMLElement>('.ot-impact__wreath');
 const helmStops = [...document.querySelectorAll<HTMLElement>('[data-helm-stop]')];
 
-if (wreath) wreath.prepend(laurelPair());
+if (wreath) {
+  const { svg, branches } = reef();
+  wreath.prepend(svg);
+  // Grown on scroll with the reference's trigger and smoothing; drawn
+  // full-grown, and left so, when motion is reduced.
+  mm.add('(prefers-reduced-motion: no-preference)', () => {
+    const growth = { g: 0 };
+    const grow = gsap.to(growth, {
+      g: 1,
+      ease: 'none',
+      paused: true,
+      onUpdate: () => drawReef(branches, clamp01((growth.g - 0.22) / 0.44)),
+    });
+    const trigger = ScrollTrigger.create({
+      trigger: wreath,
+      start: 'top bottom',
+      end: 'bottom center',
+      scrub: 0.5,
+      animation: grow,
+    });
+    return () => {
+      trigger.kill();
+      grow.kill();
+      drawReef(branches, 1);
+    };
+  });
+}
 
 if (hero && impact && helmStops.length === 3) {
   const stops = helmStops as [HTMLElement, HTMLElement, HTMLElement];
