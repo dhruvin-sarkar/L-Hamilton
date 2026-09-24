@@ -38,6 +38,16 @@
  *     .shell puts column 3 at x=919 where the reference puts it at 855.
  */
 
+/* The whole page's ground. The reference paints On Track #111112 top to bottom
+   (its --color--black on `.taxi-w.on-track`), not the dark-green its other
+   pages use; --black is that slot. Every section here paints var(--bg), so this
+   one declaration keeps them from seaming against the hero. Our hairline,
+   --dark-tint-1, sits on it at 1.30:1 -- the reference's lines on its black
+   measure 1.33:1. */
+body[data-page='on-track'] {
+  --bg: var(--black);
+}
+
 .ot-hero {
   /* Reference: height: min(calc(var(--vh) * 100), 1200px). Exactly one screen,
      capped so a very tall monitor does not stretch the type off the grid. */
