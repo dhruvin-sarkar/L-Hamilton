@@ -46,6 +46,7 @@ import {
 } from './content/live-stats';
 import type { CalendarRound, RaceSession } from './content/live-stats';
 import { countryName, flagUrl } from './content/countries';
+import { circuitFacts, formatKm } from './content/circuit-facts';
 
 /* ------------------------------------------------------------------ *
  * Smooth scroll
@@ -2253,21 +2254,18 @@ function mountCalendar(section: HTMLElement): void {
 
   const fill = (round: CalendarRound): void => {
     const record = circuitById.get(round.circuitId);
+    const facts = circuitFacts(round);
     const span = weekendSpan(round);
 
     setText('[data-cal-days]', span.days);
     setText('[data-cal-month]', span.month);
 
-    setStat('[data-cal-starts]', String(record?.starts ?? 0));
+    /* The circuit's figures, and the one that is his: the year he first
+       raced here, or a dash where he never has. */
+    setStat('[data-cal-length]', formatKm(facts.lengthKm), 'km');
     setStat('[data-cal-first]', record ? String(record.firstRaced) : '–');
-    if (record?.bestFinish) {
-      const [figure, letters] = place(record.bestFinish);
-      setStat('[data-cal-best]', figure, letters);
-    } else {
-      // Raced here and never classified, or never raced here at all.
-      setStat('[data-cal-best]', record ? 'DNF' : '–');
-    }
-    setStat('[data-cal-wins]', String(record?.wins ?? 0));
+    setStat('[data-cal-distance]', formatKm(facts.raceDistanceKm), 'km');
+    setStat('[data-cal-laps]', String(facts.laps));
 
     setText('[data-cal-at]', round.locality);
     setText('[data-cal-story]', circuitStory(round));
@@ -2300,7 +2298,8 @@ function mountCalendar(section: HTMLElement): void {
   /* ----------------------------------------------------------- Rows */
 
   const buttons = rounds.map((round, index) => {
-    const record = circuitById.get(round.circuitId);
+    const facts = circuitFacts(round);
+    const distance = formatKm(facts.raceDistanceKm);
     const span = weekendSpan(round);
     const state = round === upcoming ? 'Next race.' : round.result ? `He ${outcomeOf(round.result)}.` : '';
 
@@ -2308,10 +2307,10 @@ function mountCalendar(section: HTMLElement): void {
     const row = el('button', 'ot-cal__row');
     row.type = 'button';
     row.setAttribute('aria-controls', panel.id);
-    row.setAttribute(
-      'aria-label',
-      `Round ${round.round}, ${round.raceName}, ${round.locality}, ${span.days} ${span.month}. ${state}`.trim(),
-    );
+    const label =
+      `Round ${round.round}, ${round.raceName}, ${round.locality}, ${span.days} ${span.month}, ` +
+      `${facts.laps} laps, ${distance} km. ${state}`;
+    row.setAttribute('aria-label', label.trim());
 
     const cell = (className = 'ot-cal__cell'): HTMLSpanElement => {
       const node = el('span', className);
@@ -2336,15 +2335,12 @@ function mountCalendar(section: HTMLElement): void {
       el('span', 'ot-cal__major ot-cal__month', span.month),
     );
 
-    cell().appendChild(el('span', 'ot-cal__major', String(record?.wins ?? 0)));
+    cell().appendChild(el('span', 'ot-cal__major', String(facts.laps)));
 
-    const best = cell('ot-cal__cell ot-cal__cell--unit');
-    if (record?.bestFinish) {
-      const [figure, letters] = place(record.bestFinish);
-      best.append(el('span', 'ot-cal__reg', figure), el('span', 'ot-cal__unit', letters));
-    } else {
-      best.appendChild(el('span', 'ot-cal__reg', record ? 'DNF' : '–'));
-    }
+    cell('ot-cal__cell ot-cal__cell--unit').append(
+      el('span', 'ot-cal__reg', distance),
+      el('span', 'ot-cal__unit', 'km'),
+    );
 
     row.append(el('span', 'ot-cal__rule'), el('span', 'ot-cal__row-bar'));
     row.addEventListener('click', () => {

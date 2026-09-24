@@ -794,15 +794,15 @@
            schedule.
 
            The panel carries the round's name set up the frame's tab, the
-           weekend, his record at the circuit, the session times in UK time and
-           the circuit drawn large. The arrows and the rows retarget it, and the
-           arrows cycle the same five rounds the rows show, as the reference's
-           do. Where the reference prints lap length and race distance -- which
-           our data does not carry -- the panel and the table print his own
-           record at that circuit.
+           weekend, the circuit's length, race distance and laps, the year he
+           first raced there, his record there in words, the session times in
+           UK time and the circuit drawn large. The arrows and the rows
+           retarget it, and the arrows cycle the same five rounds the rows show,
+           as the reference's do.
 
-           Every value is written by on-track.ts from the season calendar and
-           the circuit records; nothing below is typed. -->
+           Every value is written by on-track.ts from the season calendar, the
+           circuit records and the sourced circuit facts (content/
+           circuit-facts.ts); nothing below is typed. -->
       <section class="ot-cal" aria-labelledby="ot-cal-h">
         <div class="ot-cal__c">
           <div
@@ -827,8 +827,8 @@
                     <div class="ot-cal__spacer" aria-hidden="true"></div>
                     <div class="ot-cal__group">
                       <div class="ot-cal__item">
-                        <p class="ot-cal__eyebrow reveal-text">Starts</p>
-                        <p class="ot-cal__stat" data-cal-target data-cal-starts></p>
+                        <p class="ot-cal__eyebrow reveal-text">Length</p>
+                        <p class="ot-cal__stat" data-cal-target data-cal-length></p>
                       </div>
                       <div class="ot-cal__item">
                         <p class="ot-cal__eyebrow reveal-text">First competed</p>
@@ -837,12 +837,12 @@
                     </div>
                     <div class="ot-cal__group">
                       <div class="ot-cal__item">
-                        <p class="ot-cal__eyebrow reveal-text">Best finish</p>
-                        <p class="ot-cal__stat" data-cal-target data-cal-best></p>
+                        <p class="ot-cal__eyebrow reveal-text">Distance</p>
+                        <p class="ot-cal__stat" data-cal-target data-cal-distance></p>
                       </div>
                       <div class="ot-cal__item">
-                        <p class="ot-cal__eyebrow reveal-text">Wins</p>
-                        <p class="ot-cal__stat" data-cal-target data-cal-wins></p>
+                        <p class="ot-cal__eyebrow reveal-text">Laps</p>
+                        <p class="ot-cal__stat" data-cal-target data-cal-laps></p>
                       </div>
                     </div>
                   </div>
@@ -989,8 +989,8 @@
             <p class="ot-cal__eyebrow reveal-text">Rnd</p>
             <p class="ot-cal__eyebrow reveal-text">Location</p>
             <p class="ot-cal__eyebrow reveal-text">When</p>
-            <p class="ot-cal__eyebrow reveal-text">Wins</p>
-            <p class="ot-cal__eyebrow reveal-text">Best finish</p>
+            <p class="ot-cal__eyebrow reveal-text">Laps</p>
+            <p class="ot-cal__eyebrow reveal-text">Distance</p>
           </div>
 
           <div class="ot-cal__collection" data-cal-rows>

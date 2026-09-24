@@ -3273,6 +3273,12 @@ button.ot-cal__row:focus-visible {
     min-inline-size: auto;
   }
 
+  /* An item keeps its width, as the reference's do here: a long distance
+     takes its room from the spacer, never by folding the weekend's dates. */
+  .ot-cal__item {
+    flex: none;
+  }
+
   /* 9 units, given up first when the row is short of room. */
   .ot-cal__spacer {
     flex: 0 1 auto;
@@ -3282,8 +3288,10 @@ button.ot-cal__row:focus-visible {
     font-size: calc(var(--u) * 2.2);
   }
 
+  /* Dropped 0.1 unit rather than lifted: the reference's small label takes a
+     `top` here, and a `top` beats the `bottom` it is lifted by above. */
   .ot-cal__stat-unit {
-    inset-block-end: calc(var(--u) * 0.1);
+    inset-block: calc(var(--u) * 0.1) auto;
     font-size: calc(var(--u) * 1.3);
   }
 
