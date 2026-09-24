@@ -7,9 +7,10 @@
  * F1 vocabulary, and on a timing-screen-shaped panel that is what the code has
  * to be.
  *
- * These stand in for the reference's national flag artwork, which is bitmap
- * assets we neither have nor may rehost. A code is not a downgrade of a flag so
- * much as the other label the sport already prints in the same slot.
+ * Flags are separate: `flagUrl` points at our own copies from the MIT-licensed
+ * country-flag-icons set, drawn at 3:2 -- the reference's flags are the same
+ * aspect (23x15, 34x21) -- and keyed by ISO 3166-1 alpha-2, which is what that
+ * set is named by.
  *
  * Keyed by the country names Jolpica returns, which is why "UK" and "USA" are
  * here in that shape rather than as "United Kingdom" and "United States".
@@ -57,4 +58,48 @@ export function countryCode(country: string): string {
   const code = CODES[country];
   if (!code) throw new Error(`[countries] no code for "${country}" — add it to countries.ts`);
   return code;
+}
+
+/** ISO 3166-1 alpha-2, for the flag files. Same keys as CODES. */
+const ISO2: Readonly<Record<string, string>> = {
+  Argentina: 'ar',
+  Australia: 'au',
+  Austria: 'at',
+  Azerbaijan: 'az',
+  Bahrain: 'bh',
+  Belgium: 'be',
+  Brazil: 'br',
+  Canada: 'ca',
+  China: 'cn',
+  France: 'fr',
+  Germany: 'de',
+  Hungary: 'hu',
+  India: 'in',
+  Italy: 'it',
+  Japan: 'jp',
+  Korea: 'kr',
+  Malaysia: 'my',
+  Mexico: 'mx',
+  Monaco: 'mc',
+  Netherlands: 'nl',
+  Portugal: 'pt',
+  Qatar: 'qa',
+  Russia: 'ru',
+  'Saudi Arabia': 'sa',
+  Singapore: 'sg',
+  'South Africa': 'za',
+  Spain: 'es',
+  Sweden: 'se',
+  Switzerland: 'ch',
+  Turkey: 'tr',
+  UAE: 'ae',
+  UK: 'gb',
+  USA: 'us',
+};
+
+/** The flag for a country, as a URL under /assets/flags. Throws for one it lacks. */
+export function flagUrl(country: string): string {
+  const iso = ISO2[country];
+  if (!iso) throw new Error(`[countries] no flag for "${country}" -- add it to countries.ts`);
+  return `/assets/flags/${iso}.svg`;
 }

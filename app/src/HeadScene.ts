@@ -793,12 +793,12 @@ export class HeadScene {
     // The real 2020 Champion livery, as DDS. The glTF embeds no images at all,
     // so these are the only artwork the helmet has — the mesh does carry
     // TEXCOORD_0, which is what makes them applicable.
-    // PNG rather than the DDS directly. The source files carry DX10 headers
+    // WebP rather than the DDS directly. The source files carry DX10 headers
     // with DXGI formats 78 (BC3_UNORM_SRGB) and 98 (BC7_UNORM); Three's
     // DDSLoader only walks the legacy FourCC DXT1/3/5 path and cannot decode
-    // BC7 at all, so it rejected them outright. Converted offline to PNG at
-    // full 2048 resolution instead — build-time cost rather than a runtime
-    // transcoder, and no decoder ships to the client.
+    // BC7 at all, so it rejected them outright. Converted offline at full 2048
+    // resolution instead (WebP q90: 826KB for the pair, down from 5MB of PNG) —
+    // build-time cost rather than a runtime transcoder.
     const tex2d = new THREE.TextureLoader();
     const loadMap = (file: string): THREE.Texture => {
       const tex = tex2d.load(`/assets/helmet/textures/${file}`);
@@ -810,8 +810,8 @@ export class HeadScene {
       return tex;
     };
     const maps = {
-      shell: loadMap('helmet_d.png'),
-      wing: loadMap('wing_d.png'),
+      shell: loadMap('helmet_d.webp'),
+      wing: loadMap('wing_d.webp'),
       // The visor sheet is DXGI 78, which the converter could not read either.
       // That group falls back to its baseColorFactor, which is near-black —
       // the correct colour for a visor gasket regardless.

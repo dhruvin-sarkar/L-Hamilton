@@ -1123,7 +1123,7 @@ mountReveals({ immediate: '.hero', sideways: '.gallery', whenReady: onReady });
 const homeCircuitHost = document.querySelector<HTMLElement>('[data-home-circuit-host]');
 const homeRound = nextRound();
 if (homeCircuitHost && homeRound && hasTrack(homeRound.circuitId)) {
-  void mountCircuit(homeCircuitHost, { circuitId: homeRound.circuitId, accent: true }).then(
+  void mountCircuit(homeCircuitHost, { circuitId: homeRound.circuitId }).then(
     () => {
       // The loop steps aside only once a real shape is drawing over it.
       homeCircuitHost.dataset.circuitDrawn = '';

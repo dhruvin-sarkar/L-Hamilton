@@ -2,23 +2,26 @@
  * Traced circuit outlines, drawn by Rive.
  *
  * The reference draws every track from one file, `circuits.riv`: a single
- * artboard with a `circuits` state machine whose BOOLEAN inputs pick the track
- * (`monza`, `zandvoort`, …), the ink (`color_lime`, `color_black`,
- * `color_flouro-green`; none set = the file's cream default) and the stroke
- * (`weight_thin` / `weight_normal` / `weight_thick`). Selecting a track is
- * "every track input off, then this one on" — copied from its own loader, which
- * is also how its schedule rows retarget the shape on hover.
+ * artboard with a `circuits` state machine of 29 BOOLEAN inputs, read off the
+ * file: one per track (`monza`, `zandvoort`, …), the ink (`color_lime`,
+ * `color_black`; neither set = the file's grey default), the stroke
+ * (`weight_thin` / `weight_thick`) and `hover`. The file's own pointer
+ * listeners set `hover` when the pointer is over the artboard. Selecting a track
+ * is "every track input off, then this one on" -- copied from its own loader,
+ * which is also how its schedule rows retarget the shape on hover.
  *
  * The file is the reference's own, supplied for this build. Fetched once and
  * shared by every canvas on the page; the runtime's wasm is served from this
  * bundle rather than from unpkg, which is what its default loader would do.
  *
- * Colour is the one place this diverges. The file only knows the reference's
- * palette, so an instance that must be in OUR accent is drawn in black and
- * tinted with an SVG filter (`#circuit-tint-accent`, in the page's defs):
- * flood the accent, composite `in` SourceAlpha. Exact colour, alpha preserved,
- * and it holds through the file's own hover transitions because it is applied
- * per frame by the compositor, not once by us.
+ * The inks are the file's own, as the reference uses them: a thin grey outline
+ * at rest, and on hover the file's own transition redraws it as a heavy
+ * highlight. Only that highlight's colour differs. The file draws it in the
+ * reference's lime, and an SVG colour matrix (partials/circuit-filters.html)
+ * turns lime into ours -- Giallo Modena on a dark ground, Rosso Corsa on a
+ * light one -- while mapping every neutral to itself, so the grey rest state
+ * and the black one are untouched. The compositor applies it per frame, so it
+ * holds through every step of the transition.
  */
 
 import {
@@ -82,23 +85,34 @@ export const trackOf = (circuitId: string): string => {
   return track;
 };
 
-export type CircuitColor = 'default' | 'black' | 'lime' | 'flouro-green';
-export type CircuitWeight = 'thin' | 'normal' | 'thick';
+export type CircuitWeight = 'thin' | 'thick';
+
+/** The surface under a drawing, which decides both of its inks. */
+export type CircuitGround = 'dark' | 'light';
 
 export interface CircuitOptions {
   /** A circuit id from the content model, not a Rive input name. */
   circuitId: string;
-  color?: CircuitColor;
+  /**
+   * Dark (the default): the file's grey outline, highlighting in Giallo Modena.
+   * Light: the file's black outline, highlighting in Rosso Corsa.
+   */
+  ground?: CircuitGround;
+  /** Drawn highlighted at rest -- the reference's countdown circuit is. */
+  lit?: boolean;
   weight?: CircuitWeight;
-  /** Tint the drawing to the site accent. Draws in black underneath. */
-  accent?: boolean;
+  /**
+   * An element whose pointer enter/leave should also play the hover. Without
+   * one, the file's own listeners play it over the drawing, as the reference's do.
+   */
+  hoverTarget?: HTMLElement;
 }
 
 export interface CircuitHandle {
   readonly canvas: HTMLCanvasElement;
   /** Retargets the shape. Returns false, and changes nothing, for an id the file lacks. */
   select(circuitId: string): boolean;
-  /** Drives the file's own `hover_on` / `hover_off`, which is how it animates. */
+  /** Sets the file's `hover` input, which plays its highlight transition. */
   hover(on: boolean): void;
   destroy(): void;
 }
@@ -118,9 +132,9 @@ const file = (): Promise<ArrayBuffer> =>
 export async function mountCircuit(host: HTMLElement, opts: CircuitOptions): Promise<CircuitHandle> {
   const buffer = await file();
 
+  const ground = opts.ground ?? 'dark';
   const canvas = document.createElement('canvas');
-  canvas.className = 'circuit-canvas';
-  if (opts.accent) canvas.classList.add('circuit-canvas--accent');
+  canvas.className = `circuit-canvas circuit-canvas--${ground}`;
   host.appendChild(canvas);
 
   return new Promise((resolve, reject) => {
@@ -147,27 +161,13 @@ export async function mountCircuit(host: HTMLElement, opts: CircuitOptions): Pro
           return true;
         };
 
-        /* `hover_on` / `hover_off` drive the file's own transition — the shape
-         * redraws rather than simply appearing, which is the thing worth having
-         * and the reason the reference wires its schedule rows to a canvas at
-         * all. Fired by name across every input type, because whether the file
-         * declares them as triggers or as booleans is its business, not ours:
-         * a trigger has `fire()`, a boolean takes a value, and this handles
-         * both without asking. */
-        const pulse = (name: string, on: boolean): void => {
-          const input = inputs.find((i) => i.name === name);
-          if (!input) return;
-          if (typeof input.fire === 'function' && input.type === StateMachineInputType.Trigger) {
-            input.fire();
-            return;
-          }
-          input.value = on;
-        };
         const isTrack = (name: string): boolean =>
-          !name.startsWith('color_') && !name.startsWith('weight_');
+          name !== 'hover' && !name.startsWith('color_') && !name.startsWith('weight_');
 
-        const color = opts.accent ? 'black' : (opts.color ?? 'default');
-        if (color !== 'default') turn(`color_${color}`, true);
+        /* Lime is the file's highlight ink, so "lit" is simply that ink at rest;
+           the page's colour matrix carries it to ours like any other lime. */
+        if (opts.lit) turn('color_lime', true);
+        else if (ground === 'light') turn('color_black', true);
         if (opts.weight) turn(`weight_${opts.weight}`, true);
 
         const select = (circuitId: string): boolean => {
@@ -190,11 +190,27 @@ export async function mountCircuit(host: HTMLElement, opts: CircuitOptions): Pro
         const watch = new ResizeObserver(() => rive.resizeDrawingSurfaceToCanvas());
         watch.observe(canvas);
 
+        /* The file's `hover` input redraws the outline as its heavy highlight --
+           the transition is the thing worth having. Its own listeners set it
+           while the pointer is over the artboard, so a caller only wires a
+           target when a larger area should play it too. Pointer, not mouse: a
+           pen hovers as well. */
+        const hover = (on: boolean): void => {
+          turn('hover', on);
+        };
+        const target = opts.hoverTarget;
+        const enter = (): void => hover(true);
+        const leave = (): void => hover(false);
+        target?.addEventListener('pointerenter', enter);
+        target?.addEventListener('pointerleave', leave);
+
         resolve({
           canvas,
           select,
-          hover: (on: boolean) => pulse(on ? 'hover_on' : 'hover_off', on),
+          hover,
           destroy: () => {
+            target?.removeEventListener('pointerenter', enter);
+            target?.removeEventListener('pointerleave', leave);
             watch.disconnect();
             rive.cleanup();
             canvas.remove();

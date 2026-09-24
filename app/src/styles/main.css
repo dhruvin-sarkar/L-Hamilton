@@ -186,6 +186,17 @@ a {
   border: 0;
 }
 
+/* Circuits drawn by lib/circuit.ts. The filters are in
+   partials/circuit-filters.html, which both pages include: each keeps the
+   file's neutral inks and turns its lime hover highlight into one of ours. */
+.circuit-canvas--dark {
+  filter: url('#circuit-on-dark');
+}
+
+.circuit-canvas--light {
+  filter: url('#circuit-on-light');
+}
+
 /* A focusable .sr-only element has to become visible when it is focused, or a
    keyboard user's first Tab moves focus to something they cannot see. That is
    the skip link, and it is the first thing in the document. */

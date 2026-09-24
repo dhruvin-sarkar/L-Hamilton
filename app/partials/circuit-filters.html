@@ -1,0 +1,41 @@
+<!-- The two inks a circuits.riv drawing can be shown in. lib/circuit.ts puts
+     every canvas under one of these by class (see main.css).
+
+     The file draws its highlight in the reference's lime #d2ff00 and everything
+     else in neutrals: a grey outline at rest on a dark ground, a black one on a
+     light ground. Each matrix sends lime to one of Ferrari's two colours while
+     every row sums to 1, which maps any grey, white or black to itself. So the
+     rest state is untouched, and only the file's own hover transition changes
+     colour, through every frame of it.
+
+     Written with the green column carrying the colour because lime is the only
+     ink here with any green and no blue: out = (G, kG + (1-k)B, B) takes
+     (0.824, 1, 0) to (1, k, 0) and (a, a, a) to (a, a, a).
+
+       dark ground  -> Giallo Modena #fff200, k = 242/255
+       light ground -> Rosso Corsa  #ff2800, k = 40/255
+
+     sRGB interpolation, or the matrix would be applied to linearised values and
+     land on a different colour than the one named. -->
+<svg class="sr-only" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="circuit-on-dark" color-interpolation-filters="sRGB">
+      <feColorMatrix
+        type="matrix"
+        values="0 1 0 0 0
+                0 0.949 0.051 0 0
+                0 0 1 0 0
+                0 0 0 1 0"
+      />
+    </filter>
+    <filter id="circuit-on-light" color-interpolation-filters="sRGB">
+      <feColorMatrix
+        type="matrix"
+        values="0 1 0 0 0
+                0 0.157 0.843 0 0
+                0 0 1 0 0
+                0 0 0 1 0"
+      />
+    </filter>
+  </defs>
+</svg>

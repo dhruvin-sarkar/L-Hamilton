@@ -42,10 +42,9 @@
   /* Reference: height: min(calc(var(--vh) * 100), 1200px). Exactly one screen,
      capped so a very tall monitor does not stretch the type off the grid. */
   block-size: min(100svh, 1200px);
-  /* Its own padding-top is 5.375rem and its nav is 6.25rem, so its title tucks
-     under a transparent bar. Ours is 7.9rem (see tokens.css) and the title
-     clears it — the same relationship, against a taller bar. */
-  padding-block: var(--nav-height) var(--gap);
+  /* The reference's own 5.375rem, not our nav height: its title tucks up under
+     the transparent bar, and TRACK's cap line lands at y=118 on both sites. */
+  padding-block: 5.375rem var(--gap);
   display: flex;
   flex-direction: column;
   background: var(--bg);
@@ -76,10 +75,12 @@
 
 /* ------------------------------------------------------- The title line */
 
+/* No space under the identity row: the stats grid starts right on it, at y=434
+   as the reference's does. The helmet's first stop hangs off that grid's top,
+   so any gap here drops the helmet with it. */
 .ot-hero__title-layout {
   display: flex;
   flex-direction: column;
-  padding-block-end: var(--gap);
 }
 
 .ot-hero__title {
@@ -95,18 +96,18 @@
 
 .ot-hero__track {
   flex: none;
-  font-family: var(--font-display);
-  /* Measured: 22.3rem, line-height 0.886, letter-spacing -0.1875rem. The
-     reference sets Mona Sans at "wdth" 95; Archivo Narrow has no width axis and
-     runs narrower, so the size is tuned to match the WIDTH of its title rather
-     than its nominal point size — the line has to reach column 4 either way. */
-  font-size: 25.8rem;
+  /* Reference .text-on-t-hero-heading: Mona Sans at "wdth" 95 "wght" 700,
+     22.3rem, line-height 0.886, letter-spacing -0.1875rem. The same face, so
+     the same numbers -- and the line lands on column 4 by itself. */
+  font-family: var(--font-body);
+  font-stretch: 95%;
+  font-size: 22.3rem;
   font-weight: 700;
-  /* Absolute, not a ratio. The reference's title occupies a 19.758rem line box
-     and the whole row below it is positioned off that — so the BOX is what has
-     to match, independent of the size the face needs to reach column 4. */
-  line-height: 19.758rem;
+  line-height: 0.886;
   letter-spacing: -0.1875rem;
+  /* The reference splits the word into one span per letter, which drops the
+     face's kerning pairs; without this ours sets 6px tighter than its 1169. */
+  font-kerning: none;
   text-transform: uppercase;
   color: var(--text);
 }
@@ -157,15 +158,15 @@
   gap: calc(var(--gap) * 0.5);
 }
 
-/* Reference .text-on-t-stat-label-reg: 2.063rem, "wdth" 75 "wght" 700,
-   line-height 32.01px, letter-spacing -0.1px, uppercase. */
+/* Reference .text-on-t-stat-label-reg: 2.0625rem, "wdth" 75 "wght" 700,
+   line-height 0.97, letter-spacing -0.00625rem, uppercase. */
 .ot-hero__label {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 2.063rem;
+  font-size: 2.0625rem;
   font-weight: 700;
-  line-height: 2rem;
-  letter-spacing: -0.1px;
+  line-height: 0.97;
+  letter-spacing: -0.00625rem;
   text-transform: uppercase;
   color: var(--text);
   white-space: nowrap;
@@ -180,6 +181,19 @@
   flex: 1;
   margin-block-start: auto;
   position: relative;
+}
+
+/* The helmet's first stop, measured and never painted. Reference
+   .on-t-helm-scroll-pos1: 77.5625rem x 66rem hanging off the left of this grid,
+   14rem above it and 29rem out past its edge -- so the helmet starts huge, cut
+   off by the left of the screen. */
+.ot-hero__helm-pos {
+  position: absolute;
+  inset-block-start: -14rem;
+  inset-inline-start: -29rem;
+  inline-size: 77.5625rem;
+  block-size: 66rem;
+  pointer-events: none;
 }
 
 .ot-hero__stats-w {
@@ -217,11 +231,13 @@
      ALSO override the centring the card rows set and pull every label in the
      cluster over to its left edge. */
   inline-size: fit-content;
-  font-family: var(--font-display);
+  /* Normal width, not condensed: the reference's eyebrow is "wght" 700
+     "wdth" 100, letter-spacing 0. */
+  font-family: var(--font-body);
   font-size: var(--text--eyebrow);
   font-weight: 700;
   line-height: 1;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--grey-on-track);
 }
@@ -232,26 +248,24 @@
   max-inline-size: 41rem;
 }
 
-/* Reference .text-body-lg-mona: 2.25rem, weight 700, line-height 39.6px,
-   letter-spacing -1px. */
+/* Reference .text-body-lg-mona: Mona Sans at "wght" 500 "wdth" 100, 2.25rem,
+   line-height 1.1, letter-spacing -0.0625rem. */
 .ot-hero__para {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: 2.25rem;
-  font-weight: 700;
-  line-height: 2.475rem;
-  letter-spacing: -1px;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.0625rem;
   color: var(--text);
 }
 
-/* The closing clause, in the second face — the reference's .text-body-lg-brier
-   in lime. Uppercase there; ours stays sentence case because the Didone's
-   italic capitals at this size read as a different sentence rather than as
-   emphasis inside this one. */
+/* The closing clause, in the second face -- the reference's .text-body-lg-brier:
+   roman, lower case, the size of the line around it, in the accent. */
 .ot-hero__accent {
   font-family: var(--font-serif);
-  font-style: italic;
   font-weight: 500;
+  font-variant-numeric: lining-nums;
   color: var(--accent);
 }
 
@@ -404,24 +418,14 @@
   overflow: clip;
 }
 
+/* Reference .on-t-hero-stats-ui-box1-item.is-1: "RND." and the number set
+   tight, no gap, over its pattern fill at 220% auto. */
 .ot-hero__next-cell--round {
   flex-direction: row;
-  gap: 0.4rem;
+  gap: 0;
   padding-block-start: 0.8rem;
-}
-
-/* The reference fills this cell with a photographic texture behind a right
-   border. Drawn instead of loaded: one fewer asset, and it stays crisp at any
-   root size. Painted as the cell's own background rather than as a pseudo —
-   a negative z-index needs a stacking context to stay inside, and this cell is
-   not one. */
-.ot-hero__next-cell--round {
   border-inline-end: 1px solid var(--ui-line);
-  background-image: repeating-linear-gradient(
-    -45deg,
-    color-mix(in oklab, var(--ui-line) 45%, var(--bg)) 0 1px,
-    transparent 1px 9px
-  );
+  background: url('/assets/ui/contour-pattern.svg') center / 220% auto no-repeat;
 }
 
 /* The helmet-and-laurels crest, as the reference does it: its
@@ -443,15 +447,13 @@
 
 /* ------------------------------------------------------- Connectors */
 
+/* Reference .on-t-hero-stats-ui-img-fill: the pattern at auto 130%, so a
+   --gap-wide strip shows a slice of it. */
 .ot-hero__fill {
   flex: none;
   inline-size: var(--gap);
   border-block: 1px solid var(--ui-line);
-  background-image: repeating-linear-gradient(
-    -45deg,
-    color-mix(in oklab, var(--ui-line) 45%, var(--bg)) 0 1px,
-    transparent 1px 9px
-  );
+  background: url('/assets/ui/contour-pattern.svg') center / auto 130% no-repeat;
 }
 
 .ot-hero__fill--cap {
@@ -480,23 +482,6 @@
   gap: var(--gap);
   border-inline-end: 1px solid var(--ui-line);
   padding-inline: 1rem;
-}
-
-/* Where the reference draws the circuit. Set at stat-label weight so the panel
-   keeps its mass without a shape we cannot honestly draw yet. */
-/* ------------------------------------------------------------- Circuits
- *
- * Traced outlines drawn from circuits.riv by lib/circuit.ts. The file is the
- * reference's own and only knows the reference's palette, so anything that has
- * to be in OUR accent is drawn in its black and repainted by the filter in the
- * page's defs. This is where that filter gets its colour: as a CSS property it
- * resolves --accent, which the attribute in the markup cannot. */
-.circuit-canvas--accent {
-  filter: url('#circuit-tint-accent');
-}
-
-#circuit-tint-accent feFlood {
-  flood-color: var(--accent);
 }
 
 /* The circuit's box, at the reference's own 206x145 (`.on-t-hero-stats-ui-box2
@@ -587,35 +572,60 @@
 
 /* ------------------------------------------------------- Shared bits */
 
-/* Stands in for the reference's flag artwork; see the note in the markup. */
-.ot-hero__code {
-  align-self: center;
-  padding: 0.15rem 0.3rem;
-  border: 1px solid var(--ui-line);
+/* Reference .flag-w: 0.2rem radius. The small one rides 0.2rem low against
+   the stat labels, as .flag-w.is-sm.is-hero does. */
+.ot-hero__flag {
+  flex: none;
+  display: block;
   border-radius: 0.2rem;
+  object-fit: cover;
+}
+
+.ot-hero__flag--sm {
+  inline-size: 1.4375rem;
+  block-size: 0.9175rem;
+  position: relative;
+  inset-block-start: 0.2rem;
+}
+
+.ot-hero__flag--md {
+  inline-size: 2.12438rem;
+  block-size: 1.3125rem;
+}
+
+/* The previous race's finish: stat-label figure, ordinal letters small and
+   grey beside it -- the same "position" format the seasons table uses. */
+.ot-hero__finish {
+  margin: 0;
   font-family: var(--font-display);
-  font-size: var(--text--eyebrow);
+  font-size: 2.0625rem;
   font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0.06em;
+  line-height: 0.97;
+  letter-spacing: -0.00625rem;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.ot-hero__finish-suffix {
+  font-size: 1rem;
+  font-weight: 800;
   color: var(--grey-on-track);
+  position: relative;
+  inset-block-start: 0.1rem;
+  inset-inline-start: 0.1rem;
 }
 
 /* Reference .text-on-t-stat-label-reg again, inside the cards. */
 .ot-hero__figure {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 2.063rem;
+  font-size: 2.0625rem;
   font-weight: 700;
-  line-height: 2rem;
-  letter-spacing: -0.1px;
+  line-height: 0.97;
+  letter-spacing: -0.00625rem;
   text-transform: uppercase;
-  color: var(--white);
+  color: var(--text);
   font-variant-numeric: tabular-nums;
-}
-
-.ot-hero__figure--quiet {
-  color: var(--grey-on-track);
 }
 
 /* ================================================== The statement
@@ -677,11 +687,11 @@
 
 .ot-impact__eyebrow {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: var(--text--eyebrow);
   font-weight: 700;
   line-height: 1;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   text-transform: uppercase;
   color: var(--grey-on-track);
 }
@@ -693,8 +703,7 @@
   align-items: center;
 }
 
-/* The travelling mark is placed against the section, so this only has to be a
-   positioned box the anchor inside it can be measured against. */
+/* A positioned box for the helmet's middle stop to be centred in. */
 .ot-impact__stage {
   position: relative;
   inline-size: 100%;
@@ -709,7 +718,9 @@
      and wrap it narrower than the block it is centred in. */
   inline-size: 100%;
   margin: 0 0 6.25rem;
-  font-family: var(--font-display);
+  /* Reference .text-impact-lg-mona: "wght" 660, "wdth" 93. */
+  font-family: var(--font-body);
+  font-stretch: 93%;
   font-size: var(--text--impact); /* 7.9375rem */
   font-weight: 660;
   line-height: 0.906;
@@ -738,14 +749,10 @@
   font-size: 8.25rem;
   line-height: 0.83;
   letter-spacing: -0.1875rem;
-  /* Caps, like the rest of the statement. The reference's <strong> computes
-     `text-transform: uppercase` exactly as its base text does — the accent is a
-     change of FACE, not of case, and setting it lowercase here made the clause
-     read as an aside dropped into a headline instead of part of it. It also
-     narrowed the words enough to change where every line broke.
-     The italic is ours, not the reference's: its Brier is upright at 700, and
-     Playfair is the house serif substitute we already set this way in the
-     wordmark and the hero marquee. */
+  /* Caps and upright, like the reference's Brier: the accent is a change of
+     FACE, not of case or slant. */
+  font-style: normal;
+  font-variant-numeric: lining-nums;
   text-transform: uppercase;
   color: var(--grey-on-track);
 }
@@ -764,8 +771,8 @@
   block-size: 100%;
 }
 
-/* Measured, never painted. Both are zero-ink boxes whose position and size the
-   mark interpolates between. */
+/* Measured, never painted: the helmet's second and third stops (see
+   HelmetScroll.ts). The first hangs off the hero, .ot-hero__helm-pos. */
 .ot-impact__anchor {
   position: absolute;
   display: block;
@@ -789,21 +796,16 @@
   translate: 0 -1rem;
 }
 
-/* The object that makes the journey. The reference's is a 3D helmet render;
-   ours is the monogram, masked so it takes a colour. */
-.ot-impact__mark {
-  position: absolute;
-  inset-block-start: 0;
-  inset-inline-start: 0;
-  display: block;
-  background-color: var(--accent);
-  mask-image: url('/assets/brand/lh-monogram.svg');
-  mask-repeat: no-repeat;
-  mask-position: center;
-  mask-size: contain;
-  transform-origin: 0 0;
+/* The helmet's canvas: the whole screen, fixed, above the page and under the
+   menu (25) and nav (120). It paints over the statement as the reference's does
+   -- the letters behind the helmet are hidden by it. */
+.helmet-scroll {
+  position: fixed;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  z-index: 20;
   pointer-events: none;
-  will-change: transform;
 }
 
 /* ================================================== Career stat band */

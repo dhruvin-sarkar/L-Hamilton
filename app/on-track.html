@@ -34,6 +34,7 @@
     <link rel="stylesheet" href="/src/styles/main.css" />
   </head>
   <body data-page="on-track">
+    <!--#include "partials/circuit-filters.html"-->
     <!--#include "partials/nav.html"-->
 
     <main id="main">
@@ -83,13 +84,15 @@
 
                   <div class="ot-hero__label-flex">
                     <p class="ot-hero__label reveal-text">Stevenage, UK</p>
-                    <!-- The reference prints a national flag here. Flags are
-                         bitmap artwork we do not have and may not rehost, so
-                         this is the other label the sport already puts in the
-                         same slot: the FIA three-letter country code. Hidden
-                         from assistive tech because the line beside it already
-                         says the country. -->
-                    <span class="ot-hero__code" aria-hidden="true">GBR</span>
+                    <!-- Decorative: the line beside it already says the
+                         country. Reference: .flag-w.is-sm.is-hero, 23x15. -->
+                    <img
+                      class="ot-hero__flag ot-hero__flag--sm"
+                      src="/assets/flags/gb.svg"
+                      alt=""
+                      width="23"
+                      height="15"
+                    />
                   </div>
                 </div>
               </div>
@@ -97,6 +100,8 @@
           </div>
 
           <div class="ot-hero__stats ot-hero__grid">
+            <!-- Where the helmet starts: see HelmetScroll.ts. -->
+            <div class="ot-hero__helm-pos" data-helm-stop aria-hidden="true"></div>
             <div class="ot-hero__stats-w">
               <!-- Reference: .spacer.on-t-hero, flex 1 with a 4-8rem clamp. It
                    is what lets the block below sit against the bottom of a tall
@@ -104,7 +109,7 @@
               <div class="ot-hero__spacer" aria-hidden="true"></div>
 
               <div class="ot-hero__stats-layout">
-                <p class="ot-hero__eyebrow reveal-text">driving for the eighth</p>
+                <p class="ot-hero__eyebrow reveal-text">chasing the eighth</p>
 
                 <div class="ot-hero__para-w">
                   <!-- Third-person site copy, never a quote — CLAUDE.md forbids
@@ -115,9 +120,9 @@
                   <h2 class="ot-hero__para reveal-text" data-reveal-rich>
                     Since his F1 debut with McLaren in
                     <span data-bind="debut-year">2007</span>, Lewis Hamilton has won
-                    <span data-bind="titles-word">seven</span> world championships across
-                    <span data-bind="teams-word">three</span> teams &mdash; and at Ferrari he is
-                    <span class="ot-hero__accent">still driving for the eighth</span>.
+                    <span data-bind="titles-word">seven</span> titles across
+                    <span data-bind="teams-word">three</span> teams &ndash; and at Ferrari he is
+                    <span class="ot-hero__accent">chasing the eighth</span>.
                   </h2>
                 </div>
 
@@ -147,32 +152,6 @@
                            <use> it. -->
                       <!--#include "partials/crest.html"-->
 
-                      <!-- Recolours a circuit drawing to our accent.
-                           circuits.riv only knows the reference's palette — its
-                           colours are lime, black and a flouro green — so a
-                           circuit that has to be Ferrari red is drawn in the
-                           file's black and repainted here: flood the accent,
-                           keep only where the drawing already has ink. The
-                           alpha survives, so antialiased edges stay clean, and
-                           because the compositor applies it per frame it holds
-                           through the file's own hover transition. -->
-                      <filter
-                        id="circuit-tint-accent"
-                        x="0"
-                        y="0"
-                        width="100%"
-                        height="100%"
-                        color-interpolation-filters="sRGB"
-                      >
-                        <!-- Rosso Corsa literal so the filter is correct with
-                             no stylesheet at all; on-track.css re-declares
-                             flood-color from --accent, which is where the
-                             colour actually belongs. A var() in a presentation
-                             ATTRIBUTE is not reliably resolved, so this is a
-                             value, not a token reference. -->
-                        <feFlood flood-color="#ff2800" result="ink" />
-                        <feComposite in="ink" in2="SourceAlpha" operator="in" />
-                      </filter>
                     </defs>
                   </svg>
 
@@ -186,27 +165,20 @@
                     <p class="ot-hero__ui-label reveal-text">Previous</p>
                     <div class="ot-hero__prev-row">
                       <!-- The circuit, which is what the reference puts here
-                           (`.home-hero-next-race-rive`, 88x75 at [871,838]) —
-                           its fourth and last use of circuits.riv.
-
-                           It replaced a result figure. The reference's card
-                           carries no result at all: eyebrow, circuit, race
-                           name, rule, and an empty second row. Ours printed an
-                           em dash there for the whole gap between a race being
-                           run and its result being published — which is exactly
-                           where the page sits today, two dashes and no shape. -->
+                           (`.home-hero-next-race-rive`, 88x75), in the file's
+                           grey, above the race name. -->
                       <div class="ot-hero__prev-circuit" data-prev-circuit-host></div>
                       <p class="ot-hero__ui-eyebrow reveal-text" data-prev-race>&mdash;</p>
                     </div>
                     <div class="ot-hero__prev-rule" aria-hidden="true"></div>
-                    <!-- Empty, as the reference's `.on-t-hero-stats-ui-sec1-row
-                         .is-2` is: 110px of reserved height with nothing in it.
-                         Both rows size the card, so it cannot just be dropped. -->
-                    <div class="ot-hero__prev-row"></div>
-                    <!-- Not drawn by the reference and not drawn here — but we
-                         have the result, and a card announcing the previous race
-                         that never says how it went is a worse card for someone
-                         listening to it than for someone looking at it. -->
+                    <!-- The finish, as the reference's second row prints it
+                         (`data-text-format="position"`): the figure at stat-
+                         label size with its ordinal letters beside it, small.
+                         Empty until a result is published -- the reference's
+                         row is empty then too, and keeps its height. -->
+                    <div class="ot-hero__prev-row">
+                      <p class="ot-hero__finish" data-prev-finish aria-hidden="true"></p>
+                    </div>
                     <p class="sr-only" data-prev-outcome></p>
                   </article>
 
@@ -218,11 +190,20 @@
                              photographic texture; ours is drawn in CSS, which
                              is one fewer asset and scales without a raster. -->
                         <div class="ot-hero__next-cell ot-hero__next-cell--round">
-                          <p class="ot-hero__figure ot-hero__figure--quiet">Rnd.</p>
+                          <p class="ot-hero__figure">Rnd.</p>
                           <p class="ot-hero__figure" data-next-round>&mdash;</p>
                         </div>
                         <div class="ot-hero__next-cell">
-                          <span class="ot-hero__code" data-next-code aria-hidden="true"></span>
+                          <!-- Reference: .flag-w.is-md, 34x21. Decorative; the
+                               venue under it is the text. -->
+                          <img
+                            class="ot-hero__flag ot-hero__flag--md"
+                            data-next-flag
+                            alt=""
+                            width="34"
+                            height="21"
+                            hidden
+                          />
                           <p class="ot-hero__ui-eyebrow reveal-text" data-next-where>&mdash;</p>
                         </div>
                       </div>
@@ -289,11 +270,9 @@
            with its accented words in the second face one step LARGER (8.25rem)
            and in grey rather than in the accent.
 
-           Over that statement the reference floats a 3D helmet, which shrinks
-           as the section scrolls until it lands between a pair of laurel
-           branches at the bottom. The helmet is its artwork; the mechanic is
-           not, so the object that makes that journey here is the monogram this
-           build already uses for him. -->
+           Over that statement a 3D helmet flies in from the hero and shrinks
+           as the section scrolls, until it lands between a pair of laurel
+           branches at the bottom -- see HelmetScroll.ts. -->
       <section class="ot-impact">
         <div class="ot-impact__inner">
           <div class="ot-impact__icon">
@@ -318,23 +297,19 @@
                 weekend.
               </h2>
 
-              <!-- Where the travelling mark starts. An empty anchor rather than
-                   the mark itself: the mark is absolutely placed against the
-                   section and interpolates between these two boxes, so both
-                   have to stay in normal flow to be measured. -->
-              <span class="ot-impact__anchor ot-impact__anchor--text" data-mark-anchor="0"></span>
+              <!-- The helmet's middle stop, centred on the statement. -->
+              <span class="ot-impact__anchor ot-impact__anchor--text" data-helm-stop></span>
             </div>
 
             <div class="ot-impact__wreath">
               <!-- Built in on-track.ts from the same branch the pre-F1 section
                    uses, opened out into a pair so the mark can land between
                    them — which is the composition the reference ends on. -->
-              <span class="ot-impact__anchor ot-impact__anchor--wreath" data-mark-anchor="1"></span>
+              <span class="ot-impact__anchor ot-impact__anchor--wreath" data-helm-stop></span>
             </div>
           </div>
         </div>
 
-        <span class="ot-impact__mark" data-mark aria-hidden="true"></span>
       </section>
 
       <!-- ================================================ Career stat band

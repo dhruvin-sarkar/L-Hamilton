@@ -14,10 +14,11 @@
 
 import './styles/on-track.css';
 import Lenis from 'lenis';
-import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './lib/motion';
+import { gsap, mm, reducedMotion, ScrollTrigger } from './lib/motion';
 import { mountChrome } from './lib/chrome';
 import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountGalleryScroll } from './lib/gallery';
+import { mountHelmetScroll } from './HelmetScroll';
 import { mountReveals } from './lib/reveal';
 import { mountHelmets, mountHofDrift, mountSocials, mountStore } from './lib/showcase';
 import {
@@ -42,7 +43,7 @@ import {
   winsNewestFirst,
 } from './content/live-stats';
 import type { CalendarRound, RaceSession } from './content/live-stats';
-import { countryCode } from './content/countries';
+import { flagUrl } from './content/countries';
 
 /* ------------------------------------------------------------------ *
  * Smooth scroll
@@ -354,15 +355,31 @@ if (previous) {
       : 'Result not yet published.',
   );
 
-  /* The fourth circuit. Same guard as the other three: two rounds of the 2026
-     calendar have no shape in the file, and the race eyebrow below carries the
-     card either way. */
+  /* The figure and its ordinal letters as two runs, the letters set small --
+     the reference's "position" format. A car that did not finish prints what
+     the timing screens print for it; a result not yet published leaves the
+     row empty, as the reference's is then. */
+  const finish = document.querySelector<HTMLElement>('[data-prev-finish]');
+  const result = previous.result;
+  if (finish && result?.position) {
+    const place = ordinal(result.position);
+    const digits = place.replace(/\D+$/, '');
+    const figure = document.createElement('span');
+    figure.textContent = digits;
+    const letters = document.createElement('span');
+    letters.className = 'ot-hero__finish-suffix';
+    letters.textContent = place.slice(digits.length);
+    finish.replaceChildren(figure, letters);
+  } else if (finish && result) {
+    const classified: Readonly<Record<string, string>> = { R: 'DNF', D: 'DSQ', W: 'DNS' };
+    finish.textContent = classified[result.positionText] ?? result.positionText;
+  }
+
+  /* Same guard as every other circuit: two rounds of the 2026 calendar have no
+     shape in the file, and the race name carries the card either way. */
   const prevCircuitHost = document.querySelector<HTMLElement>('[data-prev-circuit-host]');
   if (prevCircuitHost && hasTrack(previous.circuitId)) {
-    /* `accent`, not the file's own colour. circuits.riv only knows the
-       reference's palette, and left to itself it draws in McLaren lime — the
-       one colour this rebuild exists to replace. Every circuit is Ferrari red. */
-    void mountCircuit(prevCircuitHost, { circuitId: previous.circuitId, accent: true }).catch(
+    void mountCircuit(prevCircuitHost, { circuitId: previous.circuitId }).catch(
       (error: unknown) => {
         console.warn('[on-track] previous-race circuit did not load', error);
       },
@@ -375,7 +392,11 @@ if (previous) {
 const next = nextRound();
 if (next) {
   slot('next-round', String(next.round));
-  slot('next-code', countryCode(next.country));
+  const flag = document.querySelector<HTMLImageElement>('[data-next-flag]');
+  if (flag) {
+    flag.src = flagUrl(next.country);
+    flag.hidden = false;
+  }
 
   /* Locality, except where it only repeats the race name — "Abu Dhabi" under a
      card already labelled Abu Dhabi says nothing. */
@@ -406,7 +427,7 @@ if (next) {
    * once a shape is actually drawing. */
   const circuitHost = document.querySelector<HTMLElement>('[data-round-circuit-host]');
   if (circuitHost && hasTrack(next.circuitId)) {
-    void mountCircuit(circuitHost, { circuitId: next.circuitId, accent: true }).then(
+    void mountCircuit(circuitHost, { circuitId: next.circuitId }).then(
       () => {
         circuitHost.dataset.circuitDrawn = '';
       },
@@ -749,88 +770,31 @@ if (statGrid) {
 }
 
 /* ------------------------------------------------------------------ *
- * The statement, and the mark that travels through it
+ * The statement, and the helmet that flies into it
  *
- * The reference floats a 3D helmet over this section's text and shrinks it as
- * the section scrolls until it lands between a pair of laurel branches. The
- * helmet is its artwork and not ours to republish; the journey is the point, so
- * the object making it here is the monogram this build already uses for him.
+ * The reference's 3D helmet starts huge off the left of the hero, turns as it
+ * crosses to the middle of this statement, and lands small between a pair of
+ * laurel branches under it. HelmetScroll.ts rebuilds that journey with the
+ * helmet supplied for this build; the three boxes it flies through are in the
+ * markup ([data-helm-stop]), sized exactly as the reference sizes its own.
  *
- * Two empty anchors carry the start and end boxes. The mark is positioned
- * against the section and interpolates between them, which keeps the geometry
- * in the stylesheet — where the reference keeps its own — instead of as numbers
- * in here that a layout change would silently invalidate.
+ * Desktop only, as the stops are laid out for it. Under reduced motion it is
+ * parked in the wreath and never moves -- the wreath reads as a wreath around
+ * something, and empty it would read as a missing image.
  * ------------------------------------------------------------------ */
 
+const hero = document.querySelector<HTMLElement>('.ot-hero');
 const impact = document.querySelector<HTMLElement>('.ot-impact');
 const wreath = document.querySelector<HTMLElement>('.ot-impact__wreath');
-const mark = document.querySelector<HTMLElement>('[data-mark]');
-const markAnchors = [...document.querySelectorAll<HTMLElement>('[data-mark-anchor]')];
+const helmStops = [...document.querySelectorAll<HTMLElement>('[data-helm-stop]')];
 
 if (wreath) wreath.prepend(laurelPair());
 
-if (impact && mark && markAnchors[0] && markAnchors[1]) {
-  const [startAnchor, endAnchor] = [markAnchors[0], markAnchors[1]];
-
-  /** An anchor's box relative to the section the mark is positioned against. */
-  const boxOf = (node: HTMLElement): { x: number; y: number; w: number } => {
-    const a = node.getBoundingClientRect();
-    const b = impact.getBoundingClientRect();
-    return { x: a.left - b.left, y: a.top - b.top, w: a.width };
-  };
-
-  /* The mark wears the first anchor's SIZE and is moved and scaled from there,
-     so only one box is ever laid out and everything after it is transform. */
-  const resize = (): void => {
-    const a = startAnchor.getBoundingClientRect();
-    mark.style.inlineSize = `${a.width}px`;
-    mark.style.blockSize = `${a.height}px`;
-  };
-  resize();
-
-  if (reducedMotion) {
-    /* Parked where the journey ends. The wreath reads as a wreath around
-       something; leaving it empty would read as a missing image. */
-    const from = boxOf(startAnchor);
-    const to = boxOf(endAnchor);
-    gsap.set(mark, { x: to.x, y: to.y, scale: to.w / from.w });
-  } else {
-    mm.add(WIDE_AND_ANIMATED, () => {
-      const tween = gsap.fromTo(
-        mark,
-        { x: () => boxOf(startAnchor).x, y: () => boxOf(startAnchor).y, scale: 1 },
-        {
-          x: () => boxOf(endAnchor).x,
-          y: () => boxOf(endAnchor).y,
-          scale: () => boxOf(endAnchor).w / boxOf(startAnchor).w,
-          ease: 'none',
-          scrollTrigger: {
-            trigger: impact,
-            /* Was `top top` to `bottom bottom`. The section is 1103px tall in a
-               1080px viewport, so those two resolved 23px apart and the mark
-               snapped into the wreath within a single frame of scroll.
-
-               Centre to centre instead: the range is the section's own height
-               however tall it grows, and the mark starts moving as the section
-               passes the middle of the screen and lands as it leaves. */
-            start: 'top center',
-            end: 'bottom center',
-            scrub: 0.6,
-            // The anchors are sized in rem against a fluid root, so every box
-            // above moves on resize. Without this the tween keeps the values it
-            // was built with and the mark misses the wreath.
-            invalidateOnRefresh: true,
-            onRefresh: resize,
-          },
-        },
-      );
-      return () => {
-        tween.scrollTrigger?.kill();
-        tween.kill();
-        gsap.set(mark, { clearProps: 'transform' });
-      };
-    });
-  }
+if (hero && impact && helmStops.length === 3) {
+  const stops = helmStops as [HTMLElement, HTMLElement, HTMLElement];
+  mm.add('(min-width: 992px)', () =>
+    mountHelmetScroll({ from: hero, to: impact, stops, still: reducedMotion }),
+  );
 }
 
 /* ------------------------------------------------------------------ *
@@ -1313,7 +1277,7 @@ if (countdownSection && countdownDigits) {
     if (countdownCircuit && hasTrack(upcoming.circuitId)) {
       void mountCircuit(countdownCircuit, {
         circuitId: upcoming.circuitId,
-        accent: true,
+        lit: true,
       }).then(
         () => {
           // Revealed only once there is something in it — see the markup.
@@ -1458,7 +1422,7 @@ if (scheduleList && circuitPanel) {
   /** Points the drawing at a round, building it on the first one that has a shape. */
   const drawCircuit = (round: CalendarRound): void => {
     if (!shapeHost || !hasTrack(round.circuitId)) return;
-    shape ??= mountCircuit(shapeHost, { circuitId: round.circuitId, accent: true });
+    shape ??= mountCircuit(shapeHost, { circuitId: round.circuitId });
     void shape.then(
       (handle) => handle.select(round.circuitId),
       (error: unknown) => {
