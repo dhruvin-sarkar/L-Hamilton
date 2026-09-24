@@ -114,6 +114,8 @@ export class BackgroundField {
 
         uReveal: { value: 1 },
         uCursorIntensity: { value: 0 },
+        // The hero's helmet-hover wipe. This screen has no helmet, so never.
+        uHelmetHover: { value: 0 },
       },
       depthTest: false,
       depthWrite: false,
