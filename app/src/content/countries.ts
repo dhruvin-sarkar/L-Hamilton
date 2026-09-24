@@ -103,3 +103,22 @@ export function flagUrl(country: string): string {
   if (!iso) throw new Error(`[countries] no flag for "${country}" -- add it to countries.ts`);
   return `/assets/flags/${iso}.svg`;
 }
+
+/** The three names Jolpica abbreviates. Every other one it returns is already the name to print. */
+const NAMES: Readonly<Record<string, string>> = {
+  UK: 'United Kingdom',
+  USA: 'United States',
+  UAE: 'United Arab Emirates',
+};
+
+/**
+ * A country as a reader names it -- "United Kingdom" where Jolpica says "UK".
+ * Throws for a country this file has no flag for, because the two are printed
+ * side by side and a name without its flag is half a venue.
+ */
+export function countryName(country: string): string {
+  if (!(country in ISO2)) {
+    throw new Error(`[countries] no entry for "${country}" -- add it to countries.ts`);
+  }
+  return NAMES[country] ?? country;
+}
