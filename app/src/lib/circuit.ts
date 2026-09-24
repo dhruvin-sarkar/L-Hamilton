@@ -150,7 +150,20 @@ export async function mountCircuit(host: HTMLElement, opts: CircuitOptions): Pro
         reject(new Error(`[circuit] ${FILE} failed to load`));
       },
       onLoad: () => {
-        rive.resizeDrawingSurfaceToCanvas();
+        /* Sized from the canvas's layout box. The runtime's own
+           resizeDrawingSurfaceToCanvas() reads getBoundingClientRect(), which
+           includes CSS transforms: a canvas tilted in 3D -- the schedule's
+           track is -- would get a surface the shape of its projection and
+           draw the circuit stretched. */
+        const fitSurface = (): void => {
+          const dpr = window.devicePixelRatio || 1;
+          canvas.width = Math.round(canvas.offsetWidth * dpr);
+          canvas.height = Math.round(canvas.offsetHeight * dpr);
+          rive.devicePixelRatioUsed = dpr;
+          rive.resizeToCanvas();
+          rive.drawFrame();
+        };
+        fitSurface();
 
         const inputs = rive.stateMachineInputs(MACHINE);
         const bools = inputs.filter((input) => input.type === StateMachineInputType.Boolean);
@@ -187,7 +200,7 @@ export async function mountCircuit(host: HTMLElement, opts: CircuitOptions): Pro
 
         /* The canvas is CSS-sized by its host; the drawing surface has to follow
            it or the shape blurs the moment the fluid root changes. */
-        const watch = new ResizeObserver(() => rive.resizeDrawingSurfaceToCanvas());
+        const watch = new ResizeObserver(fitSurface);
         watch.observe(canvas);
 
         /* The file's `hover` input redraws the outline as its heavy highlight --
@@ -195,14 +208,27 @@ export async function mountCircuit(host: HTMLElement, opts: CircuitOptions): Pro
            while the pointer is over the artboard, so a caller only wires a
            target when a larger area should play it too. Pointer, not mouse: a
            pen hovers as well. */
+        /* On a light ground the file's black ink outranks its hover highlight:
+           measured, a hovered black outline stays black. So the black is lifted
+           while hovered, which lets the file's own highlight through in its
+           lime -- and the light-ground matrix turns that Rosso Corsa. A lit
+           drawing is already its highlight colour and is left alone. */
+        const inkForHover = (on: boolean): void => {
+          if (ground === 'light' && !opts.lit) turn('color_black', !on);
+        };
         const hover = (on: boolean): void => {
           turn('hover', on);
+          inkForHover(on);
         };
         const target = opts.hoverTarget;
         const enter = (): void => hover(true);
         const leave = (): void => hover(false);
+        const canvasEnter = (): void => inkForHover(true);
+        const canvasLeave = (): void => inkForHover(false);
         target?.addEventListener('pointerenter', enter);
         target?.addEventListener('pointerleave', leave);
+        canvas.addEventListener('pointerenter', canvasEnter);
+        canvas.addEventListener('pointerleave', canvasLeave);
 
         resolve({
           canvas,
@@ -211,6 +237,8 @@ export async function mountCircuit(host: HTMLElement, opts: CircuitOptions): Pro
           destroy: () => {
             target?.removeEventListener('pointerenter', enter);
             target?.removeEventListener('pointerleave', leave);
+            canvas.removeEventListener('pointerenter', canvasEnter);
+            canvas.removeEventListener('pointerleave', canvasLeave);
             watch.disconnect();
             rive.cleanup();
             canvas.remove();

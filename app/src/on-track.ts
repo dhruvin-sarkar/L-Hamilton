@@ -58,6 +58,11 @@ import { flagUrl } from './content/countries';
  * Lenis is stepped from gsap's ticker, so the two share one clock.
  * ------------------------------------------------------------------ */
 
+/** The page's scroller, for the one place that moves the page on purpose: a
+    calendar row taking the reader up to the panel it changed. Null under
+    reduced motion, where there is no smoothing to go through. */
+let smoothScroller: Lenis | null = null;
+
 if (!reducedMotion) {
   const lenis = new Lenis({
     lerp: 0.1,
@@ -70,6 +75,7 @@ if (!reducedMotion) {
   lenis.on('scroll', ScrollTrigger.update);
   gsap.ticker.add((t) => lenis.raf(t * 1000));
   gsap.ticker.lagSmoothing(0);
+  smoothScroller = lenis;
 }
 
 /* ------------------------------------------------------------------ *
@@ -1379,427 +1385,724 @@ if (juniorGrid) {
 
   const span = document.querySelector<HTMLElement>('[data-junior-span]');
   if (span) span.textContent = `${preF1Span.from}–${preF1Span.to}`;
+}
 
-  /* Provenance, as on the stat band — but a different kind. The career totals
-     move every race weekend and so carry the date they were fetched; these do
-     not move at all, so what matters is where each one came from, which is the
-     link on the result itself. */
-  const note = document.querySelector<HTMLElement>('[data-junior-note]');
-  if (note) {
-    note.textContent =
-      'Each result links to the source it was verified against. Unlike the career ' +
-      'totals above, none of these can change.';
-  }
+/* ------------------------------------------------------------------ *
+ * Dates, as the countdown and the calendar print them
+ *
+ * In UK time, which is what the reference prints and footnotes (*UK TIME), and
+ * with three-letter months from a fixed table: en-GB's own short September is
+ * "Sept", where the reference -- like every timing screen -- reads SEP.
+ * ------------------------------------------------------------------ */
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function monthAbbr(month: number): string {
+  const name = MONTHS[month - 1];
+  if (!name) throw new Error(`[calendar] no month ${month}`);
+  return name;
+}
+
+const pad2 = (n: number): string => String(n).padStart(2, '0');
+
+const ukClock = new Intl.DateTimeFormat('en-GB', {
+  timeZone: 'Europe/London',
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
+interface UkWhen {
+  day: number;
+  month: number;
+  /** "9:30", "13:00" -- the reference's own format, no leading zero. */
+  time: string;
+}
+
+function ukWhen(instant: Date): UkWhen {
+  const parts = new Map(ukClock.formatToParts(instant).map((p) => [p.type, p.value]));
+  const read = (type: Intl.DateTimeFormatPartTypes): string => {
+    const value = parts.get(type);
+    if (value === undefined) throw new Error(`[calendar] no ${type} in ${instant.toISOString()}`);
+    return value;
+  };
+  return {
+    day: Number(read('day')),
+    month: Number(read('month')),
+    time: `${Number(read('hour'))}:${read('minute')}`,
+  };
+}
+
+/** A session in UK time. Without a published start, its calendar day and TBC. */
+function sessionWhen(session: RaceSession): UkWhen {
+  if (session.time) return ukWhen(new Date(`${session.date}T${session.time}`));
+  const [, month, day] = session.date.split('-').map(Number);
+  if (!month || !day) throw new Error(`[calendar] unreadable session date "${session.date}"`);
+  return { day, month, time: 'TBC' };
+}
+
+interface WeekendSession {
+  label: string;
+  session: RaceSession;
+  race: boolean;
+}
+
+/**
+ * A weekend's sessions in running order, the race last. A sprint weekend has
+ * no second or third practice and a sprint instead; the calendar does not
+ * carry sprint qualifying, so it is not invented here.
+ */
+function weekendSessions(round: CalendarRound): WeekendSession[] {
+  const s = round.sessions;
+  const listed: [string, RaceSession | null][] = [
+    ['Practice 1', s.practice1],
+    ['Practice 2', s.practice2],
+    ['Practice 3', s.practice3],
+    ['Sprint', s.sprint],
+    ['Qualifying', s.qualifying],
+  ];
+  const at = (x: RaceSession): string => `${x.date}T${x.time ?? '00:00:00Z'}`;
+  return [
+    ...listed
+      .filter((entry): entry is [string, RaceSession] => entry[1] !== null)
+      .sort((a, b) => at(a[1]).localeCompare(at(b[1])))
+      .map(([label, session]) => ({ label, session, race: false })),
+    { label: 'Race', session: { date: round.date, time: round.time }, race: true },
+  ];
+}
+
+/** "24-26" and "Sep" -- the weekend as both the panel and the table print it. */
+function weekendSpan(round: CalendarRound): { days: string; month: string } {
+  const sessions = weekendSessions(round);
+  const first = sessionWhen((sessions[0] as WeekendSession).session);
+  const race = sessionWhen((sessions[sessions.length - 1] as WeekendSession).session);
+  return {
+    days: `${pad2(first.day)}-${pad2(race.day)}`,
+    month:
+      first.month === race.month
+        ? monthAbbr(race.month)
+        : `${monthAbbr(first.month)}/${monthAbbr(race.month)}`,
+  };
 }
 
 /* ------------------------------------------------------------------ *
  * Countdown to the next race
  *
- * The reference reads its target from plain text in a hidden element, and its
+ * Reference section 5. Its target is plain text in a hidden element and its
  * digits all sit at 00 because the race it points at is long past. Ours reads
- * the calendar and picks by the clock, so it cannot expire in place.
+ * the calendar and picks by the clock, so it cannot expire in place, and the
+ * section goes away once the season has no race left to count to.
  * ------------------------------------------------------------------ */
 
 const countdownSection = document.querySelector<HTMLElement>('[data-countdown]');
-const countdownDigits = document.querySelector<HTMLElement>('[data-countdown-digits]');
-const countdownSr = document.querySelector<HTMLElement>('[data-countdown-sr]');
-const countdownRace = document.querySelector<HTMLElement>('[data-countdown-race]');
+if (countdownSection) mountCountdown(countdownSection);
 
-const UNITS = [
-  { key: 'days', label: 'day', short: 'D', per: 86_400_000 },
-  { key: 'hours', label: 'hour', short: 'H', per: 3_600_000 },
-  { key: 'minutes', label: 'minute', short: 'M', per: 60_000 },
-  { key: 'seconds', label: 'second', short: 'S', per: 1000 },
-] as const;
-
-if (countdownSection && countdownDigits) {
+function mountCountdown(section: HTMLElement): void {
   const upcoming = nextRound();
-
   if (!upcoming) {
-    // The season is over. Say nothing rather than counting down to nothing —
-    // the reference's own countdown sits frozen at 00 and reads as broken.
-    countdownSection.hidden = true;
-  } else {
-    /* The circuit being counted down to, in the accent. Mounted here rather
-       than beside the hero's so it is only ever built for a race that is
-       actually still ahead — the branch above hides the whole section once the
-       season is done, and a canvas booting into a hidden section is work for
-       nothing. */
-    const countdownCircuit = document.querySelector<HTMLElement>('[data-countdown-circuit]');
-    if (countdownCircuit && hasTrack(upcoming.circuitId)) {
-      void mountCircuit(countdownCircuit, {
-        circuitId: upcoming.circuitId,
-        lit: true,
-      }).then(
-        () => {
-          // Revealed only once there is something in it — see the markup.
-          countdownCircuit.hidden = false;
-        },
-        (error: unknown) => {
-          console.warn('[on-track] countdown circuit did not load', error);
-        },
-      );
-    }
+    // The season is over. Nothing to count to -- the reference's frozen 00s
+    // read as broken, not as finished.
+    section.hidden = true;
+    return;
+  }
 
-    const target = roundStart(upcoming);
+  const digits = section.querySelector<HTMLElement>('[data-countdown-digits]');
+  const sentence = section.querySelector<HTMLElement>('[data-countdown-sr]');
+  if (!digits || !sentence) throw new Error('[countdown] the markup has lost its digits or its sentence');
 
-    /* The row has to fit its container, and days is the one field whose width
-     * is not fixed: two figures inside a season, three across a winter break.
-     *
-     * Same solve as the gigantic number. The reference sets 17.5rem for eight
-     * characters, so the size is scaled by the count actually needed — and
-     * measured once, then held, because a row that resized itself as the count
-     * fell through 100 would jump under the reader. */
-    const COUNTDOWN_SPAN_REM = 140; // 17.5rem x 8 characters, from the reference
-    const dayWidth = Math.max(
-      2,
-      String(Math.floor(Math.max(0, target.getTime() - Date.now()) / 86_400_000)).length,
+  /* The circuit being counted to, lit, as the reference's is. A round the
+     circuit file has no shape for leaves the slot empty rather than drawing
+     some other track. */
+  const circuitHost = section.querySelector<HTMLElement>('[data-countdown-circuit]');
+  if (circuitHost && hasTrack(upcoming.circuitId)) {
+    void mountCircuit(circuitHost, { circuitId: upcoming.circuitId, lit: true }).catch(
+      (error: unknown) => console.warn('[on-track] countdown circuit did not load', error),
     );
-    countdownDigits.style.setProperty(
-      '--countdown-size',
-      `${COUNTDOWN_SPAN_REM / (dayWidth + 6)}rem`,
-    );
+  }
 
-    const cells = UNITS.map((unit) => {
-      const item = el('div', 'ot-countdown__item');
-      const value = el('span', 'ot-countdown__value', '00');
-      value.dataset.unit = unit.key;
-      item.append(value, el('span', 'ot-countdown__unit', unit.short));
-      countdownDigits.appendChild(item);
-      return { unit, value };
+  const target = roundStart(upcoming);
+
+  /* The static equivalent: the digits are a view of the start time, so the
+     start time is what gets said. */
+  const day = target.toLocaleDateString('en-GB', {
+    timeZone: 'Europe/London',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+  sentence.textContent = upcoming.time
+    ? `The next race is round ${upcoming.round}, the ${upcoming.raceName} at ${upcoming.circuitName}. ` +
+      `It starts at ${ukWhen(target).time} UK time on ${day}.`
+    : `The next race is round ${upcoming.round}, the ${upcoming.raceName} at ${upcoming.circuitName}, ` +
+      `on ${day}. Its start time is not yet confirmed.`;
+
+  /* Days is the one field whose width is not fixed: two figures inside a
+   * season, three across a winter break. The reference sizes its row for
+   * eight characters, so a ninth scales the whole row down by 8/9 -- solved
+   * once and held, because a row that resized itself as the count fell
+   * through 100 would jump under the reader. */
+  const remaining = (): number => Math.max(0, target.getTime() - Date.now());
+  const dayWidth = Math.max(2, String(Math.floor(remaining() / 86_400_000)).length);
+  digits.style.setProperty('--count-scale', String(8 / (dayWidth + 6)));
+
+  const UNITS: [string, number][] = [
+    ['D', 86_400_000],
+    ['H', 3_600_000],
+    ['M', 60_000],
+    ['S', 1000],
+  ];
+  const phrase = digits.querySelector('[data-countdown-phrase]');
+  /* Each field holds the width of its zeros, so a ticking figure never nudges
+     the row: the reference pins its seconds to 16rem for the same reason, and
+     ours tick where its frozen 00s never had to. */
+  const values = UNITS.map(([unit], i) => {
+    const item = el('div', 'ot-count__item');
+    const value = el('span', i === 3 ? 'ot-count__value ot-count__value--seconds' : 'ot-count__value', '00');
+    value.style.setProperty('--figures', String(i === 0 ? dayWidth : 2));
+    item.append(value, el('span', 'ot-count__unit', unit));
+    digits.insertBefore(item, phrase);
+    return value;
+  });
+
+  const render = (): boolean => {
+    let left = remaining();
+    UNITS.forEach(([, per], i) => {
+      const n = Math.floor(left / per);
+      left -= n * per;
+      const value = values[i];
+      if (value) value.textContent = String(n).padStart(i === 0 ? dayWidth : 2, '0');
     });
+    return remaining() === 0;
+  };
+  render();
 
-    if (countdownRace) {
-      const when = target.toLocaleDateString('en-GB', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      });
-      /* The locality is dropped where the circuit's own name already contains
-         it — "Autodromo Nazionale di Monza, Monza" and "Silverstone Circuit,
-         Silverstone" say one thing twice, while "Circuit Gilles Villeneuve,
-         Montreal" says two. */
-      const place = upcoming.circuitName.toLowerCase().includes(upcoming.locality.toLowerCase())
-        ? upcoming.circuitName
-        : `${upcoming.circuitName}, ${upcoming.locality}`;
-      countdownRace.textContent =
-        `Round ${upcoming.round} · ${upcoming.raceName} · ${place} · ${when}`;
-    }
+  /* One interval, cleared at zero. Under reduced motion the figures render once
+     and hold: the start time is still stated in full, and what is dropped is a
+     display changing every second, which is motion rather than information. */
+  if (!reducedMotion) {
+    const tick = window.setInterval(() => {
+      if (render()) window.clearInterval(tick);
+    }, 1000);
+  }
 
-    const render = (): boolean => {
-      let remaining = target.getTime() - Date.now();
-      const done = remaining <= 0;
-      if (done) remaining = 0;
-
-      const parts: string[] = [];
-      for (const { unit, value } of cells) {
-        const n = Math.floor(remaining / unit.per);
-        remaining -= n * unit.per;
-        value.textContent = String(n).padStart(unit.key === 'days' ? dayWidth : 2, '0');
-        // The visible digits are aria-hidden, so this sentence is the whole of
-        // what a screen reader gets. "1 days" is not English.
-        parts.push(`${n} ${unit.label}${n === 1 ? '' : 's'}`);
-      }
-      if (countdownSr) {
-        countdownSr.textContent = done
-          ? `${upcoming.raceName} is under way.`
-          : `${parts.join(', ')} until the ${upcoming.raceName}.`;
-      }
-      return done;
-    };
-
-    render();
-
-    if (!reducedMotion) {
-      /* One interval, cleared the moment it reaches zero.
-       *
-       * setInterval rather than a rAF loop: this changes once a second, and a
-       * per-frame loop would wake the page sixty times to write the same
-       * string. */
-      const tick = window.setInterval(() => {
-        if (render()) window.clearInterval(tick);
-      }, 1000);
-    }
-    /* Under reduced motion it renders once and stops. The remaining time is
-       still stated in full and the live region carries it — what is dropped is
-       the per-second update, which is motion, not information. */
+  /* "Race Day", written across the digits once, when the script's box reaches
+   * 80% down the viewport -- the reference's trigger. Each stroke is revealed
+   * along its own length, in the order the markup lists them, and the whole
+   * hand is eased as one gesture so it starts and lands softly rather than
+   * every stroke doing so. Under reduced motion it is simply there. */
+  const script = digits.querySelector<SVGSVGElement>('.ot-count__script');
+  const strokes = [...digits.querySelectorAll<SVGPathElement>('[data-stroke]')];
+  if (script && strokes.length && !reducedMotion) {
+    const lengths = strokes.map((path) => path.getTotalLength());
+    const total = lengths.reduce((a, b) => a + b, 0);
+    const hand = gsap.timeline({ paused: true });
+    strokes.forEach((path, i) => {
+      const length = lengths[i] ?? 0;
+      gsap.set(path, { strokeDasharray: `${length} ${length}`, strokeDashoffset: length });
+      hand.to(path, { strokeDashoffset: 0, duration: length / total, ease: 'none' });
+    });
+    ScrollTrigger.create({
+      trigger: script,
+      start: 'top 80%',
+      once: true,
+      onEnter: () => {
+        gsap.to(hand, { progress: 1, duration: 1.6, ease: 'power1.inOut' });
+      },
+    });
   }
 }
 
 /* ------------------------------------------------------------------ *
- * Season schedule, and the circuit panel it drives
+ * Calendar: the round panel, the standings, and the five-round window
  *
- * The reference's rows are clickable divs carrying a title attribute — no
- * tabindex, no keyboard path, so the whole mechanic is mouse-only. CLAUDE.md
- * requires keyboard operability, so each row here is a real button and the
- * panel it controls is wired with aria-controls.
+ * Reference section 6. Its rows are clickable divs with a title attribute and
+ * no keyboard path; ours are buttons, and the panel's arrows are buttons too.
+ * Otherwise the mechanics are the reference's, read off its own script:
+ *
+ *   - the window is the three rounds before the next one, the next one, and
+ *     the one after it; the arrows cycle those five, wrapping at either end;
+ *   - every value in the panel sits in a clip with an accent bar over it. On
+ *     the panel's first arrival the clips open left to right and the bars
+ *     retract; a swap closes the clips (0.5s, power2.in), rewrites the values,
+ *     and opens them again the same way;
+ *   - a row sends the panel to its round and scrolls the page to it, 8rem
+ *     above its top, over 1.2s on an ease-in-out quad;
+ *   - over the rows a card follows the pointer, 20px right of it and 20px up,
+ *     showing the hovered round's circuit.
  * ------------------------------------------------------------------ */
 
-const scheduleList = document.querySelector<HTMLElement>('[data-schedule]');
-const circuitPanel = document.querySelector<HTMLElement>('[data-circuit]');
+const calendarSection = document.querySelector<HTMLElement>('.ot-cal');
+if (calendarSection) mountCalendar(calendarSection);
 
-function timeLabel(session: { date: string; time: string | null }): string {
-  const when = new Date(
-    session.time ? `${session.date}T${session.time}` : `${session.date}T00:00:00Z`,
-  );
-  return session.time
-    ? when.toLocaleString('en-GB', {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : when.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+/** "retired from 4th on the grid", "finished 6th from 4th on the grid". */
+function outcomeOf(result: NonNullable<CalendarRound['result']>): string {
+  const grid = result.grid > 0 ? `${ordinal(result.grid)} on the grid` : 'the pit lane';
+  if (result.position) return `finished ${ordinal(result.position)} from ${grid}`;
+  if (result.positionText === 'D') return `was disqualified, having started from ${grid}`;
+  if (result.status === 'Retired') return `retired from ${grid}`;
+  return `did not finish (${result.status.toLowerCase()}), from ${grid}`;
 }
 
-if (scheduleList && circuitPanel) {
-  const nowRound = nextRound();
-  circuitPanel.id = 'ot-circuit-panel';
+/** "one win, two podiums and one pole position". */
+function tallyOf(record: { wins: number; podiums: number; poles: number }): string {
+  const counts: [number, string, string][] = [
+    [record.wins, 'win', 'wins'],
+    [record.podiums, 'podium', 'podiums'],
+    [record.poles, 'pole position', 'pole positions'],
+  ];
+  const said = counts
+    .filter(([n]) => n > 0)
+    .map(([n, one, many]) => `${spell(n)} ${n === 1 ? one : many}`);
+  if (said.length < 2) return said.join('');
+  return `${said.slice(0, -1).join(', ')} and ${said[said.length - 1]}`;
+}
 
-  const roundState = (round: CalendarRound): 'past' | 'next' | 'upcoming' =>
-    round.result ? 'past' : nowRound && round.round === nowRound.round ? 'next' : 'upcoming';
+/**
+ * His record at a round's circuit, as a sentence: third-person narration built
+ * from the circuit record and, for a round already run, its result. Where the
+ * reference has a line of editorial copy per circuit, every clause here is a
+ * number from the data layer said in words.
+ */
+function circuitStory(round: CalendarRound): string {
+  const record = circuitById.get(round.circuitId);
+  const where = round.locality;
+  const outcome = round.result ? outcomeOf(round.result) : null;
 
-  /* The panel's traced circuit, built once and retargeted — which is exactly
-   * how the reference does it. Its `.f1-highlight-circuit-rive` is a single
-   * canvas whose track input the rows switch on hover; a canvas per row would
-   * be 23 wasm-backed surfaces to draw one shape.
-   *
-   * Held as a promise rather than awaited, so the panel renders immediately and
-   * every later retarget queues behind the same single load. */
-  const shapeHost = circuitPanel.querySelector<HTMLElement>('[data-circuit-shape]');
-  let shape: ReturnType<typeof mountCircuit> | null = null;
+  if (!record) return `${round.season} is his first Grand Prix in ${where}.`;
+  if (record.starts === 1 && outcome && record.firstRaced === round.season) {
+    return `His first Grand Prix in ${where}: he ${outcome}.`;
+  }
 
-  /** Points the drawing at a round, building it on the first one that has a shape. */
-  const drawCircuit = (round: CalendarRound): void => {
-    if (!shapeHost || !hasTrack(round.circuitId)) return;
-    shape ??= mountCircuit(shapeHost, { circuitId: round.circuitId });
-    void shape.then(
-      (handle) => handle.select(round.circuitId),
+  const starts = `${spell(record.starts)} ${record.starts === 1 ? 'start' : 'starts'}`;
+  let text = `${starts.charAt(0).toUpperCase()}${starts.slice(1)} in ${where} since ${record.firstRaced}`;
+  const tally = tallyOf(record);
+  if (tally) text += `: ${tally}.`;
+  else if (record.bestFinish) text += `, with a best finish of ${ordinal(record.bestFinish)}.`;
+  else text += ', without a classified finish.';
+  if (outcome) text += ` In ${round.season} he ${outcome}.`;
+  return text;
+}
+
+/** A finishing place as figure and letters: 1 -> ["1", "st"]. */
+function place(n: number): [string, string] {
+  const text = ordinal(n);
+  const figure = text.replace(/\D+$/, '');
+  return [figure, text.slice(figure.length)];
+}
+
+function mountCalendar(section: HTMLElement): void {
+  const need = <T extends Element = HTMLElement>(selector: string): T => {
+    const node = section.querySelector<T>(selector);
+    if (!node) throw new Error(`[calendar] no ${selector} in the markup`);
+    return node;
+  };
+
+  const panel = need('[data-cal-panel]');
+  const list = need('[data-cal-list]');
+  const rowsArea = need('[data-cal-rows]');
+  const live = need('[data-cal-live]');
+  const trackHost = need('[data-cal-track]');
+  const sessionsHost = need('[data-cal-sessions]');
+  const nameNode = need('[data-cal-name]');
+
+  const opening = calendar[0];
+  if (!opening) throw new Error('[calendar] the season calendar is empty');
+  const season = opening.season;
+
+  /* ---------------------------------------------- Heading and standings */
+
+  need('[data-cal-year]').textContent = `${season} schedule`;
+  need('[data-cal-blurb]').textContent =
+    `Lewis's upcoming racing schedule, as he takes on the ${season} Formula 1 season.`;
+
+  /* His championship place and the round it stands after -- the round the
+     standings were last fetched at, not whichever the clock says has started,
+     so the two figures always describe the same moment. Before a season's first
+     result there is no place to state, and the pair steps aside. */
+  const standing = seasons.find((s) => s.year === season);
+  const after = provenance.latestRace.season === String(season) ? provenance.latestRace.round : null;
+  const standings = need('.ot-cal__standings');
+  if (standing && after) {
+    const [figure, letters] = place(standing.position);
+    need('[data-cal-standing]').textContent = figure;
+    need('[data-cal-standing-suffix]').textContent = letters;
+    need('[data-cal-round]').textContent = after;
+  } else {
+    standings.hidden = true;
+  }
+
+  /* ----------------------------------------------------------- Window */
+
+  const upcoming = nextRound();
+  const nextIndex = upcoming ? calendar.indexOf(upcoming) : calendar.length;
+  const firstShown = Math.max(0, Math.min(nextIndex - 3, calendar.length - 5));
+  const rounds = calendar.slice(firstShown, firstShown + 5);
+  let current = upcoming ? rounds.indexOf(upcoming) : rounds.length - 1;
+
+  const roundAt = (index: number): CalendarRound => {
+    const round = rounds[index];
+    if (!round) throw new Error(`[calendar] no round at window index ${index}`);
+    return round;
+  };
+
+  /* ------------------------------------------------------ Swap targets */
+
+  /** Wraps a value in its clip and bar. Closed until the panel arrives. */
+  const wrap = (target: Element): void => {
+    const clip = el('div', 'ot-cal__t');
+    const bar = el('div', 'ot-cal__t-bar');
+    target.before(clip);
+    clip.append(target, bar);
+    if (!reducedMotion) {
+      gsap.set(clip, { clipPath: 'inset(0 100% 0 0)' });
+      gsap.set(bar, { scaleX: 1 });
+    }
+  };
+
+  for (const target of panel.querySelectorAll('[data-cal-target]')) wrap(target);
+
+  const clips = (): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('.ot-cal__t')];
+  const bars = (): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('.ot-cal__t-bar')];
+
+  /* ------------------------------------------------------ The circuit */
+
+  type Circuit = Awaited<ReturnType<typeof mountCircuit>>;
+  let track: Promise<Circuit> | null = null;
+
+  /** Points the large drawing at a round, or empties it for one without a shape. */
+  const drawTrack = (round: CalendarRound): void => {
+    const drawable = hasTrack(round.circuitId);
+    trackHost.classList.toggle('is-empty', !drawable);
+    if (!drawable) return;
+    track ??= mountCircuit(trackHost, { circuitId: round.circuitId, lit: true, weight: 'thin' });
+    void track.then(
+      (handle) => trackHost.classList.toggle('is-empty', !handle.select(round.circuitId)),
       (error: unknown) => {
-        console.warn('[on-track] schedule circuit did not load', error);
-        // Cleared so a later round retries rather than resolving the same
-        // rejection forever.
-        shape = null;
+        console.warn('[on-track] calendar circuit did not load', error);
+        track = null; // so a later round retries
       },
     );
   };
 
-  /** Fill the detail panel from one round. */
-  const showRound = (round: CalendarRound): void => {
-    drawCircuit(round);
+  /* ------------------------------------------------------ The values */
+
+  const setText = (selector: string, value: string): void => {
+    need(selector).textContent = value;
+  };
+
+  /** A figure, and its unit where it has one -- the panel's stat format. */
+  const setStat = (selector: string, value: string, unit = ''): void => {
+    const node = need(selector);
+    node.replaceChildren(el('span', 'ot-cal__stat-value', value));
+    if (unit) node.appendChild(el('span', 'ot-cal__stat-unit', unit));
+  };
+
+  /** Shrinks a name too long for the tab -- the frame's tab is ~29rem tall. */
+  const fitName = (): void => {
+    nameNode.style.removeProperty('--name-scale');
+    /* Only up the tab: under 480px the name lies flat across the panel's top. */
+    const style = getComputedStyle(nameNode);
+    if (!style.writingMode.startsWith('vertical')) return;
+    /* 25 of the section's own units, read back off the name's 4.5-unit size:
+       the section's unit is not the root's below 992px. */
+    const room = (Number.parseFloat(style.fontSize) / 4.5) * 25;
+    const height = nameNode.getBoundingClientRect().height;
+    if (height > room) nameNode.style.setProperty('--name-scale', (room / height).toFixed(3));
+  };
+  remeasure(fitName);
+
+  const fill = (round: CalendarRound): void => {
     const record = circuitById.get(round.circuitId);
+    const span = weekendSpan(round);
 
-    const set = (sel: string, value: string) => {
-      const node = circuitPanel.querySelector<HTMLElement>(sel);
-      if (node) node.textContent = value;
-    };
-    set('[data-circuit-round]', `Round ${round.round} of ${calendar.length}`);
-    set('[data-circuit-name]', round.circuitName);
-    set('[data-circuit-where]', `${round.locality}, ${round.country}`);
+    setText('[data-cal-days]', span.days);
+    setText('[data-cal-month]', span.month);
 
-    const stats = circuitPanel.querySelector<HTMLElement>('[data-circuit-stats]');
-    if (stats) {
-      stats.textContent = '';
-      /* A circuit he has never raced is a real state, not an error — the 2026
-         calendar visits venues new to it. Say so, rather than printing a row of
-         zeroes that reads like a bad record. */
-      const rows: [string, string][] = record
-        ? [
-            ['Starts', groups.format(record.starts)],
-            ['Wins', groups.format(record.wins)],
-            ['Podiums', groups.format(record.podiums)],
-            ['Poles', groups.format(record.poles)],
-            ['Best finish', record.bestFinish ? ordinal(record.bestFinish) : '—'],
-            ['First raced', String(record.firstRaced)],
-          ]
-        : [['Record', 'No previous start at this circuit']];
-
-      for (const [label, value] of rows) {
-        const pair = el('div', 'ot-circuit__pair');
-        pair.append(el('dt', 'ot-circuit__label', label), el('dd', 'ot-circuit__value', value));
-        stats.appendChild(pair);
-      }
-    }
-
-    const sessions = circuitPanel.querySelector<HTMLElement>('[data-circuit-sessions]');
-    if (sessions) {
-      sessions.textContent = '';
-      const schedule: [string, RaceSession | null][] = [
-        ['Practice 1', round.sessions.practice1],
-        ['Practice 2', round.sessions.practice2],
-        ['Practice 3', round.sessions.practice3],
-        ['Sprint', round.sessions.sprint],
-        ['Qualifying', round.sessions.qualifying],
-      ];
-      for (const [label, session] of schedule) {
-        if (!session) continue; // a sprint weekend has no P3, a normal one no sprint
-        const line = el('p', 'ot-circuit__session');
-        line.append(
-          el('span', 'ot-circuit__session-label', label),
-          el('span', 'ot-circuit__session-time', timeLabel(session)),
-        );
-        sessions.appendChild(line);
-      }
-      const race = el('p', 'ot-circuit__session ot-circuit__session--race');
-      race.append(
-        el('span', 'ot-circuit__session-label', 'Race'),
-        el('span', 'ot-circuit__session-time', timeLabel({ date: round.date, time: round.time })),
-      );
-      sessions.appendChild(race);
-
-      // The reference footnotes its schedule *UK TIME. Ours renders in the
-      // reader's own zone, so it names that zone rather than asserting one they
-      // may not be in.
-      const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      sessions.appendChild(el('p', 'ot-circuit__note', `Times shown in your local zone (${zone}).`));
-    }
-  };
-
-  const buttons: HTMLButtonElement[] = [];
-
-  const select = (round: CalendarRound, index: number, focus = false): void => {
-    showRound(round);
-    buttons.forEach((b, i) => {
-      const active = i === index;
-      b.classList.toggle('is-active', active);
-      // aria-pressed, not aria-selected: these are toggle buttons in a toolbar,
-      // not tabs, and aria-selected outside a listbox or tablist means nothing.
-      b.setAttribute('aria-pressed', String(active));
-      /* Roving tabindex. Without it the schedule is 23 tab stops standing
-       * between the wins disclosure and the footer, and every one of them has
-       * to be pressed past to leave the section. One stop enters the list, and
-       * the arrow keys below move inside it — the ARIA toolbar pattern, which
-       * is why the container carries that role. */
-      b.tabIndex = active ? 0 : -1;
-    });
-    if (focus) buttons[index]?.focus();
-  };
-
-  scheduleList.setAttribute('role', 'toolbar');
-  scheduleList.setAttribute('aria-orientation', 'vertical');
-  scheduleList.setAttribute('aria-label', `Rounds of the ${calendar[0]?.season ?? ''} season`);
-
-  calendar.forEach((round, index) => {
-    const state = roundState(round);
-    const button = el('button', `ot-round is-${state}`);
-    button.type = 'button';
-    button.setAttribute('aria-controls', circuitPanel.id);
-    button.setAttribute('aria-pressed', 'false');
-    // Overwritten by the first select() below; set here so the list is never
-    // momentarily a 23-stop tab trap if that call ever fails to run.
-    button.tabIndex = -1;
-
-    /* The locality, not the country: the name column has already stripped
-     * "Grand Prix" off the race name, so "Dutch / Netherlands" would be one
-     * fact twice where "Dutch / Zandvoort" names the circuit's town.
-     *
-     * Except where the town IS the race — Abu Dhabi, Miami, Singapore — and the
-     * two columns read identically. There the circuit's own name is the second
-     * fact: "Abu Dhabi / Yas Marina Circuit". */
-    const shortName = round.raceName.replace(/ Grand Prix$/, '');
-    const where =
-      round.locality.toLowerCase() === shortName.toLowerCase() ? round.circuitName : round.locality;
-
-    button.append(
-      el('span', 'ot-round__num', String(round.round).padStart(2, '0')),
-      el('span', 'ot-round__name', shortName),
-      el('span', 'ot-round__where', where),
-      el('span', 'ot-round__date', shortDate(round.date)),
-    );
-
-    /* The outcome gets its own column. The reference strikes through the round
-       number of a completed race and shows the finish in its place; keeping
-       them apart leaves the number legible. */
-    const outcome = el('span', 'ot-round__outcome');
-    if (round.result) {
-      outcome.textContent = round.result.position
-        ? ordinal(round.result.position)
-        : round.result.positionText; // "R" for a retirement, "D" for a disqualification
-      if (round.result.position === 1) outcome.classList.add('is-win');
-      if (!round.result.position) outcome.classList.add('is-dnf');
+    setStat('[data-cal-starts]', String(record?.starts ?? 0));
+    setStat('[data-cal-first]', record ? String(record.firstRaced) : '–');
+    if (record?.bestFinish) {
+      const [figure, letters] = place(record.bestFinish);
+      setStat('[data-cal-best]', figure, letters);
     } else {
-      outcome.textContent = state === 'next' ? 'Next' : '—';
+      // Raced here and never classified, or never raced here at all.
+      setStat('[data-cal-best]', record ? 'DNF' : '–');
     }
-    button.appendChild(outcome);
+    setStat('[data-cal-wins]', String(record?.wins ?? 0));
 
-    // The visible row is a terse grid; the accessible name has to be a sentence.
-    button.appendChild(
-      el(
-        'span',
-        'sr-only',
-        `Round ${round.round}, ${round.raceName}, ${round.country}, ${shortDate(round.date)}. ` +
-          (round.result
-            ? `Finished ${
-                round.result.position ? ordinal(round.result.position) : round.result.status
-              }.`
-            : state === 'next'
-              ? 'The next race.'
-              : 'Upcoming.') +
-          ' Show his record at this circuit.',
-      ),
+    setText('[data-cal-at]', round.locality);
+    setText('[data-cal-story]', circuitStory(round));
+    setText('[data-cal-name]', round.locality);
+    fitName();
+
+    const flag = need('[data-cal-flag]');
+    const image = el('img');
+    image.src = flagUrl(round.country);
+    image.alt = '';
+    image.width = 34;
+    image.height = 20;
+    flag.replaceChildren(image);
+
+    sessionsHost.replaceChildren();
+    for (const { label, session, race } of weekendSessions(round)) {
+      const when = sessionWhen(session);
+      const row = el('p', race ? 'ot-cal__session ot-cal__session--race' : 'ot-cal__session');
+      row.append(
+        el('span', undefined, label),
+        /* Unpadded here, where the weekend's span pads: "4 SEP", "04-06". */
+        el('span', undefined, `${when.day} ${monthAbbr(when.month)}`),
+        el('span', undefined, when.time),
+      );
+      sessionsHost.appendChild(row);
+      wrap(row);
+    }
+  };
+
+  /* ----------------------------------------------------------- Rows */
+
+  const buttons = rounds.map((round, index) => {
+    const record = circuitById.get(round.circuitId);
+    const span = weekendSpan(round);
+    const state = round === upcoming ? 'Next race.' : round.result ? `He ${outcomeOf(round.result)}.` : '';
+
+    const item = el('li');
+    const row = el('button', 'ot-cal__row');
+    row.type = 'button';
+    row.setAttribute('aria-controls', panel.id);
+    row.setAttribute(
+      'aria-label',
+      `Round ${round.round}, ${round.raceName}, ${round.locality}, ${span.days} ${span.month}. ${state}`.trim(),
     );
 
-    button.addEventListener('click', () => select(round, index));
-    buttons.push(button);
-    scheduleList.appendChild(button);
-  });
-
-  /* Hover retargets the drawing without changing the selection — the
-   * reference's own gesture, where each row carries a
-   * `data-rive-circuit-hover-target` naming the track its one canvas should
-   * switch to. Reading a row is a different act from choosing one, and only the
-   * shape follows the pointer; the panel's figures stay with what was selected,
-   * so nothing a reader is mid-way through reading moves under them.
-   *
-   * Delegated and bound to `pointerover`, which bubbles — `mouseenter` does
-   * not, and would need 23 listeners to say the same thing. Touch is excluded
-   * because a tap fires pointerover immediately before click, which would draw
-   * a circuit the reader is already selecting. */
-  scheduleList.addEventListener('pointerover', (event) => {
-    if (event.pointerType === 'touch') return;
-    const row = (event.target as Element | null)?.closest('.ot-round');
-    if (!row) return;
-    const round = calendar[buttons.indexOf(row as HTMLButtonElement)];
-    if (round) drawCircuit(round);
-  });
-
-  /* Back to the selected round when the pointer leaves the list, so the shape
-     and the figures beside it agree again. */
-  scheduleList.addEventListener('pointerleave', () => {
-    const active = calendar[buttons.findIndex((b) => b.classList.contains('is-active'))];
-    if (active) drawCircuit(active);
-  });
-
-  /* Arrow keys move between rounds — the other half of the roving tabindex
-     above. Home and End jump to the season's first and last round. */
-  scheduleList.addEventListener('keydown', (event) => {
-    const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
-    if (index < 0) return;
-    const moves: Record<string, number> = {
-      ArrowDown: index + 1,
-      ArrowRight: index + 1,
-      ArrowUp: index - 1,
-      ArrowLeft: index - 1,
-      Home: 0,
-      End: buttons.length - 1,
+    const cell = (className = 'ot-cal__cell'): HTMLSpanElement => {
+      const node = el('span', className);
+      row.appendChild(node);
+      return node;
     };
-    const target = moves[event.key];
-    if (target === undefined) return;
-    event.preventDefault();
-    const clamped = Math.max(0, Math.min(buttons.length - 1, target));
-    const round = calendar[clamped];
-    if (round) select(round, clamped, true);
+
+    cell().appendChild(el('span', 'ot-cal__major', String(round.round)));
+
+    const location = cell();
+    location.appendChild(el('span', 'ot-cal__major ot-cal__nowrap', round.country));
+    const flag = el('img', 'ot-cal__row-flag');
+    flag.src = flagUrl(round.country);
+    flag.alt = '';
+    flag.width = 34;
+    flag.height = 23;
+    location.appendChild(flag);
+
+    const when = cell();
+    when.append(
+      el('span', 'ot-cal__major', span.days),
+      el('span', 'ot-cal__major ot-cal__month', span.month),
+    );
+
+    cell().appendChild(el('span', 'ot-cal__major', String(record?.wins ?? 0)));
+
+    const best = cell('ot-cal__cell ot-cal__cell--unit');
+    if (record?.bestFinish) {
+      const [figure, letters] = place(record.bestFinish);
+      best.append(el('span', 'ot-cal__reg', figure), el('span', 'ot-cal__unit', letters));
+    } else {
+      best.appendChild(el('span', 'ot-cal__reg', record ? 'DNF' : '–'));
+    }
+
+    row.append(el('span', 'ot-cal__rule'), el('span', 'ot-cal__row-bar'));
+    row.addEventListener('click', () => {
+      show(index, true);
+      travelToPanel();
+    });
+
+    item.appendChild(row);
+    list.appendChild(item);
+    return row;
   });
 
-  // Open on the next race — the round a visitor is most likely here for.
-  const openingIndex = nowRound ? calendar.findIndex((r) => r.round === nowRound.round) : 0;
-  const opening = calendar[Math.max(0, openingIndex)];
-  if (opening) select(opening, Math.max(0, openingIndex));
+  const markActive = (): void => {
+    buttons.forEach((row, i) => {
+      row.classList.toggle('is-active', i === current);
+      row.setAttribute('aria-pressed', String(i === current));
+    });
+  };
 
-  const yearNode = document.querySelector<HTMLElement>('[data-schedule-year]');
-  if (yearNode && calendar[0]) yearNode.textContent = String(calendar[0].season);
+  /* ----------------------------------------------------------- Swaps */
+
+  let arrived = false;
+  let swap: ReturnType<typeof gsap.timeline> | null = null;
+
+  const open = (): ReturnType<typeof gsap.timeline> =>
+    gsap
+      .timeline()
+      .set(bars(), { scaleX: 1 })
+      .to(clips(), { clipPath: 'inset(0 0% 0 0)', duration: 0.5, stagger: 0.015, ease: 'power2.out' })
+      .to(bars(), { scaleX: 0, duration: 0.5, stagger: 0.015, ease: 'power2.inOut' }, '-=0.2');
+
+  const show = (index: number, announce: boolean): void => {
+    current = index;
+    const round = roundAt(index);
+    drawTrack(round);
+    markActive();
+    if (announce) live.textContent = `Showing round ${round.round}, the ${round.raceName}.`;
+
+    if (reducedMotion || !arrived) {
+      fill(round);
+      return;
+    }
+    swap?.kill();
+    swap = gsap
+      .timeline()
+      .to(clips(), { clipPath: 'inset(0 100% 0 0)', duration: 0.5, stagger: 0.015, ease: 'power2.in' })
+      .call(() => {
+        fill(round);
+        swap?.add(open());
+      });
+  };
+
+  const step = (by: number): void => {
+    show((current + by + rounds.length) % rounds.length, true);
+  };
+  need('[data-cal-next]').addEventListener('click', () => step(1));
+  need('[data-cal-prev]').addEventListener('click', () => step(-1));
+
+  show(current, false);
+
+  if (!reducedMotion) {
+    ScrollTrigger.create({
+      trigger: panel,
+      start: 'top 90%',
+      once: true,
+      onEnter: () => {
+        arrived = true;
+        open();
+      },
+    });
+  }
+
+  /** A row's second job: take the reader to the panel it just changed. */
+  const travelToPanel = (): void => {
+    const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const top = window.scrollY + panel.getBoundingClientRect().top - rem * 8;
+    if (smoothScroller) {
+      smoothScroller.scrollTo(top, {
+        duration: 1.2,
+        easing: (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2),
+      });
+    } else {
+      window.scrollTo({ top, behavior: 'auto' });
+    }
+    // Keyboard readers land where the change happened.
+    panel.focus({ preventScroll: true });
+  };
+
+  /* ------------------------------------------------- Row entrance */
+
+  if (!reducedMotion) {
+    const rowBars = buttons.map((row) => row.querySelector('.ot-cal__row-bar'));
+    gsap.set(buttons, { clipPath: 'inset(0 100% 0 0)' });
+    gsap.set(rowBars, { scaleX: 1 });
+    const enter = gsap.timeline({
+      paused: true,
+      scrollTrigger: { trigger: rowsArea, start: 'top 90%', once: true },
+    });
+    buttons.forEach((row, i) => {
+      enter.to(row, { clipPath: 'inset(0 0% 0 0)', duration: 0.6, ease: 'power2.out' }, i * 0.05);
+      enter.to(rowBars[i] ?? [], { scaleX: 0, duration: 0.6, ease: 'power2.inOut' }, i * 0.05 + 0.3);
+    });
+  }
+
+  /* ----------------------------------------------------- Hover card
+   *
+   * Pointer-only and wide-only, as the reference's is (it is display:none
+   * below 992px): a decoration over rows whose content is one click away in
+   * the panel. Tracked from the document's pointer position rather than from
+   * enter/leave on the rows, so it follows through the gaps and the vignette,
+   * and re-checked on scroll so a still pointer over a moving list stays
+   * right. */
+  mm.add('(min-width: 992px) and (prefers-reduced-motion: no-preference)', () => {
+    const card = need('[data-cal-card]');
+    const reveal = need('[data-cal-card-reveal]');
+    const shapeHost = need('[data-cal-card-circuit]');
+
+    gsap.set(card, { clipPath: 'ellipse(120% 0% at 50% 0%)', autoAlpha: 0, x: 0, y: 0 });
+    gsap.set(reveal, { clipPath: 'ellipse(120% 120% at 50% 100%)' });
+    const appear = gsap
+      .timeline({ paused: true })
+      .to(card, { clipPath: 'ellipse(120% 120% at 50% 0%)', autoAlpha: 1, duration: 0.8, ease: 'power2.out' })
+      .to(reveal, { clipPath: 'ellipse(120% 0% at 50% 100%)', duration: 0.6, ease: 'power2.out' }, '-=0.4');
+    const toX = gsap.quickTo(card, 'x', { duration: 0.5, ease: 'power2.out' });
+    const toY = gsap.quickTo(card, 'y', { duration: 0.5, ease: 'power2.out' });
+
+    /* One canvas, retargeted per row -- the reference's own gesture. Black on
+       the accent card: the light ground's ink. */
+    const firstDrawable = rounds.find((r) => hasTrack(r.circuitId));
+    let shape: Promise<Circuit> | null = firstDrawable
+      ? mountCircuit(shapeHost, { circuitId: firstDrawable.circuitId, ground: 'light' })
+      : null;
+    shape?.catch((error: unknown) => {
+      console.warn('[on-track] calendar card circuit did not load', error);
+      shape = null;
+    });
+    const drawCard = (round: CalendarRound): void => {
+      const drawable = hasTrack(round.circuitId);
+      shapeHost.classList.toggle('is-empty', !drawable);
+      if (drawable && shape) {
+        void shape.then((handle) => shapeHost.classList.toggle('is-empty', !handle.select(round.circuitId)));
+      }
+    };
+
+    let pointer: { x: number; y: number } | null = null;
+    let over = false;
+    let near = false;
+
+    const follow = (): void => {
+      if (!pointer || !near) return;
+      const box = rowsArea.getBoundingClientRect();
+      const inside =
+        pointer.x >= box.left && pointer.x <= box.right && pointer.y >= box.top && pointer.y <= box.bottom;
+      if (inside && !over) {
+        over = true;
+        appear.timeScale(1).play();
+      } else if (!inside && over) {
+        over = false;
+        appear.timeScale(2).reverse();
+      }
+      if (inside) {
+        toX(pointer.x - box.left + 20);
+        toY(pointer.y - box.top - 20);
+      }
+    };
+
+    const onMove = (event: PointerEvent): void => {
+      if (event.pointerType === 'touch') return;
+      pointer = { x: event.clientX, y: event.clientY };
+      follow();
+    };
+    const onOver = (event: PointerEvent): void => {
+      const row = (event.target as Element | null)?.closest('.ot-cal__row');
+      const index = row ? buttons.indexOf(row as HTMLButtonElement) : -1;
+      if (index >= 0) drawCard(roundAt(index));
+    };
+    const watch = new IntersectionObserver(([entry]) => {
+      near = entry?.isIntersecting ?? false;
+    });
+
+    watch.observe(rowsArea);
+    document.addEventListener('pointermove', onMove, { passive: true });
+    window.addEventListener('scroll', follow, { passive: true });
+    list.addEventListener('pointerover', onOver);
+
+    return () => {
+      watch.disconnect();
+      document.removeEventListener('pointermove', onMove);
+      window.removeEventListener('scroll', follow);
+      list.removeEventListener('pointerover', onOver);
+      appear.kill();
+      void shape?.then((handle) => handle.destroy());
+    };
+  });
 }
 
 /* ------------------------------------------------------------------ *

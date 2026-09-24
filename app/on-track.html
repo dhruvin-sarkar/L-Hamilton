@@ -652,99 +652,305 @@
           </p>
 
           <ul class="ot-junior__grid" data-junior-grid></ul>
-
-          <p class="ot-provenance ot-junior__note" data-junior-note></p>
         </div>
       </section>
 
       <!-- ==================================================== Countdown
-           Reference section 5. Its target datetime sits in a hidden element as
-           plain text, and its four digit pairs all read 00 because the race it
-           points at is long past — the reference's countdown has expired.
+           Reference section 5, `.s[data-countdown-wrap]`: a 10rem breath, the
+           next round's circuit over a "next race begins in..." eyebrow, four
+           17.5rem digit pairs, and a brush script written across them once as
+           they arrive. Measured at 1728x1080, where its rem is exactly 16px.
 
-           Ours derives the target from the season calendar at page load, by the
-           clock rather than by whether a result has been recorded, so it never
-           points at a race that has already run. -->
-      <section class="ot-countdown" data-countdown aria-labelledby="ot-countdown-h">
-        <div class="shell">
-          <p class="ot-countdown__eyebrow reveal-text" id="ot-countdown-h">Next race begins in</p>
+           The target is the next round by the clock (live-stats nextRound),
+           never a date typed here, so it cannot count down to a race that has
+           already run -- the reference's own sits frozen at 00.
 
-          <!-- The live region carries the whole phrase for assistive tech, and
-               is polite rather than assertive: a countdown that interrupted the
-               reader every second would be unusable. The visible digits are
-               aria-hidden so the two never double up. -->
-          <p class="sr-only" data-countdown-sr role="status" aria-live="polite"></p>
+           The script is our own lettering, drawn as strokes and written on by
+           on-track.ts; the reference's is a Rive file this build does not ship.
+           Decorative, like the digits: the sentence under the eyebrow carries
+           the race and its start time for assistive tech. -->
+      <section class="ot-count" data-countdown aria-labelledby="ot-count-h">
+        <div class="ot-count__inner">
+          <div class="ot-count__head">
+            <!-- The circuit being counted down to, lit, as the reference's is.
+                 Empty for a round the circuit file has no shape for. -->
+            <div class="ot-count__circuit" data-countdown-circuit aria-hidden="true"></div>
+            <h2 class="ot-count__eyebrow reveal-text" id="ot-count-h">Next race begins in...</h2>
+          </div>
 
-          <div class="ot-countdown__digits" data-countdown-digits aria-hidden="true"></div>
+          <!-- The static equivalent of the digits: which race, and when it
+               starts. Written once; a sentence that re-announced itself every
+               second would be unusable, and the start time is the information
+               the countdown is a view of. -->
+          <p class="sr-only" data-countdown-sr></p>
 
-          <p class="ot-countdown__race" data-countdown-race></p>
-
-          <!-- The circuit being counted down to. The reference draws one here
-               too (a `circuits` artboard at 88x75, in its lime); ours is the
-               same drawing tinted to the accent, because the colour is one of
-               the three things this rebuild changes. Decorative — the race it
-               belongs to is named in the line above.
-
-               Hidden until a shape is actually in it. Unlike the hero's slot,
-               nothing stands in for it, so reserving the box for a round the
-               file has no track for (Madrid and Sepang, on the 2026 calendar)
-               would leave a measured gap under the countdown with nothing in
-               it. -->
-          <div class="ot-countdown__circuit" data-countdown-circuit aria-hidden="true" hidden></div>
+          <div class="ot-count__digits" data-countdown-digits aria-hidden="true">
+            <div class="ot-count__phrase" data-countdown-phrase>
+              <svg class="ot-count__script" viewBox="0 0 912 562" focusable="false">
+                <g
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="26"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <!-- In the order a hand writes them: R, a, c, e, then D, a, y,
+                       then the underline. on-track.ts plays them in this order.
+                       Laid out on the reference's box: the same size, slope and
+                       letter positions, so the phrase crosses the same digits. -->
+                  <path data-stroke d="M15 324C24 360 22 400 16 462" />
+                  <path data-stroke d="M28 312C20 302 24 294 36 288C55 280 80 268 102 264C122 261 122 290 114 306C104 324 74 342 54 356C44 366 44 382 62 392C90 404 140 406 180 401" />
+                  <path data-stroke d="M172 272C174 252 196 238 222 232C244 226 262 236 258 258C252 292 230 330 202 354C184 370 152 372 146 354C150 332 184 304 214 288" />
+                  <path data-stroke d="M338 258C316 257 292 280 282 305C272 332 292 346 316 338C330 336 346 328 356 320" />
+                  <path data-stroke d="M386 258C408 256 428 252 440 244C454 232 462 210 446 204C428 198 404 222 390 244C376 266 368 296 384 306C402 316 440 300 466 266" />
+                  <path data-stroke d="M566 136C564 190 565 250 564 306" />
+                  <path data-stroke d="M518 166C540 150 576 128 620 124C656 121 680 128 668 148C641 196 588 262 526 318" />
+                  <path data-stroke d="M680 126C696 114 728 110 746 116C758 130 752 170 734 200C720 222 696 228 690 210C686 190 712 160 744 138" />
+                  <path data-stroke d="M783 92C772 118 768 148 786 160C804 170 814 150 820 128C824 112 828 100 832 90" />
+                  <path data-stroke d="M890 114C866 138 836 170 818 200C806 222 800 246 794 266C786 292 770 312 750 318C732 322 726 302 740 284C756 262 780 236 804 212" />
+                  <path data-stroke d="M236 424C290 398 350 370 414 347" />
+                  <path data-stroke d="M300 416C298 406 312 400 350 390" />
+                </g>
+              </svg>
+            </div>
+          </div>
         </div>
       </section>
 
-      <!-- ===================================================== Schedule
-           Reference section 6: a schedule table where each row carries its whole
-           circuit record as a hidden payload, and selecting a row swaps the
-           detail panel above it.
+      <!-- ===================================================== Calendar
+           Reference section 6, `.s.is-on-t-calendar`, in its order: a framed
+           panel for one round, a heading with the standings, then a five-round
+           window of the season that fades out under a button to the full
+           schedule.
 
-           Same mechanic. The reference's rows are clickable divs with a title
-           attribute — no tabindex, no keyboard path — so ours are real buttons.
-           The panel shows his record at that circuit, which the API can actually
-           source, rather than the reference's lap length and distance, which it
-           cannot. -->
-      <section class="ot-schedule" aria-labelledby="ot-schedule-h">
-        <div class="shell">
-          <div class="ot-band__head">
-            <h2 class="ot-band__title" id="ot-schedule-h">
-              <span class="ot-band__title-line reveal-text">The season</span>
-              <span
-                class="ot-band__title-line ot-band__title-line--serif reveal-text"
-                data-schedule-year
-                >2026</span
-              >
-            </h2>
-            <p class="ot-band__blurb reveal-text">
-              Selecting a round shows his record at that circuit. Every figure is
-              counted from the races he has actually started there.
-            </p>
-          </div>
+           The panel carries the round's name set up the frame's tab, the
+           weekend, his record at the circuit, the session times in UK time and
+           the circuit drawn large. The arrows and the rows retarget it, and the
+           arrows cycle the same five rounds the rows show, as the reference's
+           do. Where the reference prints lap length and race distance -- which
+           our data does not carry -- the panel and the table print his own
+           record at that circuit.
 
-          <!-- The detail panel sits above the list on purpose: the reference
-               puts its circuit render above its schedule, and a panel below a
-               long table would be off-screen at the moment it changes. -->
-          <div class="ot-circuit" data-circuit>
-            <!-- The traced shape of whichever round is showing. The reference
-                 puts one here as well (`.f1-highlight-circuit-rive`, 184x184 in
-                 its black) and retargets it as the pointer crosses the rows;
-                 ours follows both the selection and the hover, so the shape
-                 tracks whatever the reader is looking at either way.
+           Every value is written by on-track.ts from the season calendar and
+           the circuit records; nothing below is typed. -->
+      <section class="ot-cal" aria-labelledby="ot-cal-h">
+        <div class="ot-cal__c">
+          <div
+            class="ot-cal__panel"
+            id="ot-cal-panel"
+            data-cal-panel
+            role="group"
+            aria-label="Round detail"
+            tabindex="-1"
+          >
+            <div class="ot-cal__mask">
+              <div class="ot-cal__info">
+                <div class="ot-cal__info-layout">
+                  <div class="ot-cal__info-left">
+                    <div class="ot-cal__item ot-cal__item--when">
+                      <p class="ot-cal__eyebrow reveal-text">When</p>
+                      <div class="ot-cal__when">
+                        <p class="ot-cal__major ot-cal__major--accent" data-cal-target data-cal-days></p>
+                        <p class="ot-cal__major ot-cal__major--soft" data-cal-target data-cal-month></p>
+                      </div>
+                    </div>
+                    <div class="ot-cal__spacer" aria-hidden="true"></div>
+                    <div class="ot-cal__group">
+                      <div class="ot-cal__item">
+                        <p class="ot-cal__eyebrow reveal-text">Starts</p>
+                        <p class="ot-cal__stat" data-cal-target data-cal-starts></p>
+                      </div>
+                      <div class="ot-cal__item">
+                        <p class="ot-cal__eyebrow reveal-text">First competed</p>
+                        <p class="ot-cal__stat" data-cal-target data-cal-first></p>
+                      </div>
+                    </div>
+                    <div class="ot-cal__group">
+                      <div class="ot-cal__item">
+                        <p class="ot-cal__eyebrow reveal-text">Best finish</p>
+                        <p class="ot-cal__stat" data-cal-target data-cal-best></p>
+                      </div>
+                      <div class="ot-cal__item">
+                        <p class="ot-cal__eyebrow reveal-text">Wins</p>
+                        <p class="ot-cal__stat" data-cal-target data-cal-wins></p>
+                      </div>
+                    </div>
+                  </div>
 
-                 Decorative: the circuit is named beside it, and hover is not a
-                 keyboard gesture — selection is what a keyboard reader drives,
-                 and that moves this too. -->
-            <div class="ot-circuit__shape" data-circuit-shape aria-hidden="true"></div>
-            <div class="ot-circuit__head">
-              <p class="ot-circuit__round" data-circuit-round></p>
-              <h3 class="ot-circuit__name" data-circuit-name></h3>
-              <p class="ot-circuit__where" data-circuit-where></p>
+                  <div class="ot-cal__info-right">
+                    <div class="ot-cal__about">
+                      <p class="ot-cal__eyebrow ot-cal__eyebrow--pair reveal-text">
+                        <span>Lewis at</span>
+                        <span data-cal-target data-cal-at></span>
+                      </p>
+                      <p class="ot-cal__story" data-cal-target data-cal-story></p>
+                    </div>
+
+                    <div class="ot-cal__sessions">
+                      <p class="ot-cal__session ot-cal__session--head">
+                        <span class="ot-cal__eyebrow reveal-text">Schedule</span>
+                      </p>
+                      <div class="ot-cal__session-list" data-cal-sessions></div>
+                      <p class="ot-cal__session ot-cal__session--note">
+                        <span class="ot-cal__eyebrow">*UK time</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- The frame, drawn in the accent. Its outline is the
+                   reference's -- a tab down the left for the round's name, a
+                   notch up the right for the arrows -- set out afresh here. -->
+              <svg class="ot-cal__frame" viewBox="0 0 1688 918" aria-hidden="true" focusable="false">
+                <path
+                  d="M74 12V478Q74 492 61.4 498.5L13 523Q1 529.5 1 544V905.5Q1 916.5 12 916.5H1600.5Q1611.5 916.5 1611.5 905.5V790Q1611.5 777 1623 770.3L1676 739.5Q1686.5 733.4 1686.5 721.3V12Q1686.5 1 1675.5 1H85Q74 1 74 12Z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+              </svg>
+
+              <!-- Under 480px the panel is a column and the frame is redrawn
+                   for it, the notch moved to the top right around the arrows.
+                   Two pieces, so the notch keeps its shape at any height: the
+                   top drawn, the rest a ruled box. -->
+              <div class="ot-cal__mframe" aria-hidden="true">
+                <svg class="ot-cal__mframe-top" viewBox="0 0 335 120" focusable="false">
+                  <path
+                    d="M0.5 120V8.5Q0.5 0.5 8.5 0.5H283.2Q291.2 0.5 291.2 8.5V70Q291.2 74 295 76.5L330 99Q334.5 102 334.5 107V120"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1"
+                    vector-effect="non-scaling-stroke"
+                  />
+                </svg>
+                <div class="ot-cal__mframe-rest"></div>
+              </div>
+
+              <!-- Where the reference sets the Formula 1 logo, the LH monogram:
+                   the sport's mark is not ours to use. -->
+              <svg class="ot-cal__mark" viewBox="0 0 464 501" aria-hidden="true" focusable="false">
+                <path d="M84 0 L148 61 L87 350 L86 365 L89 369 L95 371 L254 370 L240 442 L38 442 L25 439 L16 434 L2 416 L0 390 L5 359 L53 132 L84 1 Z" />
+                <path d="M381 63 L453 63 L462 66 L463 74 L437 191 L379 498 L378 500 L374 497 L308 436 L336 291 L268 290 L283 213 L350 212 L352 210 L381 64 Z" />
+                <path d="M226 64 L295 64 L248 292 L176 292 L225 65 Z" />
+              </svg>
+
+              <!-- The circuit, drawn large. The reference renders its tracks in
+                   3D in a site-wide WebGL scene; ours is the same traced outline
+                   every other circuit on the site uses, lit and set in
+                   perspective. Decorative: the round is named in the tab. -->
+              <div class="ot-cal__track" data-cal-track aria-hidden="true"></div>
             </div>
-            <dl class="ot-circuit__stats" data-circuit-stats></dl>
-            <div class="ot-circuit__sessions" data-circuit-sessions></div>
+
+            <div class="ot-cal__title">
+              <div class="ot-cal__title-layout">
+                <p class="ot-cal__name" data-cal-target data-cal-name></p>
+                <span class="ot-cal__flag-w"><span class="ot-cal__flag" data-cal-target data-cal-flag></span></span>
+              </div>
+            </div>
+
+            <div class="ot-cal__controls">
+              <button class="ot-btn ot-cal__ctrl" type="button" data-cal-next aria-controls="ot-cal-panel">
+                <span class="sr-only">Next round</span>
+                <svg class="ot-cal__ctrl-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M15 4.5l4.5 4.5-4.5 4.5M19.5 9H10a5 5 0 0 0 0 10h3" />
+                </svg>
+              </button>
+              <button class="ot-btn ot-cal__ctrl" type="button" data-cal-prev aria-controls="ot-cal-panel">
+                <span class="sr-only">Previous round</span>
+                <svg class="ot-cal__ctrl-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M15 4.5l4.5 4.5-4.5 4.5M19.5 9H10a5 5 0 0 0 0 10h3" transform="rotate(180 12 12)" />
+                </svg>
+              </button>
+            </div>
+
+            <!-- Says which round the panel moved to, once, when the arrows or
+                 a row move it. Empty on load: the panel itself is the answer
+                 then, and announcing it unasked would be noise. -->
+            <p class="sr-only" data-cal-live aria-live="polite"></p>
           </div>
 
-          <div class="ot-schedule__list" data-schedule></div>
+          <div class="ot-cal__title-row">
+            <h2 class="ot-cal__h" id="ot-cal-h">
+              <span class="ot-cal__h-line reveal-text">Upcoming</span>
+              <span class="ot-cal__h-line ot-cal__h-line--serif reveal-text" data-cal-year></span>
+            </h2>
+
+            <div class="ot-cal__para-layout">
+              <div class="ot-cal__para">
+                <p class="ot-cal__blurb reveal-text" data-cal-blurb></p>
+                <div class="ot-cal__standings">
+                  <div class="ot-cal__standing">
+                    <p class="ot-cal__descriptor reveal-text">Standing</p>
+                    <p class="ot-cal__standing-value">
+                      <span class="ot-cal__major" data-cal-standing></span>
+                      <span class="ot-cal__suffix" data-cal-standing-suffix></span>
+                    </p>
+                  </div>
+                  <div class="ot-cal__standing">
+                    <p class="ot-cal__descriptor reveal-text">Round</p>
+                    <p class="ot-cal__standing-value">
+                      <span class="ot-cal__major" data-cal-round></span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ot-cal__btn-w">
+                <a class="ot-btn ot-cal__btn" href="/calendar.html">
+                  <span class="sr-only">See full schedule</span>
+                  <span class="btn-text" aria-hidden="true" data-split-chars>See full schedule</span>
+                  <svg class="ot-cal__btn-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M15 4.5l4.5 4.5-4.5 4.5M19.5 9H10a5 5 0 0 0 0 10h3" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- The five-round window: the three rounds before the next one, the
+             next one, and the one after it -- the reference's own window. Each
+             row is a button that points the panel above at its round; the
+             reference's rows are clickable divs with no keyboard path. -->
+        <div class="ot-cal__table">
+          <div class="ot-cal__row ot-cal__row--head" aria-hidden="true">
+            <p class="ot-cal__eyebrow reveal-text">Rnd</p>
+            <p class="ot-cal__eyebrow reveal-text">Location</p>
+            <p class="ot-cal__eyebrow reveal-text">When</p>
+            <p class="ot-cal__eyebrow reveal-text">Wins</p>
+            <p class="ot-cal__eyebrow reveal-text">Best finish</p>
+          </div>
+
+          <div class="ot-cal__collection" data-cal-rows>
+            <ol class="ot-cal__list" data-cal-list></ol>
+
+            <!-- The vignette over the last rows, and the way out to the rest of
+                 the season. -->
+            <div class="ot-cal__grad">
+              <a class="ot-btn ot-cal__btn" href="/calendar.html">
+                <span class="sr-only">View full schedule</span>
+                <span class="btn-text" aria-hidden="true" data-split-chars>View full schedule</span>
+                <svg class="ot-cal__btn-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M15 4.5l4.5 4.5-4.5 4.5M19.5 9H10a5 5 0 0 0 0 10h3" />
+                </svg>
+              </a>
+            </div>
+
+            <!-- The card that follows the pointer over the rows, showing the
+                 circuit under it: the reference's `.f1-highlight-mouse-over-w`.
+                 Pointer-only and decorative -- the same round is one click away
+                 in the panel, which is where the keyboard goes. -->
+            <div class="ot-cal__card" data-cal-card aria-hidden="true">
+              <svg class="ot-cal__card-bg" viewBox="0 0 267 256" preserveAspectRatio="none" focusable="false">
+                <path d="M0 30Q0 20 10 20H42.8Q48.4 20 52 15.6L60.6 5Q64.8 0 70.8 0H257Q267 0 267 10V246Q267 256 257 256H10Q0 256 0 246Z" />
+              </svg>
+              <div class="ot-cal__card-reveal" data-cal-card-reveal></div>
+              <p class="ot-cal__eyebrow ot-cal__card-label">Circuit</p>
+              <div class="ot-cal__card-circuit"><div class="ot-cal__card-shape" data-cal-card-circuit></div></div>
+            </div>
+          </div>
         </div>
       </section>
       <!-- ============================== The tail Home and On Track share
