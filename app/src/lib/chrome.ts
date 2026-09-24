@@ -446,9 +446,69 @@ function mountNavSettle(): void {
   });
 }
 
+/* ------------------------------------------------------------------ *
+ * Monogram park
+ *
+ * The reference's centre mark leaves as soon as the page does. The same
+ * function that settles its nav switches the LN4 Rive's `logo-active` input
+ * off the moment the reader scrolls and back on at the very top, on every page
+ * and at every width (onEnter/onLeaveBack of the `.top-marker` trigger above
+ * 991px, `scrollY <= 10` below it). Sampled off its canvas, the exit collapses
+ * the mark to a point a little left of and below its centre over ~0.6s, and
+ * the return draws it back down from its top edge over ~0.8s.
+ *
+ * One ten-pixel rule at every width rather than the reference's two: the
+ * difference is less than a single notch of the wheel. Clipped rather than
+ * faded, because opacity already belongs to the hero entrance and the menu;
+ * `inert` takes the invisible link out of the tab order and hit-testing.
+ * ------------------------------------------------------------------ */
+
+const MONOGRAM_PARKED = 'inset(55% 58% 45% 42%)';
+const MONOGRAM_DRAW_FROM = 'inset(0% 76% 100% 23%)';
+const MONOGRAM_SHOWN = 'inset(0% 0% 0% 0%)';
+
+function mountMonogramPark(): void {
+  const monogram = document.querySelector<HTMLElement>('.nav-inner .monogram');
+  if (!monogram) return;
+
+  let parked: boolean | null = null;
+
+  const update = (): void => {
+    const next = window.scrollY > 10;
+    if (next === parked) return;
+    // The first call only records where the page loaded, so a mid-page reload
+    // starts parked instead of playing the exit.
+    const animate = parked !== null && !reducedMotion;
+    parked = next;
+    monogram.inert = next;
+    gsap.killTweensOf(monogram);
+
+    if (!animate) {
+      gsap.set(monogram, next ? { clipPath: MONOGRAM_PARKED } : { clearProps: 'clipPath' });
+    } else if (next) {
+      gsap.fromTo(
+        monogram,
+        { clipPath: MONOGRAM_SHOWN },
+        { clipPath: MONOGRAM_PARKED, duration: 0.6, ease: 'power2.in' },
+      );
+    } else {
+      // Cleared at the end, so the liquid fill's overshoot is not clipped at rest.
+      gsap.fromTo(
+        monogram,
+        { clipPath: MONOGRAM_DRAW_FROM },
+        { clipPath: MONOGRAM_SHOWN, duration: 0.8, ease: 'power2.out', clearProps: 'clipPath' },
+      );
+    }
+  };
+
+  update();
+  window.addEventListener('scroll', update, { passive: true });
+}
+
 export function mountChrome(): void {
   mountInertLinks();
   mountNavSettle();
+  mountMonogramPark();
 
   mountMonogram();
   mountStoreFill();
