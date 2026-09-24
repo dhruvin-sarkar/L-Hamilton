@@ -22,8 +22,14 @@
  * light one -- while mapping every neutral to itself, so the grey rest state
  * and the black one are untouched. The compositor applies it per frame, so it
  * holds through every step of the transition.
+ *
+ * Two 2026 circuits, Madring and Sepang, are not in the file. They are drawn by
+ * lib/circuit-outline.ts from path data, with the file's own strokes, turntable
+ * and transition, onto a canvas with these same classes -- so to a caller, and
+ * on the page, a circuit is a circuit whichever of the two draws it.
  */
 
+import { hasOutline, mountOutline } from './circuit-outline';
 import {
   Alignment,
   Fit,
@@ -43,9 +49,10 @@ const MACHINE = 'circuits';
 /**
  * Our circuit ids (career.json) → the file's track inputs.
  *
- * Only the tracks the file actually carries. The 2026 calendar's Madring is
- * not among them, and neither are the historic circuits in the wins record —
- * `hasTrack` is how a caller finds that out before asking for a shape.
+ * Only the tracks the file actually carries. The 2026 calendar's Madring and
+ * Sepang are not among them (lib/circuit-outline.ts draws those), and neither
+ * are the historic circuits in the wins record -- `hasTrack` is how a caller
+ * finds that out before asking for a shape.
  * The file spells Spielberg "speilberg"; that is its input name, not a typo
  * to fix here.
  */
@@ -76,12 +83,13 @@ const TRACKS: Readonly<Record<string, string>> = {
   yas_marina: 'yas-marina',
 };
 
-export const hasTrack = (circuitId: string): boolean => circuitId in TRACKS;
+/** Whether a circuit can be drawn at all: from the file, or from an outline. */
+export const hasTrack = (circuitId: string): boolean => circuitId in TRACKS || hasOutline(circuitId);
 
 /** The file's input name for one of our circuit ids. Throws for one it lacks. */
 export const trackOf = (circuitId: string): string => {
   const track = TRACKS[circuitId];
-  if (!track) throw new Error(`[circuit] no shape for "${circuitId}" — check hasTrack() first`);
+  if (!track) throw new Error(`[circuit] "${circuitId}" is not a track in ${FILE}`);
   return track;
 };
 
@@ -110,7 +118,7 @@ export interface CircuitOptions {
 
 export interface CircuitHandle {
   readonly canvas: HTMLCanvasElement;
-  /** Retargets the shape. Returns false, and changes nothing, for an id the file lacks. */
+  /** Retargets the shape. Returns false, and changes nothing, for an id with no shape. */
   select(circuitId: string): boolean;
   /** Sets the file's `hover` input, which plays its highlight transition. */
   hover(on: boolean): void;
@@ -125,11 +133,89 @@ const file = (): Promise<ArrayBuffer> =>
     return response.arrayBuffer();
   }));
 
+type Renderer = 'rive' | 'outline';
+
+const rendererOf = (circuitId: string): Renderer | null =>
+  circuitId in TRACKS ? 'rive' : hasOutline(circuitId) ? 'outline' : null;
+
 /**
  * Draws a circuit into `host`, filling it. The host sizes the drawing: give it
  * the box the reference gives its canvas and `fit: contain` does the rest.
+ *
+ * The file's tracks are drawn by Rive and the two it lacks from outlines. One
+ * handle covers both, because the schedule points a single drawing at every
+ * round in turn: the first `select` of the other kind builds that drawing, with
+ * the same options, and only the one showing the selected circuit is displayed.
  */
 export async function mountCircuit(host: HTMLElement, opts: CircuitOptions): Promise<CircuitHandle> {
+  const first = rendererOf(opts.circuitId);
+  if (!first) throw new Error(`[circuit] no shape for "${opts.circuitId}" -- check hasTrack() first`);
+
+  const drawings = new Map<Renderer, Promise<CircuitHandle>>();
+  const drawn = new Map<Renderer, CircuitHandle>();
+  let showing: Renderer = first;
+  let hovered = false;
+  let destroyed = false;
+
+  const drawing = (renderer: Renderer, circuitId: string): Promise<CircuitHandle> => {
+    const existing = drawings.get(renderer);
+    if (existing) return existing;
+    const made =
+      renderer === 'rive'
+        ? mountRive(host, { ...opts, circuitId })
+        : Promise.resolve(mountOutline(host, { ...opts, circuitId }));
+    const settled = made.then((handle) => {
+      if (destroyed) {
+        handle.destroy();
+        return handle;
+      }
+      drawn.set(renderer, handle);
+      if (hovered) handle.hover(true);
+      return handle;
+    });
+    // A failed build is forgotten, so a later select can try again.
+    settled.catch(() => drawings.delete(renderer));
+    drawings.set(renderer, settled);
+    return settled;
+  };
+
+  const show = (): void => {
+    for (const [renderer, handle] of drawn) handle.canvas.style.display = renderer === showing ? '' : 'none';
+  };
+
+  const firstHandle = await drawing(first, opts.circuitId);
+  show();
+
+  return {
+    get canvas() {
+      return drawn.get(showing)?.canvas ?? firstHandle.canvas;
+    },
+    select: (circuitId: string): boolean => {
+      const renderer = rendererOf(circuitId);
+      if (!renderer) return false;
+      showing = renderer;
+      drawing(renderer, circuitId).then(
+        (handle) => {
+          handle.select(circuitId);
+          show();
+        },
+        (error: unknown) => console.error(`[circuit] could not draw "${circuitId}"`, error),
+      );
+      return true;
+    },
+    hover: (on: boolean): void => {
+      hovered = on;
+      for (const handle of drawn.values()) handle.hover(on);
+    },
+    destroy: () => {
+      destroyed = true;
+      for (const handle of drawn.values()) handle.destroy();
+    },
+  };
+}
+
+/** The file's drawing of one of its tracks. */
+async function mountRive(host: HTMLElement, opts: CircuitOptions): Promise<CircuitHandle> {
   const buffer = await file();
 
   const ground = opts.ground ?? 'dark';
