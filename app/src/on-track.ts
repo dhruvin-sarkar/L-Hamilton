@@ -538,8 +538,8 @@ if (previous) {
     finish.textContent = classified[result.positionText] ?? result.positionText;
   }
 
-  /* Same guard as every other circuit: two rounds of the 2026 calendar have no
-     shape in the file, and the race name carries the card either way. */
+  /* Same guard as every other circuit: a venue with no outline (the historic
+     ones, say) leaves the card to the race name. */
   const prevCircuitHost = document.querySelector<HTMLElement>('[data-prev-circuit-host]');
   if (prevCircuitHost && hasTrack(previous.circuitId)) {
     void mountCircuit(prevCircuitHost, { circuitId: previous.circuitId }).catch(
