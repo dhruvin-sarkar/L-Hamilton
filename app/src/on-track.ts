@@ -484,9 +484,13 @@ function reveal(selector: string): void {
   if (panel) panel.hidden = false;
 }
 
-/** The weekend as the calendar prints it: "21\u201323 Aug". */
-function weekend(round: CalendarRound): string {
-  const days = [
+/**
+ * The weekend as the reference's hero card prints it: two words, the days
+ * zero-padded and hyphenated ("04-06") and the race day's month in three
+ * letters ("Sep" -- not the "Sept" en-GB formatting now returns).
+ */
+function weekend(round: CalendarRound): { days: string; month: string } {
+  const dates = [
     round.sessions.practice1?.date,
     round.sessions.practice2?.date,
     round.sessions.qualifying?.date,
@@ -494,9 +498,12 @@ function weekend(round: CalendarRound): string {
     round.date,
   ].filter((d): d is string => typeof d === 'string');
 
-  const first = days.reduce((a, b) => (a < b ? a : b));
-  const opens = new Date(`${first}T00:00:00Z`).getUTCDate();
-  return `${opens}\u2013${shortDate(round.date)}`;
+  const first = dates.reduce((a, b) => (a < b ? a : b));
+  const day = (iso: string): string =>
+    String(new Date(`${iso}T00:00:00Z`).getUTCDate()).padStart(2, '0');
+  const month = MONTHS[new Date(`${round.date}T00:00:00Z`).getUTCMonth()];
+  if (!month) throw new Error(`[hero] unreadable race date "${round.date}"`);
+  return { days: `${day(first)}-${day(round.date)}`, month };
 }
 
 const previous = lastRound();
@@ -509,7 +516,8 @@ if (previous) {
       : previous.result.status
     : '\u2014';
 
-  slot('prev-race', `${previous.raceName.replace(/ Grand Prix$/, '')} GP`);
+  // The markup carries the "GP" as a second word, as the reference does.
+  slot('prev-race', previous.raceName.replace(/ Grand Prix$/, ''));
 
   /* Spoken, not drawn \u2014 the card shows the circuit and the race name, as the
      reference's does. Phrased as a sentence rather than the "P3 / 15 pts" the
@@ -578,7 +586,9 @@ if (next) {
 
   slot('round-circuit', next.circuitName);
   slot('round-country', next.country);
-  slot('round-dates', weekend(next));
+  const dates = weekend(next);
+  slot('round-days', dates.days);
+  slot('round-month', dates.month);
 
   /* The traced outline of the circuit itself, which is what the reference puts
    * in this slot rather than the circuit's name.
@@ -944,6 +954,130 @@ if (hero && impact && helmStops.length === 3) {
   mm.add('(min-width: 992px)', () =>
     mountHelmetScroll({ from: hero, to: impact, stops, still: reducedMotion }),
   );
+}
+
+/* ------------------------------------------------------------------ *
+ * The header's entrance
+ *
+ * The reference's, read out of lando-gl.js rather than eyeballed. Once the
+ * page is ready, TRACK's letters start dropping into place behind an oval
+ * that has not opened yet. 750ms later every header timeline plays at once
+ * (its k0 and o0): the oval opens from the top centre, the script word writes
+ * itself on, the signature is written, the crest grows, and every text line
+ * sweeps in — that last one through mountReveals below, on the same cue.
+ *
+ *   TRACK      each letter from -40% of its height, 1.5s power2.inOut,
+ *              0.015s apart out from the centre. (The reference tweens the
+ *              line too, but its line is an inline span, which a transform
+ *              does not move — so on screen only the letters travel.) The
+ *              oval: ellipse(20% 0% at 50% 0%) to ellipse(100% 120% at 50%
+ *              0%), 1.5s power2.inOut, inside a box that clips.
+ *   "on"       a one-second Rive write-on: the O from 0.07s to 0.3s, the N
+ *              from 0.43s to 0.9s, sampled off the file frame by frame.
+ *   signature  most of its ink down by 1.2s, the rest trickling to 1.9s.
+ *   crest      the laurels grow up their stems from 0.42s to 0.97s; the
+ *              helmet fades up inside them from 0.9s to 1.4s.
+ *
+ * The last three are stand-ins for Rive artwork this build cannot ship, so
+ * they copy the timing and the direction of travel, not the strokes.
+ *
+ * "Ready" is the fonts, since TRACK and the reveal's line breaks are both set
+ * in the real face. Nothing is cut or hidden under reduced motion.
+ * ------------------------------------------------------------------ */
+
+/** Seconds from ready to the moment every header timeline plays: the reference's k0. */
+const HERO_CUE = 0.75;
+
+const trackWord = document.querySelector<HTMLElement>('.ot-hero__track');
+const scriptWord = document.querySelector<HTMLElement>('.ot-hero__on');
+const crest = document.querySelector<SVGElement>('.ot-hero__crest');
+const signHost = document.querySelector<HTMLElement>('.ot-hero__sign');
+
+if (trackWord && scriptWord && crest && signHost) {
+  mm.add('(prefers-reduced-motion: no-preference)', () => {
+    const trackText = trackWord.textContent ?? '';
+    const letters = [...trackText].map((c) => el('span', 'ot-hero__track-char', c));
+    trackWord.replaceChildren(...letters);
+
+    const scriptText = scriptWord.textContent ?? '';
+    const o = el('span', 'ot-hero__on-glyph ot-hero__on-glyph--o', scriptText.slice(0, 1));
+    const n = el('span', 'ot-hero__on-glyph ot-hero__on-glyph--n', scriptText.slice(1));
+    scriptWord.replaceChildren(o, n);
+
+    gsap.set(trackWord, { clipPath: 'ellipse(20% 0% at 50% 0%)', overflow: 'clip' });
+    gsap.set(letters, { yPercent: -40 });
+    gsap.set([o, n], { '--write': 0 });
+    // Hooks in the shared crest drawing (partials/crest.html); unset, it is whole.
+    gsap.set(crest, { '--crest-branch-hide': '100%', '--crest-helmet': 0 });
+
+    /* The signature is drawn by the same pen the homepage uses. The still mask
+       is hidden at once rather than when the trace arrives, or it would show
+       whole and then vanish to be written. */
+    const pen = { p: 0 };
+    let signature: Signature | null = null;
+    let live = true;
+    signHost.classList.add('is-writing');
+    fetch('/assets/brand/signature.svg')
+      .then((res) => {
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        return res.text();
+      })
+      .then((markup) => {
+        if (!live) return;
+        const ink = getComputedStyle(signHost).getPropertyValue('--grey-on-track').trim();
+        signature = new Signature(signHost, markup, ink);
+        signature.progress = pen.p;
+      })
+      .catch((err: unknown) => {
+        // Decorative: the still mask comes back and the header is complete.
+        console.error('[hero] signature failed to load', err);
+        signHost.classList.remove('is-writing');
+      });
+    // Its canvas follows the fluid root, and the cached ink has to follow it.
+    const sized = new ResizeObserver(() => signature?.resize());
+    sized.observe(signHost);
+
+    const entrance = gsap
+      .timeline({ paused: true })
+      .to(letters, {
+        yPercent: 0,
+        duration: 1.5,
+        ease: 'power2.inOut',
+        stagger: { amount: 0.015 * letters.length, from: 'center' },
+      }, 0)
+      .to(trackWord, {
+        clipPath: 'ellipse(100% 120% at 50% 0%)',
+        duration: 1.5,
+        ease: 'power2.inOut',
+      }, HERO_CUE)
+      .to(o, { '--write': 1, duration: 0.23, ease: 'none' }, HERO_CUE + 0.07)
+      .to(n, { '--write': 1, duration: 0.47, ease: 'none' }, HERO_CUE + 0.43)
+      .to(pen, {
+        p: 1,
+        duration: 1.4,
+        ease: 'sine.inOut',
+        onUpdate: () => {
+          if (signature) signature.progress = pen.p;
+        },
+      }, HERO_CUE)
+      .to(crest, { '--crest-branch-hide': '0%', duration: 0.55, ease: 'none' }, HERO_CUE + 0.42)
+      .to(crest, { '--crest-helmet': 1, duration: 0.5, ease: 'none' }, HERO_CUE + 0.9);
+
+    void document.fonts.ready.then(() => entrance.play());
+
+    return () => {
+      live = false;
+      entrance.kill();
+      sized.disconnect();
+      signature?.dispose();
+      signHost.classList.remove('is-writing');
+      trackWord.textContent = trackText;
+      scriptWord.textContent = scriptText;
+      gsap.set(trackWord, { clearProps: 'clipPath,overflow' });
+      crest.style.removeProperty('--crest-branch-hide');
+      crest.style.removeProperty('--crest-helmet');
+    };
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -2079,10 +2213,11 @@ mountChrome();
 /* This page has no WebGL entrance to wait on, so "ready" is simply the fonts
    having landed — the reveal splits are measured against line boxes, and
    cutting them against the fallback face puts the breaks in the wrong places.
-   `document.fonts.ready` resolves even when a face fails, so this cannot hang. */
+   `document.fonts.ready` resolves even when a face fails, so this cannot hang.
+   The header's lines then wait for its cue, with everything else in it. */
 mountReveals({
   immediate: '.ot-hero',
-  whenReady: (run) => void document.fonts.ready.then(run),
+  whenReady: (run) => void document.fonts.ready.then(() => gsap.delayedCall(HERO_CUE, run)),
 });
 
 void document.fonts.ready.then(() => {

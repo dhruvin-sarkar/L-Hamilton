@@ -80,7 +80,7 @@
                 <div class="ot-hero__sub-col">
                   <!-- Computed from the date of birth in the content model. A
                        hardcoded age is wrong within a year. -->
-                  <p class="ot-hero__label"><span data-bind="driver-age">&mdash;</span> y.o</p>
+                  <p class="ot-hero__label reveal-text"><span data-bind="driver-age">&mdash;</span> y.o</p>
 
                   <div class="ot-hero__label-flex">
                     <p class="ot-hero__label reveal-text">Stevenage, UK</p>
@@ -168,7 +168,12 @@
                            (`.home-hero-next-race-rive`, 88x75), in the file's
                            grey, above the race name. -->
                       <div class="ot-hero__prev-circuit" data-prev-circuit-host></div>
-                      <p class="ot-hero__ui-eyebrow reveal-text" data-prev-race>&mdash;</p>
+                      <!-- Two words, as the reference sets them: the race's name
+                           and a fixed "gp", a quarter-gap apart. -->
+                      <div class="ot-hero__words">
+                        <p class="ot-hero__ui-eyebrow reveal-text" data-prev-race>&mdash;</p>
+                        <p class="ot-hero__ui-eyebrow reveal-text">GP</p>
+                      </div>
                     </div>
                     <div class="ot-hero__prev-rule" aria-hidden="true"></div>
                     <!-- The finish, as the reference's second row prints it
@@ -177,7 +182,7 @@
                          Empty until a result is published -- the reference's
                          row is empty then too, and keeps its height. -->
                     <div class="ot-hero__prev-row">
-                      <p class="ot-hero__finish" data-prev-finish aria-hidden="true"></p>
+                      <p class="ot-hero__finish reveal-text" data-prev-finish aria-hidden="true"></p>
                     </div>
                     <p class="sr-only" data-prev-outcome></p>
                   </article>
@@ -186,11 +191,13 @@
                     <p class="ot-hero__ui-label ot-hero__ui-label--abs reveal-text">Next</p>
                     <div class="ot-hero__next-layout">
                       <div class="ot-hero__next-row">
-                        <!-- The hatched cell. The reference fills it with a
-                             photographic texture; ours is drawn in CSS, which
-                             is one fewer asset and scales without a raster. -->
+                        <!-- The patterned cell. The reference fills it with a
+                             raster texture of its own; ours is an original
+                             contour drawing (assets/ui/contour-pattern.svg),
+                             generated at that texture's proportions and
+                             scaling without a raster. -->
                         <div class="ot-hero__next-cell ot-hero__next-cell--round">
-                          <p class="ot-hero__figure">Rnd.</p>
+                          <p class="ot-hero__figure reveal-text">Rnd.</p>
                           <p class="ot-hero__figure" data-next-round>&mdash;</p>
                         </div>
                         <div class="ot-hero__next-cell">
@@ -242,9 +249,17 @@
                       <div class="ot-hero__circuit" data-round-circuit-host>
                         <p class="ot-hero__circuit-name" data-round-circuit>&mdash;</p>
                       </div>
+                      <!-- The reference's two rows: the country flush left, and
+                           under it the days and the month as two words, centred
+                           on the country's width. -->
                       <div class="ot-hero__round-meta">
-                        <p class="ot-hero__ui-eyebrow reveal-text" data-round-country>&mdash;</p>
-                        <p class="ot-hero__ui-eyebrow reveal-text" data-round-dates>&mdash;</p>
+                        <div class="ot-hero__words ot-hero__words--row">
+                          <p class="ot-hero__ui-eyebrow reveal-text" data-round-country>&mdash;</p>
+                        </div>
+                        <div class="ot-hero__words ot-hero__words--row ot-hero__words--centre">
+                          <p class="ot-hero__ui-eyebrow reveal-text" data-round-days>&mdash;</p>
+                          <p class="ot-hero__ui-eyebrow reveal-text" data-round-month>&mdash;</p>
+                        </div>
                       </div>
                     </div>
                     <div class="ot-hero__round-col2">

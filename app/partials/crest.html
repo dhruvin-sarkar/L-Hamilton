@@ -1,5 +1,8 @@
               <g id="nr-crest">
-              <g fill="currentColor">
+              <!-- --crest-helmet and --crest-branch-hide are hooks for the On
+                   Track header, which grows the crest in as it arrives. Unset,
+                   as everywhere else, the drawing is simply whole. -->
+              <g fill="currentColor" style="opacity: var(--crest-helmet, 1)">
                 <!-- Helmet: dome and chin bar, visor aperture knocked out. -->
                 <path
                   d="M32 9c-6.1 0-11 4.9-11 11v6.3c0 1.9 1.5 3.4 3.4 3.4h15.2c1.9 0 3.4-1.5 3.4-3.4V20c0-6.1-4.9-11-11-11Z"
@@ -15,7 +18,11 @@
                 />
               </g>
               <!-- Left branch: stem plus five leaves placed along the curve. -->
-              <g id="nr-branch" fill="currentColor">
+              <g
+                id="nr-branch"
+                fill="currentColor"
+                style="clip-path: inset(var(--crest-branch-hide, 0%) 0 0 0)"
+              >
                 <path
                   d="M18 38C11 34.5 6.5 26.5 7.5 17.5"
                   fill="none"
