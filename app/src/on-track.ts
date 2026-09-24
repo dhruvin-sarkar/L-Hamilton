@@ -797,7 +797,9 @@ if (statGrid) {
     // out as a stream of changing numbers.
     item.appendChild(el('span', 'sr-only', `${stat.label}: ${settled}`));
 
-    const label = el('span', 'ot-stats__label', stat.label);
+    // Swept in a line at a time, as the reference's labels are
+    // (`.high-line-reveal` on each line of "FORMULA 1 / WINS").
+    const label = el('span', 'ot-stats__label reveal-text', stat.label);
     label.setAttribute('aria-hidden', 'true');
 
     /* The reference puts the descriptor ABOVE the figure. The old order here
