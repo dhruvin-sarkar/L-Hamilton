@@ -81,7 +81,8 @@
              away from the edges, which is what makes the inversion read as
              instant rather than as a crossfade.
 
-             Two counter-scrolling bands, Rosso Corsa over Giallo Modena. The
+             Two counter-scrolling bands: a serif in the muted accent over a
+             bold grotesque in the page's ink, the reference's carousel. The
              words come from the content model in main.ts; the sr-only copy
              below carries them for screen readers, since the visible rows
              repeat themselves several times to close the loop. -->
@@ -102,9 +103,9 @@
              so aria-hidden — his name is already in the wordmark. -->
         <div class="hero-sign" id="signature" aria-hidden="true"></div>
 
-        <!-- The monogram, once the plate has landed.
-             Measured off the reference's own end state at 1908x982: its mark
-             sits 87x38 at y 94, centred, with the plate at y 289 below it.
+        <!-- The monogram and its label, once the plate has landed — the
+             reference's .marquee-adv-top-w: a mark over an eyebrow, a gap
+             apart, hung 15rem above a 15rem band centred on the screen.
 
              This is a SECOND placement of the same mark, not the nav's one
              moved. The nav is fixed, so a mark left there would hang over every
@@ -113,11 +114,16 @@
              and goes when the plate goes. The nav's copy now fades out during
              the shrink and stays out.
 
-             By reference rather than by copy, so the two cannot drift. -->
+             The label is the reference's "Message from Lando", rewritten as
+             what it is here: site copy naming the narrative the bands carry,
+             not a message from him. Its characters are split in main.ts.
+             aria-hidden with the rest of this layer; the same words head the
+             bands' screen-reader copy below. -->
         <div class="hero-mark" aria-hidden="true">
           <svg class="hero-mark__svg" viewBox="0 0 464 501">
             <use href="#lh-mark" />
           </svg>
+          <p class="hero-mark__eyebrow" data-hero-eyebrow>The story of Lewis</p>
         </div>
 
       <section class="hero" data-era="ferrari">
@@ -180,7 +186,7 @@
             </svg>
             <span class="next-race__team reveal-text">
               <span data-bind="team">Ferrari</span>
-              <span class="next-race__since">since <span data-bind="team-since">2025</span></span>
+              <span>since <span data-bind="team-since">2025</span></span>
             </span>
           </div>
         </aside>
@@ -207,7 +213,7 @@
         <!-- The visible bands are aria-hidden: they repeat their content
              several times over to close the loop, which a screen reader would
              otherwise read out in full. This carries the real content. -->
-        <h2 class="sr-only" id="marquee-h">Career at a glance</h2>
+        <h2 class="sr-only" id="marquee-h">The story of Lewis</h2>
         <p class="sr-only" id="marquee-text"></p>
       </div>
       <!-- /.hero-track -->
@@ -244,37 +250,43 @@
                Ours keeps that rhythm and its three accent positions — first
                word, middle, and the closing idea.
 
-               LENGTH IS LOAD-BEARING, and it was measured, not guessed:
-               24 words set to eight lines (section 1384px), 19 words to six
-               (1150px). The reference is 22 words over seven lines at 1235px,
-               and so is this. Count the words before changing this copy.
+               LENGTH IS LOAD-BEARING, and it was measured, not guessed: the
+               reference is 22 words over seven lines at 1235px, and so is this
+               in Mona Sans at the reference's own "wdth" 93 / "wght" 660. Count
+               the words, and re-measure the lines, before changing this copy.
 
                Third person, and no figures. CLAUDE.md forbids attributing
                first-person words to Hamilton, and every number on this page is
                owned by the data layer rather than typed into markup. -->
-          <p class="impact__text" data-impact-text>
-            <strong>Redefining</strong> what the sport can be, racing for more
-            than <strong>wins</strong>. Building a <strong>legacy</strong> in
-            Formula 1, on and off the track.
+          <!-- A line reveal, one bar per visual line, as the reference's own
+               statement arrives. data-reveal-rich lets lib/reveal.ts cut a
+               block with inline children; the accents carry a class because
+               the rebuild keeps runs by class, not by tag. -->
+          <p class="impact__text reveal-text" data-reveal-rich>
+            <strong class="impact__accent">Redefining</strong> what the sport can
+            be, racing for more than <strong class="impact__accent">wins</strong>.
+            Building a <strong class="impact__accent">legacy</strong> in Formula 1,
+            on and off the track.
           </p>
         </div>
       </section>
 
       <!-- ============================================== Gallery (sideways)
-           Vertical scroll drives horizontal travel while the section is pinned,
-           and the contour field behind it fades from the light screen back to
-           the hero's dark one.
+           Vertical scroll drives horizontal travel, and the contour field
+           behind it fades from the light screen back to the hero's dark one.
 
-           Everything here is measured off the reference at 1908x982:
+           The reference's own layout, rule for rule (.horizontal-track and its
+           .horizontal-item-* classes). Everything is sized off the viewport
+           HEIGHT, as the reference's is, so the wall keeps its shape on any
+           screen and only its length changes:
 
-             track lead-in   75vw of padding, so the first column enters from
-                             off-screen right rather than being there already
-             spacers         17.5rem between column groups, 8.75rem for a half
-             travel          1:1 with scroll, starting when the section's top
-                             reaches the bottom of the viewport
-             image frames    each photo is 4rem WIDER than its frame and slides
-                             that overflow as it crosses — a parallax inside the
-                             crop, not a still
+             track        100vh tall, 7vh above, 2 gaps below, 75vw lead-in
+             columns      full height; each picture is placed by an auto
+                          margin against the top or bottom plus a vh offset
+             spacers      31.51vh between column groups, half that for a half
+             image frames each photo is 4rem larger than its frame both ways,
+                          right-aligned, and slides 4rem as it crosses the
+                          screen — a parallax inside the crop, not a still
 
            Captions describe only what is visible in each frame. The reference
            captions its shots "PLACE, YEAR" — we deliberately do not, because a
@@ -284,28 +296,29 @@
 
            The two callouts are THIRD PERSON and carry no signature, and that
            divergence is required rather than accidental: the reference's
-           equivalent is a signed first-person quote from Norris ("Since I was
-           7 years old..."), and CLAUDE.md forbids putting words in Hamilton's
-           mouth. A signature under a sentence attributes it, so it comes off
-           here — it still appears in the hero and the footer, where it is a
-           brand mark rather than a sign-off. -->
-      <section class="gallery" data-gallery aria-labelledby="gallery-h">
+           equivalent is a signed first-person quote from Norris, and CLAUDE.md
+           forbids putting words in Hamilton's mouth. A signature under a
+           sentence attributes it, so it comes off; its slot stays, empty, so
+           the words sit where the reference's do. The same goes for the
+           reference's race-win pill under the fifth picture: a "1" there would
+           claim a result for a photograph that has none, so only its space is
+           kept. -->
+      <section class="gallery gallery--home" data-gallery aria-labelledby="gallery-h">
         <h2 class="sr-only" id="gallery-h">Gallery</h2>
 
         <div class="gallery__pin">
           <div class="gallery__track" data-gallery-track>
-            <!-- 1 -->
             <div class="gallery__col">
-              <figure class="gallery__item" style="--w: 15rem; --top: 3.9rem">
+              <figure class="gallery__item is-home-1" style="--w: 27vh; --h: 33.46vh; --ar: 0.807">
                 <figcaption class="gallery__cap reveal-text">On the mic</figcaption>
-                <div class="gallery__frame" style="--ar: 0.806">
+                <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-01.webp" alt="" width="1121" height="1400"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
-              <figure class="gallery__item" style="--w: 16.3rem; --top: 5.8rem">
+              <figure class="gallery__item is-home-2" style="--w: 29.3vh; --h: 29.3vh; --ar: 1">
                 <figcaption class="gallery__cap reveal-text">Lowrider</figcaption>
-                <div class="gallery__frame" style="--ar: 1">
+                <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-02.webp" alt="" width="1120" height="1400"
                     loading="lazy" decoding="async" />
                 </div>
@@ -314,17 +327,18 @@
 
             <div class="gallery__spacer"></div>
 
-            <!-- 2 — the first big one, with a callout above it -->
-            <div class="gallery__col">
-              <div class="gallery__callout" style="--w: 17.4rem; --top: 4.8rem">
-                <p class="gallery__quote reveal-text">
-                  A career photographed from every angle — on the grid, and
-                  everywhere else.
+            <div class="gallery__col is-large">
+              <div class="gallery__callout is-home-callout-1">
+                <p class="gallery__quote reveal-text" data-reveal-rich>
+                  A career seen from every angle, on the
+                  <span class="gallery__quote-accent">grid</span> and far
+                  <span class="gallery__quote-accent">beyond</span> it.
                 </p>
+                <span class="gallery__sign-slot" aria-hidden="true"></span>
               </div>
-              <figure class="gallery__item" style="--w: 36.4rem; --top: 6rem">
+              <figure class="gallery__item is-home-3" style="--w: 65.48vh; --h: 59.48vh; --ar: 1.101">
                 <figcaption class="gallery__cap reveal-text">Head in hands</figcaption>
-                <div class="gallery__frame" style="--ar: 1.101">
+                <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-03.webp" alt="" width="1050" height="1400"
                     loading="lazy" decoding="async" />
                 </div>
@@ -333,40 +347,39 @@
 
             <div class="gallery__spacer"></div>
 
-            <!-- 3 -->
             <div class="gallery__col">
-              <figure class="gallery__item is-out" style="--w: 12.2rem; --top: 3.9rem">
+              <figure class="gallery__item is-home-4" style="--w: 21.98vh; --h: 20.96vh; --ar: 1.049">
                 <figcaption class="gallery__cap reveal-text">Trophy</figcaption>
-                <div class="gallery__frame" style="--ar: 1.048">
+                <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-04.webp" alt="" width="1050" height="1400"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
-              <figure class="gallery__item" style="--w: 17.7rem; --top: 9.6rem">
+              <figure class="gallery__item is-home-5" style="--w: 31.75vh; --h: 28.75vh; --ar: 1.104">
                 <figcaption class="gallery__cap reveal-text">Lakeside</figcaption>
-                <div class="gallery__frame" style="--ar: 0.897">
+                <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-05.webp" alt="" width="1050" height="1400"
                     loading="lazy" decoding="async" />
                 </div>
+                <span class="gallery__pill-slot" aria-hidden="true"></span>
               </figure>
             </div>
 
             <div class="gallery__spacer is-half"></div>
 
-            <!-- 4 — a low one and a high one, side by side -->
             <div class="gallery__col">
-              <figure class="gallery__item" style="--w: 11.9rem; --top: 35.8rem">
+              <figure class="gallery__item is-home-6 is-crossed" style="--w: 21.38vh; --h: 26.48vh; --ar: 0.807">
                 <figcaption class="gallery__cap reveal-text">On the green</figcaption>
-                <div class="gallery__frame" style="--ar: 0.808">
+                <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-06.webp" alt="" width="1050" height="1400"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
             </div>
             <div class="gallery__col">
-              <figure class="gallery__item" style="--w: 11.5rem; --top: 8.3rem">
+              <figure class="gallery__item is-home-7 is-crossed" style="--w: 20.74vh; --h: 20.74vh; --ar: 1">
                 <figcaption class="gallery__cap reveal-text">The home crowd</figcaption>
-                <div class="gallery__frame" style="--ar: 1">
+                <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-07.webp" alt="" width="1050" height="1400"
                     loading="lazy" decoding="async" />
                 </div>
@@ -375,51 +388,37 @@
 
             <div class="gallery__spacer is-half"></div>
 
-            <!-- 5 — the second big one, callout beneath it -->
             <div class="gallery__col">
-              <figure class="gallery__item" style="--w: 33.9rem; --top: 5rem">
+              <figure class="gallery__item is-home-8 is-crossed" style="--w: 60.95vh; --h: 60.95vh; --ar: 1">
                 <figcaption class="gallery__cap reveal-text">In the dojo</figcaption>
-                <div class="gallery__frame" style="--ar: 1">
+                <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-08.webp" alt="" width="1050" height="1400"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
-              <div class="gallery__callout" style="--w: 30rem; --top: 3.5rem">
+              <div class="gallery__callout is-home-callout-2 is-crossed">
                 <p class="gallery__quote reveal-text">
                   The helmet comes off and the story keeps going: the studio,
                   the fairway, the dojo, the road.
                 </p>
+                <span class="gallery__sign-slot" aria-hidden="true"></span>
               </div>
             </div>
 
             <div class="gallery__spacer"></div>
 
-            <!-- 6 -->
             <div class="gallery__col">
-              <figure class="gallery__item" style="--w: 17.6rem; --top: 12.2rem">
+              <figure class="gallery__item is-home-10 is-crossed" style="--w: 31.69vh; --h: 30.9vh; --ar: 1.026">
                 <figcaption class="gallery__cap reveal-text">F40</figcaption>
-                <div class="gallery__frame" style="--ar: 1.023">
+                <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-09.webp" alt="" width="1055" height="1400"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
-              <figure class="gallery__item is-out" style="--w: 15.2rem; --top: 3.6rem">
+              <figure class="gallery__item is-home-9 is-crossed" style="--w: 27.42vh; --h: 24.91vh; --ar: 1.101">
                 <figcaption class="gallery__cap reveal-text">Colour study</figcaption>
-                <div class="gallery__frame" style="--ar: 1.098">
+                <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-10.webp" alt="" width="1050" height="1400"
-                    loading="lazy" decoding="async" />
-                </div>
-              </figure>
-            </div>
-
-            <div class="gallery__spacer is-half"></div>
-
-            <!-- 7 — the one landscape frame, to close on a different shape -->
-            <div class="gallery__col">
-              <figure class="gallery__item" style="--w: 36rem; --top: 14rem">
-                <figcaption class="gallery__cap reveal-text">The Mercedes years</figcaption>
-                <div class="gallery__frame" style="--ar: 1.4">
-                  <img src="/assets/gallery/gallery-11.webp" alt="" width="1024" height="682"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -457,8 +456,9 @@
                 <span class="otot__head-line is-thin reveal-text">On</span>
                 <span class="otot__head-line reveal-text">Track</span>
               </h3>
-              <p class="otot__blurb reveal-text">
-                Recent results, career statistics and photography from trackside.
+              <p class="otot__blurb reveal-text" data-reveal-rich>
+                Most recent <strong>results</strong>, career stats and photos
+                from trackside.
               </p>
               <a class="otot__link" href="/on-track.html">
                 <span class="sr-only">Go to On Track</span>
@@ -474,8 +474,9 @@
                 <span class="otot__head-line is-thin reveal-text">Off</span>
                 <span class="otot__head-line reveal-text">Track</span>
               </h3>
-              <p class="otot__blurb reveal-text">
-                Campaigns, collaborations and the work away from the cockpit.
+              <p class="otot__blurb reveal-text" data-reveal-rich>
+                <strong>Campaigns</strong>, collaborations and the work away
+                from the cockpit.
               </p>
               <a class="otot__link" href="/off-track.html">
                 <span class="sr-only">Go to Off Track</span>

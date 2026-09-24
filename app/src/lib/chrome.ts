@@ -14,7 +14,7 @@
  * or vice versa, is fine.
  */
 
-import { gsap, reducedMotion } from './motion';
+import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './motion';
 
 /* ------------------------------------------------------------------ *
  * Monogram
@@ -414,8 +414,41 @@ function mountInertLinks(): void {
   });
 }
 
+/* ------------------------------------------------------------------ *
+ * Nav settle
+ *
+ * The reference sets its brand and its button pair to scale 1.2 at the top of
+ * every page and scrubs them back to 1 over the first tenth of a screen, on
+ * power2.out (L$() in lando-gl.js, against a 10vh `.top-marker`). Only above
+ * 991px; below it they sit at 1. The factor goes on --nav-shrink, which the
+ * wordmark and the topbar already multiply into their transforms.
+ * ------------------------------------------------------------------ */
+
+function mountNavSettle(): void {
+  const nav = document.querySelector<HTMLElement>('.nav-inner');
+  if (!nav) return;
+
+  mm.add(WIDE_AND_ANIMATED, () => {
+    const settle = (progress: number): void => {
+      const eased = 1 - (1 - progress) ** 3; // GSAP's power2.out
+      nav.style.setProperty('--nav-shrink', String(1.2 - 0.2 * eased));
+    };
+
+    ScrollTrigger.create({
+      start: 0,
+      end: () => window.innerHeight * 0.1,
+      invalidateOnRefresh: true,
+      onUpdate: (self) => settle(self.progress),
+      onRefresh: (self) => settle(self.progress),
+    });
+
+    return () => nav.style.removeProperty('--nav-shrink');
+  });
+}
+
 export function mountChrome(): void {
   mountInertLinks();
+  mountNavSettle();
 
   mountMonogram();
   mountStoreFill();

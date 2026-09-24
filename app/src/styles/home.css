@@ -54,7 +54,9 @@
      the chrome, it opens beneath it. */
   z-index: 120;
   display: flex;
-  align-items: center;
+  /* Top, not centre: the reference's brand and buttons sit on the 20px padding
+     and grow DOWN from it when scaled, so their top edge never moves. */
+  align-items: flex-start;
   justify-content: space-between;
   height: var(--nav-height); /* 110px */
   padding: var(--padding--container); /* 22px */
@@ -70,7 +72,9 @@
      than set independently, because the two lines only read as one mark while
      they hold their ratio — tuning them separately is how a lockup drifts into
      looking like two unrelated headlines. */
-  --wordmark-size: 3.43rem;
+  /* The reference's brand is 60px tall (131 x 60) at rest and 72px at the top
+     of the page, where the nav is scaled 1.2 — this is sized to the rest. */
+  --wordmark-size: 2.513rem;
 
   display: grid;
   justify-items: start;
@@ -133,11 +137,13 @@
 .monogram {
   /* One number controls the mark. The width is derived from it, so the two can
      never drift out of aspect when this is tuned. */
-  --monogram-size: 2.35rem;
+  --monogram-size: 2.625rem; /* a 42px glyph, the reference's */
 
   position: absolute;
   left: 50%;
-  top: 50%;
+  /* Centred on the reference's 100px bar (60px buttons in 20px of padding),
+     not on ours, which is taller for the sake of the sections under it. */
+  top: calc(var(--padding--container) + 1.875rem);
   translate: -50% -50%;
   display: block;
   /* Sized off the mark's own aspect (464:501) rather than a square box, so the
@@ -251,19 +257,24 @@
 .topbar {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  /* Settles smaller as the screen behind changes. Anchored at the right edge so
-     it stays pinned to its corner while it scales. */
+  gap: 0.625rem;
+  /* Settles to its resting size over the first tenth of a screen. Anchored at
+     the top-right corner, as the reference's .btn-layout is, so it stays
+     pinned to that corner while it scales. */
   transform: scale(calc(var(--nav-shrink, 1) * var(--nav-scale, 1)));
-  transform-origin: 100% 50%;
+  transform-origin: 100% 0;
 }
 
+/* The reference's nav button at rest: 60px tall, 1rem each side, a 1px border
+   in its own fill, the label in Mona Sans 800 at "wdth" 86. */
 .store {
   display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
-  block-size: 4.53rem; /* 80px */
-  padding-inline: 1rem; /* 17.7px */
+  gap: 0.625rem;
+  block-size: 3.75rem;
+  padding-inline: 1rem;
+  border: 1px solid transparent;
+  font-stretch: 86%;
   /* The monogram's liquid fill, in CSS rather than SVG. Two hard stops a
      constant --liquid-gap apart make a meniscus; raising --liquid-level carries
      it up the button. Below the level is Giallo Modena, above it Rosso Corsa,
@@ -286,8 +297,8 @@
 }
 
 .store__icon {
-  inline-size: 1.4rem; /* 25px */
-  block-size: 1.4rem;
+  inline-size: 1.2rem;
+  block-size: 1.2rem;
 }
 
 /* ---------------------------------------------------- Rolling button text
@@ -363,9 +374,9 @@
 
   display: grid;
   place-items: center;
-  inline-size: 4.53rem; /* 80px */
-  block-size: 4.53rem;
-  border-radius: 0.74rem; /* 13.07px */
+  inline-size: 3.75rem;
+  block-size: 3.75rem;
+  border-radius: 0.74rem;
   background: transparent;
 }
 
@@ -374,11 +385,11 @@
   outline-offset: 3px;
 }
 
-/* 66px inside the 80px target — the reference's own icon-to-button ratio. */
+/* 0.826 of the target — the reference's own icon-to-button ratio. */
 .menu-btn__icon {
   display: block;
-  inline-size: 3.74rem;
-  block-size: 3.74rem;
+  inline-size: 3.1rem;
+  block-size: 3.1rem;
 }
 
 /* Filled, so it pairs with the store button rather than reading as a different
@@ -649,9 +660,6 @@
 
 .hero-back {
   z-index: 1;
-  display: grid;
-  align-content: center;
-  gap: 0.1em;
   overflow: clip;
 }
 
@@ -741,15 +749,23 @@
 
 /* ------------------------------------------- Monogram above the plate
  *
- * Arrives as the plate lands and leaves with it. Placed off the reference's own
- * end state: its mark is 38px tall at y 94 in a 982 viewport, with the plate
- * starting at 289 — so this sits well clear of the plate rather than tight
- * above it. Both numbers in rem so they scale with the fluid root.
+ * Arrives as the plate lands and leaves with it. The reference hangs it off
+ * the screen's CENTRE, not its top: a 15rem band centred on the viewport with
+ * this block 15rem above it, so the mark's box starts 22.5rem above the middle
+ * — y 180 at 1080 tall, y 94 at 982. A fixed offset from the top only matched
+ * the one viewport height it was measured at.
+ *
+ * Both halves are scrubbed on the pin's RAW progress, written as --hero-t:
+ *
+ *   mark     fades in and rises 0.9375rem over 0.78-0.90, easing out
+ *            (sampled: opacity 0.09 / 0.66 / 0.91 at 850 / 900 / 950px)
+ *   label    each character rises out of a clipped line, 0.14 of the pin
+ *            apiece, staggered left to right across 0.69-0.93
  *
  * Above everything else in the hero: the furniture it might otherwise collide
- * with has already faded out by the time this appears. */
+ * with has already gone by the time this appears. */
 
-@property --hero-mark {
+@property --hero-t {
   syntax: '<number>';
   initial-value: 0;
   inherits: true;
@@ -757,34 +773,42 @@
 
 .hero-mark {
   z-index: 5;
-  display: grid;
-  justify-items: center;
-  align-content: start;
-  padding-block-start: 5.32rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap);
+  padding-block-start: calc(50dvh - 22.5rem);
 }
 
 .hero-mark__svg {
+  --mark-x: clamp(0, (var(--hero-t) - 0.78) / 0.12, 1);
   inline-size: auto;
-  block-size: 2.15rem;
+  /* 34px of mark at the top of the reference's 2.284rem slot. */
+  block-size: 2.125rem;
+  margin-block-end: 0.1594rem;
+  flex: none;
   color: var(--rosso-corsa);
-  opacity: var(--hero-mark, 0);
-  /* Uncovered from the bottom up rather than faded in, which is the entrance
-     this site already uses everywhere else — and here it reads as the same
-     liquid level that fills the nav's copy of the mark, without needing a
-     second gradient to keep in sync. */
-  clip-path: inset(calc((1 - var(--hero-mark, 0)) * 100%) 0 0 0);
-  /* A short rise under the wipe. Small on purpose: the mark is settling into
-     place, not flying in. */
-  transform: translateY(calc((1 - var(--hero-mark, 0)) * 0.75rem));
-  will-change: clip-path, transform, opacity;
+  opacity: calc(1 - (1 - var(--mark-x)) * (1 - var(--mark-x)));
+  transform: translateY(calc((1 - var(--mark-x)) * (1 - var(--mark-x)) * 0.9375rem));
+  will-change: transform, opacity;
 }
 
-/* No motion path still gets the mark, just already in place. */
-@media (prefers-reduced-motion: reduce) {
-  .hero-mark__svg {
-    clip-path: none;
-    transform: none;
-  }
+/* The reference's .text-eyebrow, in the ink the statement below is set in. */
+.hero-mark__eyebrow {
+  display: flex;
+  overflow: clip;
+  font-size: var(--text--eyebrow);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: pre;
+  color: var(--dark);
+}
+
+.hero-mark__char {
+  --char-x: clamp(0, (var(--hero-t) - 0.69 - var(--i, 0) * 0.00667) / 0.14, 1);
+  display: inline-block;
+  translate: 0 calc((1 - var(--char-x)) * (1 - var(--char-x)) * (1 - var(--char-x)) * 100%);
 }
 
 .hero {
@@ -795,107 +819,103 @@
 }
 
 /* The hero's own furniture belongs to the full-bleed screen, so it goes with
-   it. Faded on its own token because it has to clear EARLY — carrying a
-   next-race card down into a shrinking plate reads as a bug.
+   it — and the reference does not scrub this. The moment the page moves off
+   zero its card takes `.hidden`, and an ellipse hung from the card's top edge
+   collapses over 0.75s on the house curve; back at zero it opens again. Same
+   toggle here, as `.is-scrolled` on the hero (main.ts).
 
-   Three selectors, and that is load-bearing: `.is-ready .hero-in` sets opacity
-   on these same elements at 0-2-0 and sits LATER in this file, so at equal
-   specificity it wins on source order and the furniture never fades. Exactly
-   the tie that pinned the monogram open. */
+   Three selectors, and that is load-bearing: `.is-ready .hero-in` sets the
+   entrance transition at 0-2-0 LATER in this file, so this has to out-rank it
+   and restate the entrance's two properties alongside the clip. */
 .hero-track .hero .next-race,
 .hero-track .hero .lock {
-  opacity: var(--hero-furniture, 1);
-  /* The entrance transition must not fight a scrubbed value. */
-  transition: none;
+  clip-path: ellipse(100% 120% at 50% 0);
+  transition:
+    clip-path var(--duration-default) var(--cubic-default),
+    opacity 0.9s var(--cubic-default) var(--in-delay, 0ms),
+    translate 0.9s var(--cubic-default) var(--in-delay, 0ms);
+}
+
+.hero-track .hero.is-scrolled .next-race,
+.hero-track .hero.is-scrolled .lock {
+  clip-path: ellipse(100% 0% at 50% 0);
 }
 
 /* ------------------------------------------- Next race (bottom-left) */
 
+/* The reference's card, rule for rule (.home-hero-next-race-*):
+ *
+ *   card    7.4375 x 15.25rem, 1.25rem off the corner, ONE ink for everything
+ *           in it — outline, label, rule, crest and copy
+ *   top     a 1.3rem strip holding the label, flush to the card's corner
+ *   rows    6.9rem each, a centred column with a .625rem gap
+ *   rule    80% of the card, 1px, centred
+ *
+ * Centred, not left-aligned: its race name, crest and team line all sit on the
+ * card's centre line (race name 36.5-122.6 in a card at 20-139). */
 .next-race {
   position: absolute;
-  left: var(--padding--container); /* 22px */
+  left: var(--padding--container);
   bottom: var(--padding--container);
   z-index: 10;
-  inline-size: 7.42rem; /* 131px */
-  min-block-size: 15.23rem; /* 269px */
-  /* Top padding clears the notch: the outline's left edge starts ~19.5/244 of
-     the way down, so content must not sit above that line. */
-  /* 0.98rem inline = 17.3px, which is where the reference insets its circuit
-     (17px) and race name (18px). The old 0.62rem put both at 11 and was the
-     last measurable gap once the notch was un-mirrored. */
-  padding: 0.16rem 0.98rem 0.9rem;
-  display: grid;
-  /* label / circuit row / rule / crest row. The 1fr sits on the circuit row so
-     the rule and crest stay pinned to the bottom of the card as the reference's
-     do, instead of floating up when the race name wraps to one line. */
-  grid-template-rows: auto 1fr auto auto;
-  gap: 0.55rem;
-  color: var(--text);
+  inline-size: 7.4375rem;
+  block-size: 15.25rem;
+  display: flex;
+  flex-direction: column;
+  /* The reference's --color--dark-green-tint-2 is one step off its light hero;
+     this is the same step off our dark one. */
+  color: var(--text-muted);
 }
 
 /* The card's border is an SVG so it can carry the notched top-left corner.
    A CSS border cannot cut that diagonal, and faking it with clip-path would
-   lose the 1px stroke. */
+   lose the 1px stroke.
+ *
+ * NOT mirrored. The path runs low on the left (y 19.5) and high on the right
+ * (y 0.5), which is the reference's own shape: the notch drops the LEFT half of
+ * the top edge and the label sits in the cut-away above it. A `scale: -1 1`
+ * here had put the raised strip on the left, over the label. */
 .next-race__outline {
   position: absolute;
   inset: 0;
   z-index: -1;
   inline-size: 100%;
   block-size: 100%;
-  color: var(--hairline);
-  /* Mirrored, because the path was traced with the notch on the right and the
-     reference cuts it on the left. Flipping the drawing beats retracing the
-     coordinates by hand — the shape is a rounded rectangle with one diagonal,
-     so a horizontal flip is exactly the transform required and cannot
-     introduce the rounding drift a hand-edited path would. */
-  scale: -1 1;
 }
 
+/* The reference's .text-eyebrow: "wght" 700 at "wdth" 100, no tracking, and a
+   line box exactly one size tall. */
 .next-race__label,
 .next-race__name,
 .next-race__team {
-  /* Measured off the reference: 11.0417px against a 17.667px root is exactly
-     0.625rem, which is what --text--eyebrow now carries. Weight 400, not 600 —
-     the reference's eyebrows are regular, and the extra weight was closing up
-     the letterforms at this size. */
   font-size: var(--text--eyebrow);
+  font-weight: 700;
+  line-height: 1;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 400;
-  line-height: 1.35;
 }
 
-/* The notch is on the LEFT, and the label sits in the cut-away it opens up —
-   flush to the card's top-left corner, measured at 0,0 on the reference. This
-   was mirrored: the outline had its raised strip on the right and the label
-   ranged hard right against it. That single mistake is what every other
-   difference in this card followed from. */
 .next-race__label {
-  color: var(--text-muted);
-  text-align: left;
+  flex: none;
+  block-size: 1.3rem;
   white-space: nowrap;
-  letter-spacing: 0.1em;
-  /* Cancel the card's own padding so the label reaches the corner. */
-  margin-block-start: -0.16rem;
-  margin-inline-start: -0.98rem;
 }
 
-/* Rows are LEFT-aligned, not centred. On the reference the circuit sits inset
-   17px and its name starts at 18px — a shared left edge, not a centre line. */
 .next-race__row {
-  display: grid;
-  justify-items: start;
-  align-content: center;
-  gap: 0.4rem;
-  color: var(--text);
-  text-align: left;
+  flex: none;
+  block-size: 6.9rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.625rem;
+  color: inherit;
+  text-align: center;
 }
 
 .next-race__circuit {
-  inline-size: 5.5rem; /* 97px */
-  /* 83px on the reference, not 74 — taller than our viewBox assumed, which is
-     why ours sat 11px low inside the card. */
+  inline-size: 5.5rem;
   block-size: 4.7rem;
+  flex: none;
   color: var(--accent);
   /* Drawn on, not faded in. The dash offset is set from the path's own measured
      length in main.ts — a hardcoded length is wrong the moment the path is
@@ -903,13 +923,12 @@
   transition: stroke-dashoffset 1.1s var(--cubic-default);
 }
 
-/* Hover lifts the circuit to full white the way the reference's Rive circuit
-   swaps colour on hover. */
-/* The real circuit's box, matching the fallback loop it replaces so the row
-   does not reflow when the drawing arrives. */
+/* The real circuit's box — the reference's 5.5 x 4.7rem — matching the
+   fallback loop it replaces so the row does not reflow when the drawing
+   arrives. */
 .next-race__circuit-host {
   display: block;
-  inline-size: 5.5rem; /* 97px */
+  inline-size: 5.5rem;
   block-size: 4.7rem;
   flex: none;
 }
@@ -936,18 +955,26 @@
   color: var(--accent);
 }
 
-.next-race__line {
-  block-size: 1px;
-  background: var(--hairline);
-  /* Bleeds into the card's side padding so it meets the outline, which is how
-     the reference's divider reads — a rule across the card, not a short dash. */
-  margin-inline: -0.62rem;
+/* Name and suffix as two words a quarter-gap apart, which is how the reference
+   sets "Zandvoort" and "gp". */
+.next-race__name {
+  display: flex;
+  gap: 0.3125rem;
 }
 
+.next-race__line {
+  flex: none;
+  inline-size: 80%;
+  block-size: 0.0625rem;
+  margin-inline: auto;
+  background: currentColor;
+}
+
+/* The reference's helmet slot, 97 x 51. */
 .next-race__crest {
-  inline-size: 3.6rem;
-  block-size: 2.48rem;
-  color: var(--text-muted);
+  inline-size: 6.0625rem;
+  block-size: 3.1875rem;
+  flex: none;
   transition: color var(--animation-default);
 }
 
@@ -955,26 +982,33 @@
   color: var(--accent);
 }
 
+/* Two centred lines in the card's one ink — the reference's "mclaren f1 /
+   since 2019", which it also sets without a second, fainter tone. */
 .next-race__team {
-  color: var(--text-muted);
-  display: grid;
-  gap: 0.1rem;
-}
-
-.next-race__since {
-  color: var(--text-faint);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 /* ------------------------------------------ Tap to lock (bottom-right) */
 
+/* A touch control. The reference's `.home-hero-touch-controls-w` is
+   `display: none` on desktop and only appears at 991px and below, where there
+   is no hover to separate "move the cursor" from "scroll the page". */
 .lock {
   position: absolute;
   right: var(--padding--container);
   bottom: var(--padding--container);
   z-index: 10;
-  display: flex;
+  display: none;
   align-items: center;
   gap: 0.9rem;
+}
+
+@media (max-width: 991px) {
+  .lock {
+    display: flex;
+  }
 }
 
 .lock__label {
@@ -1668,81 +1702,67 @@
 }
 
 /* =========================================================== Marquee
- * Two rows travelling in opposite directions. Mechanics taken from the
- * reference: 30s linear, infinite, paused until scrolled into view, and the
- * right-hand row justified to its end so it fills from the correct side.
+ * The reference draws these two bands in WebGL (its carouselScene): MSDF text
+ * on a plane seen by a 75deg camera at z 4.5, so the whole band is sized off
+ * the viewport HEIGHT. 6.906 world units span the screen vertically, and every
+ * value below is the scene's own number converted through that:
+ *
+ *   top     Brier Bold, 76px atlas x 0.0115 = 0.874 units, letterSpacing -2
+ *   bottom  Mona Sans Bold, 42px atlas x 0.02 = 0.84 units, letterSpacing -1,
+ *           and the whole group squeezed to 0.9 on x (its "shrink")
+ *   loop    copies 0.1 units apart, travelling 1 unit a second plus scroll
+ *           speed (see main.ts)
+ *
+ * Playfair stands in for Brier, sized to Brier's cap height rather than to
+ * its em so the capitals land on the same pixels.
  * ------------------------------------------------------------------ */
 
-/* Two bands, two colours — Rosso Corsa over Giallo Modena, the same pairing the
-   wordmark and the monogram use, so the revealed screen reads as the same
-   system rather than as a new palette. */
-.hero-back [data-marquee='left'] {
-  color: var(--rosso-corsa);
-}
-
-/* The bands use different typefaces, following the reference: a serif on top,
-   a bold grotesque below, so the pair reads as two voices crossing rather than
-   one ribbon cut in half. Playfair over Archivo Narrow. */
-.hero-back [data-marquee='left'] .marquee__item {
-  font-family: var(--font-serif);
-  /* A serif carries its contrast in the letterforms. At the display weight the
-     band inherits, the thins fill in and it stops reading as a serif at all. */
-  font-weight: 500;
-  letter-spacing: -0.01em;
-}
-
-/* Giallo Modena on cream is about 1.06:1 — effectively invisible, and it WAS
-   invisible on first build. The colour is kept because the pairing is the
-   point; legibility comes from outlining the letterforms in the page's dark
-   ink instead of from the fill. */
-.hero-back [data-marquee='right'] {
-  color: var(--giallo-modena);
-}
-
-.hero-back [data-marquee='right'] .marquee__item {
-  -webkit-text-stroke: 1.5px var(--dark);
-}
-
-/* Both are declared AND read on .marquee__row itself, so `inherits: false` is
-   correct here — unlike the menu's tokens, which are set on a parent and read
-   on a child and therefore have to inherit. */
-@property --marquee-cursor {
-  syntax: '<number>';
-  initial-value: 0;
-  inherits: false;
-}
-
-@property --marquee-dir {
-  syntax: '<number>';
-  initial-value: 1;
-  inherits: false;
+.hero-back {
+  --marquee-top-size: 12.42vh; /* Brier's 0.697 cap on a 12.656vh em */
+  --marquee-bottom-size: 12.163vh; /* 0.84 / 6.906 */
+  --marquee-gap: 1.448vh; /* the 0.1-unit seam between copies */
 }
 
 .marquee__row {
+  position: absolute;
+  inset-inline-start: 0;
   display: flex;
   inline-size: 100%;
   overflow: hidden;
-  /* Cursor parallax lives on the ROW so it composes with the loop rather than
-     fighting it — the keyframes own translateX on the track inside. Rows carry
-     opposite signs, set per row in the markup order by main.ts. */
-  transform: translate3d(calc(var(--marquee-cursor, 0) * var(--marquee-dir, 1) * 4.2rem), 0, 0);
 }
 
-/* The loop only reads as seamless because the track holds several identical
-   copies laid side by side. Translating by exactly -100% lands copy 2 where
-   copy 1 began, so the joint is invisible — animating a single copy would snap
-   back to an empty row instead. */
+/* Cap tops at 427px and 548px of a 1080px frame, measured off the landed
+   screen; each row's top is that less the face's own cap offset in a
+   line-height: 1 box. */
+.hero-back [data-marquee='left'] {
+  inset-block-start: calc(39.63vh - 0.207 * var(--marquee-top-size));
+  color: var(--accent-off);
+}
+
+.hero-back [data-marquee='right'] {
+  /* The group is squeezed to 0.9 about the screen's centre. Scaling a
+     full-width row would shrink its clip to 90% of the screen too, so it is
+     laid out a ninth wider and pulled back by half of that first. */
+  inset-block-start: calc(50.741vh - 0.155 * var(--marquee-bottom-size));
+  inset-inline-start: calc((100% - 100% / 0.9) / 2);
+  inline-size: calc(100% / 0.9);
+  transform: scaleX(0.9);
+  color: var(--dark);
+}
+
+/* The loop only reads as seamless because the track holds identical copies
+   laid side by side. Translating by exactly one copy lands copy 2 where copy 1
+   began, so the joint is invisible. */
 .marquee__track {
   display: flex;
   flex: none;
-  align-items: center;
-  gap: 0.25em;
-  white-space: nowrap;
+  align-items: flex-start;
+  white-space: pre;
   will-change: transform;
   /* The loop lives in main.ts as a GSAP tween, NOT as a keyframe animation. A
      CSS animation has no rate you can drive, and scroll velocity has to be able
-     to speed it up and reverse it. Declaring one here as well would fight the
-     tween for ownership of `transform`. */
+     to speed it up. Declaring one here as well would fight the tween for
+     ownership of `transform`. */
 }
 
 [data-marquee='right'] .marquee__track {
@@ -1752,44 +1772,28 @@
 }
 
 .marquee__item {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: var(--text--impact); /* 7.94rem */
-  line-height: 0.9;
+  flex: none;
+  padding-inline-end: var(--marquee-gap);
+  line-height: 1;
   text-transform: uppercase;
-  letter-spacing: -0.03em;
-  /* currentColor, so the band's own colour reaches the words — the two rows
-     are set to Rosso and Giallo on the row itself. */
-  color: currentColor;
+  font-variant-numeric: normal;
 }
 
-/* Alternating outline type. The counter-scrolling rows read as one object
-   rather than two lists when the emphasis alternates across them. */
-
-.marquee__sep {
-  color: var(--accent);
-  font-size: var(--text--impact);
-  line-height: 0.9;
+.hero-back [data-marquee='left'] .marquee__item {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: var(--marquee-top-size);
+  letter-spacing: -0.0263em; /* -2 on a 76px atlas */
 }
 
-/* Fade both ends so the type dissolves rather than being guillotined by the
-   viewport edge. The reference applies this above 1920px, where the row is
-   wide enough for the mask to have somewhere to work. */
-@media (min-width: 120rem) {
-  .marquee__row {
-    -webkit-mask-image: linear-gradient(
-      90deg,
-      transparent,
-      #fff 7.5%,
-      #fff 92.5%,
-      transparent
-    );
-    mask-image: linear-gradient(90deg, transparent, #fff 7.5%, #fff 92.5%, transparent);
-    -webkit-mask-size: 100% 100%;
-    mask-size: 100% 100%;
-    -webkit-mask-repeat: no-repeat;
-    mask-repeat: no-repeat;
-  }
+.hero-back [data-marquee='right'] .marquee__item {
+  font-family: var(--font-body);
+  font-stretch: 100%;
+  font-weight: 700;
+  font-size: var(--marquee-bottom-size);
+  letter-spacing: -0.0238em; /* -1 on a 42px atlas */
+  /* The atlas carries no kerning pairs, so the band is set without them. */
+  font-kerning: none;
 }
 
 /* Motion off: the rows stop dead and the visually-hidden paragraph is what
@@ -1798,13 +1802,7 @@
   /* Nothing to stop here any more. The bands' loop is a GSAP tween that is
      never built in this mode, and the field behind them is now GL rather than
      a CSS animation — main.ts skips constructing it entirely, so there is no
-     declaration left to override. */
-  .marquee__row {
-    overflow-x: auto;
-    /* The cursor parallax is never wired up in this mode, but the declaration
-       still resolves — pin it flat rather than relying on the initial value. */
-    transform: none;
-  }
+     declaration left to override. The rows simply stand still. */
 
   /* No unpinning here any more. The pinned layout is opt-in on
      [data-hero-pinned], which main.ts sets only once it has actually built the
@@ -1847,7 +1845,10 @@
 }
 
 .impact__inner {
-  max-inline-size: 80rem;
+  /* 80.1rem, the reference's own `.is-home` override of its 80rem wrapper —
+     1281.6px at 1728. The line "legacy in Formula 1" fills it to within 1.3px,
+     so the tenth of a rem is what the wall's seven-line shape rests on. */
+  max-inline-size: 80.1rem;
   margin-inline: auto;
   padding-block: 6rem 12rem;
   /* No horizontal padding at desktop, which is the reference's own rule: 80rem
@@ -1872,17 +1873,25 @@
   block-size: 3.19rem;
 }
 
+/* The reference's .text-eyebrow: Mona Sans at "wght" 700 / "wdth" 100, no
+   tracking, a line box exactly one size tall. The 15px box the old 1.5 line
+   gave this pushed the whole wall 5px down the page. */
 .impact__eyebrow {
   font-size: var(--text--eyebrow);
   font-weight: 700;
+  line-height: 1;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
+/* The reference's .text-impact-lg-mona, to the letter: "wght" 660 at "wdth"
+   93 — NOT the condensed display cut, which set this wall at five lines where
+   the reference runs seven. Proportional figures, as its "1" is. */
 .impact__text {
-  font-family: var(--font-display);
+  font-family: var(--font-body);
+  font-stretch: 93%;
+  font-weight: 660;
   font-size: var(--text--impact);
-  font-weight: 700;
+  font-variant-numeric: normal;
   text-transform: uppercase;
   letter-spacing: -0.0625rem;
   line-height: 0.9;
@@ -1892,43 +1901,38 @@
      ragging had been dealt with. Length of the copy is what controls it. */
 }
 
-/* The accents are a second voice, not a highlight. The reference sets a Didone
-   against its grotesque here and takes the accent slightly larger to reconcile
-   the two cap heights — 1.04x, measured. Ours does the same with Playfair
-   against Archivo Narrow. */
-.impact__text strong {
+/* The accents are a second voice, not a highlight: the reference sets them in
+   its Didone at .text-impact-lg-brier's 8.25rem and -0.1875rem. Playfair stands
+   in for Brier.
+ *
+ * The line-height is solved rather than copied. The reference's 0.83 on Brier
+ * makes an accented line 116.3px against a plain line's 114.3 — its seven
+ * lines total 806.1px. Playfair's taller ascent at the same 0.83 overhangs the
+ * strut by another 2px; 0.8 lands the accented lines on 116.3 again. */
+.impact__accent {
   font-family: var(--font-serif);
   font-weight: 600;
-  font-size: 1.04em;
-  letter-spacing: -0.023em;
+  font-size: 8.25rem;
+  letter-spacing: -0.1875rem;
+  line-height: 0.8;
   /* --accent-off, not --rosso-corsa. Measured on --field-ground, the cream this
      wall actually sits on, #ff2800 is 2.60:1 — under the 3:1 floor even for
      text this size. --accent-off is 3.37:1 here and 3.43:1 on --gl-bg, so the
      one token clears both grounds, and it is already documented as the value
      for large areas. Same hue, value only. */
   color: var(--accent-off);
-  /* The parent's line-height is the unitless 0.9, which inherits as a NUMBER
-     and is then multiplied by this element's own 1.04em — giving accented lines
-     a line box ~4.6px taller than plain ones at the design width, so the wall
-     leaded unevenly wherever an accent fell. Dividing it back out pins every
-     line to the same height. */
-  line-height: calc(0.9 / 1.04);
 }
 
-/* --------------------------------------------------- BlurText units
- * One span per word, written by mountBlurText. inline-block so a transform and
- * a filter apply at all — neither does anything on a plain inline box — while
- * the words still lay out as text rather than as flex items. */
-
-.blur-text__unit {
-  display: inline-block;
+/* The reference's bars over this wall are its lime-off, the accent words'
+   colour, rather than the full lime every other reveal uses. */
+.impact__text .reveal-line::after {
+  background: var(--accent-off);
 }
 
-/* On for the length of the run, off after. Promotion is worth it while the
-   filter is changing every frame and is dead weight once the words have
-   landed — see mountBlurText for why this is a class and not per-word. */
-.is-blurring .blur-text__unit {
-  will-change: filter, transform, opacity;
+/* The split lines shrink to their words, so each is centred on its own — the
+   reference's lines are centred inline-blocks. */
+.impact__text .reveal-line {
+  margin-inline: auto;
 }
 
 /* The reference's own two steps down, at its own breakpoints. Below 992px the
@@ -1944,15 +1948,18 @@
     font-size: 7rem;
   }
 
+  /* The reference's accent goes to `inherit` here, so both voices share the
+     base size below the desktop root. */
+  .impact__accent {
+    font-size: inherit;
+  }
+
   /* Below 992px the fluid root locks at 16px, so the type is a fixed pixel size
      against a viewport that still varies — and one long word at 7rem is wider
      than a phone. `anywhere` rather than `break-word`: only `anywhere` lowers
-     an element's min-content width, and every word here is an inline-block
-     that would otherwise shrink-to-fit its full length and hang off the side.
-     It engages only when a word cannot fit a line on its own, so ordinary copy
-     is untouched. */
-  .impact__text,
-  .impact__text .blur-text__unit {
+     an element's min-content width. It engages only when a word cannot fit a
+     line on its own, so ordinary copy is untouched. */
+  .impact__text {
     overflow-wrap: anywhere;
   }
 }
@@ -2131,6 +2138,271 @@
   opacity: 0.9;
 }
 
+/* --------------------------------------------------------- Home's wall
+ * The reference's .horizontal-track rules as they are, sized off the viewport
+ * HEIGHT (its --vh), so the wall is the same shape on every screen. Scoped to
+ * Home: On Track lays its own pictures out on the rules above.
+ *
+ * Each column is the full height of the track and a flex column, so a picture
+ * is placed by an auto margin against the top or the bottom plus a vh offset,
+ * and two of them lean half a spacer into the gap beside them (`left`, which
+ * moves them without moving the column). */
+.gallery--home {
+  --grid-spacer: 31.51vh;
+}
+
+.gallery--home .gallery__track {
+  align-items: stretch;
+  block-size: 100vh;
+  padding: 7vh var(--gap) calc(var(--gap) * 2) 75vw;
+}
+
+.gallery--home .gallery__col {
+  block-size: 100%;
+}
+
+.gallery--home .gallery__spacer {
+  inline-size: var(--grid-spacer);
+}
+
+.gallery--home .gallery__spacer.is-half {
+  inline-size: calc(var(--grid-spacer) * 0.5);
+}
+
+/* Caption, frame and slot stacked on one gap, as .horizontal-item-layout. The
+   ink is fixed per picture, as the reference's is: the first five carry the
+   muted ink of the screen they arrive over, the rest the ink of the screen the
+   ground has crossed to by then. */
+.gallery--home .gallery__item,
+.gallery--home .gallery__callout {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--gap);
+  inline-size: auto;
+  margin-block-start: 0;
+  color: var(--dark-tint-2);
+}
+
+.gallery--home .is-crossed {
+  color: var(--off-white-2);
+}
+
+.gallery--home .gallery__cap {
+  margin: 0;
+  font-family: var(--font-body);
+  font-stretch: 100%;
+  font-weight: 700;
+  font-size: var(--text--eyebrow);
+  line-height: 1;
+  letter-spacing: 0;
+  color: inherit;
+}
+
+/* Right-aligned and 4rem larger than the frame both ways, so the photo's left
+   4rem and 2rem top and bottom sit outside the crop; the pan slides it 4rem
+   rightwards as the frame crosses the screen, x = 4rem * progress from the
+   frame's left meeting the right edge to its right leaving the left. */
+.gallery--home .gallery__frame {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  inline-size: var(--w);
+  block-size: var(--h);
+  aspect-ratio: auto;
+}
+
+.gallery--home .gallery__frame img {
+  flex: none;
+  inline-size: calc(100% + 4rem);
+  block-size: calc(100% + 4rem);
+  transform: translate3d(calc(var(--pan, 0) * 4rem), 0, 0);
+}
+
+.gallery--home .is-home-2 {
+  inset-inline-start: 14.42vh;
+  margin-block: auto 8.42vh;
+}
+
+.gallery--home .is-home-3 {
+  margin-block-start: auto;
+}
+
+.gallery--home .is-home-4,
+.gallery--home .is-home-9 {
+  inset-inline-start: calc(var(--grid-spacer) * -0.5);
+}
+
+.gallery--home .is-home-5 {
+  margin-block: auto 8.17vh;
+}
+
+.gallery--home .is-home-6 {
+  margin-block: auto 1.17vh;
+}
+
+.gallery--home .is-home-7 {
+  margin-block: 8vh auto;
+}
+
+.gallery--home .is-home-8 {
+  margin-block-start: 2vh;
+}
+
+.gallery--home .is-home-9 {
+  margin-block: auto calc(var(--gap) * 2);
+}
+
+.gallery--home .is-home-10 {
+  margin-block-start: 14.92vh;
+}
+
+.gallery--home .is-home-callout-1 {
+  max-inline-size: 17.375rem;
+  margin-block-start: 1.67vh;
+}
+
+.gallery--home .is-home-callout-2 {
+  max-inline-size: 30rem;
+  margin-block: auto 2.67vh;
+}
+
+.gallery--home .gallery__quote {
+  font-weight: 500;
+  font-variant-numeric: normal;
+}
+
+/* The reference lifts two words of its first callout a step brighter. */
+.gallery--home .gallery__quote-accent {
+  color: var(--dark);
+}
+
+/* Where the reference's signature and race-win pill sit. Kept empty — see the
+   note in index.html — so everything anchored beneath them lands in place. */
+.gallery__sign-slot {
+  display: block;
+  inline-size: 4.125rem;
+  block-size: 1.875rem;
+}
+
+.gallery__pill-slot {
+  display: block;
+  block-size: 4.44vh;
+}
+
+/* The reveal, as the reference runs it on THIS section's lines (C_() in
+ * lando-gl.js) rather than as it runs everywhere else: each line is clipped
+ * shut and wiped open left to right over 0.6s (power2.out) with its accent bar
+ * inside it, and the bar retracts 0.3s later over another 0.6s
+ * (power2.inOut). So the accent sweeps in and back out. The clip is inset past
+ * the line box on three sides so it never trims the bar's own overhang. */
+[data-reveal-animated] .gallery--home .reveal-text:not([data-reveal-split]),
+[data-reveal-animated] .gallery--home .reveal-line {
+  clip-path: inset(-0.2em 100% -0.2em -0.2em);
+}
+
+.gallery--home .reveal-text.is-in:not([data-reveal-split]),
+.gallery--home .reveal-text.is-in .reveal-line {
+  animation: gallery-home-line-open 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.gallery--home .reveal-text.is-in::after,
+.gallery--home .reveal-text.is-in .reveal-line::after {
+  animation-duration: 0.6s;
+  animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
+  animation-delay: calc(var(--reveal-delay, 0ms) + 300ms);
+}
+
+.gallery--home .reveal-text.is-done:not([data-reveal-split]),
+.gallery--home .reveal-text.is-done .reveal-line {
+  animation: none;
+  clip-path: none;
+}
+
+@keyframes gallery-home-line-open {
+  from {
+    clip-path: inset(-0.2em 100% -0.2em -0.2em);
+  }
+
+  to {
+    clip-path: inset(-0.2em -0.2em -0.2em -0.2em);
+  }
+}
+
+/* Below 992px the reference stacks the wall (its I_() never runs there): the
+   track becomes a column with 5rem between pictures, the offsets drop, and
+   every other picture moves to the right-hand edge. */
+@media (max-width: 991px) {
+  .gallery--home .gallery__track {
+    block-size: auto;
+    padding: var(--padding--xlarge) var(--padding--container);
+    gap: 5rem;
+  }
+
+  .gallery--home .gallery__col {
+    block-size: auto;
+    gap: 5rem;
+  }
+
+  /* The big picture leads and its callout follows, a rem beneath. */
+  .gallery--home .gallery__col.is-large {
+    flex-direction: column-reverse;
+    gap: 1rem;
+  }
+
+  .gallery--home .is-home-callout-1 {
+    max-inline-size: 31rem;
+  }
+
+  .gallery--home .gallery__quote {
+    font-size: 1.9rem;
+  }
+
+  .gallery--home .gallery__item,
+  .gallery--home .gallery__callout {
+    inset-inline-start: 0;
+    margin: 0;
+  }
+
+  .gallery--home .is-home-2,
+  .gallery--home .is-home-4,
+  .gallery--home .is-home-7,
+  .gallery--home .is-home-10 {
+    margin-inline-start: auto;
+  }
+
+  .gallery--home .gallery__frame {
+    inline-size: min(var(--w), 100vw - 2 * var(--padding--container));
+    block-size: auto;
+    aspect-ratio: var(--ar);
+  }
+
+  .gallery--home .gallery__frame img {
+    inline-size: 100%;
+    block-size: 100%;
+    transform: none;
+  }
+
+  /* The reference hides its pill on small screens, and with it the space. */
+  .gallery__pill-slot {
+    display: none;
+  }
+}
+
+/* Motion off: an ordinary scrolling row from the container's edge rather
+   than from the 75vw lead-in the sideways travel needs. */
+@media (prefers-reduced-motion: reduce) and (min-width: 992px) {
+  .gallery--home .gallery__track {
+    padding-inline-start: var(--padding--container);
+  }
+
+  .gallery--home .gallery__frame img {
+    transform: none;
+  }
+}
+
 /* On a phone the gallery stops being sideways and becomes a column.
  *
  * This is the reference's own call, not a simplification of it: at 390px its
@@ -2151,13 +2423,15 @@
  * already scaled by the hero's scroll shrink, and replacing that transform
  * would drop the settle as the plate closes. The two multiply. */
 @media (max-width: 991px) {
+  /* 0.725 of the 60px resting buttons: the 43.5px the phone nav has always
+     had. The wordmark's own size is set to land where it did too. */
   .nav-inner {
-    --nav-scale: 0.6;
+    --nav-scale: 0.725;
     --nav-height: 4.4rem;
   }
 
   .wordmark {
-    --wordmark-size: 2.2rem;
+    --wordmark-size: 1.82rem;
   }
 
   /* Anchored to their own corners so the pair stays pinned to the edges as it
@@ -2916,9 +3190,6 @@
      relative: measured 9.33vh / 90.67vh on the reference and confirmed to
      scale with viewport height rather than with the root font size. */
   inset-block: 9.33vh 0;
-  /* Narrower than the artwork, so the far side of each cutout runs off the
-     edge instead of sitting fully in frame. */
-  inline-size: min(26vw, 30rem);
   overflow: clip;
   z-index: 0;
   pointer-events: none;
@@ -2934,8 +3205,13 @@
 }
 
 /* Each cutout is anchored by the edge that faces the centre, so the crop eats
-   the outer side and the subject keeps looking inward. */
+   the outer side and the subject keeps looking inward.
+ *
+ * The frames are the reference's own, 834:1984 and 898:1984 on the 90.67vh
+ * height. Our artwork is wider than its, so each is cropped to that frame from
+ * the outside rather than squeezed or scaled down into it. */
 .otot__cut.is-on {
+  inline-size: calc(90.67vh * 834 / 1984);
   inset-inline-start: 0;
   transform: translate3d(calc(var(--otot-cut, 0px) * -1), 0, 0);
 }
@@ -2945,6 +3221,7 @@
 }
 
 .otot__cut.is-off {
+  inline-size: calc(90.67vh * 898 / 1984);
   inset-inline-end: 0;
   transform: translate3d(var(--otot-cut, 0px), 0, 0);
 }
@@ -2953,87 +3230,108 @@
   inset-inline-start: 0;
 }
 
-/* ---- the type ---- */
+/* ---- the type ----
+ *
+ * The reference's .otot-home-layout: two columns sized by their words, 3 gaps
+ * apart and centred on the screen, the first set flush right and the second
+ * flush left so the pair meets in the middle. Each column is heading, blurb
+ * and button on one gap, the blurb a further gap down. */
 
 .otot__layout {
   position: relative;
   z-index: 1;
   display: flex;
-  justify-content: center;
-  gap: 3.75rem;
-  inline-size: min(46.25rem, 44vw);
+  gap: calc(var(--gap) * 3);
 }
 
 .otot__col {
-  flex: 1 1 0;
-  min-inline-size: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
+  gap: var(--gap);
 }
 
 .otot__col.is-on {
+  align-items: flex-end;
+  text-align: right;
   transform: translate3d(calc(var(--otot-txt, 0px) * -1), 0, 0);
 }
 
 .otot__col.is-off {
+  align-items: flex-start;
+  text-align: left;
   transform: translate3d(var(--otot-txt, 0px), 0, 0);
+}
+
+/* The heading and blurb take the same ink, as the reference's do. It crosses
+   with the ground the gallery leaves behind: dark while the screen is still
+   light, cream once it is black — which it always is by the time this
+   section is on screen. */
+.otot__head,
+.otot__blurb {
+  color: color-mix(in oklab, var(--dark), var(--cream) calc(var(--otot-ink, 0) * 100%));
 }
 
 .otot__head {
   display: flex;
   flex-direction: column;
-  /* Centred rather than stretched, so each line is only as wide as its own word.
-     The reveal bar behind .reveal-text spans its element, and a stretched line
-     would sweep the full column width past the end of a short word like "On". */
-  align-items: center;
-  margin: 0 0 1.5rem;
+  /* Each line only as wide as its own word, so the reveal bar sweeps the word
+     and not the column. */
+  align-items: inherit;
+  margin: 0;
   text-transform: uppercase;
-  line-height: 0.9;
-  /* Giallo at the dark end of the crossfade, not cream. The mechanism is
-     unchanged — dark ink while the ground is still the light screen, full
-     colour once the gallery has taken it back to black. */
-  color: color-mix(
-    in oklab,
-    var(--dark),
-    var(--giallo-modena) calc(var(--otot-ink, 0) * 100%)
-  );
 }
 
+/* "TRACK": Mona Sans at wdth 93, wght 750. */
 .otot__head-line {
-  font-family: var(--font-display);
-  font-size: clamp(2.5rem, 4.6vw, 5rem);
-  font-weight: 700;
-  /* Shrink to the word — see the note on align-items above. */
   inline-size: fit-content;
+  font-family: var(--font-body);
+  font-stretch: 93%;
+  font-weight: 750;
+  font-size: 7rem;
+  line-height: 0.85;
+  letter-spacing: -0.25rem;
+  font-variant-numeric: normal;
 }
 
-/* The lighter serif on the first word, the way the reference splits its own
-   two-word headings. */
+/* "ON" / "OFF": the reference's Brier Bold, 7.3125rem on a 0.81 line. Playfair
+   stands in, sized to Brier's cap height so the capitals match. */
 .otot__head-line.is-thin {
   font-family: var(--font-serif);
-  font-weight: 400;
+  font-stretch: 100%;
+  font-weight: 500;
+  font-size: 7.2rem;
+  line-height: 0.823;
+  /* Brier's -0.21875rem, tightened by the width Playfair's wider capitals add,
+     so "ON" and "OFF" span the reference's 155px and 201px. */
+  letter-spacing: -0.4rem;
+}
+
+/* The split lines shrink to their words, so the right-set column pushes each
+   one to its right edge itself. */
+.otot__col.is-on .reveal-line {
+  margin-inline-start: auto;
 }
 
 .otot__blurb {
-  margin: 0 0 2rem;
-  /* Literal, not a token: --text--body-small was never defined anywhere in
-     tokens.css, so this var() had always resolved to its fallback. Kept at the
-     measured value rather than inventing a token used in exactly one place. */
-  font-size: 0.95rem;
-  line-height: 1.4;
-  /* The column already sets the measure. An extra ch cap on top of it broke
-     this into four ragged lines where the reference gets two. */
-  color: color-mix(in oklab, var(--dark), var(--cream) calc(var(--otot-ink, 0) * 100%));
+  inline-size: 21rem;
+  margin: var(--gap) 0 0;
+  font-weight: 500;
+  font-size: 1.25rem;
+  line-height: 1.25;
+  letter-spacing: -0.0125rem;
+  font-variant-numeric: normal;
+}
+
+.otot__blurb strong {
+  font-weight: 700;
 }
 
 .otot__link {
   display: grid;
   place-items: center;
-  inline-size: 3rem;
-  block-size: 3rem;
-  border-radius: 0.5rem;
+  inline-size: 3.75rem;
+  block-size: 3.75rem;
+  border-radius: 0.54rem;
   /* The same liquid fill the store and menu buttons carry, and deliberately
      the same declaration rather than a lookalike — Giallo rises through Rosso
      behind a meniscus as the level climbs. These buttons already sat at Rosso
@@ -3054,8 +3352,8 @@
 }
 
 .otot__arrow {
-  inline-size: 1.25rem;
-  block-size: 1.25rem;
+  inline-size: 1.2rem;
+  block-size: 1.2rem;
 }
 
 /* On Track points back, Off Track points on — the two face away from each
@@ -3063,6 +3361,75 @@
    than a second path to keep in sync with the first. */
 .otot__col.is-on .otot__arrow {
   scale: -1 1;
+}
+
+/* The reveal the reference gives these lines (data-anim-high): each line is
+ * clipped shut and wiped open towards the middle over 0.6s (power2.out) with a
+ * bar of near-ink inside it, and the bar retracts 0.3s later over another 0.6s
+ * (power2.inOut) — from the right in the first column, from the left in the
+ * second, so both open outward from the gutter between them. */
+[data-reveal-animated] .otot .reveal-text:not([data-reveal-split]),
+[data-reveal-animated] .otot .reveal-line {
+  clip-path: inset(-0.2em 100% -0.2em -0.2em);
+}
+
+[data-reveal-animated] .otot .is-off .reveal-text:not([data-reveal-split]),
+[data-reveal-animated] .otot .is-off .reveal-line {
+  clip-path: inset(-0.2em -0.2em -0.2em 100%);
+}
+
+.otot .reveal-text.is-in:not([data-reveal-split]),
+.otot .reveal-text.is-in .reveal-line {
+  animation: otot-line-open 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.otot .is-off .reveal-text.is-in:not([data-reveal-split]),
+.otot .is-off .reveal-text.is-in .reveal-line {
+  animation-name: otot-line-open-left;
+}
+
+[data-reveal-animated] .otot .reveal-text::after,
+[data-reveal-animated] .otot .reveal-line::after {
+  background: var(--off-white-1);
+}
+
+[data-reveal-animated] .otot .is-off .reveal-text::after,
+[data-reveal-animated] .otot .is-off .reveal-line::after {
+  transform-origin: left;
+}
+
+.otot .reveal-text.is-in::after,
+.otot .reveal-text.is-in .reveal-line::after {
+  animation-duration: 0.6s;
+  animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
+  animation-delay: calc(var(--reveal-delay, 0ms) + 300ms);
+}
+
+.otot .reveal-text.is-done:not([data-reveal-split]),
+.otot .reveal-text.is-done .reveal-line {
+  animation: none;
+  clip-path: none;
+}
+
+@keyframes otot-line-open {
+  from {
+    clip-path: inset(-0.2em 100% -0.2em -0.2em);
+  }
+
+  to {
+    clip-path: inset(-0.2em -0.2em -0.2em -0.2em);
+  }
+}
+
+@keyframes otot-line-open-left {
+  from {
+    clip-path: inset(-0.2em -0.2em -0.2em 100%);
+  }
+
+  to {
+    clip-path: inset(-0.2em -0.2em -0.2em -0.2em);
+  }
 }
 
 /* ---- the riser ---- */
@@ -3154,6 +3521,10 @@
     padding-inline: var(--padding--container);
   }
 
+  .otot__blurb {
+    inline-size: min(21rem, 100%);
+  }
+
   /* Matched to the .is-on/.is-off specificity of the rules they undo — a bare
      .otot__cut here would lose to .otot__cut.is-on and the reset would look
      applied while doing nothing. */
@@ -3164,7 +3535,8 @@
     transform: none;
   }
 
-  .otot__cut {
+  .otot__cut.is-on,
+  .otot__cut.is-off {
     inline-size: 42vw;
     /* Behind the type rather than beside it — there is no room for both. */
     opacity: 0.22;
@@ -3178,6 +3550,15 @@
   .otot__end-frame {
     block-size: auto;
     aspect-ratio: 16 / 9;
+  }
+}
+
+/* The reference drops both heading faces to 4rem on a phone. */
+@media (max-width: 479px) {
+  .otot__head-line,
+  .otot__head-line.is-thin {
+    font-size: 4rem;
+    letter-spacing: -0.1rem;
   }
 }
 
