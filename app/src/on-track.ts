@@ -833,6 +833,15 @@ if (podium && gigantic && giganticSr) {
   fit();
   remeasure(fit);
 
+  /* The rise is spread over the reference's layout, which is its number's line
+     box: 114rem at a 0.85 line, 1550px at 1728. Ours is that box scaled by
+     --podium-fit, so a `bottom center` end arrived 445px of scroll early and the
+     digits finished rising before the reader had scrolled as far. Dividing the
+     fit back out restores the reference's distance, and the quotient does not
+     depend on when the fit last ran, because the box scales with it. */
+  const referenceBox = (): number =>
+    gigantic.offsetHeight / (Number(podium.style.getPropertyValue('--podium-fit')) || 1);
+
   mm.add('(prefers-reduced-motion: no-preference)', () => {
     gsap.fromTo(
       podium,
@@ -840,7 +849,12 @@ if (podium && gigantic && giganticSr) {
       {
         '--podium-p': 1,
         ease: 'power1.in',
-        scrollTrigger: { trigger: podium, start: 'top bottom', end: 'bottom center', scrub: true },
+        scrollTrigger: {
+          trigger: podium,
+          start: 'top bottom',
+          end: () => `+=${referenceBox() + window.innerHeight / 2}`,
+          scrub: true,
+        },
       },
     );
   });
