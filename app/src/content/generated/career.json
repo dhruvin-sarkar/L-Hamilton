@@ -3,26 +3,26 @@
   "source": {
     "api": "https://api.jolpi.ca/ergast/f1",
     "driver": "hamilton",
-    "fetchedAt": "2026-09-04T14:17:42.748Z",
+    "fetchedAt": "2026-09-24T07:08:02.695Z",
     "requests": 32,
     "polesDefinition": "Pole = winner of the qualifying session, except in 2021 and 2022 sprint weekends where F1 awarded pole to the sprint winner.",
     "latestRace": {
       "season": "2026",
-      "round": "12",
-      "name": "Dutch Grand Prix",
-      "date": "2026-08-23"
+      "round": "14",
+      "name": "Spanish Grand Prix",
+      "date": "2026-09-13"
     }
   },
   "totals": {
-    "starts": 392,
+    "starts": 394,
     "wins": 106,
     "podiums": 207,
     "poles": 105,
     "qualifyingWins": 107,
     "fastestLaps": 69,
-    "points": 5201.5,
+    "points": 5209.5,
     "sprintWins": 1,
-    "dnfs": 32,
+    "dnfs": 33,
     "championships": 7,
     "seasonsContested": 20
   },
@@ -314,16 +314,16 @@
     },
     {
       "year": 2026,
-      "entries": 12,
+      "entries": 14,
       "wins": 1,
       "podiums": 5,
       "poles": 0,
       "qualifyingWins": 0,
       "fastestLaps": 1,
       "sprintWins": 0,
-      "dnfs": 0,
+      "dnfs": 1,
       "position": 3,
-      "points": 183,
+      "points": 191,
       "team": "Ferrari",
       "teamId": "ferrari"
     }
@@ -2052,7 +2052,7 @@
       "raceName": "Qatar Grand Prix",
       "date": "2021-11-21",
       "circuitId": "losail",
-      "circuitName": "Losail International Circuit",
+      "circuitName": "Lusail International Circuit",
       "country": "Qatar",
       "locality": "Lusail",
       "team": "Mercedes",
@@ -2208,13 +2208,13 @@
       "name": "Autodromo Nazionale di Monza",
       "country": "Italy",
       "locality": "Monza",
-      "starts": 19,
+      "starts": 20,
       "wins": 5,
       "podiums": 8,
       "poles": 7,
       "bestFinish": 1,
       "firstRaced": 2007,
-      "lastRaced": 2025,
+      "lastRaced": 2026,
       "laps": 53
     },
     {
@@ -2541,7 +2541,7 @@
     },
     {
       "id": "losail",
-      "name": "Losail International Circuit",
+      "name": "Lusail International Circuit",
       "country": "Qatar",
       "locality": "Lusail",
       "starts": 4,
@@ -2636,6 +2636,20 @@
       "firstRaced": 2023,
       "lastRaced": 2025,
       "laps": 50
+    },
+    {
+      "id": "madring",
+      "name": "Madring",
+      "country": "Spain",
+      "locality": "Madrid",
+      "starts": 1,
+      "wins": 0,
+      "podiums": 0,
+      "poles": 0,
+      "bestFinish": null,
+      "firstRaced": 2026,
+      "lastRaced": 2026,
+      "laps": 6
     },
     {
       "id": "miami",
@@ -3125,7 +3139,13 @@
         },
         "sprint": null
       },
-      "result": null
+      "result": {
+        "position": 6,
+        "positionText": "6",
+        "points": 8,
+        "grid": 4,
+        "status": "Finished"
+      }
     },
     {
       "season": 2026,
@@ -3156,7 +3176,13 @@
         },
         "sprint": null
       },
-      "result": null
+      "result": {
+        "position": null,
+        "positionText": "R",
+        "points": 0,
+        "grid": 4,
+        "status": "Retired"
+      }
     },
     {
       "season": 2026,
@@ -3377,7 +3403,7 @@
       "round": 22,
       "raceName": "Qatar Grand Prix",
       "circuitId": "losail",
-      "circuitName": "Losail International Circuit",
+      "circuitName": "Lusail International Circuit",
       "country": "Qatar",
       "locality": "Lusail",
       "date": "2026-11-29",
