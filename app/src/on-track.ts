@@ -354,6 +354,21 @@ if (previous) {
       : 'Result not yet published.',
   );
 
+  /* The fourth circuit. Same guard as the other three: two rounds of the 2026
+     calendar have no shape in the file, and the race eyebrow below carries the
+     card either way. */
+  const prevCircuitHost = document.querySelector<HTMLElement>('[data-prev-circuit-host]');
+  if (prevCircuitHost && hasTrack(previous.circuitId)) {
+    /* `accent`, not the file's own colour. circuits.riv only knows the
+       reference's palette, and left to itself it draws in McLaren lime — the
+       one colour this rebuild exists to replace. Every circuit is Ferrari red. */
+    void mountCircuit(prevCircuitHost, { circuitId: previous.circuitId, accent: true }).catch(
+      (error: unknown) => {
+        console.warn('[on-track] previous-race circuit did not load', error);
+      },
+    );
+  }
+
   reveal('[data-prev]');
 }
 
