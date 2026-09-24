@@ -47,8 +47,13 @@
   padding-block: 5.375rem var(--gap);
   display: flex;
   flex-direction: column;
-  background: var(--bg);
+  /* The reference paints this page #111112 -- its --color--black, not the
+     dark-green ground its other pages use -- and --black is that slot. */
+  background: var(--black);
   color: var(--text);
+  /* Proportional figures, as the reference sets every digit in this header.
+     The body's tabular default would widen "41", "15", "2025" and the dates. */
+  font-variant-numeric: normal;
   /* Every card border and hairline in this section. The reference's equivalent
      is --color--dark-green-tint-1, the first step up off its ground. */
   --ui-line: var(--dark-tint-1);
@@ -123,16 +128,21 @@
    not. */
 .ot-hero__on {
   position: absolute;
-  inset-block: 0;
-  inset-inline-start: -2.5rem;
-  display: flex;
-  align-items: center;
+  /* Measured against the reference's script with the helmet hidden: its O is
+     402px tall at 1728, inked from x=-40 and from y=66 to 468, and the whole
+     word weighs about 87k lit pixels. At 34.125rem Playfair's italic O is
+     0.736em tall, so these two insets put its ink on exactly that box (line
+     box top = baseline - 0.9155em at line-height 1), and weight 550 matches
+     the brush's ink to within a few percent. */
+  inset-block-start: -7.85rem;
+  inset-inline-start: -5.32rem;
   font-family: var(--font-serif);
   font-style: italic;
-  font-weight: 400;
-  font-size: 31rem;
+  font-weight: 550;
+  font-size: 34.125rem;
   line-height: 1;
   letter-spacing: -0.04em;
+  white-space: nowrap;
   color: var(--accent);
   pointer-events: none;
 }
@@ -162,6 +172,10 @@
    line-height 0.97, letter-spacing -0.00625rem, uppercase. */
 .ot-hero__label {
   margin: 0;
+  /* Shrunk to the words, like every other swept line here: the first of these
+     is a grid cell, and stretched to it the bar would sweep 400px for a name
+     half that wide. */
+  inline-size: fit-content;
   font-family: var(--font-display);
   font-size: 2.0625rem;
   font-weight: 700;
@@ -212,7 +226,10 @@
   flex-direction: column;
   justify-content: flex-end;
   align-items: flex-start;
-  gap: 1rem;
+  /* Pixels, as the reference writes it (.on-t-hero-stats-w, 16px), not rem.
+     The two agree at 1728, but on a 1920 screen, where the spacer above sits at
+     its 4rem floor, 1rem put the whole stats block 1.8px low. */
+  gap: 16px;
 }
 
 .ot-hero__spacer {
@@ -250,6 +267,21 @@
   letter-spacing: 0;
   text-transform: uppercase;
   color: var(--grey-on-track);
+}
+
+/* Only the eyebrow and the two card labels are grey. What the cards SAY -- the
+   race, the venue, the team, the country and the dates -- is in the page's
+   ink, as the reference's rows inherit its --color--white. */
+.ot-hero__ui-eyebrow {
+  color: var(--text);
+}
+
+/* Two eyebrow words side by side, a quarter-gap apart: the reference's
+   `.eyebrow-w.gap0-25` ("Hungary" "gp") and `.on-t-ui-stats-box1-row-3`. */
+.ot-hero__words {
+  display: flex;
+  gap: calc(var(--gap) * 0.25);
+  overflow: clip;
 }
 
 .ot-hero__para-w {
@@ -329,9 +361,12 @@
 }
 
 /* The notch cuts the top-left corner away, and the label sits in the raised
-   strip it leaves. Reference: .on-t-hero-stats-ui-sec1-top, height 1.3rem. */
+   strip it leaves. Reference: .on-t-hero-stats-ui-sec1-top, height 1.3rem,
+   with the eyebrow as its first line. The strip's height is margin rather than
+   the label's own, because the label is a reveal target and its box is what
+   the sweep covers — a 1.3rem box put a bar twice the word's height here. */
 .ot-hero__ui-label {
-  block-size: 1.3rem;
+  margin-block-end: calc(1.3rem - 1lh);
   flex: none;
 }
 
@@ -348,23 +383,21 @@
   align-items: center;
   justify-content: center;
   gap: calc(var(--gap) * 0.5);
-  color: var(--white);
+  color: var(--text);
 }
 
-/* The reference top-anchors this row because its content — a 4.7rem circuit
-   drawing above its caption — very nearly fills it. Ours is two lines of type
-   and would leave the row half empty, so it centres: same visual weight in the
-   same half of the card, which is what the row is for. */
+/* Top-anchored, as the reference's `.on-t-hero-stats-ui-sec1-row.is-1` is: the
+   circuit sits on the row's top edge and its caption a half-gap under it. */
 .ot-hero__prev-row:first-of-type {
-  justify-content: center;
+  justify-content: flex-start;
 }
 
-/* 88x75, the reference's box for this drawing. Holds its space whether or not a
-   shape lands in it, so the card does not resize between a round the file knows
-   and one it does not. */
+/* 88x75.2, the reference's box for this drawing (`.home-hero-next-race-rive`,
+   5.5rem x 4.7rem). Holds its space whether or not a shape lands in it, so the
+   card does not resize between a round the file knows and one it does not. */
 .ot-hero__prev-circuit {
-  inline-size: 5.5rem; /* 88/16 */
-  block-size: 4.6875rem; /* 75/16 */
+  inline-size: 5.5rem;
+  block-size: 4.7rem;
   flex: none;
 }
 
@@ -390,16 +423,25 @@
      background, which is exactly where it went. */
   z-index: 1;
   flex: none;
+  /* Sized by its ratio, not stretched to the row: 244px tall against the
+     cluster's 243, overhanging it by a pixel exactly as the reference's
+     `.on-t-hero-stats-ui-box1-w` does. Stretched, the frame lost a pixel of
+     height and its bottom edge rose off the other cards'. */
+  align-self: flex-start;
   inline-size: 17.2188rem;
   margin-inline-start: var(--gap);
   aspect-ratio: 275.5 / 244;
 }
 
+/* Masked to the notched outline, as the reference masks its
+   `.on-t-hero-stats-ui-box1-layout`, so the patterned cell cannot paint into
+   the corner the notch cuts away -- where the "Next" label sits. */
 .ot-hero__next-layout {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
+  mask: url('/assets/ui/notch-mask.svg') center / cover no-repeat;
 }
 
 .ot-hero__next-row {
@@ -409,12 +451,13 @@
   border-block-end: 1px solid var(--ui-line);
 }
 
+/* Keeps the row rule the reference's `.is-2` keeps: it lies under the frame's
+   own bottom stroke, and it is what centres the row's contents 0.5px higher. */
 .ot-hero__next-row--team {
   block-size: calc(100% - 7.5rem);
   align-items: center;
   justify-content: center;
   gap: var(--gap);
-  border-block-end: 0;
 }
 
 .ot-hero__next-cell {
@@ -443,16 +486,30 @@
    wordmark. Ours is the same drawing the homepage's next-race card uses, so the
    two cards carry one mark rather than two.
 
-   Height matched to the reference's 51px and the width left to the artwork's
-   own 64/44 aspect; --crest-ground paints the knocked-out visor, which has to
-   be the colour of whatever the crest sits on. */
+   In the reference's own 97x51 box (6.0625rem x 3.1875rem), with the drawing
+   fitted and centred inside it, so the crest centres where the reference's
+   helmet does and the words beside it start where the reference's start.
+   --crest-ground paints the knocked-out visor, which has to be the colour of
+   whatever the crest sits on. */
 .ot-hero__crest {
-  --crest-ground: var(--bg);
+  --crest-ground: var(--black);
+  inline-size: 6.0625rem;
   block-size: 3.1875rem;
-  inline-size: auto;
-  aspect-ratio: 64 / 44;
   color: var(--grey-on-track);
   flex: none;
+  /* The reference's helmet and laurels ink 88x45 of that box; ours, fitted,
+     inks 73x35. Drawn 1.22x about the box's centre so it covers the same
+     ground, without moving the words beside it. */
+  transform: scale(1.22);
+}
+
+/* "Ferrari F1 / since 2025" on two lines in a 6rem box, as the reference's
+   `.on-t-ui-stats-box1-row-2` holds its team line. Balanced, because "FERRARI
+   F1 SINCE" happens to fit 6rem where "MCLAREN F1 SINCE" did not, and breaking
+   there leaves the year alone on a line of its own. */
+.ot-hero__next-row--team .ot-hero__ui-eyebrow {
+  inline-size: 6rem;
+  text-wrap: balance;
 }
 
 /* ------------------------------------------------------- Connectors */
@@ -491,18 +548,17 @@
   justify-content: center;
   gap: var(--gap);
   border-inline-end: 1px solid var(--ui-line);
-  padding-inline: 1rem;
 }
 
-/* The circuit's box, at the reference's own 206x145 (`.on-t-hero-stats-ui-box2
-   -rive`). A fixed box rather than one sized by its contents, because what goes
-   in it is a canvas the drawing is fitted INTO — and because the name that
-   stands in for it has to occupy the same space, or the card reflows the moment
-   the file loads. */
+/* The circuit's box: 80% x 60% of the column, the reference's own
+   `.on-t-hero-stats-ui-box2-rive-w` (206.4x144.6 at 1728). A box rather than
+   one sized by its contents, because what goes in it is a canvas the drawing is
+   fitted INTO -- and because the name that stands in for it has to occupy the
+   same space, or the card reflows the moment the file loads. */
 .ot-hero__circuit {
   position: relative;
-  inline-size: 12.875rem; /* 206/16 */
-  block-size: 9.0625rem; /* 145/16 */
+  inline-size: 80%;
+  block-size: 60%;
   display: grid;
   place-items: center;
 }
@@ -540,44 +596,66 @@
   white-space: nowrap;
 }
 
+/* Two rows as wide as the wider of them, with no space between: the country
+   flush left, the days and month centred under it. The reference's
+   `.on-t-hero-stats-ui-box2-col-1-flag` and its two `-row-3` lines. */
 .ot-hero__round-meta {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  text-align: center;
 }
 
+.ot-hero__words--row {
+  max-inline-size: 6rem;
+}
+
+.ot-hero__words--centre {
+  justify-content: center;
+}
+
+/* 8.3125rem is the reference's column here, and it is not the 123px left inside
+   the border: its signature box (133 x 72, `.base-signature-rive`) is this
+   column's minimum width, so the column runs 10px on under the end cap and
+   everything in it centres on a point 5px right of the visible middle. Its
+   row's rule shows under the cap's pattern too. */
 .ot-hero__round-col2 {
-  inline-size: 100%;
+  flex: none;
+  inline-size: 8.3125rem;
   display: flex;
   flex-direction: column;
 }
 
+/* His car number where the reference sets its driver's "4" glyph: in the
+   accent, centred, figures 50px tall at 1728 (the glyph's 3.125rem). */
 .ot-hero__number {
   margin: 0;
   block-size: 60%;
   display: flex;
   align-items: center;
   justify-content: center;
+  /* Lifts the figures 2px, onto the centre line the reference's glyph sits
+     on; a figure's ink rides below the middle of its line box. */
+  padding-block-end: 0.25rem;
   border-block-end: 1px solid var(--ui-line);
   font-family: var(--font-display);
-  font-size: 3.4rem;
+  font-size: 4.375rem;
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.04em;
   color: var(--accent);
 }
 
-/* The mark the homepage writes stroke by stroke, held still here — which is
-   exactly what the reference does with its own signature in this slot. */
+/* The mark the homepage writes stroke by stroke, drawn at the size of the
+   reference's signature box -- 4.5rem tall, scaled 1.3 -- centred in the row,
+   so the ink covers the same ground. This is the still version: what reduced
+   motion shows, and what shows if the trace fails to load. With motion it is
+   written on as the header arrives (see "The entrance" below). */
 .ot-hero__sign {
   block-size: 40%;
   background-color: var(--grey-on-track);
   mask-image: url('/assets/brand/signature.svg');
   mask-repeat: no-repeat;
   mask-position: center;
-  mask-size: 78% auto;
+  mask-size: auto calc(4.5rem * 1.3);
 }
 
 /* ------------------------------------------------------- Shared bits */
@@ -592,7 +670,9 @@
 }
 
 .ot-hero__flag--sm {
-  inline-size: 1.4375rem;
+  /* The reference's .flag-w.is-sm is 0.9175rem tall and as wide as its 34:22
+     flag artwork makes it. */
+  inline-size: calc(0.9175rem * 34 / 22);
   block-size: 0.9175rem;
   position: relative;
   inset-block-start: 0.2rem;
@@ -635,7 +715,136 @@
   letter-spacing: -0.00625rem;
   text-transform: uppercase;
   color: var(--text);
-  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------- The entrance
+ *
+ * The reference's header entrance, read out of lando-gl.js. Every piece starts
+ * together, 750ms after the page is ready (its k0/o0), and runs its own clock
+ * from there. on-track.ts owns the timing; these rules own the text sweep and
+ * the hooks the script animates.
+ *
+ * The text sweep is the reference's two-part one, not the site-wide retract in
+ * home.css. Each line is clipped to nothing and opened left to right, 0.6s
+ * power2.out, with an accent bar inside the clip that starts retracting to the
+ * right halfway through, 0.6s power2.inOut. So the bar is seen to arrive before
+ * it uncovers anything, and the whole thing is over in 0.9s. Lines of one
+ * block are 0.15s apart; blocks are not staggered at all.
+ *
+ * Both curves are GSAP's power2, out and inOut: cubics, 1-(1-t)^3 and its
+ * symmetric in-out. The usual cubic-bezier() stand-ins for them are ~2% off
+ * mid-sweep, which is 12px on a paragraph line, so they are sampled instead —
+ * every 0.05 and 0.04 of the way, close enough that the two sweeps agree with
+ * the reference's to the pixel. */
+.ot-hero {
+  --ot-hero-open: linear(
+    0, 0.1426, 0.271, 0.3859, 0.488, 0.5781, 0.657, 0.7254, 0.784, 0.8336, 0.875,
+    0.9089, 0.936, 0.9571, 0.973, 0.9844, 0.992, 0.9966, 0.999, 0.9999, 1
+  );
+  --ot-hero-retract: linear(
+    0, 0.0003, 0.002, 0.0069, 0.0164, 0.032, 0.0553, 0.0878, 0.1311, 0.1866, 0.256,
+    0.3407, 0.4424, 0.5576, 0.6593, 0.744, 0.8134, 0.8689, 0.9122, 0.9447, 0.968,
+    0.9836, 0.9931, 0.998, 0.9997, 1
+  );
+}
+
+/* Closed until the sweep. The clip lives on each line of a split block and on
+   the block itself otherwise, as the reference clips each of its .line boxes.
+   Clipped to the line box, the bar is exactly as big as the line — the
+   reference's bar is that box too. */
+[data-reveal-animated] .ot-hero .reveal-text:not([data-reveal-split]),
+[data-reveal-animated] .ot-hero .reveal-line {
+  clip-path: inset(0 100% 0 0);
+}
+
+/* reveal.ts gives every entrance block a start of its own (25ms per element)
+   and every line that start plus 150ms per line. The reference has no stagger
+   between blocks, so the block's start is noted here and taken back off. What
+   is left is the line beat alone: 0 for a block, 150ms x i for its lines. */
+.ot-hero .reveal-text {
+  --ot-hero-block-start: var(--reveal-delay, 0ms);
+}
+
+.ot-hero .reveal-text.is-in:not([data-reveal-split]),
+.ot-hero .reveal-text.is-in .reveal-line {
+  animation: ot-hero-open 0.6s var(--ot-hero-open) both;
+  animation-delay: calc(var(--reveal-delay, 0ms) - var(--ot-hero-block-start));
+}
+
+.ot-hero .reveal-text.is-in::after,
+.ot-hero .reveal-text.is-in .reveal-line::after {
+  animation: bar-retract 0.6s var(--ot-hero-retract) both;
+  animation-delay: calc(var(--reveal-delay, 0ms) - var(--ot-hero-block-start) + 0.3s);
+}
+
+/* Re-cut after it played (a resize): already read, so open and bare. Stated
+   after the rules above at the same weight, which is what lets it win. */
+.ot-hero .reveal-text.is-done:not([data-reveal-split]),
+.ot-hero .reveal-text.is-done .reveal-line {
+  animation: none;
+  clip-path: none;
+}
+
+.ot-hero .reveal-text.is-done::after,
+.ot-hero .reveal-text.is-done .reveal-line::after {
+  animation: none;
+  transform: scaleX(0);
+}
+
+@keyframes ot-hero-open {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* TRACK, cut into letters by on-track.ts so each can drop on its own. The
+   word is set without kerning already, so the cut moves nothing. */
+.ot-hero__track-char {
+  display: inline-block;
+}
+
+/* The script word, cut into its two letters and written on: the O swept round
+   its centre, clockwise from lower left, which is where the reference's brush
+   starts it; then the n wiped along the italic's slant. --write runs 0 to 1
+   and is driven by on-track.ts; unset, both letters show whole.
+ *
+ * Padded, and the padding taken back with a margin, so the mask's box reaches
+ * past the italic's overhang and never trims the ink at rest. */
+.ot-hero__on-glyph {
+  display: inline-block;
+  padding-inline: 0.12em;
+  margin-inline: -0.12em;
+  mask-repeat: no-repeat;
+}
+
+.ot-hero__on-glyph--o {
+  mask-image: conic-gradient(from 225deg at 50% 55%, #000 calc(var(--write, 1) * 1turn), #0000 0);
+}
+
+.ot-hero__on-glyph--n {
+  mask-image: linear-gradient(102deg, #000 calc(var(--write, 1) * 100%), #0000 0);
+}
+
+/* The signature, once on-track.ts has a canvas writing it: the still mask goes
+   and the canvas takes its place at the same size — 5.85rem tall at the
+   trace's 960:764. Sized here with !important because Signature pins its
+   canvas's box in pixels once it has measured it, and in this header that box
+   has to keep following the fluid root. */
+.ot-hero__sign.is-writing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  mask: none;
+}
+
+.ot-hero__sign.is-writing canvas {
+  flex: none;
+  block-size: calc(4.5rem * 1.3) !important;
+  inline-size: calc(4.5rem * 1.3 * 960 / 764) !important;
 }
 
 /* ================================================== The statement
