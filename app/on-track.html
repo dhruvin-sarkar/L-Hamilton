@@ -491,101 +491,40 @@
 
       <!-- ============================================ Side-scrolling gallery
            Reference section 4: `s is-horizontal-track`. The same component Home
-           runs, which is exactly why it is the same markup and the same driver
-           (lib/gallery.ts) rather than a second implementation.
+           runs (lib/gallery.ts), on the reference's own timing for this page:
+           the track starts moving the moment the section's top enters, so the
+           first screen of travel happens on the diagonal as the section rises,
+           and the rest under the sticky viewport.
 
-           Its shape, read off the reference's own CSS: a flex track wider than
-           the screen inside a sticky viewport, three column groups separated by
-           `--grid-spacer` gaps, the middle one holding a text callout above a
-           large photograph and pulled up 7rem (`.large-img.is-ont1`), the third
-           pulled up the same (`.neg-margin`). There is no pin — the section is
-           made tall and the track is translated on X by scroll progress.
+           Its shape, read off the reference's own CSS: three column groups
+           separated by `--grid-spacer` (31.51vh), every frame sized in vh, the
+           columns as tall as the viewport less the track's 7vh top padding, and
+           the lower picture in each group pushed to the bottom with an auto
+           margin. The ground is the page's own dark throughout -- the reference
+           runs no colour change here (its `data-gl-change-*` attributes are only
+           read by Home's init, never On Track's).
 
            Two deliberate departures, both on the brief:
 
-           - The reference's callout is a first-person line from Lando. We do
-             not put words in Hamilton's mouth (CLAUDE.md), so this is site copy
-             in the third person, like Home's.
-           - The reference captions each photo with a Grand Prix and a year. Our
-             photographs are our own and we cannot truthfully date them to a
-             race, so they carry descriptive captions, as Home's do.
-
-           `--gallery-ink: 1` because On Track has no WebGL field to darken
-           beneath this. Home crossfades the ink as the ground goes to black;
-           here the ground is already `--dark`, so the type is simply cream. -->
-      <section
-        class="gallery gallery--on-track"
-        data-gallery
-        aria-labelledby="ot-gallery-h"
-      >
+           - The reference's callout is a first-person line from Lando, signed.
+             We do not put words in Hamilton's mouth (CLAUDE.md), so this is site
+             copy in the third person, like Home's, and carries no signature.
+           - The reference captions each photo with a Grand Prix and a year.
+             Where a picture can be placed at a race the record holds, ours does
+             too, bound from the data (`data-gallery-race`: season, circuit);
+             the rest carry a plain description instead of a guess. -->
+      <section class="gallery gallery--on-track" data-gallery aria-labelledby="ot-gallery-h">
         <h2 class="sr-only" id="ot-gallery-h">Trackside gallery</h2>
         <div class="gallery__pin">
           <div class="gallery__track" data-gallery-track>
-            <!-- 1 -->
+            <!-- 1: a portrait at the top, a square low and 14.42vh in -->
             <div class="gallery__col">
-              <figure class="gallery__item" style="--w: 15rem; --top: 3.9rem">
-                <figcaption class="gallery__cap reveal-text">Visor down</figcaption>
-                <div class="gallery__frame" style="--ar: 0.897">
-                  <img
-                    src="/assets/gallery/gallery-05.webp"
-                    alt=""
-                    width="1050"
-                    height="1400"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
-              </figure>
-              <figure class="gallery__item" style="--w: 16.3rem; --top: 5.8rem">
-                <figcaption class="gallery__cap reveal-text">Out lap</figcaption>
-                <div class="gallery__frame" style="--ar: 0.808">
-                  <img
-                    src="/assets/gallery/gallery-06.webp"
-                    alt=""
-                    width="1050"
-                    height="1400"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
-              </figure>
-            </div>
-
-            <div class="gallery__spacer"></div>
-
-            <!-- 2 — the large one, callout above it, the pair pulled up 7rem -->
-            <div class="gallery__col gallery__col--raised">
-              <div class="gallery__callout" style="--w: 17.4rem; --top: 4.8rem">
-                <p class="gallery__quote reveal-text">
-                  Nineteen seasons photographed from inside the fight — the grid,
-                  the garage, and the laps nobody sees.
-                </p>
-              </div>
-              <figure class="gallery__item" style="--w: 48.2rem; --top: 6rem">
-                <figcaption class="gallery__cap reveal-text">Parc fermé</figcaption>
-                <div class="gallery__frame" style="--ar: 1.098">
-                  <img
-                    src="/assets/gallery/gallery-10.webp"
-                    alt=""
-                    width="1050"
-                    height="1400"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                </div>
-              </figure>
-            </div>
-
-            <div class="gallery__spacer"></div>
-
-            <!-- 3 -->
-            <div class="gallery__col gallery__col--raised">
-              <figure class="gallery__item" style="--w: 18.8rem; --top: 0">
-                <figcaption class="gallery__cap reveal-text">Cool-down</figcaption>
-                <div class="gallery__frame" style="--ar: 1">
+              <figure class="gallery__item gallery__item--ot1">
+                <figcaption class="gallery__cap reveal-text">Fans, Ferrari</figcaption>
+                <div class="gallery__frame">
                   <img
                     src="/assets/gallery/gallery-07.webp"
-                    alt=""
+                    alt="Lewis Hamilton in Ferrari team kit, waving to a crowd of fans on the circuit"
                     width="1050"
                     height="1400"
                     loading="lazy"
@@ -593,12 +532,12 @@
                   />
                 </div>
               </figure>
-              <figure class="gallery__item" style="--w: 25.4rem; --top: 5.2rem">
-                <figcaption class="gallery__cap reveal-text">The flag</figcaption>
-                <div class="gallery__frame" style="--ar: 1.023">
+              <figure class="gallery__item gallery__item--ot2">
+                <figcaption class="gallery__cap reveal-text">Road car, Ferrari</figcaption>
+                <div class="gallery__frame">
                   <img
                     src="/assets/gallery/gallery-09.webp"
-                    alt=""
+                    alt="Lewis Hamilton sitting against a red Ferrari road car at night"
                     width="1055"
                     height="1400"
                     loading="lazy"
@@ -607,54 +546,130 @@
                 </div>
               </figure>
             </div>
+
+            <div class="gallery__spacer"></div>
+
+            <!-- 2: the callout, and the large picture at the foot of the group -->
+            <div class="gallery__col gallery__col--ot-large">
+              <div class="gallery__callout">
+                <p class="gallery__quote reveal-text" data-reveal-rich>
+                  From <span class="gallery__quote-em">Stevenage</span> to
+                  <span class="gallery__quote-em">Maranello</span>, by way of Woking and Brackley.
+                </p>
+              </div>
+              <figure class="gallery__item gallery__item--ot3">
+                <figcaption class="gallery__cap reveal-text">Podium, Ferrari</figcaption>
+                <div class="gallery__frame">
+                  <img
+                    src="/assets/gallery/gallery-03.webp"
+                    alt="Lewis Hamilton spraying champagne on the podium in Ferrari race overalls"
+                    width="1050"
+                    height="1400"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              </figure>
+            </div>
+
+            <div class="gallery__spacer"></div>
+
+            <!-- 3: a small one poking half a spacer back to the left, then the
+                 last picture with its result pill -->
+            <div class="gallery__col gallery__col--ot-last">
+              <figure class="gallery__item gallery__item--ot4" data-gallery-race="2020 spa">
+                <figcaption class="gallery__cap reveal-text"></figcaption>
+                <div class="gallery__frame">
+                  <img
+                    src="/assets/gallery/gallery-11.webp"
+                    alt="Lewis Hamilton in Mercedes race overalls, arms crossed over his chest in the Wakanda Forever salute"
+                    width="1024"
+                    height="682"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+              </figure>
+              <figure class="gallery__item gallery__item--ot5" data-gallery-race="2026 catalunya">
+                <figcaption class="gallery__cap reveal-text"></figcaption>
+                <div class="gallery__frame">
+                  <img
+                    src="/assets/gallery/gallery-04.webp"
+                    alt="Lewis Hamilton on the podium in Ferrari race overalls, holding up the winner's trophy"
+                    width="1050"
+                    height="1400"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
+                <!-- Reference `.horizontal-item-pill`: the finishing position
+                     beside a pair of chequered flags. Filled from the same win
+                     record as the caption, and spoken as one phrase. The flags
+                     are drawn here, not the reference's icon. -->
+                <p class="gallery__pill" data-gallery-pill role="img" hidden>
+                  <span class="gallery__pill-box gallery__pill-box--place" data-gallery-pill-place></span>
+                  <span class="gallery__pill-box">
+                    <svg class="gallery__pill-flags" viewBox="0 0 44 20" aria-hidden="true" focusable="false">
+                      <g id="ot-pill-flag">
+                        <path d="M18.6 1.2 23.3 19.4" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" />
+                        <path
+                          d="M18.6 1.2 16.96 2.19 15.32 2.98 13.68 3.44 12.04 3.57 10.4 3.5 8.76 3.43 7.12 3.56 5.48 4.02 3.84 4.81 2.2 5.8 4.2 14.6 5.86 13.59 7.52 12.78 9.18 12.3 10.84 12.15 12.5 12.2 14.16 12.25 15.82 12.1 17.48 11.62 19.14 10.81 20.8 9.8Z"
+                          fill="none" stroke="currentColor" stroke-width="0.6" stroke-linejoin="round"
+                        />
+                        <path
+                          d="M18.6 1.2 15.32 2.98 16.04 5.86 19.33 4.07ZM20.07 6.93 16.76 8.74 17.48 11.62 20.8 9.8ZM16.04 5.86 12.75 6.46 13.45 9.36 16.76 8.74ZM12.04 3.57 8.76 3.43 9.45 6.34 12.75 6.46ZM13.45 9.36 10.15 9.24 10.84 12.15 14.16 12.25ZM9.45 6.34 6.16 6.94 6.84 9.86 10.15 9.24ZM5.48 4.02 2.2 5.8 2.87 8.73 6.16 6.94ZM6.84 9.86 3.53 11.67 4.2 14.6 7.52 12.78Z"
+                          fill="currentColor"
+                        />
+                      </g>
+                      <use href="#ot-pill-flag" transform="translate(44 0) scale(-1 1)" />
+                    </svg>
+                  </span>
+                </p>
+              </figure>
+            </div>
           </div>
         </div>
       </section>
 
-
       <!-- ================================================= Pre-F1 career
-           Reference section 4: "pre-f1 career" + a year span in the serif, body
-           copy, a photograph, and a grid of eight achievements — each with a
-           laurel-wreath Rive whose *colour encodes whether it was a title*
-           (lime for a championship, grey for a placing). That colour-coding is
-           the section's one real idea and it is kept.
+           Reference section 5: two `.title-layout.grid-main` rows on the four
+           23.55% columns. The headline in columns 1-2 -- "pre-f1 career" over
+           the year span in the second face -- with a paragraph in column 3.
+           Then, 5rem under it, a photograph in column 1 and, across 3-4, the
+           championship grid: two columns of a closed laurel, a label and the
+           year. The laurel's colour carries the result -- the accent for a
+           title, grey for a placing -- and the label says it in words as well.
 
-           The laurel here is an inline SVG we drew, not the reference's Rive
-           file. The photograph is a copyrighted asset we do not have and will
-           not rehost, so the left column is held by copy.
+           One grid for the whole section rather than the reference's two: the
+           reference repeats its photograph as `.f1-car-img-w.mobile` to show it
+           above the headline below 480px, and here the same element is simply
+           placed there instead.
 
-           The grid is twelve rather than eight because the rule that fills it
-           is stated rather than chosen: every championship he finished first or
-           second in before Formula 1. See hamilton.ts. -->
-      <section class="ot-junior" aria-labelledby="ot-junior-h">
-        <div class="shell">
-          <div class="ot-band__head">
-            <h2 class="ot-band__title" id="ot-junior-h">
-              <span class="ot-band__title-line reveal-text">Pre-F1 career</span>
-              <span
-                class="ot-band__title-line ot-band__title-line--serif reveal-text"
-                data-junior-span
-                >1995&ndash;2006</span
-              >
-            </h2>
-            <p class="ot-band__blurb reveal-text" data-junior-blurb></p>
-          </div>
-
-          <!-- Third-person narration, never a quote. This is where the one-off
-               international wins are named, because they are not championships
-               and folding them into the grid would make the grid mean nothing. -->
-          <p class="ot-junior__lead reveal-text">
-            Eleven years between a cadet kart and a Formula 1 seat, and he arrived
-            holding a McLaren contract signed when he was thirteen. Outside the
-            championships below he also won the 2000 Karting World Cup at Suzuka,
-            the 2004 Bahrain Superprix, and the 2005 Masters of Formula 3 at
-            Zandvoort from pole.
-          </p>
-
-          <ul class="ot-junior__grid" data-junior-grid></ul>
-
-          <p class="ot-provenance ot-junior__note" data-junior-note></p>
+           Hamilton's list is twelve where the reference's is eight, because the
+           rule that fills it is stated rather than chosen: every championship he
+           finished first or second in before Formula 1 (see hamilton.ts). The
+           grid gains two rows; nothing else moves. The photograph is a
+           placeholder from our own set until one from those years is supplied. -->
+      <section class="ot-pref1" aria-labelledby="ot-pref1-h">
+        <h2 class="ot-pref1__title" id="ot-pref1-h">
+          <span class="ot-pref1__title-line reveal-text">Pre-F1 career</span>
+          <span
+            class="ot-pref1__title-line ot-pref1__title-line--serif reveal-text"
+            data-junior-span
+          ></span>
+        </h2>
+        <p class="ot-pref1__para reveal-text" data-junior-para></p>
+        <div class="ot-pref1__img" data-junior-img>
+          <img
+            src="/assets/gallery/gallery-01.webp"
+            alt="Lewis Hamilton speaking at a Mission 44 event"
+            width="1121"
+            height="1400"
+            loading="lazy"
+            decoding="async"
+          />
         </div>
+        <ul class="ot-pref1__grid" data-junior-grid></ul>
       </section>
 
       <!-- ==================================================== Countdown

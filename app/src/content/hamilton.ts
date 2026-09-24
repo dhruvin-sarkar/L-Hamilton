@@ -114,8 +114,8 @@ export const championshipYears = [2008, 2014, 2015, 2017, 2018, 2019, 2020] as c
  * two runners-up are here beside the ten titles and why nothing that is not a
  * championship is. His one-off international wins — the 2000 Karting World Cup
  * at Suzuka, the 2004 Bahrain Superprix, the 2005 Masters of Formula 3 — are
- * named in the section's copy instead, because folding events into a list of
- * championships would make the list mean nothing.
+ * not, because folding one-off events into a list of championships would make
+ * the list mean nothing.
  *
  * Every entry carries the source it was verified against. CONTENT-DATA.md:
  * every number must come from a real source and be traceable.
@@ -126,6 +126,14 @@ export interface JuniorChampionship {
   series: string;
   /** The class contested. Null where the championship has only one. */
   category: string | null;
+  /**
+   * The championship as the pre-F1 grid prints it, before "champion" or
+   * "2nd place" -- the reference's own register ("renault 2.0 eurocup
+   * champion"), so two lines at most. The class is kept where it fits and
+   * dropped where it would push the label to a third line; the year printed
+   * beneath tells a series won twice apart. `category` keeps the full record.
+   */
+  label: string;
   /** The entrant. Null through the karting years, where it is not recorded. */
   team: string | null;
   /** 1 or 2 — the list holds only those, by the rule above. */
@@ -139,6 +147,7 @@ export const preF1Championships: JuniorChampionship[] = [
   {
     year: 1995,
     series: 'Super One National Championship',
+    label: 'Super One Comer Cadet',
     category: 'Comer Cadet',
     team: null,
     position: 1,
@@ -148,6 +157,7 @@ export const preF1Championships: JuniorChampionship[] = [
   {
     year: 1995,
     series: 'STP Karting Championship',
+    label: 'STP Karting',
     category: null,
     team: null,
     position: 1,
@@ -157,6 +167,7 @@ export const preF1Championships: JuniorChampionship[] = [
   {
     year: 1996,
     series: 'Champions of the Future',
+    label: 'Champions of the Future',
     category: 'MSA British Cadet',
     team: null,
     position: 1,
@@ -166,6 +177,7 @@ export const preF1Championships: JuniorChampionship[] = [
   {
     year: 1996,
     series: 'Five Nations Championship',
+    label: 'Five Nations Cadet',
     category: 'Cadet',
     team: null,
     position: 1,
@@ -175,6 +187,7 @@ export const preF1Championships: JuniorChampionship[] = [
   {
     year: 1997,
     series: 'Super One National Championship',
+    label: 'Super One Junior Yamaha',
     category: 'Junior Yamaha',
     team: null,
     position: 1,
@@ -184,6 +197,7 @@ export const preF1Championships: JuniorChampionship[] = [
   {
     year: 1997,
     series: 'Champions of the Future',
+    label: 'Champions of the Future',
     category: 'Formula Yamaha',
     team: null,
     position: 1,
@@ -193,6 +207,7 @@ export const preF1Championships: JuniorChampionship[] = [
   {
     year: 1998,
     series: 'Champions of the Future',
+    label: 'Champions of the Future',
     category: 'Junior Intercontinental A',
     team: null,
     position: 2,
@@ -202,6 +217,7 @@ export const preF1Championships: JuniorChampionship[] = [
   {
     year: 1999,
     series: 'CIK-FIA Karting European Championship',
+    label: 'CIK-FIA European ICA Junior',
     category: 'ICA-Junior',
     team: null,
     position: 2,
@@ -211,6 +227,7 @@ export const preF1Championships: JuniorChampionship[] = [
   {
     year: 2000,
     series: 'CIK-FIA Karting European Championship',
+    label: 'CIK-FIA European Formula A',
     category: 'Formula A',
     team: 'Team MBM.com',
     position: 1,
@@ -220,6 +237,7 @@ export const preF1Championships: JuniorChampionship[] = [
   {
     year: 2003,
     series: 'Formula Renault 2.0 UK Championship',
+    label: 'Formula Renault 2.0 UK',
     category: null,
     team: 'Manor Motorsport',
     position: 1,
@@ -229,6 +247,7 @@ export const preF1Championships: JuniorChampionship[] = [
   {
     year: 2005,
     series: 'Formula 3 Euro Series',
+    label: 'Formula 3 Euro Series',
     category: null,
     team: 'ASM Formule 3',
     position: 1,
@@ -238,6 +257,7 @@ export const preF1Championships: JuniorChampionship[] = [
   {
     year: 2006,
     series: 'GP2 Series',
+    label: 'GP2 Series',
     category: null,
     team: 'ART Grand Prix',
     position: 1,

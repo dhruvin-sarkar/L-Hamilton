@@ -90,7 +90,9 @@ if (!reducedMotion) {
  * the same either way.
  * ------------------------------------------------------------------ */
 
-mountGalleryScroll();
+/* The reference's own timing for this page's gallery: travel from the moment
+   the section enters, with a second of catch-up. See lib/gallery.ts. */
+mountGalleryScroll({ start: 'rising', scrub: 1 });
 mountHelmets();
 mountHofDrift();
 mountSocials();
@@ -131,57 +133,187 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 /* ------------------------------------------------------------------ *
  * Drawn marks
  *
- * Three pure builders with no dependency on anything else on the page, kept
- * together and kept HERE rather than beside the section that first needed them.
- * The statement section near the top of the document draws a wreath and the
- * stat grid draws the scribble, so leaving these down beside the pre-F1 list
- * put both callers inside the temporal dead zone of `const LAUREL_LEAVES`.
+ * Pure builders with no dependency on anything else on the page, kept together
+ * and kept HERE rather than beside the section that first needed them: the
+ * statement near the top of the document draws a wreath and the stat grid
+ * draws the scribble, and a `const` declared down beside the pre-F1 list would
+ * put both callers inside its temporal dead zone.
  * ------------------------------------------------------------------ */
 
-const LAUREL_LEAVES: [number, number, number, number, number][] = [
-  // cx, cy, rx, ry, rotation
-  [10.5, 17, 4.6, 2.4, -66],
-  [12.5, 25, 4.6, 2.4, -50],
-  [16, 32.5, 4.4, 2.3, -34],
-  [20.5, 38.5, 4, 2.2, -18],
+/* ------------------------------------------------------------------ *
+ * The closed reef
+ *
+ * The small closed wreath the reference hangs beside each pre-F1 result (its
+ * Rive "reef" artboard, played once as the result scrolls into view): two
+ * laurel branches rising from a bare stem at the bottom centre, curling up the
+ * sides almost into a circle and leaving a gap at the top. Redrawn here as an
+ * original -- a curved stem with leaves at a regular step, the outer row
+ * leaning out and up, the inner row in, and a fan of four at the tip -- and
+ * grown the way the statement's reef is: the stem drawn on while the leaves
+ * open one after another from the base.
+ * ------------------------------------------------------------------ */
+
+/** The left branch in the 60x60 box: a bare tail running in from the bottom
+    centre (start, control), then the leafy stem (base, two controls, tip). */
+const CLOSED_REEF_TAIL = [
+  [27.2, 51.6],
+  [24, 51.2],
+] as const;
+const CLOSED_REEF_STEM = [
+  [21, 50.3],
+  [7, 45.5],
+  [6, 20],
+  [20, 14],
+] as const;
+
+/**
+ * The left branch's leaves, painted in this order: where each joins the stem
+ * (0 base to 1 tip), its turn off the stem in degrees (negative is outward),
+ * its length, and how far it then leans toward upright (0 none, 1 fully).
+ */
+const CLOSED_REEF_LEAVES: readonly (readonly [at: number, turn: number, length: number, lean: number])[] = [
+  // Outer row: the lowest lies along the ground, the top ones stand up.
+  [0.02, -15, 8, 0],
+  [0.12, -38, 8.4, 0.2],
+  [0.22, -42, 8.6, 0.1],
+  [0.32, -42, 8.4, 0.1],
+  [0.42, -40, 8.2, 0.1],
+  [0.52, -36, 8.4, 0.2],
+  [0.62, -30, 9.6, 0.3],
+  [0.72, -28, 10, 0.3],
+  [0.82, -28, 10, 0.3],
+  // Inner row.
+  [0.07, 52, 8.8, 0],
+  [0.2, 48, 9.2, 0],
+  [0.33, 45, 8, 0],
+  [0.46, 45, 7.8, 0],
+  [0.59, 45, 8, 0],
+  [0.72, 45, 7.6, 0],
+  [0.85, 45, 7, 0],
+  // The fan at the tip.
+  [0.96, -50, 8.4, 0],
+  [0.97, 38, 6, 0],
+  [1, -25, 8.8, 0],
+  [1, 8, 7, 0],
 ];
 
-/** One branch, drawn in a 48x48 box with its base bottom-centre and its tip
-    curling up and to the left. Both wreath shapes on this page are two of
-    these, so the leaf geometry has one home. */
-function laurelBranch(transform?: string): SVGGElement {
-  const branch = document.createElementNS(SVG_NS, 'g');
-  if (transform) branch.setAttribute('transform', transform);
+/** A leaf's width over its length: a slim pointed lens. */
+const CLOSED_REEF_LEAF_WIDTH = 0.2;
 
-  const stem = document.createElementNS(SVG_NS, 'path');
-  stem.setAttribute('d', 'M23 43C12.5 38.5 8 27.5 9.5 14.5');
-  stem.setAttribute('fill', 'none');
-  stem.setAttribute('stroke', 'currentColor');
-  stem.setAttribute('stroke-width', '1.6');
-  stem.setAttribute('stroke-linecap', 'round');
-  branch.appendChild(stem);
-
-  for (const [cx, cy, rx, ry, angle] of LAUREL_LEAVES) {
-    const leaf = document.createElementNS(SVG_NS, 'ellipse');
-    leaf.setAttribute('cx', String(cx));
-    leaf.setAttribute('cy', String(cy));
-    leaf.setAttribute('rx', String(rx));
-    leaf.setAttribute('ry', String(ry));
-    leaf.setAttribute('transform', `rotate(${angle} ${cx} ${cy})`);
-    leaf.setAttribute('fill', 'currentColor');
-    branch.appendChild(leaf);
-  }
-  return branch;
+function closedReefPoint(t: number): [number, number] {
+  const [p0, p1, p2, p3] = CLOSED_REEF_STEM;
+  const u = 1 - t;
+  const a = u * u * u;
+  const b = 3 * u * u * t;
+  const c = 3 * u * t * t;
+  const d = t * t * t;
+  return [
+    a * p0[0] + b * p1[0] + c * p2[0] + d * p3[0],
+    a * p0[1] + b * p1[1] + c * p2[1] + d * p3[1],
+  ];
 }
 
-/** The closed wreath the pre-F1 list marks its titles with. */
-function laurel(): SVGSVGElement {
+/** The stem's direction at `t`, in degrees clockwise from +x. */
+function closedReefHeading(t: number): number {
+  const [p0, p1, p2, p3] = CLOSED_REEF_STEM;
+  const u = 1 - t;
+  const dx = 3 * u * u * (p1[0] - p0[0]) + 6 * u * t * (p2[0] - p1[0]) + 3 * t * t * (p3[0] - p2[0]);
+  const dy = 3 * u * u * (p1[1] - p0[1]) + 6 * u * t * (p2[1] - p1[1]) + 3 * t * t * (p3[1] - p2[1]);
+  return (Math.atan2(dy, dx) * 180) / Math.PI;
+}
+
+/** Length of a polyline through `points`, for the stem's dash. */
+function polylineLength(points: readonly (readonly [number, number])[]): number {
+  let length = 0;
+  let previous = points[0];
+  for (const point of points) {
+    if (previous) length += Math.hypot(point[0] - previous[0], point[1] - previous[1]);
+    previous = point;
+  }
+  return length;
+}
+
+function closedReefBranch(mirror: string): ReefBranch {
+  const group = document.createElementNS(SVG_NS, 'g');
+  if (mirror) group.setAttribute('transform', mirror);
+
+  const [tailStart, tailControl] = CLOSED_REEF_TAIL;
+  const [base, c1, c2, tip] = CLOSED_REEF_STEM;
+  const stem = document.createElementNS(SVG_NS, 'path');
+  const xy = (p: readonly [number, number]): string => p.join(' ');
+  stem.setAttribute('d', `M${xy(tailStart)}Q${xy(tailControl)} ${xy(base)}C${xy(c1)} ${xy(c2)} ${xy(tip)}`);
+  stem.setAttribute('fill', 'none');
+  stem.setAttribute('stroke', 'currentColor');
+  stem.setAttribute('stroke-width', '0.9');
+  stem.setAttribute('stroke-linecap', 'round');
+  group.appendChild(stem);
+
+  /* Measured once by sampling, so the dash covers the path and each leaf
+     knows how far along the drawn line it sits. */
+  const samples = Array.from({ length: 49 }, (_, i) => i / 48);
+  const tailLength = polylineLength(
+    samples.map((t): [number, number] => {
+      const u = 1 - t;
+      return [
+        u * u * tailStart[0] + 2 * u * t * tailControl[0] + t * t * base[0],
+        u * u * tailStart[1] + 2 * u * t * tailControl[1] + t * t * base[1],
+      ];
+    }),
+  );
+  const leafyLength = polylineLength(samples.map(closedReefPoint));
+  const stemLength = tailLength + leafyLength;
+
+  /* A leaf is a pointed lens drawn along +x from its own base, so a rotation
+     aims it and a scale grows it out of the stem. */
+  const leaves: ReefLeaf[] = CLOSED_REEF_LEAVES.map(([t, turn, length, lean]) => {
+    const [x, y] = closedReefPoint(t);
+    let angle = closedReefHeading(t) + turn;
+    const toUpright = ((-90 - angle + 540) % 360) - 180;
+    angle += lean * toUpright;
+    const half = length * CLOSED_REEF_LEAF_WIDTH;
+    const leaf = document.createElementNS(SVG_NS, 'path');
+    leaf.setAttribute(
+      'd',
+      `M0 0C${length * 0.25} ${-half} ${length * 0.62} ${-half} ${length} 0` +
+        `C${length * 0.62} ${half} ${length * 0.25} ${half} 0 0Z`,
+    );
+    leaf.setAttribute('fill', 'currentColor');
+    group.appendChild(leaf);
+    /* Opens as the drawn stem reaches it: `at` is its share of the whole line. */
+    const at = (tailLength + t * leafyLength) / stemLength;
+    return { el: leaf, x, y, angle, at };
+  });
+
+  return { group, stem, stemLength, leaves, mirror };
+}
+
+/** Both branches at growth `g`, 0 unseen to 1 full: the stem draws on just
+    ahead of the leaves, which open in turn from the base. */
+function drawClosedReef(branches: readonly ReefBranch[], g: number): void {
+  const drawn = clamp01(g / 0.85);
+  for (const branch of branches) {
+    branch.stem.setAttribute('stroke-dasharray', String(branch.stemLength));
+    branch.stem.setAttribute('stroke-dashoffset', String(branch.stemLength * (1 - drawn)));
+    for (const leaf of branch.leaves) {
+      /* Exactly 1 once grown: (1 - 0.8) / 0.2 is 0.9999999999999998 in floats. */
+      const open = g >= 1 ? 1 : clamp01((g - leaf.at * 0.8) / 0.2);
+      leaf.el.setAttribute(
+        'transform',
+        `translate(${leaf.x} ${leaf.y}) rotate(${leaf.angle}) scale(${open})`,
+      );
+    }
+  }
+}
+
+/** The wreath's SVG and its two branches, for growing. Drawn by the caller. */
+function closedReef(): { svg: SVGSVGElement; branches: ReefBranch[] } {
   const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('viewBox', '0 0 48 48');
+  svg.setAttribute('viewBox', '0 0 60 60');
   svg.setAttribute('aria-hidden', 'true');
   svg.setAttribute('focusable', 'false');
-  svg.append(laurelBranch(), laurelBranch('translate(48 0) scale(-1 1)'));
-  return svg;
+  const branches = [closedReefBranch(''), closedReefBranch('translate(60 0) scale(-1 1)')];
+  for (const branch of branches) svg.appendChild(branch.group);
+  return { svg, branches };
 }
 
 /* ------------------------------------------------------------------ *
@@ -1059,19 +1191,23 @@ if (
  * same idea as the text reveal, on the other axis.
  * ------------------------------------------------------------------ */
 
-const careerImg = document.querySelector<HTMLElement>('[data-career-img]');
+/* The pre-F1 photograph carries the same `data-img-highlight="top, lime"` in
+   the reference, so it runs the same wipe. */
+const wipedImages = document.querySelectorAll<HTMLElement>('[data-career-img], [data-junior-img]');
 
-if (careerImg && !reducedMotion) {
-  gsap.fromTo(
-    careerImg,
-    { '--img-wipe': 1 },
-    {
-      '--img-wipe': 0,
-      duration: 0.9,
-      ease: 'power3.inOut',
-      scrollTrigger: { trigger: careerImg, start: 'top 85%' },
-    },
-  );
+if (!reducedMotion) {
+  for (const wiped of wipedImages) {
+    gsap.fromTo(
+      wiped,
+      { '--img-wipe': 1 },
+      {
+        '--img-wipe': 0,
+        duration: 0.9,
+        ease: 'power3.inOut',
+        scrollTrigger: { trigger: wiped, start: 'top 85%' },
+      },
+    );
+  }
 }
 
 /* ------------------------------------------------------------------ *
@@ -1304,91 +1440,110 @@ if (winsBody) {
 }
 
 /* ------------------------------------------------------------------ *
+ * Gallery captions from the record
+ *
+ * The reference captions its gallery "Abu Dhabi GP, 2024" and pills the last
+ * picture with the result. Ours do the same only where a picture can be placed
+ * at a race the record holds: the figure names the season and circuit, and the
+ * caption and pill are written from that win. A figure pointing at a race that
+ * is not in the record is an error, not an empty caption.
+ * ------------------------------------------------------------------ */
+
+const WIN_POSITION = 1;
+
+for (const figure of document.querySelectorAll<HTMLElement>('[data-gallery-race]')) {
+  const [season, circuitId] = (figure.dataset.galleryRace ?? '').split(' ');
+  const win = wins.find((w) => String(w.season) === season && w.circuitId === circuitId);
+  if (!win) {
+    throw new Error(`[gallery] no win at "${circuitId}" in ${season} -- fix data-gallery-race`);
+  }
+  const caption = figure.querySelector<HTMLElement>('.gallery__cap');
+  if (!caption) throw new Error('[gallery] a dated figure has no caption');
+  caption.textContent = `${win.raceName.replace(/ Grand Prix$/, '')} GP, ${win.season}`;
+
+  const pill = figure.querySelector<HTMLElement>('[data-gallery-pill]');
+  const place = pill?.querySelector<HTMLElement>('[data-gallery-pill-place]');
+  if (pill && place) {
+    /* The record lists wins rather than positions, and a win is first place
+       by definition. Spoken as the phrase the two cells make together. */
+    place.textContent = String(WIN_POSITION);
+    pill.setAttribute('aria-label', `Finished ${ordinal(WIN_POSITION)}`);
+    pill.hidden = false;
+  }
+}
+
+/* ------------------------------------------------------------------ *
  * Pre-F1 career
  *
- * Reference section 4. Its eight achievements each carry a laurel-wreath Rive
- * whose colour input encodes whether the result was a title — lime for a
- * championship, grey for a placing. That is the section's one real idea, and it
- * is kept; the laurel below is drawn here rather than lifted, and the colour is
- * never the only signal, because "Champion" and "Runner-up" are written out.
+ * Reference section 5. Its achievements each carry a closed laurel whose
+ * colour says whether the result was a title -- lime for a championship, grey
+ * for a placing -- and whose Rive plays once as it scrolls into view. Both are
+ * kept: the laurel is drawn above rather than lifted, and grows once, at the
+ * reference's trigger. The label says "champion" or "2nd place" in words, so
+ * the colour is never the only signal.
+ *
+ * Newest first, as the reference orders its own: the senior titles lead.
  * ------------------------------------------------------------------ */
 
 const juniorGrid = document.querySelector<HTMLElement>('[data-junior-grid]');
 
-/** One laurel branch, mirrored in the markup to make the wreath. */
 if (juniorGrid) {
-  for (const entry of preF1Championships) {
-    const item = el('li', 'ot-junior__item');
+  const wreaths: { mark: HTMLElement; branches: ReefBranch[] }[] = [];
+
+  for (const entry of [...preF1Championships].reverse()) {
+    const item = el('li', 'ot-pref1__item');
     item.dataset.place = String(entry.position);
 
-    const mark = el('span', 'ot-junior__mark');
-    mark.appendChild(laurel());
-    item.appendChild(mark);
+    const { svg, branches } = closedReef();
+    drawClosedReef(branches, 1);
+    const mark = el('span', 'ot-pref1__mark');
+    mark.appendChild(svg);
+    wreaths.push({ mark, branches });
 
-    item.append(
-      el('span', 'ot-junior__year', String(entry.year)),
-      el('span', 'ot-junior__series', entry.series),
+    const result = entry.position === 1 ? 'champion' : '2nd place';
+    const text = el('span', 'ot-pref1__text');
+    text.append(
+      el('span', 'ot-pref1__label reveal-text', `${entry.label} ${result}`),
+      el('span', 'ot-pref1__year reveal-text', String(entry.year)),
     );
 
-    /* The class is what distinguishes two championships of the same name — he
-       won Champions of the Future twice, in different categories, and Super One
-       twice. Without it the grid reads as a duplicate. */
-    if (entry.category) item.appendChild(el('span', 'ot-junior__class', entry.category));
-    if (entry.team) item.appendChild(el('span', 'ot-junior__class', entry.team));
-
-    // Written out, so the laurel's colour is a second signal rather than the
-    // only one. WCAG 1.4.1.
-    item.appendChild(
-      el('span', 'ot-junior__place', entry.position === 1 ? 'Champion' : 'Runner-up'),
-    );
-
-    const line = el('p', 'ot-junior__note-line');
-    if (entry.note) line.appendChild(document.createTextNode(`${entry.note} `));
-
-    /* One citation per result, rather than a list of hosts at the foot of the
-       section. A host name is not a citation — it does not say which page
-       carried which result, and CONTENT-DATA.md asks for figures that are
-       traceable, not merely attributed. */
-    const cite = el('a', 'ot-junior__cite', new URL(entry.source).hostname.replace(/^www\./, ''));
-    cite.href = entry.source;
-    cite.rel = 'noreferrer';
-    cite.appendChild(
-      el(
-        'span',
-        'sr-only',
-        ` — source for the ${entry.year} ${entry.series}${
-          entry.category ? ` ${entry.category}` : ''
-        } result`,
-      ),
-    );
-    line.appendChild(cite);
-    item.appendChild(line);
-
+    item.append(mark, text);
     juniorGrid.appendChild(item);
   }
 
-  const runnersUp = preF1Championships.length - preF1Titles;
-  const blurb = document.querySelector<HTMLElement>('[data-junior-blurb]');
-  if (blurb) {
-    const sentence =
-      `${spell(preF1Titles)} championships won before he reached Formula 1, ` +
-      `and the ${spell(runnersUp)} he did not. ` +
-      'Every championship he finished first or second in, in order.';
-    blurb.textContent = sentence.charAt(0).toUpperCase() + sentence.slice(1);
-  }
+  /* Grown once each, as the reference plays each Rive when its canvas top
+     passes 80% of the screen. Drawn full-grown, and left so, when motion is
+     reduced. */
+  mm.add('(prefers-reduced-motion: no-preference)', () => {
+    const tweens = wreaths.map(({ mark, branches }) => {
+      const growth = { g: 0 };
+      drawClosedReef(branches, 0);
+      return gsap.to(growth, {
+        g: 1,
+        duration: 1.1,
+        ease: 'power2.out',
+        onUpdate: () => drawClosedReef(branches, growth.g),
+        scrollTrigger: { trigger: mark, start: 'top 80%', once: true },
+      });
+    });
+    return () => {
+      for (const tween of tweens) tween.kill();
+      for (const { branches } of wreaths) drawClosedReef(branches, 1);
+    };
+  });
 
   const span = document.querySelector<HTMLElement>('[data-junior-span]');
-  if (span) span.textContent = `${preF1Span.from}–${preF1Span.to}`;
+  if (span) span.textContent = `${preF1Span.from}-${preF1Span.to}`;
 
-  /* Provenance, as on the stat band — but a different kind. The career totals
-     move every race weekend and so carry the date they were fetched; these do
-     not move at all, so what matters is where each one came from, which is the
-     link on the result itself. */
-  const note = document.querySelector<HTMLElement>('[data-junior-note]');
-  if (note) {
-    note.textContent =
-      'Each result links to the source it was verified against. Unlike the career ' +
-      'totals above, none of these can change.';
+  /* The reference's own sentence, with the count it leaves vague made exact
+     and read from the list above rather than typed. Third person, never a
+     quote. */
+  const para = document.querySelector<HTMLElement>('[data-junior-para]');
+  if (para) {
+    para.textContent =
+      'Prior to starting his Formula 1 career, Lewis had an illustrious junior ' +
+      `career in karting and junior formulae, winning ${spell(preF1Titles)} ` +
+      'championships on his way to the pinnacle of motorsport.';
   }
 }
 
@@ -1947,6 +2102,12 @@ mountChrome();
    `document.fonts.ready` resolves even when a face fails, so this cannot hang. */
 mountReveals({
   immediate: '.ot-hero',
+  /* The gallery's captions and callout arrive on the X axis. The reference
+     fires each as its item's left edge passes 95% of the screen width (the
+     first column's as its top passes 90% of the height, while the section is
+     still rising) -- one margin covers both. */
+  sideways: '.gallery',
+  sidewaysMargin: '0px -5% -10% 0px',
   whenReady: (run) => void document.fonts.ready.then(run),
 });
 

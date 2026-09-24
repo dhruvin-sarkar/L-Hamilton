@@ -27,6 +27,11 @@ export interface RevealOptions {
   immediate?: string;
   /** Selector for an ancestor whose lines arrive horizontally. */
   sideways?: string;
+  /**
+   * The sideways lines' trigger, as an IntersectionObserver rootMargin.
+   * Defaults to Home's: 14% in from the right edge.
+   */
+  sidewaysMargin?: string;
   /** Runs its callback once the page entrance has finished. */
   whenReady: (run: () => void) => void;
 }
@@ -455,7 +460,7 @@ export function mountReveals(opts: RevealOptions): void {
           sidewaysRevealer.unobserve(entry.target);
         }
       },
-      { rootMargin: '0px -14% 0px 0px' },
+      { rootMargin: opts.sidewaysMargin ?? '0px -14% 0px 0px' },
     );
     for (const line of sidewaysLines) sidewaysRevealer.observe(line);
   }
