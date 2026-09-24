@@ -5,22 +5,16 @@
 /* ---------------------------------------------------------------- *
  * Fonts
  *
- * These were aspirational until now. None of the named faces was installed, so
- * every stack fell through to Arial and the whole site was set in it — which is
- * why the impact wall ran two lines longer than the reference's on the same
- * word count. All three now ship with the site; see fonts.css.
- *
- * Condensed grotesk for display, high-contrast Didone for the wordmark's given
- * name and the wall's accents, humanist sans with real tabular figures for
- * body. The fallbacks stay: they are what renders in the moment before the
- * woff2 lands, and each is the nearest widely-installed face to its primary.
+ * Mona Sans, the reference's own face, in two cuts of one file: condensed for
+ * display, normal width for body -- see fonts.css. A high-contrast serif for
+ * the wordmark's given name and the serif half of every two-line heading. The
+ * fallbacks stay: they are what renders in the moment before the woff2 lands,
+ * and each is the nearest widely-installed face to its primary.
  * ---------------------------------------------------------------- */
 
 :root {
-  --font-display: 'Archivo Narrow Variable', 'Archivo Narrow', 'Oswald', 'Helvetica Neue',
-    Arial, sans-serif;
-  --font-body: 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto,
-    sans-serif;
+  --font-display: 'Mona Sans Condensed', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif;
+  --font-body: 'Mona Sans Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   /* Didone-ish faces first, then the transitional serifs that ship on every OS,
      so the italic keeps its character even before the webfont arrives. */
   --font-serif: 'Playfair Display Variable', 'Playfair Display', 'Didot', 'Bodoni MT',
