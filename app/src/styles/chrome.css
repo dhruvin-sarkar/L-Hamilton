@@ -1,0 +1,218 @@
+/* Site chrome that sits over every page: the page loader and transition panel,
+ * the scroll indicator, and the rotate-your-phone block.
+ *
+ * Imported by main.css, which every page links render-blocking in its head, so
+ * all of it is styled in the very first paint on all four pages. Markup:
+ * partials/transition.html and partials/nav.html. Behaviour:
+ * src/lib/transition.ts and src/lib/chrome.ts. */
+
+/* ================================================== Page loader / transition
+ *
+ * The reference's `.transition-w`, measured at 1728x1080: fixed, full bleed,
+ * z-index 9999, the brand colour, its button pinned `--gap` above the bottom
+ * edge in a column that aligns to flex-end. */
+
+.transition {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  background: var(--rosso-corsa);
+  color: var(--dark);
+  /* It is a wall while it is up: nothing underneath takes a click mid-load. */
+  pointer-events: auto;
+  /* If the script never takes it over, it must not stand between the reader
+     and the page for good: after 10s it steps aside on its own. transition.ts
+     gives it a data-state the moment it mounts, which ends this. */
+  animation: transition-failsafe 0s linear 10s forwards;
+}
+
+.transition[data-state] {
+  animation: none;
+}
+
+@keyframes transition-failsafe {
+  to {
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+/* While the number zooms, the colour is the glyph, not the panel. */
+.transition[data-state='covering'],
+.transition[data-state='revealing'] {
+  background: transparent;
+}
+
+.transition[data-state='revealed'] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.transition__zoom {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: hidden;
+  fill: var(--rosso-corsa);
+}
+
+/* 59px tall at 1728x1080 and scaled like the reference's Fit.Cover artboard:
+   by whichever of 1728 wide or 1080 high the viewport is further over. Centred
+   by margins rather than a transform, because GSAP owns its transform. */
+.transition__mark {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  block-size: max(5.463vh, 3.414vw);
+  inline-size: auto;
+  aspect-ratio: 464 / 501;
+  overflow: visible;
+  fill: var(--dark);
+  transform-origin: 50% 50%;
+}
+
+/* The reference's primary button, lime on its lime panel, so only the label
+   reads: 48px tall, 1rem each side, Mona Sans 800 at "wdth" 86, 16px, upper
+   case, sitting --gap above the bottom edge. */
+.transition__label {
+  position: relative;
+  inset-block-end: var(--gap);
+  display: flex;
+  align-items: center;
+  block-size: 3rem;
+  padding-inline: 1rem;
+  font-family: var(--font-body);
+  font-size: var(--text--btn-primary);
+  font-weight: 800;
+  font-stretch: 86%;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* An arrival from another page of the site: the panel is the one the last page
+   closed, which never carried the first-load label. */
+[data-arrival] .transition__label {
+  display: none;
+}
+
+/* Reduced motion: no loader and no transition at all. The page is there from
+   the first paint and links navigate the ordinary way. */
+@media (prefers-reduced-motion: reduce) {
+  .transition {
+    display: none;
+  }
+}
+
+/* ================================================== Scroll indicator
+ *
+ * The reference's `.scroll-indicator`, measured at 1728x1080: fixed to the
+ * right edge, 10vh down, 80vh tall, 5.6px wide (.4em of its 14px body text,
+ * so 0.35rem here), radius 14px, blended `difference` so the 75%-white bar
+ * reads light on dark ground and dark on light. Hidden until the page moves;
+ * lib/chrome.ts fades it. Phones below 480px never show it. */
+
+.scroll-indicator {
+  position: fixed;
+  inset-block-start: 10vh;
+  inset-inline-end: 0;
+  /* Above every section's own stacking (the tallest is 20), below the menu. */
+  z-index: 22;
+  inline-size: 0.35rem;
+  block-size: 80vh;
+  border-radius: 0.875rem;
+  mix-blend-mode: difference;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scroll-indicator__bar {
+  position: absolute;
+  inset: 0 0 auto;
+  block-size: 10%;
+  border-radius: inherit;
+  background: rgb(255 255 255 / 0.75);
+  /* The reference eases the size in CSS and the position in script. */
+  transition: block-size 0.2s ease;
+}
+
+@media (max-width: 479px) {
+  .scroll-indicator {
+    display: none;
+  }
+}
+
+/* ================================================== Landscape block
+ *
+ * The reference's `.mob-landscape-block`: over everything, the brand colour,
+ * a drawing 40vh square above two lines of title type 3 x --gap below it. It
+ * shows it by user agent and orientation in script; here a media query says
+ * the same thing — a touch screen, held landscape, no taller than a phone. */
+
+.landscape-block {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: none;
+  flex-flow: column;
+  align-items: center;
+  justify-content: center;
+  gap: calc(var(--gap) * 3);
+  background: var(--rosso-corsa);
+  color: var(--black);
+  text-align: center;
+  pointer-events: auto;
+}
+
+@media (orientation: landscape) and (max-height: 540px) and (hover: none) and (pointer: coarse) {
+  .landscape-block {
+    display: flex;
+  }
+}
+
+.landscape-block__wheel {
+  block-size: 40vh;
+  aspect-ratio: 1;
+  overflow: visible;
+  fill: var(--rosso-corsa);
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.landscape-block__screen {
+  fill: none;
+}
+
+.landscape-block__mark {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* .text-title-reg-mona and .text-title-reg-brier: 42 and 44px on 0.886, both
+   tracked in 2px. Playfair stands in for Brier, as it does site-wide. */
+.landscape-block__text {
+  font-family: var(--font-body);
+  font-size: 2.625rem;
+  font-weight: 400;
+  letter-spacing: -0.125rem;
+  line-height: 0.886;
+}
+
+.landscape-block__serif {
+  font-family: var(--font-serif);
+  font-size: 2.75rem;
+  font-weight: 600;
+}
+
+@media (max-width: 479px) {
+  .landscape-block__serif {
+    font-size: 1.9rem;
+  }
+}

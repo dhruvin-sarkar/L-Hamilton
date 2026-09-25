@@ -1,0 +1,43 @@
+    <!-- ========================================================= Page loader
+         The reference's `.transition-w`: a full-screen panel in the brand
+         colour that is already up at the first paint, holds a looping mark
+         while the page loads, and leaves by zooming through the driver's
+         number. The same panel comes back over the page when an internal link
+         is followed, and the next page opens out of it.
+
+         The reference draws all of it in one Rive file. Ours is the LH mark
+         and an original "44" glyph, both SVG, driven by src/lib/transition.ts.
+
+         It is FIRST in the body so it is in the first paint; main.css is
+         render-blocking, so the panel is never missing from a frame the page
+         is in. aria-hidden throughout: it is a picture of loading, and a screen
+         reader is better served by the page arriving underneath it. -->
+    <div class="transition" data-transition aria-hidden="true">
+      <!-- The zoom. Unscaled user space, so path coordinates are CSS pixels:
+           the glyph is written into one path per frame, alone while covering
+           and cut out of a full-viewport rectangle (evenodd) while revealing. -->
+      <svg class="transition__zoom">
+        <path class="transition__shape" fill-rule="evenodd" d="" />
+      </svg>
+      <!-- The looping mark. Its paths are cloned from the nav's #lh-mark at
+           mount, so the artwork exists once. Until then the panel is plain red
+           with the label, which is the reference's own first frame too: its
+           mark appears only once the Rive file has loaded. -->
+      <svg class="transition__mark" viewBox="0 0 464 501"></svg>
+      <!-- Shown on a first load only. The reference's is a link to "#" styled
+           as its primary button, lime on lime so only the label shows; nothing
+           here is interactive, so it is plain text. -->
+      <p class="transition__label">Load Hamilton</p>
+    </div>
+    <!-- Decided before the first paint, so an arrival from another page of the
+         site never flashes the first-load label: the panel should look like
+         the one the last page just closed. -->
+    <script>
+      try {
+        var nav = performance.getEntriesByType('navigation')[0];
+        var left = Number(sessionStorage.getItem('lh:transition'));
+        if (Date.now() - left < 10000 || (nav && nav.type === 'back_forward')) {
+          document.documentElement.setAttribute('data-arrival', '');
+        }
+      } catch (e) {}
+    </script>
