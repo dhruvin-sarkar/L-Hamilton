@@ -22,7 +22,13 @@ import { mountHelmetScroll } from './HelmetScroll';
 import { mountFooterMarquee } from './lib/marquee';
 import { Signature } from './Signature';
 import { mountReveals } from './lib/reveal';
-import { mountHelmets, mountHofDrift, mountRiser, mountSocials } from './lib/showcase';
+import {
+  mountCalloutCrest,
+  mountHelmets,
+  mountHofDrift,
+  mountRiser,
+  mountSocials,
+} from './lib/showcase';
 import {
   age,
   driver,
@@ -107,6 +113,7 @@ mountGalleryScroll({ start: 'rising', scrub: 1 });
 mountHelmets();
 mountRiser();
 mountHofDrift();
+mountCalloutCrest();
 mountSocials();
 mountFooterMarquee(smoothScroller);
 
