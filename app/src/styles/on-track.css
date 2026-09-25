@@ -4326,6 +4326,47 @@ button.ot-cal__row:focus-visible {
   .ot-stats {
     grid-template-columns: 1fr;
   }
+
+  /* The card cluster reflows here instead of scrolling sideways (WCAG 1.4.10:
+   * at 360 the strip was 839px of content in a 320px scroller, with "Baku",
+   * the team line, the round card and "44" all out of sight and no scrollbar
+   * to say so).
+   *
+   * The previous and next cards keep their traced outlines at their own
+   * sizes -- the outlines are drawn at fixed aspects and cannot be squeezed --
+   * so they sit two to a row where both fit (from about 455px) and one to a
+   * row below that. The round panel always takes a row of its own, the full
+   * width, with its circuit column giving way so its "44" column never
+   * leaves the screen. The two hatched connectors belong to the single strip
+   * and go with it. on-track.ts drops the scroll region's tab stop and label
+   * on its own once nothing overflows. */
+  .ot-hero__ui {
+    flex-wrap: wrap;
+    gap: var(--gap);
+    block-size: auto;
+    overflow: visible;
+  }
+
+  .ot-hero__next {
+    margin-inline-start: 0;
+  }
+
+  .ot-hero__fill {
+    display: none;
+  }
+
+  .ot-hero__round {
+    flex: 1 1 100%;
+    inline-size: auto;
+    block-size: 15.1875rem;
+    min-inline-size: 0;
+  }
+
+  .ot-hero__round-col {
+    flex: 1 1 auto;
+    inline-size: auto;
+    min-inline-size: 0;
+  }
 }
 
 /* ================================================== The tail, on one ground

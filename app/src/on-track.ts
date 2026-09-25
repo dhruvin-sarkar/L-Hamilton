@@ -2845,9 +2845,10 @@ function mountCalendar(section: HTMLElement): void {
 
 const scrollRegions: [string, string][] = [
   /* The hero cluster is five outlined panels drawn at fixed aspect ratios.
-     Below 992px it keeps those proportions and scrolls rather than reflowing,
-     which puts the next round's circuit and dates off the right of a phone
-     screen unless the region can be entered from the keyboard. */
+     From 480 to 991px it keeps them in one strip and scrolls, which puts the
+     next round's circuit and dates off the right edge unless the region can
+     be entered from the keyboard. Below 480 it reflows (on-track.css) and
+     nothing overflows, so the check below takes the tab stop away again. */
   ['.ot-hero__ui', 'Previous and next race, scrollable'],
 ];
 
