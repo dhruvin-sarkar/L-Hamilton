@@ -264,6 +264,10 @@ function buildMark(svg: SVGSVGElement): Mark | null {
      tween: a seek (which is how a new page resumes the phase) suppresses tween
      callbacks, and a tween that has finished never calls its onUpdate again,
      so per-tween writes would leave a stale band on screen. */
+  /* Both ends of the band are named in every tween's TO vars, even the end that
+     does not move: a fromTo only applies the from-values of properties it
+     animates, so a draw that tweened `on` alone left the fold's `off: 1` in
+     place and drew nothing. */
   const loop = gsap.timeline({ repeat: -1, paused: true, onUpdate: applyAll });
   const foldStep = LOOP.fold / 5;
   const drawStep = LOOP.draw / 5;
@@ -272,7 +276,7 @@ function buildMark(svg: SVGSVGElement): Mark | null {
     loop.fromTo(
       w.state,
       { on: 1, off: 0 },
-      { off: 1, duration: foldStep * 3, ease: 'power2.in', immediateRender: false },
+      { on: 1, off: 1, duration: foldStep * 3, ease: 'power2.in', immediateRender: false },
       i * foldStep,
     );
   });
@@ -281,7 +285,7 @@ function buildMark(svg: SVGSVGElement): Mark | null {
     loop.fromTo(
       w.state,
       { on: 0, off: 0 },
-      { on: 1, duration: drawStep * 3, ease: 'power2.out', immediateRender: false },
+      { on: 1, off: 0, duration: drawStep * 3, ease: 'power2.out', immediateRender: false },
       LOOP.fold + LOOP.gone + i * drawStep,
     );
   });
