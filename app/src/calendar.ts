@@ -18,6 +18,7 @@ import './styles/calendar.css';
 import Lenis from 'lenis';
 import { gsap, reducedMotion, ScrollTrigger } from './lib/motion';
 import { mountChrome } from './lib/chrome';
+import { whenEntranceCued } from './lib/transition';
 import { mountCountdown } from './lib/countdown';
 import { mountFooterMarquee } from './lib/marquee';
 import { mountReveals } from './lib/reveal';
@@ -72,6 +73,12 @@ const need = <T extends Element = HTMLElement>(selector: string): T => {
 
 need('[data-cal-hero-year]').textContent = `${season} calendar`;
 
+/** Seconds from ready to the moment the header plays: the reference's k0, as
+    on the other pages. "Ready" is the fonts and the loader's reveal cue, so the
+    entrance plays as the panel opens onto the page. */
+const HERO_CUE = 0.75;
+const entranceReady = Promise.all([document.fonts.ready, whenEntranceCued()]);
+
 /* The reference's signature is a Rive file written on as the page arrives.
    Ours is the site's mark, written by the pen the other pages use, in the
    accent the reference draws its own in. Under reduced motion the CSS mask
@@ -89,10 +96,10 @@ if (!reducedMotion) {
       const pen = new Signature(heroSign, markup, ink);
       new ResizeObserver(() => pen.resize()).observe(heroSign);
       const progress = { p: 0 };
-      void document.fonts.ready.then(() =>
+      void entranceReady.then(() =>
         gsap.to(progress, {
           p: 1,
-          delay: 0.4,
+          delay: HERO_CUE + 0.4,
           duration: 1.65,
           ease: 'sine.out',
           onUpdate: () => {
@@ -165,7 +172,7 @@ mountChrome();
 
 mountReveals({
   immediate: '.cal-hero',
-  whenReady: (runReveals) => void document.fonts.ready.then(runReveals),
+  whenReady: (runReveals) => void entranceReady.then(() => gsap.delayedCall(HERO_CUE, runReveals)),
 });
 
 void document.fonts.ready.then(() => {
