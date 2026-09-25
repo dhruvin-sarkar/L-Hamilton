@@ -88,41 +88,52 @@ const STORAGE = {
 /* ------------------------------------------------------------------ *
  * The glyph: "44", drawn for this site.
  *
- * Two open fours sharing one crossbar, slanted at the LH mark's own angle
- * (84 across 390 down its stem). Units: 100 tall, y down. The bar runs the full
- * width at y 58..78, so scaling about its middle ends with the screen inside
- * it: the bar is 20 units thick, and the glyph stops at 5x the viewport height.
+ * Two open fours, the reference's number style (upright, bar, and a stem that
+ * runs on below the bar) at this site's proportions, slanted at the LH mark's
+ * own angle (84 across 390 down its stem). Units: 100 tall, y down.
+ *
+ * The zoom's fixed point is the middle of the FIRST four's bar, as the
+ * reference's is the middle of its four's bar: the bar is 20 units thick and
+ * reaches ~26 units either side of that point, so once the glyph is big enough
+ * for the bar to span the viewport's height and width, the screen is entirely
+ * inside it — which is how the cover closes and the reveal opens exactly.
  * ------------------------------------------------------------------ */
 
 const SLANT = 84 / 390;
 const BAR = { top: 58, bottom: 78 } as const;
 
-/** [x, y, corner radius] around the outline, clockwise from the first upright. */
-const GLYPH_OUTLINE: [number, number, number][] = [
-  [0, 8, 0], [19, 8, 0], [19, 58, 0], [37, 58, 0], [37, 0, 0], [56, 0, 4],
-  [56, 58, 0], [70, 58, 0], [70, 8, 0], [89, 8, 0], [89, 58, 0], [107, 58, 0],
-  [107, 0, 0], [126, 0, 4], [126, 100, 0], [107, 100, 0], [107, 78, 0],
-  [56, 78, 0], [56, 100, 0], [37, 100, 0], [37, 78, 0], [0, 78, 5],
+/** One four: [x, y, corner radius] around it clockwise from the upright. */
+const FOUR: [number, number, number][] = [
+  [0, 8, 0], [19, 8, 0], [19, BAR.top, 0], [37, BAR.top, 0], [37, 0, 0], [56, 0, 4],
+  [56, 100, 0], [37, 100, 0], [37, BAR.bottom, 0], [0, BAR.bottom, 5],
 ];
+/** The second four sits this far along from the first. */
+const PITCH = 70;
 
-/** The fixed point of the zoom: the middle of the shared bar. */
-const ANCHOR = { x: 63, y: (BAR.top + BAR.bottom) / 2 };
+/** The fixed point of the zoom: the middle of the first four's bar. */
+const ANCHOR = { x: 28, y: (BAR.top + BAR.bottom) / 2 };
 
-type Cmd = { c: 'M' | 'L'; x: number; y: number } | { c: 'Q'; cx: number; cy: number; x: number; y: number };
+type Cmd =
+  | { c: 'M' | 'L'; x: number; y: number }
+  | { c: 'Q'; cx: number; cy: number; x: number; y: number }
+  | { c: 'Z' };
 
 const slant = (x: number, y: number): [number, number] => [x + (100 - y) * SLANT, y];
 
-/** The outline as absolute commands, rounded corners as quadratic curves. */
-function glyphCommands(): Cmd[] {
-  const n = GLYPH_OUTLINE.length;
+/** How far the bar reaches either side of the anchor, at its nearest. */
+const BAR_REACH = ANCHOR.x - (BAR.bottom - BAR.top) / 2 * SLANT;
+
+/** An outline as absolute commands, rounded corners as quadratic curves. */
+function outlineCommands(outline: [number, number, number][], dx: number): Cmd[] {
+  const n = outline.length;
   const cmds: Cmd[] = [];
   for (let i = 0; i < n; i++) {
-    const [x, y, r] = GLYPH_OUTLINE[i]!;
-    const [px, py] = GLYPH_OUTLINE[(i + n - 1) % n]!;
-    const [nx, ny] = GLYPH_OUTLINE[(i + 1) % n]!;
+    const [x, y, r] = outline[i]!;
+    const [px, py] = outline[(i + n - 1) % n]!;
+    const [nx, ny] = outline[(i + 1) % n]!;
     const first = i === 0;
     if (r === 0) {
-      const [sx, sy] = slant(x, y);
+      const [sx, sy] = slant(x + dx, y);
       cmds.push({ c: first ? 'M' : 'L', x: sx, y: sy });
       continue;
     }
@@ -130,16 +141,17 @@ function glyphCommands(): Cmd[] {
     // then bend between them with the corner as the control point.
     const inLen = Math.hypot(x - px, y - py);
     const outLen = Math.hypot(nx - x, ny - y);
-    const [ax, ay] = slant(x - ((x - px) / inLen) * r, y - ((y - py) / inLen) * r);
-    const [bx, by] = slant(x + ((nx - x) / outLen) * r, y + ((ny - y) / outLen) * r);
-    const [cx, cy] = slant(x, y);
+    const [ax, ay] = slant(dx + x - ((x - px) / inLen) * r, y - ((y - py) / inLen) * r);
+    const [bx, by] = slant(dx + x + ((nx - x) / outLen) * r, y + ((ny - y) / outLen) * r);
+    const [cx, cy] = slant(dx + x, y);
     cmds.push({ c: first ? 'M' : 'L', x: ax, y: ay });
     cmds.push({ c: 'Q', cx, cy, x: bx, y: by });
   }
+  cmds.push({ c: 'Z' });
   return cmds;
 }
 
-const GLYPH = glyphCommands();
+const GLYPH = [...outlineCommands(FOUR, 0), ...outlineCommands(FOUR, PITCH)];
 const [ANCHOR_X, ANCHOR_Y] = slant(ANCHOR.x, ANCHOR.y);
 
 /** The glyph `h` px tall with its anchor at (ox, oy), as path data. */
@@ -149,9 +161,21 @@ function glyphPath(h: number, ox: number, oy: number): string {
   const Y = (y: number) => (oy + (y - ANCHOR_Y) * s).toFixed(1);
   let d = '';
   for (const k of GLYPH) {
-    d += k.c === 'Q' ? `Q${X(k.cx)} ${Y(k.cy)} ${X(k.x)} ${Y(k.y)}` : `${k.c}${X(k.x)} ${Y(k.y)}`;
+    if (k.c === 'Z') d += 'Z';
+    else if (k.c === 'Q') d += `Q${X(k.cx)} ${Y(k.cy)} ${X(k.x)} ${Y(k.y)}`;
+    else d += `${k.c}${X(k.x)} ${Y(k.y)}`;
   }
-  return `${d}Z`;
+  return d;
+}
+
+/**
+ * The glyph height at which the bar holds the whole viewport: its thickness
+ * spans the height and its reach spans half the width either side, with a
+ * few percent over so no antialiased edge is left on screen.
+ */
+function coveringHeight(vw: number, vh: number): number {
+  const scale = Math.max(vh / (BAR.bottom - BAR.top), vw / 2 / BAR_REACH);
+  return 100 * scale * 1.03;
 }
 
 /**
@@ -346,7 +370,7 @@ export function mountTransition(opts: { closeMenu: () => void }): void {
     const u = unit();
     const frame = `M0 0H${vw}V${vh}H0Z`;
     const popH = POP_HEIGHT * u;
-    const endH = 5 * vh * 1.03;
+    const endH = coveringHeight(vw, vh);
     const size = { h: 0, z: 0 };
     const draw = () => shape.setAttribute('d', frame + glyphPath(size.h, ox, oy));
 
@@ -392,7 +416,7 @@ export function mountTransition(opts: { closeMenu: () => void }): void {
     const oy = vh / 2;
     const u = unit();
     const popH = POP_HEIGHT * u;
-    const endH = 5 * vh * 1.03;
+    const endH = coveringHeight(vw, vh);
     const size = { h: 0, z: 0 };
     const draw = () => shape.setAttribute('d', glyphPath(size.h, ox, oy));
 
