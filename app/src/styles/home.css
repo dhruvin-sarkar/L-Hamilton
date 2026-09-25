@@ -3663,53 +3663,64 @@
 
 /* ---- the standfirst ---- */
 
+/* `.title-layout.grid-main` and the `.spacer._8-75rem` under it. */
 .hof__head {
   display: grid;
-  /* Two equal halves. The reference starts its paragraph at 855 of 1728 — just
-     under the midpoint — which is what a 1fr 1fr split produces. */
-  grid-template-columns: 1fr 1fr;
-  gap: var(--gap);
-  /* 272px between the top of the title and the top of the grid at 1728, less
-     the two lines of title above it. */
-  margin-block-end: 9rem;
+  grid-template-columns: repeat(4, 23.55%);
+  column-gap: var(--gap);
+  margin-block-end: 8.75rem;
 }
 
+/* `.text-title-lg-mona`: Mona Sans at "wdth" 93 "wght" 750, not the condensed
+   cut — the condensed face set HELMETS 90px short of the reference's 299. */
 .hof__title {
+  grid-column: 1 / span 2;
   margin: 0;
-  font-size: var(--text--h2); /* 72px at the design width */
-  /* 64px between line tops at a 72px size. */
-  line-height: 0.89;
+  font-family: var(--font-body);
+  font-stretch: 93%;
+  font-size: 4.5rem;
+  font-weight: 750;
+  line-height: 0.886;
+  letter-spacing: -0.125rem;
   text-transform: uppercase;
 }
 
 .hof__title-line {
   display: block;
-  font-family: var(--font-display);
-  font-weight: 700;
   /* The sweep bar behind .reveal-text spans its element, so the line has to be
      as wide as its words rather than as wide as the column — otherwise the bar
      runs on across empty space. Same fix the gallery captions needed. */
   inline-size: fit-content;
 }
 
-/* The second line drops to the Didone in the accent, mirroring the wordmark's
-   own pairing of a serif given name against the block capitals. The reference
-   makes the same move with its own accent on this exact line. */
+/* `.text-title-lg-brier.c-lime-off` on Home, `.c-grey-on-track` on On Track
+   (see the tail block in on-track.css): the second face at 4.6875rem, in
+   capitals like the line above it. lime-off maps to --accent-off, as it does
+   everywhere else.
+
+   0.9037 rather than Brier's 0.886: the reference's line box is 67.78px, not
+   66.45, because the serif sits inside a sans line and the two baselines pull
+   it taller — the same value the On Track headings use. Matching the box keeps
+   the grid under it at the reference's 312. */
 .hof__title-line.is-serif {
   font-family: var(--font-serif);
-  font-weight: 400;
-  text-transform: none;
-  color: var(--accent);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 4.6875rem;
+  font-variant-numeric: lining-nums;
+  line-height: 0.9037;
+  color: var(--accent-off);
 }
 
+/* `.title-para-w.c-grey-on-track` > `.text-body-reg-mona`: one grid column,
+   1.25rem on 1.25, at the top of its cell. */
 .hof__blurb {
-  /* 398px of measure at the design width, and the paragraph sits at the top of
-     its column rather than centred against the title. */
-  max-inline-size: 25rem;
+  grid-column: 3;
   margin: 0;
   font-size: 1.25rem;
-  line-height: 1.4;
-  color: var(--text-muted);
+  line-height: 1.25;
+  letter-spacing: -0.0125rem;
+  color: var(--grey-on-track);
 }
 
 /* Carries the clipPath and nothing else. Zero-sized rather than display:none,
@@ -3740,24 +3751,19 @@
      `clip` rather than `hidden`: hidden would make all 26 cards scroll
      containers. Measured at a 1728 viewport: scrollWidth 1735 -> 1713. */
   overflow: clip;
+  /* The label is sized off the card rather than the root, so it stays inside
+     the notch at every card width — see .hof__label. */
+  container-type: inline-size;
   /* Columns 1 and 3 — the leaders. */
   transform: translate3d(0, var(--hof-lead, 0px), 0);
   will-change: transform;
 }
 
-/* Columns 2 and 4. Three times the travel of their neighbours, which is what
+/* Columns 2 and 4. Five times the travel of their neighbours, which is what
    makes the wall breathe as it passes rather than arriving as one block. */
 .hof__item:nth-child(4n + 2),
 .hof__item:nth-child(4n + 4) {
   transform: translate3d(0, var(--hof-lag, 0px), 0);
-}
-
-/* Focusable because the wearing shot is content, and hover is the only other
-   way to reach it. Without this a sighted keyboard-only visitor gets 26 cards
-   whose second photograph simply does not exist for them. */
-.hof__item:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 4px;
 }
 
 /* Clipped to the card shape — the same outline the frame strokes, so the
@@ -3781,12 +3787,17 @@
    width and then drops the `right` offset as over-constrained — so `inset: 6%
    6% 11%` sized every helmet to the full card and shunted it 6% off to the
    right, under the clip where it was easy to miss. */
+/* Sized to the reference's subject rather than to its box. Its helmet shots are
+   1727px squares with the helmet at 63% of the width, centred 48% of the way
+   down a square sitting at the top of the card. Ours are trimmed to the helmet
+   (97% of an 800 square), so the box shrinks to 65% instead — 264px of a 407px
+   card — and sits where the reference's subject sits. */
 .hof__helmet {
   position: absolute;
-  inset-inline-start: 6%;
-  inset-block-start: 6%;
-  inline-size: 88%; /* 100 - 6 - 6 */
-  block-size: 83%; /* 100 - 6 - 11, the deeper foot clearing the label */
+  inset-inline-start: 17.5%;
+  inset-block-start: 15.5%;
+  inline-size: 65%;
+  block-size: 64.4%; /* the same 264px, as a share of the 411px height */
   z-index: 1;
   object-fit: contain;
   transform: scale(1);
@@ -3820,8 +3831,7 @@
     transform var(--animation-default);
 }
 
-.hof__item:hover .hof__reveal-w,
-.hof__item:focus-visible .hof__reveal-w {
+.hof__item:hover .hof__reveal-w {
   /* 120%, not 100%: the ellipse has to overshoot the bottom edge, or its curve
      is still readable as a dome across the foot of the card at the end. */
   clip-path: ellipse(100% 120% at 50% 0);
@@ -3854,8 +3864,7 @@
   object-fit: contain;
 }
 
-.hof__item:hover .hof__helmet,
-.hof__item:focus-visible .hof__helmet {
+.hof__item:hover .hof__helmet {
   transform: scale(1.1);
 }
 
@@ -3880,41 +3889,45 @@
 .hof__frame path {
   fill: none;
   stroke: currentColor;
-  stroke-width: 1;
-  /* The path is drawn in the 407x411 viewBox and scales with the card, so the
-     stroke has to be told not to scale with it, or the line thickens on wide
-     screens and thins on narrow ones. */
+  stroke-width: 2;
+}
+
+/* The reference's `.helmet-grid-frame.is-base`: --color--dark-green-tint-2
+   (#535450) at a 2px non-scaling stroke, which maps to our --dark-tint-2. The
+   non-scaling stroke keeps the resting line the same weight at every width. */
+.hof__frame--base {
+  color: var(--dark-tint-2);
+}
+
+.hof__frame--base path {
   vector-effect: non-scaling-stroke;
 }
 
-/* Giallo, not the reference's grey.
- *
- * Worth recording that this is a deliberate departure and not a mismeasure:
- * the reference carries BOTH strokes, #535450 at rest and its lime accent on
- * hover, and that pairing was reproduced here first. Yellow at rest was asked
- * for directly, so the two states now separate by weight rather than by hue —
- * a calm line that comes up to full strength under the pointer. */
-.hof__frame--base {
-  color: var(--giallo-modena);
-  opacity: 0.45;
-}
-
-/* A second copy rather than a transition on the first: animating opacity on a
-   single stroke would fade the whole card outline out and back, where fading a
-   second line up over the first only ever adds. */
+/* `.helmet-grid-frame.is-overlay`: the accent, faded up over the resting line
+   on hover. A second copy rather than a transition on the first: animating
+   opacity on a single stroke would fade the whole outline out and back, where
+   fading a second line up over the first only ever adds. */
 .hof__frame--on {
-  color: var(--giallo-modena);
+  color: var(--accent);
   opacity: 0;
   transition: opacity var(--animation-default);
 }
 
-.hof__item:hover .hof__frame--on,
-.hof__item:focus-visible .hof__frame--on {
+.hof__item:hover .hof__frame--on {
   opacity: 1;
 }
 
 /* ---- the label, in the notch ---- */
 
+/* `.helmet-grid-item-text-w`: a 2rem box on the card's bottom-right corner,
+   name at .9rem 600 and the date at .9rem 700 in the accent, .8rem apart.
+
+   Written in container units of the card, which at every desktop width are
+   those same values (a 407px card at a 16px root: 2rem is 7.86cqi, .9rem is
+   3.54cqi) — and below that they keep the label inside the notch, where rem
+   would not: our phone root holds at 16px while the card drops to 165px, and
+   a .9rem "Silverstone 2021" ran twice the notch's width across the frame. The
+   floor is the reference's own phone size, .9rem of its 10.8px root. */
 .hof__label {
   position: absolute;
   inset: auto 0 0 auto;
@@ -3922,9 +3935,11 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  block-size: 2rem;
-  font-size: 0.9rem;
-  line-height: 1;
+  block-size: 7.86cqi;
+  margin: 0;
+  font-size: max(0.6rem, 3.54cqi);
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .hof__name {
@@ -3933,9 +3948,12 @@
 }
 
 .hof__year {
-  margin-inline-start: 0.8rem;
   font-weight: 700;
   color: var(--accent);
+}
+
+.hof__name + .hof__year {
+  margin-inline-start: max(0.27rem, 3.15cqi);
 }
 
 /* ==================================================================== *
@@ -3983,7 +4001,10 @@
 }
 
 /* The reference's slot is 5.625rem wide and draws its mark at 2:1, so the box
-   is 90x45 and the crest is contained in it rather than stretched to it. */
+   is 90x45 and the crest is contained in it rather than stretched to it. The
+   <svg> in the markup crops its viewBox to the drawing (-0.5 8.5 65 30) rather
+   than the crest's full 64x44 plate: the reference's wreath spans about 80x43
+   of its box, and the whole plate contained left ours at 50x29. */
 .callout__icon {
   inline-size: 5.625rem;
   block-size: 2.8125rem;
@@ -4093,12 +4114,22 @@
     margin-block-end: 3rem;
   }
 
+  /* Back to the one column, or the wide layout's placements would open
+     implicit tracks beside it. */
+  .hof__title,
+  .hof__blurb {
+    grid-column: auto;
+  }
+
   .hof__title {
     font-size: var(--text--h3);
   }
 
+  .hof__title-line.is-serif {
+    font-size: calc(var(--text--h3) * 1.0417);
+  }
+
   .hof__blurb {
-    max-inline-size: none;
     font-size: 1rem;
   }
 
@@ -4138,8 +4169,7 @@
     transform: none;
   }
 
-  .hof__item:hover .hof__helmet,
-  .hof__item:focus-visible .hof__helmet {
+  .hof__item:hover .hof__helmet {
     transform: none;
   }
 }
