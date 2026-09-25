@@ -1444,16 +1444,18 @@ body[data-page='on-track'] {
   display: block;
 }
 
-/* The accent band that wipes the picture in from the top — the reference's
-   `data-img-highlight="top, lime"`. Driven from on-track.ts, which is why the
-   custom property is declared rather than animated here. */
+/* The accent sheet the picture is revealed behind -- the reference's
+   `.img-highlight-reveal` under `data-img-highlight="top, lime"`. An ellipse
+   anchored at the bottom edge, its height --img-veil * 120%: 0 (nothing) at
+   rest, so it only ever shows while on-track.ts is running the reveal. */
 .ot-career__img::after {
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 5;
   background: var(--accent);
-  transform-origin: 50% 100%;
-  scale: 1 var(--img-wipe, 0);
+  clip-path: ellipse(120% calc(var(--img-veil, 0) * 120%) at 50% 100%);
+  pointer-events: none;
 }
 
 /* --------------------------------------------------- Headline stats */
@@ -1645,33 +1647,51 @@ body[data-page='on-track'] {
   transition: background-color var(--dur-micro) var(--ease-out);
 }
 
-/* Rest state for the entry animation, set behind .is-ready — which on-track.ts
-   adds once the fonts have landed.
+/* The entry, the reference's `.item-reveal` row wipe. on-track.ts sets
+   [data-rows-animated] only once it has committed to revealing the rows (wide,
+   animated), so a failure anywhere before that leaves real data visible rather
+   than twenty rows clipped to nothing.
 
-   That direction matters. If the hidden state were unconditional, a failure
-   anywhere in the module graph would leave twenty rows of real data
-   permanently invisible. Visible by default; hidden only once something has
-   committed to revealing them. */
-.is-ready .ot-seasons__row {
-  opacity: 0;
+   The row carries one progress for its clip (--row-open, 0 to 1) and one for
+   its accent bar (--row-bar, 1 to 0, pulling off to the right). Each cell knows
+   where it sits in the row (--cell-start, --cell-span, fractions of the row's
+   width) and takes its own share: the clip's right edge at --row-open of the
+   row, and the bar's left edge at 1 - --row-bar. So three clipped cells open as
+   ONE edge crossing the row, exactly as the reference's single clipped row
+   does. The bar is per cell for the same reason -- a bar hung off one cell
+   would be clipped to that cell.
+
+   Each cell's clip and bar reach 1px past its right edge. Cell edges fall on
+   fractional pixels, and two half-covered pixels side by side paint as a dark
+   hairline through the bar; the overlap closes it. */
+[data-rows-animated] .ot-seasons__cell {
+  position: relative;
+  clip-path: inset(
+    0
+      clamp(
+        -1px,
+        (var(--cell-start, 0) + var(--cell-span, 1) - var(--row-open, 1)) / var(--cell-span, 1) *
+          100% - 1px,
+        100%
+      )
+      0 0
+  );
 }
 
-/* The reference's .item-reveal: an accent bar wiping across the row, resting at
-   scaleX(0) and growing to cover. Ours retreats instead, matching the text
-   reveal on the rest of the site — the bar starts over the row and pulls off
-   it, so the first frame already shows the numbers.
-
-   Hung off the row's first cell and sized to the row (the row is its containing
-   block), never off the row itself: Chrome counts a row's own ::after as a
-   column even when it is absolutely positioned, and a fixed-layout table then
-   splits its last column in two to make room for it. */
-.is-ready .ot-seasons__row > :first-child::after {
+[data-rows-animated] .ot-seasons__cell::after {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: 0 -1px 0 0;
+  z-index: 5;
   background: var(--accent);
-  transform: scaleX(calc(1 - var(--row-wipe, 0)));
-  transform-origin: right;
+  transform: scaleX(
+    clamp(
+      0,
+      (var(--cell-start, 0) + var(--cell-span, 1) - 1 + var(--row-bar, 0)) / var(--cell-span, 1),
+      1
+    )
+  );
+  transform-origin: right center;
   pointer-events: none;
 }
 
@@ -2959,7 +2979,12 @@ button.ot-cal__row:hover {
   color: var(--accent);
 }
 
+/* A focused row is lifted above the vignette (`.ot-cal__grad`, z 6) and the
+   button in it, so the last rows -- which sit under the fade, and under the
+   button's centre -- are never focused out of sight. The vignette itself
+   takes no pointer events; only its button does. */
 button.ot-cal__row:focus-visible {
+  z-index: 7;
   outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
@@ -3084,11 +3109,16 @@ button.ot-cal__row:focus-visible {
   fill: var(--accent);
 }
 
+/* The reference's `.f1-highlight-mouse-over-reveal`: an accent sheet its
+   script wipes off the card as it opens, which its own stylesheet holds at
+   opacity 0 -- so no sheet is ever seen, only the oval opening. Kept at the
+   same zero so the card reads the same. */
 .ot-cal__card-reveal {
   position: absolute;
   inset: 0;
   z-index: 5;
   background: var(--accent);
+  opacity: 0;
 }
 
 .ot-cal__card-label {
@@ -3614,14 +3644,14 @@ button.ot-cal__row:focus-visible {
 .gallery--on-track .reveal-text.is-in:not([data-reveal-split]),
 .gallery--on-track .reveal-text.is-in .reveal-line {
   opacity: 1;
-  animation: gallery-line-open 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation: gallery-line-open 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) both;
   animation-delay: var(--reveal-delay, 0ms);
 }
 
 .gallery--on-track .reveal-text.is-in::after,
 .gallery--on-track .reveal-text.is-in .reveal-line::after {
   animation-duration: 0.6s;
-  animation-timing-function: cubic-bezier(0.455, 0.03, 0.515, 0.955);
+  animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
   animation-delay: calc(var(--reveal-delay, 0ms) + 300ms);
 }
 
@@ -3940,13 +3970,15 @@ button.ot-cal__row:focus-visible {
   object-fit: cover;
 }
 
+/* The accent sheet, as on the career portrait above. */
 .ot-pref1__img::after {
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 5;
   background: var(--accent);
-  transform-origin: 50% 100%;
-  scale: 1 var(--img-wipe, 0);
+  clip-path: ellipse(120% calc(var(--img-veil, 0) * 120%) at 50% 100%);
+  pointer-events: none;
 }
 
 /* `.pre-f1-car-stats-grid`: two columns, a gap across and two down. */
@@ -4101,20 +4133,12 @@ button.ot-cal__row:focus-visible {
  * markup and its bundle returns zero. So this is additive work rather than
  * parity work, and the standard to meet is the homepage's, not the reference's.
  *
- * The rules are stated at the same specificity as the ones they undo
- * (`.is-ready .ot-seasons__row` is 0,2,0), because a media query adds no
- * specificity of its own and a bare selector here would lose. That exact
- * mistake left the homepage hero hidden under reduced motion. */
+ * The rules are stated at the same specificity as the ones they undo, because
+ * a media query adds no specificity of its own and a bare selector here would
+ * lose. That exact mistake left the homepage hero hidden under reduced motion.
+ * (The season rows need nothing here: their entry is only ever switched on
+ * behind WIDE_AND_ANIMATED in on-track.ts.) */
 @media (prefers-reduced-motion: reduce) {
-  .ot-seasons__row,
-  .is-ready .ot-seasons__row {
-    opacity: 1;
-  }
-
-  .is-ready .ot-seasons__row > :first-child::after {
-    content: none;
-  }
-
   .ot-gigantic__char,
   .ot-gigantic__char:nth-child(even) {
     transform: none;
@@ -4301,6 +4325,47 @@ button.ot-cal__row:focus-visible {
 
   .ot-stats {
     grid-template-columns: 1fr;
+  }
+
+  /* The card cluster reflows here instead of scrolling sideways (WCAG 1.4.10:
+   * at 360 the strip was 839px of content in a 320px scroller, with "Baku",
+   * the team line, the round card and "44" all out of sight and no scrollbar
+   * to say so).
+   *
+   * The previous and next cards keep their traced outlines at their own
+   * sizes -- the outlines are drawn at fixed aspects and cannot be squeezed --
+   * so they sit two to a row where both fit (from about 455px) and one to a
+   * row below that. The round panel always takes a row of its own, the full
+   * width, with its circuit column giving way so its "44" column never
+   * leaves the screen. The two hatched connectors belong to the single strip
+   * and go with it. on-track.ts drops the scroll region's tab stop and label
+   * on its own once nothing overflows. */
+  .ot-hero__ui {
+    flex-wrap: wrap;
+    gap: var(--gap);
+    block-size: auto;
+    overflow: visible;
+  }
+
+  .ot-hero__next {
+    margin-inline-start: 0;
+  }
+
+  .ot-hero__fill {
+    display: none;
+  }
+
+  .ot-hero__round {
+    flex: 1 1 100%;
+    inline-size: auto;
+    block-size: 15.1875rem;
+    min-inline-size: 0;
+  }
+
+  .ot-hero__round-col {
+    flex: 1 1 auto;
+    inline-size: auto;
+    min-inline-size: 0;
   }
 }
 

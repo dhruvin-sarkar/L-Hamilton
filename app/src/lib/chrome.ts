@@ -143,7 +143,14 @@ function mountSectionFills(): void {
  * the visible copy is aria-hidden and an sr-only twin carries the real name.
  * ------------------------------------------------------------------ */
 
-/** The reference's QE(): every label rolls the same way. */
+/* The reference's own values, read off its `[data-anim="text-hover"]` handler
+ * (`QE()` in lando-gl.js) and confirmed live on three of its buttons -- a
+ * section button, the nav STORE and a footer link all roll identically: 0.6s
+ * power3.out (a quartic out), 20ms between letters, and the same values back
+ * on leave. Sampled at 120ms after the pointer arrives, the first letter of
+ * each had travelled 59-60% of the line and the fifth 24%, which is that curve
+ * and that stagger exactly. One set for every rolling label on the site,
+ * because the reference has one. */
 const ROLL = { duration: 0.6, ease: 'power3.out', stagger: 0.02 } as const;
 
 function mountRollingText(): void {

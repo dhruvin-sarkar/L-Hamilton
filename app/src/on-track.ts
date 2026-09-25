@@ -554,6 +554,83 @@ function p1Scribble(): SVGSVGElement {
 }
 
 
+/**
+ * The hooked arrow on the schedule buttons, and its hover: the reference's
+ * `btn-ui` Rive (artboard `arrow`, animation `arrows`, 90 frames at 60fps),
+ * timed off its own file frame by frame.
+ *
+ * One cycle is 1.5s. The body -- tail, turn and shaft -- rubs out from the
+ * tail forward (frames 4-38); the head's two arms draw back into their point
+ * (24-36); the body writes itself in again from the tail (28.5-50.5), and the
+ * arms grow back out of the point (46-68). The rest of the cycle holds the
+ * whole arrow. While the button is hovered the cycle repeats; on leave the
+ * running cycle finishes and it stops -- the state machine's behaviour, read
+ * by holding and releasing its `hover` input.
+ *
+ * The icon's one path becomes five so each part can be dashed on its own: the
+ * body twice (the copy rubbing out and the copy writing in overlap in time)
+ * and one path per arm, each drawn from the point outward. Same geometry, so
+ * the resting arrow is unchanged.
+ */
+const ARROW_CYCLE = 1.5;
+const frame = (n: number): number => n / 60;
+
+function mountArrowCycle(button: HTMLElement, icon: SVGSVGElement): void {
+  const part = (d: string): SVGPathElement => {
+    const path = document.createElementNS(SVG_NS, 'path');
+    path.setAttribute('d', d);
+    return path;
+  };
+  /* The body from the tail's end, round the turn, along the shaft to the
+     point; and the two arms from the point out. */
+  const BODY = 'M13 19H10A5 5 0 0 1 10 9H19.5';
+  const bodyOut = part(BODY);
+  const bodyIn = part(BODY);
+  const arms = [part('M19.5 9L15 4.5'), part('M19.5 9L15 13.5')];
+  icon.replaceChildren(bodyOut, bodyIn, ...arms);
+
+  const bodyLength = bodyOut.getTotalLength();
+  const armLength = arms[0]?.getTotalLength() ?? 0;
+  /* A dash the part's length and a gap twice that, so a hidden part has no
+     dash end inside it for its round cap to paint as a dot -- and the copy
+     rubbing out runs half a unit past its end for the same reason. */
+  const dash = (length: number): string => `${length} ${2 * length}`;
+  gsap.set([bodyOut, bodyIn], { attr: { 'stroke-dasharray': dash(bodyLength) } });
+  gsap.set(arms, { attr: { 'stroke-dasharray': dash(armLength) } });
+
+  const cycle = gsap.timeline({ paused: true });
+  cycle
+    .set(bodyOut, { attr: { 'stroke-dashoffset': 0 } }, 0)
+    .set(bodyIn, { attr: { 'stroke-dashoffset': bodyLength } }, 0)
+    .set(arms, { attr: { 'stroke-dashoffset': 0 } }, 0)
+    .to(
+      bodyOut,
+      { attr: { 'stroke-dashoffset': -bodyLength - 0.5 }, duration: frame(34), ease: 'power1.inOut' },
+      frame(4),
+    )
+    .to(arms, { attr: { 'stroke-dashoffset': armLength }, duration: frame(12), ease: 'power1.inOut' }, frame(24))
+    .to(bodyIn, { attr: { 'stroke-dashoffset': 0 }, duration: frame(22), ease: 'power1.inOut' }, frame(28.5))
+    .to(arms, { attr: { 'stroke-dashoffset': 0 }, duration: frame(22), ease: 'none' }, frame(46))
+    .set({}, {}, ARROW_CYCLE);
+
+  let hovered = false;
+  cycle.eventCallback('onComplete', () => {
+    if (hovered) cycle.restart();
+  });
+  const on = (): void => {
+    hovered = true;
+    if (!cycle.isActive()) cycle.restart();
+  };
+  const off = (): void => {
+    hovered = false;
+  };
+  // Keyboard focus counts as hover, as it does for the label's roll.
+  button.addEventListener('pointerenter', on);
+  button.addEventListener('pointerleave', off);
+  button.addEventListener('focus', on);
+  button.addEventListener('blur', off);
+}
+
 function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   className?: string,
@@ -658,25 +735,24 @@ function weekend(round: CalendarRound): { days: string; month: string } {
 
 const previous = lastRound();
 if (previous) {
-  /* What actually happened, in the sport's own terms: a finished race gives a
-     position, a retirement gives the status the timing screens print. */
-  const outcome = previous.result
-    ? previous.result.position
-      ? `P${previous.result.position}`
-      : previous.result.status
-    : '\u2014';
-
   // The markup carries the "GP" as a second word, as the reference does.
   slot('prev-race', previous.raceName.replace(/ Grand Prix$/, ''));
 
   /* Spoken, not drawn \u2014 the card shows the circuit and the race name, as the
-     reference's does. Phrased as a sentence rather than the "P3 / 15 pts" the
-     figures used to carry, because it is only ever read aloud. */
+     reference's does. Phrased as a sentence, in words a screen reader says
+     cleanly: "Finished 3rd", not "Finished P3" (read as "P 3"), and a car
+     that was not classified "did not finish", with the status the timing
+     screens print for it in brackets -- never "Finished Retired". */
+  const spokenOutcome = (result: NonNullable<CalendarRound['result']>): string => {
+    const pts = `${points(result.points)} points.`;
+    if (result.position) return `Finished ${ordinal(result.position)}, ${pts}`;
+    const status = result.status.trim();
+    if (/^did not/i.test(status)) return `${status}, ${pts}`;
+    return `Did not finish (${status.toLowerCase()}), ${pts}`;
+  };
   slot(
     'prev-outcome',
-    previous.result
-      ? `Finished ${outcome}, ${points(previous.result.points)} points.`
-      : 'Result not yet published.',
+    previous.result ? spokenOutcome(previous.result) : 'Result not yet published.',
   );
 
   /* The figure and its ordinal letters as two runs, the letters set small --
@@ -932,9 +1008,16 @@ if (statGrid) {
     figure.dataset.count = String(stat.value);
     figureWrap.appendChild(figure);
 
+    /* The decimals are a counter of their own beside a point that never moves,
+       as the reference sets them: `.` and `28` in two boxes. */
     if (stat.fraction) {
       figure.classList.add('ot-stats__value--whole');
-      figureWrap.appendChild(el('span', 'ot-stats__fraction', stat.fraction));
+      const decimals = stat.fraction.replace(/^\./, '');
+      const counter = el('span', 'ot-stats__decimals', decimals);
+      counter.dataset.count = String(Number(decimals));
+      const fraction = el('span', 'ot-stats__fraction', '.');
+      fraction.appendChild(counter);
+      figureWrap.appendChild(fraction);
     }
 
     if (stat.scribble) {
@@ -989,25 +1072,102 @@ if (statGrid) {
   fitStats();
   remeasure(fitStats);
 
-  /* Count-ups, on the whole part only. The average finish's decimals are
-     static beside it: counting through fractional intermediates would spin a
-     decimal place that means nothing. */
-  if (!reducedMotion) {
-    for (const figure of figures) {
-      const target = Number(figure.dataset.count);
+  /* Count-ups, the reference's `[data-car-counter]` to the number. Each
+   * counter waits zero-padded to its own digit count ("000" under a
+   * three-digit figure, "0" under the "3"), and once its top crosses 90% of the
+   * screen counts up over 1s power1.out, keeping the padding as it goes. A
+   * figure that sets with a group separator counts in groups instead, as the
+   * reference's does. The average finish's decimals are the second counter,
+   * "00" up to their value, beside a point that stays put.
+   *
+   * The targets are the data layer's own (data-count, written above from
+   * `career`). The counters are aria-hidden; each item's sr-only twin states
+   * the settled value, so none of this is ever read out mid-count. Wide and
+   * animated only: elsewhere the settled figures are simply there. */
+  mm.add(WIDE_AND_ANIMATED, () => {
+    const counters = [...statGrid.querySelectorAll<HTMLElement>('[data-count]')];
+    const settled = counters.map((counter) => counter.textContent ?? '');
+
+    const tweens = counters.map((counter, i) => {
+      const final = settled[i] ?? '';
+      const target = Number(counter.dataset.count);
+      const digits = final.replace(/\D/g, '').length;
+      const grouped = /\D/.test(final);
+      const show = (n: number): string =>
+        grouped ? groups.format(n) : String(n).padStart(digits, '0');
+
       const state = { n: 0 };
-      figure.textContent = '0';
-      gsap.to(state, {
+      counter.textContent = '0'.repeat(Math.max(1, digits));
+      return gsap.to(state, {
         n: target,
-        duration: 1.6,
-        ease: 'expo.out',
-        scrollTrigger: { trigger: figure, start: 'top 90%' },
+        duration: 1,
+        ease: 'power1.out',
+        scrollTrigger: { trigger: counter, start: 'top 90%', once: true },
         onUpdate: () => {
-          figure.textContent = groups.format(Math.round(state.n));
+          counter.textContent = show(Math.round(state.n));
         },
       });
-    }
-  }
+    });
+
+    return () => {
+      for (const tween of tweens) tween.kill();
+      counters.forEach((counter, i) => {
+        counter.textContent = settled[i] ?? '';
+      });
+    };
+  });
+
+  /* The P1 scribble's entrance: the reference's `phrase_p1` Rive, played once
+   * by its `data-rive-scrolltrigger` handler when the canvas top passes 80% of
+   * the screen. That handler holds the canvas at opacity 0 and raises it over
+   * 0.1s (ease-in-out) as it plays. The animation is 85 frames at 60fps, but
+   * its ink is all down by 1.05s -- sampled off the reference's own file: 50%
+   * of the final ink at ~0.5s, 98% at 1.0s, 100% at 1.05s, near linear -- and
+   * the last 0.37s holds the finished mark. So the four strokes are drawn in
+   * order, each for its share of the total length, over those 1.05s. Drawn and
+   * still below 992px and under reduced motion. */
+  const P1_INK = 1.05;
+  mm.add(WIDE_AND_ANIMATED, () => {
+    const entrances = [...statGrid.querySelectorAll<HTMLElement>('.ot-stats__scribble')].map(
+      (scribble) => {
+        const paths = [...scribble.querySelectorAll<SVGPathElement>('path')];
+        const lengths = paths.map((path) => path.getTotalLength());
+        const total = lengths.reduce((a, b) => a + b, 0);
+
+        /* A dash the stroke's own length, and a gap twice that, so the hidden
+           stroke sits wholly inside the gap with no zero-length dash at either
+           end for a round cap to paint as a dot. Set as attributes: GSAP rounds
+           the CSS property to whole pixels, which leaves a sliver of every
+           waiting stroke showing as a dot. */
+        const hand = gsap.timeline({ paused: true });
+        paths.forEach((path, i) => {
+          const length = lengths[i] ?? 0;
+          gsap.set(path, {
+            attr: { 'stroke-dasharray': `${length} ${2 * length}`, 'stroke-dashoffset': length },
+          });
+          hand.to(path, {
+            attr: { 'stroke-dashoffset': 0 },
+            duration: (P1_INK * length) / total,
+            ease: 'none',
+          });
+        });
+        gsap.set(scribble, { opacity: 0 });
+
+        return ScrollTrigger.create({
+          trigger: scribble,
+          start: 'top 80%',
+          once: true,
+          onEnter: () => {
+            gsap.to(scribble, { opacity: 1, duration: 0.1, ease: 'power1.inOut' });
+            hand.play();
+          },
+        });
+      },
+    );
+    return () => {
+      for (const trigger of entrances) trigger.kill();
+    };
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -1279,9 +1439,20 @@ const podiumImg = document.querySelector<HTMLImageElement>('[data-podium-img]');
 
 if (podium && podiumPhoto && podiumImg) {
   mm.add(`${WIDE_AND_ANIMATED} and (hover: hover) and (pointer: fine)`, () => {
-    // Fetched up front, as the reference's hidden list of them is, so a swap
-    // under the pointer never shows an empty frame.
-    for (const src of PODIUM_PHOTOS) new Image().src = src;
+    /* Fetched as the number comes within a screen of view -- not during the
+       page's load, where these ten were 1.6MB competing with the hero -- and
+       still before a pointer can reach it, so a swap under the pointer never
+       shows an empty frame. The result highlights fetch their set the same
+       way. */
+    const approach = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        approach.disconnect();
+        for (const src of PODIUM_PHOTOS) new Image().src = src;
+      },
+      { rootMargin: '100% 0px 100% 0px' },
+    );
+    approach.observe(podium);
     podiumPhoto.hidden = false;
 
     const reveal = gsap.to(podiumPhoto, {
@@ -1344,6 +1515,7 @@ if (podium && podiumPhoto && podiumImg) {
     window.addEventListener('scroll', update, { passive: true });
 
     return () => {
+      approach.disconnect();
       watch.disconnect();
       document.removeEventListener('pointermove', onPointer);
       window.removeEventListener('scroll', update);
@@ -1353,31 +1525,34 @@ if (podium && podiumPhoto && podiumImg) {
 }
 
 /* ------------------------------------------------------------------ *
- * The career portrait's accent wipe
+ * The career portrait's reveal
  *
- * The reference's `data-img-highlight="top, lime"` — a band of colour covering
- * the picture, which lifts away downward so the image arrives from the top. The
- * same idea as the text reveal, on the other axis.
+ * The reference's `data-img-highlight="top, lime"`, to the number. The picture
+ * starts hidden, clipped to an ellipse with no height at its top edge. When
+ * its top crosses 80% of the screen the ellipse drops open over 0.8s
+ * (power2.out) and shows an accent sheet lying over the photo; 0.4s in, that
+ * sheet shrinks away toward the bottom edge over 0.6s (power2.out) as an
+ * ellipse of its own, uncovering the picture top first.
+ *
+ * The sheet is the box's ::after, sized by --img-veil (1 covers, 0 gone).
+ * Wide and animated only: elsewhere the picture is simply there, no sheet.
  * ------------------------------------------------------------------ */
 
 /* The pre-F1 photograph carries the same `data-img-highlight="top, lime"` in
-   the reference, so it runs the same wipe. */
-const wipedImages = document.querySelectorAll<HTMLElement>('[data-career-img], [data-junior-img]');
+   the reference, so it runs the same reveal. */
+const revealedImages = [
+  ...document.querySelectorAll<HTMLElement>('[data-career-img], [data-junior-img]'),
+];
 
-if (!reducedMotion) {
-  for (const wiped of wipedImages) {
-    gsap.fromTo(
-      wiped,
-      { '--img-wipe': 1 },
-      {
-        '--img-wipe': 0,
-        duration: 0.9,
-        ease: 'power3.inOut',
-        scrollTrigger: { trigger: wiped, start: 'top 85%' },
-      },
-    );
+mm.add(WIDE_AND_ANIMATED, () => {
+  for (const box of revealedImages) {
+    gsap.set(box, { clipPath: 'ellipse(120% 0% at 50% 0%)', '--img-veil': 1 });
+    gsap
+      .timeline({ scrollTrigger: { trigger: box, start: 'top 80%', once: true } })
+      .to(box, { clipPath: 'ellipse(120% 120% at 50% 0%)', duration: 0.8, ease: 'power2.out' })
+      .to(box, { '--img-veil': 0, duration: 0.6, ease: 'power2.out' }, '-=0.4');
   }
-}
+});
 
 /* ------------------------------------------------------------------ *
  * Provenance
@@ -1467,27 +1642,55 @@ if (seasonsBody) {
       `${career.championships} world championships.`;
   }
 
-  /* Row entry.
+  /* Row entry, the reference's `[data-stat-list]` to the number, and the same
+   * cascade the result highlights run below. The rows wait, clipped to
+   * nothing, until the list's top crosses 90% of the screen. Then each opens
+   * left to right over 0.6s (power2.out), 50ms behind the one above, over an
+   * accent bar that pulls off to the right 0.3s in (0.6s, power2.inOut). No
+   * opacity anywhere: the reference's rows are never faded.
    *
-   * The reference wipes each row with a lime bar (`.item-reveal`, scaleX 0 to
-   * 1). Twenty rows on twenty separate observers would arrive at twenty
-   * slightly different scroll positions, so they are batched: each row's delay
-   * comes from its index within the batch, which is what makes the table read
-   * downward instead of flickering. */
-  if (!reducedMotion) {
-    ScrollTrigger.batch(seasonsBody.querySelectorAll('.ot-seasons__row'), {
-      start: 'top 92%',
-      onEnter: (batch) =>
-        gsap.to(batch, {
-          '--row-wipe': 1,
-          opacity: 1,
-          duration: 0.62,
-          ease: 'power3.out',
-          stagger: 0.045,
-          overwrite: true,
-        }),
+   * One timeline for the list, not a trigger per row, so nineteen rows read as
+   * one cascade rather than nineteen separate arrivals.
+   *
+   * These are real table rows, and a clip on a `<tr>` is not one every engine
+   * honours, so the clip is on the CELLS. Each cell turns the row's single
+   * progress (`--row-open`, `--row-bar`) into its own share of it from where it
+   * sits in the row (`--cell-start`, `--cell-span`), so the three cells open as
+   * one edge travelling across the row -- see `.ot-seasons__cell` in
+   * on-track.css. Wide and animated only: below 992px and under reduced motion
+   * none of this is set and the table is simply there. */
+  mm.add(WIDE_AND_ANIMATED, () => {
+    const rows = [...seasonsBody.querySelectorAll<HTMLTableRowElement>('.ot-seasons__row')];
+
+    const placeCells = (): void => {
+      for (const row of rows) {
+        const box = row.getBoundingClientRect();
+        if (box.width <= 0) continue;
+        for (const cell of row.cells) {
+          const at = cell.getBoundingClientRect();
+          cell.style.setProperty('--cell-start', String((at.left - box.left) / box.width));
+          cell.style.setProperty('--cell-span', String(at.width / box.width));
+        }
+      }
+    };
+
+    placeCells();
+    seasonsBody.dataset.rowsAnimated = '';
+    gsap.set(rows, { '--row-open': 0, '--row-bar': 1 });
+    const entry = gsap.timeline({
+      scrollTrigger: { trigger: seasonsBody, start: 'top 90%', once: true },
+      onStart: placeCells,
     });
-  }
+    rows.forEach((row, i) => {
+      const at = i * 0.05;
+      entry.to(row, { '--row-open': 1, duration: 0.6, ease: 'power2.out' }, at);
+      entry.to(row, { '--row-bar': 0, duration: 0.6, ease: 'power2.inOut' }, at + 0.3);
+    });
+
+    return () => {
+      delete seasonsBody.dataset.rowsAnimated;
+    };
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -1645,7 +1848,19 @@ if (hlList && hlRows && hlPhoto && hlPhotoImg) {
     '(min-width: 992px) and (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine)',
     () => {
       hlPhoto.hidden = false;
-      gsap.set(hlPhoto, { x: 0, y: 0 });
+
+      /* At rest the picture waits at the top-left of the ROWS, as the
+         reference's does -- its containing block is the rows box. Ours is the
+         list, which also holds the header row, so the rest is offset down to
+         the rows; re-read on the first arrival, once the fonts have set the
+         header's height, so the first glide starts from the right place. */
+      const rest = (): void => {
+        const list = hlList.getBoundingClientRect();
+        const rows = hlRows.getBoundingClientRect();
+        gsap.set(hlPhoto, { x: rows.left - list.left, y: rows.top - list.top });
+      };
+      rest();
+      let visited = false;
 
       const open = gsap.timeline({ paused: true }).to(hlPhoto, {
         clipPath: 'ellipse(120% 120% at 50% 0%)',
@@ -1681,6 +1896,10 @@ if (hlList && hlRows && hlPhoto && hlPhotoImg) {
           open.timeScale(2).reverse();
         }
         if (inside) {
+          if (!visited) {
+            visited = true;
+            rest();
+          }
           const box = hlList.getBoundingClientRect();
           toX(pointerX - box.left + PHOTO_OFFSET);
           toY(pointerY - box.top - PHOTO_OFFSET);
@@ -1814,17 +2033,30 @@ if (juniorGrid) {
     juniorGrid.appendChild(item);
   }
 
-  /* Grown once each, as the reference plays each Rive when its canvas top
-     passes 80% of the screen. Drawn full-grown, and left so, when motion is
-     reduced. */
-  mm.add('(prefers-reduced-motion: no-preference)', () => {
+  /* Grown once each, as the reference plays each `reef` Rive when its canvas
+     top passes 80% of the screen: its `main-play`, 110 frames at 60fps (1.83s),
+     with the canvas raised from opacity 0 over 0.1s as it starts -- the same
+     `data-rive-scrolltrigger` handler as the P1 and Race Day.
+
+     The growth itself is the first 1.2s of those 1.83s; the rest holds the
+     closed wreath. Sampled off the reference's file, its ink reads 2% of the
+     final at 0.3s, 25% at 0.5s, 66% at 0.7s, 89% at 0.9s and 99% at 1.1s;
+     this drawing, grown on power1.inOut over 1.2s, tracks that curve. Drawn
+     full-grown, and left so, below 992px and when motion is reduced. */
+  const REEF_PLAY = 1.2;
+  const REEF_EASE = 'power1.inOut';
+  mm.add(WIDE_AND_ANIMATED, () => {
     const tweens = wreaths.map(({ mark, branches }) => {
       const growth = { g: 0 };
       drawClosedReef(branches, 0);
+      gsap.set(mark, { opacity: 0 });
       return gsap.to(growth, {
         g: 1,
-        duration: 1.1,
-        ease: 'power2.out',
+        duration: REEF_PLAY,
+        ease: REEF_EASE,
+        onStart: () => {
+          gsap.to(mark, { opacity: 1, duration: 0.1, ease: 'power1.inOut' });
+        },
         onUpdate: () => drawClosedReef(branches, growth.g),
         scrollTrigger: { trigger: mark, start: 'top 80%', once: true },
       });
@@ -2011,11 +2243,13 @@ function mountCountdown(section: HTMLElement): void {
   const dayWidth = Math.max(2, String(Math.floor(remaining() / 86_400_000)).length);
   digits.style.setProperty('--count-scale', String(8 / (dayWidth + 6)));
 
+  /* Under reduced motion the seconds are left out: a figure changing every
+     second is motion. The other three still keep time -- see the tick below. */
   const UNITS: [string, number][] = [
     ['D', 86_400_000],
     ['H', 3_600_000],
     ['M', 60_000],
-    ['S', 1000],
+    ...(reducedMotion ? [] : ([['S', 1000]] as [string, number][])),
   ];
   const phrase = digits.querySelector('[data-countdown-phrase]');
   /* Each field holds the width of its zeros, so a ticking figure never nudges
@@ -2042,39 +2276,83 @@ function mountCountdown(section: HTMLElement): void {
   };
   render();
 
-  /* One interval, cleared at zero. Under reduced motion the figures render once
-     and hold: the start time is still stated in full, and what is dropped is a
-     display changing every second, which is motion rather than information. */
-  if (!reducedMotion) {
+  /* One interval, cleared at zero. Under reduced motion there are no seconds
+     to tick, but the figures still keep time: they update once a minute, on
+     the minute, because a countdown frozen at load is simply wrong a minute
+     later. A text change once a minute is information, not motion. */
+  if (reducedMotion) {
+    const untilNextMinute = (): number => (remaining() % 60_000) + 50;
+    const onTheMinute = (): void => {
+      if (!render()) window.setTimeout(onTheMinute, untilNextMinute());
+    };
+    window.setTimeout(onTheMinute, untilNextMinute());
+  } else {
     const tick = window.setInterval(() => {
       if (render()) window.clearInterval(tick);
     }, 1000);
   }
 
   /* "Race Day", written across the digits once, when the script's box reaches
-   * 80% down the viewport -- the reference's trigger. Each stroke is revealed
-   * along its own length, in the order the markup lists them, and the whole
-   * hand is eased as one gesture so it starts and lands softly rather than
-   * every stroke doing so. Under reduced motion it is simply there. */
+   * 80% down the viewport: the reference's `race-day` Rive, played by the same
+   * `data-rive-scrolltrigger` handler as the P1, which also raises the canvas
+   * from opacity 0 over 0.1s as it starts.
+   *
+   * Timed off the reference's own file rather than its timeline lengths. Its
+   * main animation runs 210 frames (3.5s) and nests one 120-frame timeline per
+   * stroke, but those do not overlap on screen: sampled frame by frame, the
+   * word is written a stroke at a time with the pen lifted between them -- the
+   * R down by 0.42s, "Race" by 1.2s, the D by 1.85s, "Day" by 2.6s, the
+   * underline by 3.0s -- about 2.0s of ink and 1.0s of lifts, with the last
+   * 0.5s holding the finished word. So: the strokes in the order the markup
+   * lists them, each for its share of the length, 90ms apart, each easing on
+   * and off the page (power1.inOut), and the hand itself running at a constant
+   * rate. Written and still below 992px and under reduced motion. */
   const script = digits.querySelector<SVGSVGElement>('.ot-count__script');
   const strokes = [...digits.querySelectorAll<SVGPathElement>('[data-stroke]')];
-  if (script && strokes.length && !reducedMotion) {
-    const lengths = strokes.map((path) => path.getTotalLength());
-    const total = lengths.reduce((a, b) => a + b, 0);
-    const hand = gsap.timeline({ paused: true });
-    strokes.forEach((path, i) => {
-      const length = lengths[i] ?? 0;
-      gsap.set(path, { strokeDasharray: `${length} ${length}`, strokeDashoffset: length });
-      hand.to(path, { strokeDashoffset: 0, duration: length / total, ease: 'none' });
+  const RACE_DAY_INK = 3.0;
+  const PEN_LIFT = 0.09;
+  if (script && strokes.length) {
+    mm.add(WIDE_AND_ANIMATED, () => {
+      const lengths = strokes.map((path) => path.getTotalLength());
+      const total = lengths.reduce((a, b) => a + b, 0);
+      const inking = RACE_DAY_INK - PEN_LIFT * (strokes.length - 1);
+      const hand = gsap.timeline({ paused: true });
+      let at = 0;
+      strokes.forEach((path, i) => {
+        const length = lengths[i] ?? 0;
+        const duration = (inking * length) / total;
+        /* Attributes, not the CSS property: GSAP rounds that to whole pixels,
+           which would leave a sliver of each waiting stroke as a dot. The gap
+           is twice the dash so a hidden stroke has no dash end in it at all. */
+        gsap.set(path, {
+          attr: { 'stroke-dasharray': `${length} ${2 * length}`, 'stroke-dashoffset': length },
+        });
+        hand.to(path, { attr: { 'stroke-dashoffset': 0 }, duration, ease: 'power1.inOut' }, at);
+        at += duration + PEN_LIFT;
+      });
+      gsap.set(script, { opacity: 0 });
+
+      const trigger = ScrollTrigger.create({
+        trigger: script,
+        start: 'top 80%',
+        once: true,
+        onEnter: () => {
+          gsap.to(script, { opacity: 1, duration: 0.1, ease: 'power1.inOut' });
+          hand.play();
+        },
+      });
+      return () => trigger.kill();
     });
-    ScrollTrigger.create({
-      trigger: script,
-      start: 'top 80%',
-      once: true,
-      onEnter: () => {
-        gsap.to(hand, { progress: 1, duration: 1.6, ease: 'power1.inOut' });
-      },
-    });
+  }
+}
+
+/* The schedule buttons' hooked arrow cycles while hovered or focused, as the
+   reference's Rive arrow does -- see mountArrowCycle. It is aria-hidden
+   decoration; under reduced motion it stays still. */
+if (!reducedMotion) {
+  for (const button of document.querySelectorAll<HTMLElement>('.ot-cal__btn')) {
+    const icon = button.querySelector<SVGSVGElement>('.ot-cal__btn-icon');
+    if (icon) mountArrowCycle(button, icon);
   }
 }
 
@@ -2332,9 +2610,13 @@ function mountCalendar(section: HTMLElement): void {
     const row = el('button', 'ot-cal__row');
     row.type = 'button';
     row.setAttribute('aria-controls', panel.id);
+    /* The visible fields first and in their on-screen order -- round, country,
+       dates, laps, distance -- so the name contains every label a speech-input
+       user can see (WCAG 2.5.3), with the race and the town it is in after the
+       country they belong to. */
     const label =
-      `Round ${round.round}, ${round.raceName}, ${round.locality}, ${span.days} ${span.month}, ` +
-      `${facts.laps} laps, ${distance} km. ${state}`;
+      `Round ${round.round}, ${round.country}, ${round.raceName}, ${round.locality}, ` +
+      `${span.days} ${span.month}, ${facts.laps} laps, ${distance} km. ${state}`;
     row.setAttribute('aria-label', label.trim());
 
     const cell = (className = 'ot-cal__cell'): HTMLSpanElement => {
@@ -2483,11 +2765,15 @@ function mountCalendar(section: HTMLElement): void {
     const reveal = need('[data-cal-card-reveal]');
     const shapeHost = need('[data-cal-card-circuit]');
 
-    gsap.set(card, { clipPath: 'ellipse(120% 0% at 50% 0%)', autoAlpha: 0, x: 0, y: 0 });
+    /* The reference's card never fades: it sits at full opacity and only the
+       oval opens (0.8s power2.out) and closes (the same, reversed at double
+       speed). Its inner accent sheet is `opacity: 0` in the reference's CSS,
+       so it is timed here but never seen -- see `.ot-cal__card-reveal`. */
+    gsap.set(card, { clipPath: 'ellipse(120% 0% at 50% 0%)', visibility: 'visible', x: 0, y: 0 });
     gsap.set(reveal, { clipPath: 'ellipse(120% 120% at 50% 100%)' });
     const appear = gsap
       .timeline({ paused: true })
-      .to(card, { clipPath: 'ellipse(120% 120% at 50% 0%)', autoAlpha: 1, duration: 0.8, ease: 'power2.out' })
+      .to(card, { clipPath: 'ellipse(120% 120% at 50% 0%)', duration: 0.8, ease: 'power2.out' })
       .to(reveal, { clipPath: 'ellipse(120% 0% at 50% 100%)', duration: 0.6, ease: 'power2.out' }, '-=0.4');
     const toX = gsap.quickTo(card, 'x', { duration: 0.5, ease: 'power2.out' });
     const toY = gsap.quickTo(card, 'y', { duration: 0.5, ease: 'power2.out' });
@@ -2578,9 +2864,10 @@ function mountCalendar(section: HTMLElement): void {
 
 const scrollRegions: [string, string][] = [
   /* The hero cluster is five outlined panels drawn at fixed aspect ratios.
-     Below 992px it keeps those proportions and scrolls rather than reflowing,
-     which puts the next round's circuit and dates off the right of a phone
-     screen unless the region can be entered from the keyboard. */
+     From 480 to 991px it keeps them in one strip and scrolls, which puts the
+     next round's circuit and dates off the right edge unless the region can
+     be entered from the keyboard. Below 480 it reflows (on-track.css) and
+     nothing overflows, so the check below takes the tab stop away again. */
   ['.ot-hero__ui', 'Previous and next race, scrollable'],
 ];
 
