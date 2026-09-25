@@ -4312,6 +4312,12 @@ button.ot-cal__row:focus-visible {
  * a build the two land as separate files, and a tie on specificity would be
  * decided by link order nobody wrote down. */
 
+/* The wall's second title line is `.c-grey-on-track` here where Home's is
+   `.c-lime-off` — the one thing the shared partial sets differently per page. */
+[data-page='on-track'] .hof__title-line.is-serif {
+  color: var(--grey-on-track);
+}
+
 [data-page='on-track'] .socials {
   background: var(--gl-bg);
   color: var(--cream);

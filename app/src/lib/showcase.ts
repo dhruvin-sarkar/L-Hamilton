@@ -95,9 +95,17 @@ export function mountHelmets(): void {
      The #hof-card clipPath in index.html is this same outline normalised to the
      0..1 box, and clips each photograph to it. Change one and the other has to
      follow, or the pictures will stop where the line does not. */
+  /* Two outlines, as the reference draws them: the resting line inset half a
+     pixel with a non-scaling 2px stroke, the hover line inset a whole pixel at a
+     2px stroke that scales with the card. The corners where the step meets the
+     diagonal are rounded rather than mitred — 23.5 and 22.5 radii, measured. */
   const HOF_CARD_PATH =
-    'M8 0.5 H399 A7.5 7.5 0 0 1 406.5 8 V364.5 A7.5 7.5 0 0 1 399 372 ' +
-    'H263 L211 410.5 H8 A7.5 7.5 0 0 1 0.5 403 V8 A7.5 7.5 0 0 1 8 0.5 Z';
+    'M8 .5h390.89a7.5 7.5 0 0 1 7.5 7.5v356.983a7.5 7.5 0 0 1-7.5 7.5H263.329' +
+    'a23.502 23.502 0 0 0-18.375 8.849l-16.499 20.695a22.502 22.502 0 0 1-17.593 8.473' +
+    'H8A7.5 7.5 0 0 1 .5 403V8A7.5 7.5 0 0 1 8 .5Z';
+  const HOF_CARD_PATH_ON =
+    'M8 1h390.89a7 7 0 0 1 7 7v356.983a7 7 0 0 1-7 7H263.329a23.999 23.999 0 0 0-18.766 9.038' +
+    'l-16.499 20.694A21.999 21.999 0 0 1 210.862 410H8a7 7 0 0 1-7-7V8a7 7 0 0 1 7-7Z';
 
   /** Attribute-safe text. The data is ours, but a name carrying a quote would
       otherwise close the attribute it sits in and swallow the rest of the tag. */
@@ -108,7 +116,8 @@ export function mountHelmets(): void {
   function hofFrame(variant: 'base' | 'on'): string {
     return (
       `<svg class="hof__frame hof__frame--${variant}" viewBox="0 0 407 411" ` +
-      `preserveAspectRatio="none" aria-hidden="true"><path d="${HOF_CARD_PATH}" /></svg>`
+      `preserveAspectRatio="none" aria-hidden="true">` +
+      `<path d="${variant === 'on' ? HOF_CARD_PATH_ON : HOF_CARD_PATH}" /></svg>`
     );
   }
 
@@ -159,7 +168,7 @@ export function mountHelmets(): void {
  *
  * Two offsets, both easing to nothing as the wall crosses the screen, and both
  * moving the same direction: columns 1 and 3 travel 5rem, columns 2 and 4
- * travel 15rem. Measured off the reference, where the ratio is exactly 3 and
+ * travel 25rem. Measured off the reference, where the ratio is exactly 5 and
  * the scrub is linear rather than eased.
  *
  * That every column moves UP is worth stating plainly, because the effect
@@ -179,20 +188,16 @@ export function mountHofDrift(): void {
   mm.add(WIDE_AND_ANIMATED, () => {
     if (!hof || !hofGrid) return;
 
-    /* The reference's own travel is 5rem and 15rem. Both are scaled by the same
-       factor here, deliberately, so the wall drifts further than the reference's
-       does while the 3:1 relationship that produces the stagger is untouched.
-       Currently 2.4x, which puts the trailing columns most of a card lower than
-       their neighbours as the wall comes onto the screen. */
+    /* The reference's transforms, read straight off its cards at sixteen scroll
+       positions (1728x1080): columns 1 and 3 sit 5rem low, columns 2 and 4 sit
+       25rem low — two nested tweens of 10rem and 15rem on the same range — and
+       both fall linearly to zero between the grid's top reaching the bottom of
+       the screen and its bottom leaving the top. Sampled at the section's own
+       top it reads 57.9px and 289.7px, which is what these produce. */
     const apply = (progress: number) => {
       const rest = 1 - progress;
-      /* Solved against the reference's own drift, measured on the running site:
-         sampling the topmost card of each column at four scroll positions, its
-         lead columns travel 44px and its lag columns 219px. Ours travelled 180
-         and 540 — four times and two and a half times too far — which is what
-         forced the CTA's outsized clearance below and inflated the section. */
-      hof.style.setProperty('--hof-lead', `${2.93 * rest}rem`);
-      hof.style.setProperty('--hof-lag', `${14.6 * rest}rem`);
+      hof.style.setProperty('--hof-lead', `${5 * rest}rem`);
+      hof.style.setProperty('--hof-lag', `${25 * rest}rem`);
     };
 
     gsap.to(
@@ -218,7 +223,7 @@ export function mountHofDrift(): void {
     );
 
     /* Our own inline writes, so the context will not clear them. Left behind,
-       every even column would stay parked 15rem low in the two-column layout. */
+       every even column would stay parked 25rem low in the two-column layout. */
     return () => {
       hof.style.removeProperty('--hof-lead');
       hof.style.removeProperty('--hof-lag');
