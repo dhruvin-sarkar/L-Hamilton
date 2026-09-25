@@ -923,6 +923,7 @@ body[data-page='off-track'] {
 @media (max-width: 991px) {
   .gallery--off-track {
     --u: calc(100vw / 86.4);
+    --eyebrow: calc(0.8 * var(--u));
   }
 
   .gallery--off-track .gallery__track {
@@ -949,8 +950,9 @@ body[data-page='off-track'] {
     inline-size: min(var(--w), 100%);
   }
 
-  .gallery--off-track .gallery__cap {
-    font-size: calc(0.8 * var(--u));
+  .gallery--off-track .gallery__cap,
+  .oft-gal__eyebrow {
+    font-size: var(--eyebrow);
   }
 
   .gallery--off-track .oft-callout__text {
@@ -998,8 +1000,8 @@ body[data-page='off-track'] {
 }
 
 @media (max-width: 767px) {
-  .gallery--off-track .gallery__cap {
-    font-size: var(--u);
+  .gallery--off-track {
+    --eyebrow: var(--u);
   }
 }
 
@@ -1021,8 +1023,8 @@ body[data-page='off-track'] {
     inline-size: 100%;
   }
 
-  .gallery--off-track .gallery__cap {
-    font-size: calc(0.8 * var(--u));
+  .gallery--off-track {
+    --eyebrow: calc(0.8 * var(--u));
   }
 
   .gallery--off-track .gallery__frame img {
@@ -1062,22 +1064,27 @@ body[data-page='off-track'] {
     grid-column: 2;
   }
 
-  .oft-gal__heading-plain {
-    font-size: calc(2.6 * var(--u));
-    letter-spacing: calc(-0.07 * var(--u));
-  }
-
+  .oft-gal__heading-plain,
   .oft-gal__heading-serif {
-    font-size: calc(2.7 * var(--u));
+    font-size: calc(2.6 * var(--u));
   }
 
   /* ---- the titles: the name and its descriptor side by side ---- */
 
+  /* Across the column, which is a flex column that would otherwise shrink
+     the grid to its content. */
   .oft-gal__title {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
     gap: calc(1.25 * var(--u));
+    inline-size: 100%;
+  }
+
+  /* .is-m-offset: every descriptor after the first sits 0.15rem low. */
+  .gallery__col--title-mid :is(.oft-gal__eyebrow, .oft-gal__descriptor),
+  .gallery__col--title-top ~ .gallery__col--title-top .oft-gal__eyebrow {
+    translate: 0 calc(0.15 * var(--u));
   }
 
   .oft-gal__title--mid {
@@ -1085,6 +1092,7 @@ body[data-page='off-track'] {
   }
 
   .oft-gal__name {
+    font-size: calc(1.9 * var(--u));
     white-space: normal;
   }
 
@@ -1145,9 +1153,8 @@ body[data-page='off-track'] {
     aspect-ratio: 1;
   }
 
-  .oft-pair-a-2 {
-    --top: calc(-7 * var(--u));
-    margin-block-end: 0;
+  .gallery--off-track .oft-pair-a-2 {
+    margin-block: calc(-7 * var(--u)) 0;
   }
 
   .oft-pair-a-2 .gallery__frame {
@@ -1164,8 +1171,8 @@ body[data-page='off-track'] {
     aspect-ratio: 1;
   }
 
-  .oft-pair-b-2 {
-    --top: calc(-7 * var(--u));
+  .gallery--off-track .oft-pair-b-2 {
+    margin-block-start: calc(-7 * var(--u));
   }
 
   .oft-pair-b-2 .gallery__frame {
@@ -1178,10 +1185,9 @@ body[data-page='off-track'] {
     aspect-ratio: 1;
   }
 
-  .oft-pair-d-2 {
-    --top: calc(-5 * var(--u));
+  .gallery--off-track .oft-pair-d-2 {
     inset-inline-start: 0;
-    margin-block-end: 0;
+    margin-block: calc(-5 * var(--u)) 0;
   }
 
   .oft-pair-d-2 .gallery__frame {
@@ -1343,6 +1349,13 @@ body[data-page='off-track'] {
 
   .oft-impact__text {
     font-size: calc(3.5 * var(--r));
+  }
+
+  /* The reference's line splitter drops the <br> after its first word, which
+     only shows on a phone, where the first line then runs on to a second
+     word. The same here, by taking the break out of the flow. */
+  .oft-impact__text br {
+    display: none;
   }
 
   .oft-impact__accent {
