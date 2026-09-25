@@ -38,7 +38,86 @@
     <main id="main">
       <!-- Reference order (public/off-track.html): the hero and the statement
            share one scroll group, then the side-scrolling gallery, then the
-           socials block. There is no helmet wall and no store call here. -->
+           socials block. There is no helmet wall and no store call here.
+
+           The group is the reference's `.s-group[data-heroflip="track"]`: the
+           picture in the header flies out of it and down into the statement as
+           the two scroll past, flicking through ten photographs on the way.
+           See the flight in off-track.ts. -->
+      <div class="oft-group" data-flight-track>
+        <!-- ================================================== Page header
+             Measured against the reference at 1728x1080, where its root is
+             16px. One screen tall on the four-column grid the On Track header
+             uses: the title across the full width, the identity row under it,
+             and below that the paragraph block in columns 1-2 with the picture
+             in columns 3-4, hanging 12rem up over TRACK and off the bottom of
+             the screen. -->
+        <header class="oft-hero">
+          <div class="oft-hero__c">
+            <!-- The visible title is two faces that are one phrase to a reader;
+                 the heading proper is this, hidden, as the reference does. -->
+            <h1 class="sr-only">Off Track</h1>
+
+            <div class="oft-hero__title-w">
+              <p class="oft-hero__title" aria-hidden="true"><span class="oft-hero__off">Off</span><span class="oft-hero__track">Track</span></p>
+            </div>
+
+            <div class="oft-hero__grid oft-hero__info">
+              <div class="oft-hero__sub">
+                <p class="oft-hero__quote reveal-text">Lewis Hamilton</p>
+                <div class="oft-hero__sub-col">
+                  <!-- Computed from the date of birth; see off-track.ts. -->
+                  <p class="oft-hero__quote reveal-text"><span data-bind="driver-age">&mdash;</span> y.o</p>
+                  <!-- The reference's Rive "off-icons" mark (a games pad for its
+                       driver). Ours is the site's own dot sphere, the mark the
+                       socials block already carries. Decorative. -->
+                  <span class="oft-hero__icon" aria-hidden="true"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="oft-hero__grid oft-hero__stats">
+              <div class="oft-hero__stats-w">
+                <div class="oft-hero__spacer" aria-hidden="true"></div>
+
+                <div class="oft-hero__stats-layout">
+                  <p class="oft-hero__eyebrow reveal-text" data-hero-eyebrow>&mdash;</p>
+                  <div class="oft-hero__para-w">
+                    <!-- Third-person site copy, never a quote. Filled from
+                         src/content/off-track.ts, where each claim carries its
+                         source. -->
+                    <h2 class="oft-hero__para reveal-text" data-reveal-rich data-hero-lead>&mdash;</h2>
+                  </div>
+                  <div class="oft-hero__sign" aria-hidden="true"></div>
+                </div>
+
+                <div class="oft-hero__note-w">
+                  <p class="oft-hero__note reveal-text" data-hero-recently>&mdash;</p>
+                </div>
+
+                <!-- His ventures, looping along the foot of the header where
+                     the reference runs its partners' logos. The row repeats
+                     itself, so it is hidden from assistive tech and the list is
+                     written out once, below it. -->
+                <div class="oft-hero__marquee" data-hero-marquee aria-hidden="true">
+                  <div class="oft-hero__marquee-scroll">
+                    <div class="oft-hero__marquee-track"></div>
+                  </div>
+                </div>
+                <p class="sr-only" data-hero-ventures></p>
+              </div>
+
+              <!-- The picture's first stop. It starts here, and off-track.ts
+                   lifts it out into the group for the flight. -->
+              <div class="oft-hero__img-slot">
+                <div class="oft-hero__img-w" data-flight-stop="1">
+                  <div class="oft-flight" data-flight aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+      </div>
 
       <!--#include "partials/socials.html"-->
     </main>

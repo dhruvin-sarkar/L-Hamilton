@@ -14,3 +14,439 @@
 body[data-page='off-track'] {
   --bg: var(--black);
 }
+
+/* The hero and the statement: the reference's .s-group, which the picture
+   flies through. Positioned so the flight can be laid out in its coordinates. */
+.oft-group {
+  position: relative;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ================================================================ Header */
+
+.oft-hero {
+  /* Reference .c.is-on-track-home: min(100vh, 1200px), flex column. */
+  block-size: min(100svh, 1200px);
+  /* Proportional figures, as the reference sets "26 y.o". */
+  font-variant-numeric: normal;
+}
+
+.oft-hero__c {
+  block-size: 100%;
+  /* Reference: --on-t-nav-spacer (5.375rem) on top, the container's --gap at
+     the sides, and .off-t-hero-title-layout's --gap at the foot. */
+  padding: 5.375rem var(--gap) var(--gap);
+  display: flex;
+  flex-direction: column;
+}
+
+/* The reference's grid-main: four 23.55% columns with the gap on top, which
+   is why they stop 38px short of the container's right edge. */
+.oft-hero__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 23.55%);
+  column-gap: var(--gap);
+  inline-size: 100%;
+}
+
+/* ------------------------------------------------------------- The title */
+
+/* Reference .off-t-hero-title-w: the line centred in the container and
+   allowed to run past both edges — at 1728 it is 1848px across, 80px off
+   either side. The box is its measured 333px tall: the serif word's larger
+   size is what sets it, and the identity row hangs straight off its foot. */
+.oft-hero__title-w {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  block-size: 20.8125rem;
+}
+
+.oft-hero__title {
+  flex: none;
+  margin: 0;
+  display: flex;
+  /* On one baseline, as the reference's single line of two sizes sits. */
+  align-items: baseline;
+  /* Playfair's line box stands 6px taller over the baseline than Brier's, so
+     the line is lifted by that much to put TRACK's cap line at the
+     reference's y=103 (its baseline at 419, on the identity row). */
+  margin-block-start: -0.375rem;
+  white-space: nowrap;
+  color: var(--text);
+  pointer-events: none;
+}
+
+/* Reference .text-on-t-hero-heading-mona.margin: Brier Bold at 23.2rem with
+   0.4rem to its right. Brier is commercial; the site's display serif stands
+   in for it, sized so its caps stand as tall as Brier's and OFF spans the
+   same 673px. */
+.oft-hero__off {
+  margin-inline-end: 0.4rem;
+  font-family: var(--font-serif);
+  font-size: 23.2rem;
+  font-weight: 700;
+  line-height: 0.886;
+  /* Playfair's capitals are wider than Brier's at the same height. Tracking
+     them in by 1.25rem takes OFF from 735px to Brier's 673, so TRACK lands on
+     the reference's x=619 and runs off the right edge by the same 60px. */
+  letter-spacing: -1.25rem;
+  font-variant-numeric: lining-nums;
+  text-transform: uppercase;
+}
+
+/* Reference .text-on-t-hero-heading: Mona Sans at "wdth" 95 "wght" 700,
+   22.3rem, line-height 0.886, letter-spacing -0.1875rem — the same face, so
+   the same numbers. Kerning off because the reference sets it a letter to a
+   span, which drops the face's pairs. */
+.oft-hero__track {
+  font-family: var(--font-body);
+  font-stretch: 95%;
+  font-size: 22.3rem;
+  font-weight: 700;
+  line-height: 0.886;
+  letter-spacing: -0.1875rem;
+  font-kerning: none;
+  text-transform: uppercase;
+}
+
+.oft-hero__char {
+  display: inline-block;
+}
+
+/* -------------------------------------------------------- Identity row */
+
+/* Reference .off-t-hero-sub-w: columns 1-2, itself two columns. */
+.oft-hero__sub {
+  grid-column: span 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+}
+
+/* Reference .on-t-hero-sub-col.is-grid: two columns, 16px apart, and TWO
+   rows — the second is empty, and its 16px gap is what makes the row 53px
+   tall rather than the icon's 37, which is where the lower half starts. */
+.oft-hero__sub-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 16px;
+  align-items: start;
+}
+
+/* Reference .text-quote: Brier 1.5rem on 0.95, -0.03125rem. */
+.oft-hero__quote {
+  margin: 0;
+  justify-self: start;
+  inline-size: fit-content;
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 0.95;
+  letter-spacing: -0.03125rem;
+  font-variant-numeric: lining-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* Reference .callout-icon.off-t-hero: 2.3125rem square. */
+.oft-hero__icon {
+  display: block;
+  inline-size: 2.3125rem;
+  block-size: 2.3125rem;
+  background: var(--off-white-2);
+  -webkit-mask: url('/assets/brand/dot-ball.svg') center / contain no-repeat;
+  mask: url('/assets/brand/dot-ball.svg') center / contain no-repeat;
+}
+
+/* ------------------------------------------------------- The lower half */
+
+/* Reference .off-t-hero-stats-grid.grid-main: takes the rest of the screen. */
+.oft-hero__stats {
+  flex: 1;
+  margin-block-start: auto;
+  position: relative;
+  row-gap: var(--gap);
+}
+
+/* Reference .off-t-hero-stats-w: columns 1-2, content packed to the foot. */
+.oft-hero__stats-w {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 16px;
+  min-inline-size: 0;
+}
+
+.oft-hero__spacer {
+  flex: 1 1 0;
+  min-block-size: 4rem;
+  max-block-size: 8rem;
+}
+
+.oft-hero__stats-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+/* Reference .text-eyebrow in --color--grey-on-track. */
+.oft-hero__eyebrow {
+  margin: 0;
+  inline-size: fit-content;
+  font-family: var(--font-body);
+  font-size: var(--text--eyebrow);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--grey-on-track);
+}
+
+.oft-hero__para-w {
+  /* A fixed 41rem, as the reference's measures: its paragraph block is 656px
+     wide whatever its longest line happens to be. */
+  inline-size: 41rem;
+  max-inline-size: 100%;
+}
+
+/* Reference .text-body-lg-mona: "wght" 500, 2.25rem on 1.1, -0.0625rem. */
+.oft-hero__para {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 2.25rem;
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: -0.0625rem;
+  color: var(--text);
+}
+
+/* Reference .text-body-lg-brier.c-green-off-white-2: the closing clause in
+   the second face, lower case, in the page's grey rather than its accent. */
+.oft-hero__accent {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-variant-numeric: lining-nums;
+  color: var(--off-white-2);
+}
+
+/* Reference .off-track-hero-signature-rive.scale: 133/72 at 4.5rem, scaled
+   1.3 from its centre and pushed to the left. Written on by off-track.ts; the
+   mask is what shows without it. */
+.oft-hero__sign {
+  inline-size: 8.3125rem;
+  block-size: 4.5rem;
+  margin-inline-end: auto;
+  scale: 1.3;
+  background-color: var(--grey-on-track);
+  mask-image: url('/assets/brand/signature.svg');
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+}
+
+.oft-hero__sign.is-writing {
+  display: flex;
+  justify-content: center;
+  background: none;
+  mask: none;
+}
+
+.oft-hero__sign.is-writing canvas {
+  display: block;
+  block-size: 100%;
+  aspect-ratio: 960 / 764;
+  min-inline-size: 0;
+}
+
+/* Reference .off-t-hero-sub-para-w.grid-main: two 47.1% columns, the note
+   in the second, 16.375rem wide. */
+.oft-hero__note-w {
+  inline-size: 100%;
+  display: grid;
+  grid-template-columns: 47.1% 47.1%;
+  column-gap: var(--gap);
+}
+
+/* Reference .text-body-sm-mona: 1rem, weight 500, on 1.3, -0.0125rem. */
+.oft-hero__note {
+  grid-column: 2;
+  max-inline-size: 16.375rem;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: -0.0125rem;
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------ The marquee */
+
+/* Reference .marquee-offest-w.z-20: the full viewport width, pulled out of
+   the container's left gap, 2rem under the note. */
+.oft-hero__marquee {
+  position: relative;
+  z-index: 20;
+  inline-size: 100vw;
+  margin-block-start: 2rem;
+  margin-inline-start: calc(var(--gap) * -1);
+  overflow: clip;
+}
+
+/* Reference .marquee-advanced__scroll: 10% wider than the screen each side,
+   so the scroll-scrubbed drift never shows an edge. */
+.oft-hero__marquee-scroll {
+  display: flex;
+  inline-size: 120%;
+  margin-inline-start: -10%;
+  will-change: transform;
+}
+
+.oft-hero__marquee-track {
+  display: flex;
+  flex: none;
+  will-change: transform;
+}
+
+/* One venture: set as type in the slot the reference fills with a 3.4375rem
+   logo, with its 7rem spacer after it. */
+.oft-hero__venture {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  block-size: 3.4375rem;
+  padding-inline-end: 7rem;
+  font-family: var(--font-body);
+  font-size: 2.1rem;
+  font-weight: 800;
+  font-stretch: 90%;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.oft-hero__venture.is-serif {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-stretch: normal;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  font-size: 2.35rem;
+}
+
+/* ------------------------------------------------------------ The picture */
+
+/* Reference .off-t-hero-img-slot: columns 3-4, nudged 1rem right. */
+.oft-hero__img-slot {
+  grid-column: span 2;
+  position: relative;
+  inset-inline-end: -1rem;
+}
+
+/* Reference .off-t-hero-img-w: 52.125 x 60rem, hung 12rem above the slot. */
+.oft-hero__img-w {
+  position: absolute;
+  inset: -12rem auto auto 0;
+  inline-size: 52.125rem;
+  block-size: 60rem;
+}
+
+/* The flying picture. At rest it fills its first stop; off-track.ts lifts it
+   into the group and drives it from there. */
+.oft-flight {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.oft-flight__layer {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+
+.oft-flight__layer:first-child {
+  opacity: 1;
+}
+
+/* ================================================================ Mobile */
+
+@media (max-width: 991px) {
+  .oft-hero {
+    block-size: auto;
+  }
+
+  .oft-hero__title-w {
+    block-size: auto;
+    overflow: clip;
+  }
+
+  .oft-hero__off {
+    font-size: 17.8rem;
+  }
+
+  .oft-hero__track {
+    font-size: 17rem;
+  }
+
+  .oft-hero__img-slot {
+    inset-inline-end: 0;
+  }
+}
+
+@media (max-width: 479px) {
+  .oft-hero__off {
+    font-size: 7.6rem;
+  }
+
+  .oft-hero__track {
+    font-size: 7.3rem;
+    letter-spacing: -0.06rem;
+  }
+
+  .oft-hero__title-w {
+    justify-content: flex-start;
+  }
+
+  .oft-hero__info {
+    margin-block-start: 0.2rem;
+  }
+
+  .oft-hero__sub {
+    grid-column: span 4;
+  }
+
+  .oft-hero__stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .oft-hero__spacer {
+    min-block-size: 2rem;
+    max-block-size: none;
+  }
+
+  .oft-hero__img-slot {
+    margin-block-start: var(--gap);
+  }
+
+  .oft-hero__img-w {
+    position: relative;
+    inset: auto;
+    inline-size: 100%;
+    block-size: auto;
+    aspect-ratio: 52.125 / 60;
+  }
+}
