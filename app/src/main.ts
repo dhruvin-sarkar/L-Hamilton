@@ -885,11 +885,13 @@ setTimeout(markReady, 1200);
  * ------------------------------------------------------------------ */
 
 /* Gallery lines fire as they cross 95% of the width — the reference's
-   containerAnimation trigger, "left 95%". */
+   containerAnimation trigger, "left 95%" — all but the first two captions,
+   which rise into view with the opening column and take "top 90%" (C_()). */
 mountReveals({
   immediate: '.hero',
   sideways: '.gallery',
   sidewaysMargin: '0px -5% 0px 0px',
+  sidewaysFromBelow: 2,
   whenReady: onReady,
 });
 /* ------------------------------------------------------------------ *
