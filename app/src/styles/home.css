@@ -2756,12 +2756,16 @@
   pointer-events: none;
 }
 
+/* The reference's .text-impact-sm-mona: "wdth" 93, "wght" 660 and all but no
+   tracking (-0.0625px at 84px). Ours had been set at 800 and -1.05px, which
+   read a step heavier and pulled every line ~10px narrower than its own. */
 .footer__headline {
   margin: 0;
   font-size: 5.25rem;
   line-height: 0.856;
-  letter-spacing: -0.0125em;
-  font-weight: 800;
+  letter-spacing: -0.0039rem;
+  font-weight: 660;
+  font-stretch: 93%;
   text-transform: uppercase;
 }
 
@@ -4656,12 +4660,14 @@
  *
  *   step   scale    rotate   x         y        z
  *   0      1        0        0         0        10
- *   1      0.9346   7deg     10.98rem  1.3rem   3
- *   2      0.8498   14deg    22.02rem  4.02rem  2
+ *   1      0.9346   7deg     11rem     1.3rem   3
+ *   2      0.8498   14deg    22rem     4rem     2
  *   3      0.7756   21deg    30rem     7.3rem   1
  *
  * Rotation is exactly 7 degrees a step. Scale and offset are not linear
- * and are not fitted - they are the measured numbers.
+ * and are not fitted - they are the reference's own transforms, read off its
+ * settled cards at 1728 (translate -176/-352/-480px, 20.8/64/116.8px on a
+ * 16px root). They had been 10.98/22.02/4.02rem, from a 17.667px root.
  * ==================================================================== */
 
 /* The same plain ground as .collabs, off the same token. */
@@ -4696,12 +4702,14 @@
   mask: url('/assets/brand/dot-ball.svg') center / contain no-repeat;
 }
 
+/* The reference's .text-title-lg-mona: "wght" 750, "wdth" 93, -0.125rem. */
 .socials__title {
   margin: 0;
   font-size: 4.5rem;
   line-height: 0.886;
-  letter-spacing: -0.0278em;
-  font-weight: 800;
+  letter-spacing: -0.125rem;
+  font-weight: 750;
+  font-stretch: 93%;
   text-transform: uppercase;
   text-align: center;
 }
@@ -4763,7 +4771,9 @@
  */
 .socials__card {
   position: absolute;
-  inset-block-start: 0;
+  /* 0.5rem: the reference centres its 35rem cards in the 36rem layout (flex,
+     align-items center), so every card sits 8px lower than a top-aligned one. */
+  inset-block-start: 0.5rem;
   inset-inline-start: 50%;
   inline-size: 20rem;
   block-size: 35rem;
@@ -4790,7 +4800,9 @@
      card out of it to dodge an overlap trades one artefact for a worse one. The
      hovered card gets its room from --push moving its neighbours instead. */
   z-index: var(--fan-z, 1);
-  border-radius: 1.4rem;
+  /* The reference's .callout-socials-card-w, 3.31625rem: a phone-screen corner,
+     not a photo-print one. */
+  border-radius: 3.31625rem;
   overflow: clip;
   background: var(--dark);
 }
@@ -4839,7 +4851,7 @@
 .socials__card[data-step='2'] {
   --fan-scale: 0.8498;
   /* See the note on step 3. Measured drop 80px, matching the reference. */
-  --fan-y: 4.02rem;
+  --fan-y: 4rem;
   --fan-z: 2;
 }
 
@@ -4863,22 +4875,22 @@
 
 .socials__card[data-step='-1'] {
   --fan-rot: -7deg;
-  --fan-x: -10.98rem;
+  --fan-x: -11rem;
 }
 
 .socials__card[data-step='1'] {
   --fan-rot: 7deg;
-  --fan-x: 10.98rem;
+  --fan-x: 11rem;
 }
 
 .socials__card[data-step='-2'] {
   --fan-rot: -14deg;
-  --fan-x: -22.02rem;
+  --fan-x: -22rem;
 }
 
 .socials__card[data-step='2'] {
   --fan-rot: 14deg;
-  --fan-x: 22.02rem;
+  --fan-x: 22rem;
 }
 
 .socials__card[data-step='-3'] {
@@ -4910,7 +4922,8 @@
 .socials__links {
   display: flex;
   justify-content: center;
-  gap: 2rem;
+  /* The reference's .callout-socials-links-layout: 1.5 * --gap, 30px. */
+  gap: calc(var(--gap) * 1.5);
   margin: 2.5rem 0 0;
   padding: 0;
   list-style: none;
@@ -4920,10 +4933,13 @@
   line-height: 1;
 }
 
+/* Its .btn-text: "wdth" 86, 800, uppercase. At full width the four ran 280px
+   of type against the reference's 247. */
 .socials__links a {
   display: inline-block;
   font-size: 1rem;
   font-weight: 800;
+  font-stretch: 86%;
   text-transform: uppercase;
   text-decoration: none;
   color: var(--dark);
