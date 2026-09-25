@@ -117,7 +117,7 @@ function mountStoreFill(): void {
  */
 function mountSectionFills(): void {
   const buttons = document.querySelectorAll<HTMLAnchorElement>(
-    '.otot__link, .callout__link, .store-cta__link, .footer-cta__link, .ot-btn',
+    '.callout__link, .store-cta__link, .footer-cta__link',
   );
   for (const link of buttons) {
     mountLiquidFill(link, (level) => link.style.setProperty('--liquid-level', String(level)));

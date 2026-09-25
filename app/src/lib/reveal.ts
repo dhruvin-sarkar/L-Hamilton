@@ -32,6 +32,11 @@ export interface RevealOptions {
    * Defaults to Home's: 14% in from the right edge.
    */
   sidewaysMargin?: string;
+  /**
+   * How many of the sideways lines, in document order, still arrive from below
+   * and take the vertical trigger instead. Defaults to none.
+   */
+  sidewaysFromBelow?: number;
   /** Runs its callback once the page entrance has finished. */
   whenReady: (run: () => void) => void;
 }
@@ -44,15 +49,13 @@ export function mountReveals(opts: RevealOptions): void {
 
     const lines = [...document.querySelectorAll<HTMLElement>('.reveal-text')];
 
-    /**
-     * The stagger, counted within a section rather than across the document.
-     *
-     * It used to be the element's global index, which quietly punished anything
-     * far down the page: the On Track and Off Track blurbs came out at 1260ms and
-     * 1350ms and visibly trailed the section they belong to. The stagger exists to
-     * make one group read top to bottom, so it has to restart at each group —
-     * otherwise it is not a stagger, it is an accumulating delay.
-     */
+    /* No stagger BETWEEN blocks. The reference runs each [data-anim-high]
+       element's timeline from 0 the moment its own trigger fires (the delay
+       field in its attribute is parsed and never used), so the only beat is the
+       150ms between the lines of one block. A per-section index on top of that
+       — which this used to add, 25ms a block — put the On Track blurb 50ms and
+       the Off Track one 125ms behind blocks the reference starts together. */
+
     /* ---- splitting a block into one bar per visual line ----
      *
      * The reference does this and it is the whole reason its copy arrives a line
@@ -156,7 +159,7 @@ export function mountReveals(opts: RevealOptions): void {
       (el.textContent ?? '').trim().length > 0 &&
       getComputedStyle(el).display.includes('block');
 
-    const splitIntoLines = (el: HTMLElement, baseDelay: number): void => {
+    const splitIntoLines = (el: HTMLElement): void => {
       const runs = runsOf(el);
 
       /* Every break opportunity its own box, so offsetTop reports which line it
@@ -290,7 +293,7 @@ export function mountReveals(opts: RevealOptions): void {
         const line = document.createElement('span');
         line.className = 'reveal-line';
         fillRow(line, row);
-        line.style.setProperty('--reveal-delay', `${baseDelay + i * LINE_STAGGER}ms`);
+        line.style.setProperty('--reveal-delay', `${i * LINE_STAGGER}ms`);
         el.appendChild(line);
       });
       el.dataset.revealSplit = '';
@@ -304,12 +307,10 @@ export function mountReveals(opts: RevealOptions): void {
        * Reverting to plain text costs the per-line cascade and keeps the whole
        * block's single reveal, which is what an unsplittable block already
        * gets. A line reveal is never worth a broken layout. */
-      /* Measured with a Range over the line's own text, NOT via scrollWidth.
-       * The bar is an absolutely-positioned ::after inset -0.15em horizontally
-       * so it covers descenders, and because the line is the containing block
-       * that overhang inflates its scrollWidth by ~4px at this size. Testing
-       * scrollWidth therefore detects the bar rather than the text, and reverted
-       * every split block on the page.
+      /* Measured with a Range over the line's own text, NOT via scrollWidth,
+       * which counts anything a line's styles hang outside it (a bar with an
+       * overhang once reverted every split block on the page this way) rather
+       * than the words themselves.
        *
        * Compared against the BLOCK's width, not the line's. A `.reveal-line` is
        * `inline-size: fit-content` — it is sized BY its text, so its own width
@@ -326,20 +327,6 @@ export function mountReveals(opts: RevealOptions): void {
         writeRuns(el, runs);
         delete el.dataset.revealSplit;
       }
-    };
-
-    const groupOf = (el: HTMLElement): Element => el.closest('section') ?? document.body;
-    /* 25ms, not the 90ms this used to be. The reference's own staggers measure
-       0.015-0.03s and cluster on 0.02s; 90ms was more than four times its widest.
-       Across the six lines of On Track / Off Track that put the last one 450ms
-       behind the first, and on top of the time the bar spends covering it the
-       closing line did not read for the better part of a second after the section
-       had arrived. At 25ms those six span 125ms and still resolve top to bottom
-       rather than snapping in together. */
-    const delayFor = (el: HTMLElement): number => {
-      const group = groupOf(el);
-      const peers = lines.filter((line) => groupOf(line) === group);
-      return peers.indexOf(el) * 25;
     };
 
     /* Split every block that turns out to be more than one line long.
@@ -376,7 +363,7 @@ export function mountReveals(opts: RevealOptions): void {
 
       for (const el of targets) {
         const played = el.classList.contains('is-in');
-        splitIntoLines(el, delayFor(el));
+        splitIntoLines(el);
         if (played) el.classList.add('is-done');
       }
     };
@@ -411,16 +398,19 @@ export function mountReveals(opts: RevealOptions): void {
     /* Gallery captions enter sideways, not from below, so the bottom margin that
        holds back a normal reveal is on the wrong axis for them — it would do
        nothing at all. They also arrive one at a time under the horizontal scrub,
-       which already staggers them; a document-order delay on top of that would
-       fire a caption long after its own picture had gone past. */
-    const sidewaysLines = opts.sideways
+       which already staggers them.
+     *
+     * Except the first few: the reference's C_() sends the gallery's first two
+     * text items through a VERTICAL trigger ("top 90%"), because they sit in the
+     * opening column, which rises into view before any sideways travel starts. */
+    const sidewaysAll = opts.sideways
       ? lines.filter((el) => el.closest(opts.sideways as string))
       : [];
+    const sidewaysLines = sidewaysAll.slice(opts.sidewaysFromBelow ?? 0);
     const scrollLines = lines.filter(
       (el) => !immediateLines.includes(el) && !sidewaysLines.includes(el),
     );
 
-    for (const line of immediateLines) line.style.setProperty('--reveal-delay', `${delayFor(line)}ms`);
     opts.whenReady(() => {
       for (const line of immediateLines) line.classList.add('is-in');
     });
@@ -429,22 +419,15 @@ export function mountReveals(opts: RevealOptions): void {
       (entries) => {
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
-          const el = entry.target as HTMLElement;
-          el.style.setProperty('--reveal-delay', `${delayFor(el)}ms`);
-          el.classList.add('is-in');
-          textRevealer.unobserve(el);
+          entry.target.classList.add('is-in');
+          textRevealer.unobserve(entry.target);
         }
       },
-      /* A LEAD, not an inset. This used to be -8%, which held the reveal back
-         until the line was already 8% of the viewport inside the frame — so the
-         bar's covering half ran in full view and the line sat blank while the
-         reader was looking straight at it.
-       *
-       * +10% starts it just under a viewport-tenth before the line crosses the
-       * edge, which is roughly the covering half at an ordinary scroll rate. What
-       * arrives on screen is the bar already retracting off finished text, which
-       * is the half of this animation worth watching. */
-      { rootMargin: '0px 0px 10% 0px' },
+      /* The reference's `start: "top 90%"`: a line fires once its top has
+         climbed a tenth of the viewport above the bottom edge. A lead of +10%
+         here used to fire it 108px BELOW the fold, ~216px of scroll early, so
+         the whole sweep had often finished before the line was on screen. */
+      { rootMargin: '0px 0px -10% 0px' },
     );
     for (const line of scrollLines) textRevealer.observe(line);
 
