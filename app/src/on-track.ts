@@ -1437,9 +1437,20 @@ const podiumImg = document.querySelector<HTMLImageElement>('[data-podium-img]');
 
 if (podium && podiumPhoto && podiumImg) {
   mm.add(`${WIDE_AND_ANIMATED} and (hover: hover) and (pointer: fine)`, () => {
-    // Fetched up front, as the reference's hidden list of them is, so a swap
-    // under the pointer never shows an empty frame.
-    for (const src of PODIUM_PHOTOS) new Image().src = src;
+    /* Fetched as the number comes within a screen of view -- not during the
+       page's load, where these ten were 1.6MB competing with the hero -- and
+       still before a pointer can reach it, so a swap under the pointer never
+       shows an empty frame. The result highlights fetch their set the same
+       way. */
+    const approach = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        approach.disconnect();
+        for (const src of PODIUM_PHOTOS) new Image().src = src;
+      },
+      { rootMargin: '100% 0px 100% 0px' },
+    );
+    approach.observe(podium);
     podiumPhoto.hidden = false;
 
     const reveal = gsap.to(podiumPhoto, {
@@ -1502,6 +1513,7 @@ if (podium && podiumPhoto && podiumImg) {
     window.addEventListener('scroll', update, { passive: true });
 
     return () => {
+      approach.disconnect();
       watch.disconnect();
       document.removeEventListener('pointermove', onPointer);
       window.removeEventListener('scroll', update);
