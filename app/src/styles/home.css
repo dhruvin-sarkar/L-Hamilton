@@ -85,8 +85,10 @@
   transform: scale(calc(var(--nav-shrink, 1) * var(--nav-scale, 1)));
   transform-origin: 0 0;
   /* Optical, not metric: the serif's own side bearing already indents it, so
-     the two lines only align by eye once that is pulled back out. */
-  padding-left: 0.06em;
+     the two lines only align by eye once that is pulled back out. 0.12em of the
+     body size: the lockup is a <p>, and this is the 0.06em it was set against
+     when it inherited an h1's 2em. */
+  padding-left: 0.12em;
 }
 
 /* Sized off the surname's cap height, not off the two font sizes independently.

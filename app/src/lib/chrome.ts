@@ -701,6 +701,14 @@ export function mountChrome(): void {
       link.addEventListener('blur', () => litTiles(null));
     }
 
+    /* Modal while it is open: the page behind the panel can take neither focus
+       nor a screen reader's cursor. The nav is left live, because the close
+       button is in it. */
+    const behindPanel = [document.querySelector('main'), document.querySelector('footer')];
+    const setBehindInert = (inert: boolean) => {
+      for (const el of behindPanel) if (el) el.inert = inert;
+    };
+
     const reveal = gsap.timeline({
       paused: true,
       // Only take it out of the layout once it has finished closing. Setting
@@ -708,6 +716,7 @@ export function mountChrome(): void {
       // `display: none` stops the clip-path from rendering at all.
       onReverseComplete: () => {
         menu.hidden = true;
+        setBehindInert(false);
         // Cleared here rather than when the close starts, so the monogram fades
         // back in as the panel finishes clearing instead of over the top of it.
         document.documentElement.removeAttribute('data-menu-open');
@@ -782,6 +791,11 @@ export function mountChrome(): void {
       // and <html> goes to `clip`. Locking the body instead leaves the scrollbar
       // gutter collapsing and shifts the whole layout sideways as it opens.
       document.documentElement.style.overflow = open ? 'clip' : '';
+      // That stops the browser scrolling, but not Lenis, which scrolls by
+      // script and so is not bound by overflow. Told to leave the wheel and touch
+      // alone, it lets the event through to the locked root, which ignores it.
+      document.body.toggleAttribute('data-lenis-prevent', open);
+      if (open) setBehindInert(true);
 
       // Drives the nav's own menu-open styling — the centred monogram hides,
       // because over the open panel it sits on the collage and reads as a stray
@@ -796,7 +810,10 @@ export function mountChrome(): void {
       if (open) litTiles(null);
 
       if (reducedMotion) {
-        if (!open) menu.hidden = true;
+        if (!open) {
+          menu.hidden = true;
+          setBehindInert(false);
+        }
       } else if (open) {
         reveal.play();
       } else {
@@ -820,9 +837,30 @@ export function mountChrome(): void {
       if (menuBtn.getAttribute('aria-expanded') === 'true') setOpen(false);
     };
 
-    // Escape must close it. An overlay with no keyboard exit is a trap.
+    /* The keyboard loop while it is open runs from the first control in the top
+       bar (Store, still showing over the panel) through the close button and
+       the panel's links, then round again. Everything behind is inert, so this
+       only has to close the two ends, which would otherwise run out past the
+       footer into the browser's own toolbar. */
+    const menuLinks = menu.querySelectorAll<HTMLAnchorElement>('a[href]');
+    const loopFirst = menuBtn.closest('.topbar')?.querySelector<HTMLElement>('a[href], button') ?? menuBtn;
+    const loopLast = menuLinks[menuLinks.length - 1] ?? menuBtn;
+
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !menu.hidden) setOpen(false);
+      if (menu.hidden) return;
+      // Escape must close it. An overlay with no keyboard exit is a trap.
+      if (e.key === 'Escape') {
+        setOpen(false);
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      if (!e.shiftKey && document.activeElement === loopLast) {
+        e.preventDefault();
+        loopFirst.focus();
+      } else if (e.shiftKey && document.activeElement === loopFirst) {
+        e.preventDefault();
+        loopLast.focus();
+      }
     });
   }
 }

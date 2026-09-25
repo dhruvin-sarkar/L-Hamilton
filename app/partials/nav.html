@@ -17,11 +17,13 @@
          `isolation: isolate`, which opens a stacking context that would trap
          any z-index set on a descendant inside the hero. Nested here, the nav
          disappeared entirely the moment the menu opened. -->
-    <div class="nav-inner">
-          <h1 class="wordmark hero-in">
+    <header class="nav-inner">
+          <!-- A paragraph, not the page's h1: this lockup repeats on every page,
+               and each page names itself in its own h1. -->
+          <p class="wordmark hero-in">
             <span class="wordmark__first">Lewis</span>
             <span class="wordmark__last">Hamilton</span>
-          </h1>
+          </p>
 
           <!-- Monogram. The reference runs a Rive animation in this slot; this
                is the SVG + GSAP equivalent. Paths were traced from the supplied
@@ -83,7 +85,7 @@
                    label. The sr-only copy is the real accessible name. This is
                    the reference's own arrangement: a `screen-reader` div beside
                    a `split-text="chars"` div carrying one span per letter. -->
-              <span class="sr-only">Store</span>
+              <span class="sr-only">Store (opens in a new tab)</span>
               <span class="btn-text" aria-hidden="true" data-split-chars>Store</span>
             </a>
             <!-- The reference runs a Rive state machine here. This is the
@@ -132,7 +134,7 @@
               </svg>
             </button>
           </div>
-    </div>
+    </header>
 
     <!-- The scroll position, on the right edge: the reference's
          `.scroll-indicator`. A track 80vh tall from 10vh down, and a bar sized

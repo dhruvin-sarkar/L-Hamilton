@@ -16,7 +16,11 @@
          to the first link. Focusing a link instead put a focus ring on HOME
          every time the menu was opened with a mouse, which read as an error
          state; keyboard users still Tab straight into the list from here. -->
-    <div class="menu" id="menu" tabindex="-1" hidden>
+    <!-- A dialog, modal by `inert` on <main> and the footer while it is open
+         (lib/chrome.ts). Not aria-modal: the close button is in the nav, outside
+         this element, and aria-modal would hide it from a screen reader along
+         with the page. -->
+    <div class="menu" id="menu" role="dialog" aria-label="Menu" tabindex="-1" hidden>
       <!-- The contour backdrop. The reference fills this slot with a static SVG
            rather than its live field, and so does ours: the curves are
            generated as iso-lines of a warped simplex field at the same
