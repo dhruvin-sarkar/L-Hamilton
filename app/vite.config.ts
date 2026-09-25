@@ -93,6 +93,10 @@ export default defineConfig({
       'three/examples/jsm/loaders/DRACOLoader.js',
       'three/examples/jsm/environments/RoomEnvironment.js',
       'three/examples/jsm/utils/BufferGeometryUtils.js',
+      'three/examples/jsm/controls/OrbitControls.js',
+      'three/examples/jsm/postprocessing/EffectComposer.js',
+      'three/examples/jsm/postprocessing/RenderPass.js',
+      'three/examples/jsm/postprocessing/UnrealBloomPass.js',
     ],
   },
   build: {
