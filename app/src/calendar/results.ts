@@ -16,9 +16,12 @@
  *   - an open row, and a row under the pointer, fill with the accent and turn
  *     their ink black.
  *
- * Twenty seasons where the reference has seven: the same rows, more of them.
- * Every figure comes from the race-by-race record (live-stats `races`) and
- * the season table (`seasonsNewestFirst`); none is typed here.
+ * Only finished seasons are listed, as on the reference, which runs 2025 back
+ * to 2019 while its 2026 is under way: the season in progress already has
+ * its rounds in the lists above. Nineteen seasons where the reference has
+ * seven -- the same rows, more of them. Every figure comes from the
+ * race-by-race record (live-stats `races`) and the season table
+ * (`seasonsNewestFirst`); none is typed here.
  *
  * The rows are real disclosure buttons inside headings, so the keyboard and a
  * screen reader get the accordion the reference builds out of divs.
@@ -28,27 +31,27 @@ import type Lenis from 'lenis';
 import { gsap, mm, ScrollTrigger } from '../lib/motion';
 import { el, pad2, place, raceDay } from '../lib/schedule';
 import { closedReef, drawClosedReef } from '../lib/closed-reef';
-import { calendar, career, races, seasonsNewestFirst } from '../content/live-stats';
+import { calendar, races, seasonsNewestFirst } from '../content/live-stats';
 import type { CareerSeason, RaceEntry } from '../content/live-stats';
 import { flagUrl } from '../content/countries';
-import { finishText, placeName } from './season';
+import { finishText, placeName, suffixClass } from './season';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-/** The chevron: our own, a plain caret, pointing up while its season is shut
-    (the reference turns its glyph 180 degrees until open). */
+/** The chevron: our own heavy caret, drawn pointing up. calendar.css turns it
+    half round while its season is shut, as the reference turns its glyph, so
+    a shut season points down and an open one up. */
 function chevron(): SVGSVGElement {
   const svg = document.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('class', 'cal-results__chevron');
-  svg.setAttribute('viewBox', '0 0 23 23');
+  svg.setAttribute('viewBox', '0 0 28 19');
   svg.setAttribute('fill', 'none');
   svg.setAttribute('aria-hidden', 'true');
   svg.setAttribute('focusable', 'false');
   const path = document.createElementNS(SVG_NS, 'path');
-  path.setAttribute('d', 'M4 8.5l7.5 7.5 7.5-7.5');
+  path.setAttribute('d', 'M2.5 16 14 4.5 25.5 16');
   path.setAttribute('stroke', 'currentColor');
-  path.setAttribute('stroke-width', '2.4');
-  path.setAttribute('stroke-linecap', 'square');
+  path.setAttribute('stroke-width', '6');
   svg.appendChild(path);
   return svg;
 }
@@ -57,19 +60,19 @@ function chevron(): SVGSVGElement {
 function placed(n: number, className = 'cal-row__place'): HTMLSpanElement {
   const [figure, letters] = place(n);
   const node = el('span', className);
-  node.append(el('span', 'ot-cal__major', figure), el('span', 'ot-cal__suffix cal-row__suffix', letters));
+  node.append(el('span', 'ot-cal__major', figure), el('span', suffixClass(n), letters));
   return node;
 }
 
 /** One Grand Prix inside an open season. */
-function raceRow(race: RaceEntry): HTMLLIElement {
+function raceRow(race: RaceEntry, season: readonly RaceEntry[]): HTMLLIElement {
   const item = el('li');
   const row = el('div', 'ot-cal__row cal-results__race');
 
   const round = el('span', 'ot-cal__cell');
   round.appendChild(el('span', 'cal-results__round ot-cal__major', pad2(race.round)));
 
-  const name = placeName(race);
+  const name = placeName(race, season);
   const location = el('span', 'ot-cal__cell');
   location.appendChild(el('span', 'ot-cal__major ot-cal__nowrap', name));
   const flag = el('img', 'ot-cal__row-flag');
@@ -119,14 +122,19 @@ export function mountResults(section: HTMLElement, scroller: Lenis | null): void
     bySeason.set(race.season, year);
   }
 
+  /* The calendar's season is finished once every round has a result. */
   const current = calendar[0]?.season;
-  const first = seasonsNewestFirst[seasonsNewestFirst.length - 1];
-  if (!first) throw new Error('[calendar] no seasons in the record');
-  para.textContent = `Lewis's ${career.starts} Grands Prix since ${first.year}, season by season. Open one for every result.`;
+  const underway = calendar.some((round) => !round.result);
+  const finished = seasonsNewestFirst.filter((season) => !(underway && season.year === current));
+  const newest = finished[0];
+  const first = finished[finished.length - 1];
+  if (!newest || !first) throw new Error('[calendar] no finished seasons in the record');
+  const starts = races.filter((race) => race.season <= newest.year).length;
+  para.textContent = `Lewis's ${starts} Grands Prix from ${first.year} to ${newest.year}. Open a season for every result.`;
 
   const wreaths: { mark: HTMLElement; branches: ReturnType<typeof closedReef>['branches'] }[] = [];
 
-  const seasons: Season[] = seasonsNewestFirst.map((season: CareerSeason) => {
+  const seasons: Season[] = finished.map((season: CareerSeason) => {
     const entries = bySeason.get(season.year);
     if (!entries?.length) throw new Error(`[calendar] no races recorded for ${season.year}`);
     if (entries.length !== season.entries) {
@@ -162,11 +170,9 @@ export function mountResults(section: HTMLElement, scroller: Lenis | null): void
 
     trigger.append(chevronCell, year, finish, podiums, el('span', 'cal-results__line'));
 
-    const inProgress = season.year === current && calendar.some((round) => !round.result);
-    const standing = inProgress ? `currently ${place(season.position).join('')}` : place(season.position).join('');
     trigger.setAttribute(
       'aria-label',
-      `${season.year}, ${season.team}: ${standing} in the championship, ` +
+      `${season.year}, ${season.team}: ${place(season.position).join('')} in the championship, ` +
         `${season.podiums} podium${season.podiums === 1 ? '' : 's'}.`,
     );
     heading.appendChild(trigger);
@@ -184,7 +190,7 @@ export function mountResults(section: HTMLElement, scroller: Lenis | null): void
       head.appendChild(el('p', 'ot-cal__eyebrow', label));
     }
     const racesList = el('ol', 'ot-cal__list cal-results__races');
-    for (const race of entries) racesList.appendChild(raceRow(race));
+    for (const race of entries) racesList.appendChild(raceRow(race, entries));
     content.append(head, racesList);
 
     item.append(heading, content);

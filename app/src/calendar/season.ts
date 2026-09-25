@@ -49,14 +49,38 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
  * Words for a round
  * ------------------------------------------------------------------ */
 
+/** The reference names the Emirates' round by its emirate, as the sport does. */
+const LIST_NAMES: Readonly<Record<string, string>> = { UAE: 'Abu Dhabi' };
+
+/** A national Grand Prix carries its country's name: Italian, Spanish, United
+    States -- and the British. */
+function isNational(named: string, country: string): boolean {
+  return named === 'British' || named.slice(0, 3).toLowerCase() === country.slice(0, 3).toLowerCase();
+}
+
 /**
- * Where a round is, as the reference's lists name it: the country, or the
- * race's own city where the race is named for its city -- MIAMI, LAS VEGAS,
- * ABU DHABI. Derived from the calendar's race name and locality, not typed.
+ * Where a round is, as the reference's lists name it: the host country --
+ * MEXICO, BRAZIL -- unless the country holds more than one Grand Prix that
+ * season, when the race's own name tells them apart and the national race
+ * keeps the country's: MIAMI, UNITED STATES, LAS VEGAS; EMILIA ROMAGNA,
+ * ITALY. `season` is every round of the round's year. Derived from the race
+ * names and countries in the record, not typed.
  */
-export function placeName(round: Pick<CalendarRound, 'raceName' | 'locality' | 'country'>): string {
+export function placeName(
+  round: Pick<CalendarRound, 'raceName' | 'country'>,
+  season: readonly Pick<CalendarRound, 'country'>[],
+): string {
+  const country = countryName(round.country);
   const named = round.raceName.replace(/ Grand Prix.*$/, '');
-  return named === round.locality ? named : countryName(round.country);
+  const shared = season.filter((other) => other.country === round.country).length > 1;
+  if (shared && !isNational(named, country)) return named;
+  return LIST_NAMES[round.country] ?? country;
+}
+
+/** An ordinal's raised letters: in the accent for a win, grey otherwise --
+    the reference's `c-lime` and `c-grey-on-track` on its `is-super`. */
+export function suffixClass(position: number): string {
+  return `ot-cal__suffix cal-row__suffix${position === 1 ? ' cal-row__suffix--win' : ''}`;
 }
 
 /** A classification the way a timing screen prints it: 4TH, DNF, DSQ. */
@@ -303,7 +327,7 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
   const rowFor = (round: CalendarRound, index: number): HTMLButtonElement => {
     const past = isPast(round);
     const facts = circuitFacts(round);
-    const name = placeName(round);
+    const name = placeName(round, rounds);
 
     const row = el('button', `ot-cal__row cal-row ${past ? 'cal-row--past' : 'cal-row--next'}`);
     row.type = 'button';
@@ -345,7 +369,7 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
       if (result?.position) {
         const [figure, letters] = place(result.position);
         const placed = el('span', 'cal-row__place');
-        placed.append(el('span', 'ot-cal__major', figure), el('span', 'ot-cal__suffix cal-row__suffix', letters));
+        placed.append(el('span', 'ot-cal__major', figure), el('span', suffixClass(result.position), letters));
         finish.appendChild(placed);
         /* A podium's trophy, tinted for the step (calendar.css). */
         if (result.position <= 3) finish.appendChild(el('span', `cal-row__trophy cal-row__trophy--p${result.position}`));

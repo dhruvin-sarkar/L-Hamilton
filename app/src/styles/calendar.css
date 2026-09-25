@@ -20,6 +20,15 @@ body[data-page='calendar'] {
   background: var(--black);
 }
 
+/* Proportional figures, as the reference sets every digit on this page: the
+   body's tabular default widens each 1 by half again ("FORMULA 1" ran 12px
+   long) and dots Mona's zeros. The countdown keeps On Track's setting. */
+.cal-hero,
+.cal-sched,
+.cal-results {
+  font-variant-numeric: normal;
+}
+
 /* ================================================================ Hero
  *
  *   .s.is-calendar-hero      12rem spacer, the layout, 12rem spacer: 615 tall
@@ -277,14 +286,18 @@ body[data-page='calendar'] {
   margin-block-start: calc(var(--g) * 2);
 }
 
-/* Reference `.f1-highlight-item-round-w.cal-previous`: the number in the
-   page's grey, at least 3.4rem wide, the strike centred over it. */
+/* Reference `.f1-highlight-item-round-w`: at least 3.4rem wide, the strike
+   centred over it. A round run (`.cal-previous`) takes the page's grey; a
+   round to come keeps the row's ink. */
 .cal-row__round-w {
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
   min-inline-size: calc(var(--u) * 3.4);
+}
+
+.cal-row--past .cal-row__round-w {
   color: var(--grey-on-track);
 }
 
@@ -311,6 +324,12 @@ body[data-page='calendar'] {
   position: relative;
   inset-block-start: calc(var(--u) * 0.4);
   inset-inline-start: calc(var(--u) * 0.2);
+}
+
+/* A win's letters in the accent. They keep it on an open season's accent
+   fill, where they vanish, as the reference's do. */
+.cal-row__suffix--win {
+  color: var(--accent);
 }
 
 /* Reference `.f1-highlight-trophy-w`: a square as tall as the row, hung 5.6rem
@@ -479,10 +498,12 @@ body[data-page='calendar'] {
   color: var(--grey-on-track);
 }
 
-/* Reference `.text-body-reg-mona` in grey, columns 3-4. */
+/* Reference `.text-body-reg-mona` in grey, columns 3-4, in its 25rem
+   `.title-para-w.mw`. */
 .cal-results__para {
   grid-column: 3 / 5;
   align-self: start;
+  max-inline-size: calc(var(--u) * 25);
   margin: 0;
   font-family: var(--font-body);
   font-stretch: 100%;
@@ -513,6 +534,12 @@ body[data-page='calendar'] {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+
+/* Reference `.calendar-dropdown-content .f1-highlight-collection`: 2.5rem
+   under the sub-header. */
+.cal-results__races {
+  margin-block-start: calc(var(--u) * 2.5);
 }
 
 .cal-results__heading {
@@ -622,7 +649,7 @@ button.cal-row--past:hover:focus-visible {
 
   button.cal-results__trigger:hover .cal-results__chevron,
   button.cal-results__trigger:hover .cal-row__suffix {
-    color: inherit;
+    color: var(--black);
   }
 }
 

@@ -125,18 +125,16 @@ export function weekendSessions(round: CalendarRound): WeekendSession[] {
   ];
 }
 
-/** "24-26" and "Sep" -- the weekend as the panel and the upcoming list print it. */
+/**
+ * "24-26" and "Sep" -- the weekend as the panel and the upcoming list print it.
+ * A weekend across a month's end names the race's month alone, as the
+ * reference prints it: "30-01 Nov".
+ */
 export function weekendSpan(round: CalendarRound): { days: string; month: string } {
   const sessions = weekendSessions(round);
   const first = sessionWhen((sessions[0] as WeekendSession).session);
   const race = sessionWhen((sessions[sessions.length - 1] as WeekendSession).session);
-  return {
-    days: `${pad2(first.day)}-${pad2(race.day)}`,
-    month:
-      first.month === race.month
-        ? monthAbbr(race.month)
-        : `${monthAbbr(first.month)}/${monthAbbr(race.month)}`,
-  };
+  return { days: `${pad2(first.day)}-${pad2(race.day)}`, month: monthAbbr(race.month) };
 }
 
 /**
