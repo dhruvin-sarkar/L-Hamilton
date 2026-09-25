@@ -1758,7 +1758,19 @@ if (hlList && hlRows && hlPhoto && hlPhotoImg) {
     '(min-width: 992px) and (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine)',
     () => {
       hlPhoto.hidden = false;
-      gsap.set(hlPhoto, { x: 0, y: 0 });
+
+      /* At rest the picture waits at the top-left of the ROWS, as the
+         reference's does -- its containing block is the rows box. Ours is the
+         list, which also holds the header row, so the rest is offset down to
+         the rows; re-read on the first arrival, once the fonts have set the
+         header's height, so the first glide starts from the right place. */
+      const rest = (): void => {
+        const list = hlList.getBoundingClientRect();
+        const rows = hlRows.getBoundingClientRect();
+        gsap.set(hlPhoto, { x: rows.left - list.left, y: rows.top - list.top });
+      };
+      rest();
+      let visited = false;
 
       const open = gsap.timeline({ paused: true }).to(hlPhoto, {
         clipPath: 'ellipse(120% 120% at 50% 0%)',
@@ -1794,6 +1806,10 @@ if (hlList && hlRows && hlPhoto && hlPhotoImg) {
           open.timeScale(2).reverse();
         }
         if (inside) {
+          if (!visited) {
+            visited = true;
+            rest();
+          }
           const box = hlList.getBoundingClientRect();
           toX(pointerX - box.left + PHOTO_OFFSET);
           toY(pointerY - box.top - PHOTO_OFFSET);
