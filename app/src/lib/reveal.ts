@@ -65,15 +65,12 @@ export function mountReveals(opts: RevealOptions): void {
      *
      * Lines are a rendering fact, not a markup one, so they have to be MEASURED:
      * wrap each word, read the line box it landed in off offsetTop, then rebuild
-     * the block one span per distinct box. */
-
-    /* Read from --stagger-line rather than restated here. The token said 150ms
-       and this said 150, which is two sources of truth for one beat — and the
-       token was the one nothing read, so tuning it did nothing. */
-    const LINE_STAGGER =
-      Number.parseFloat(
-        getComputedStyle(document.documentElement).getPropertyValue('--stagger-line'),
-      ) || 150;
+     * the block one span per distinct box.
+     *
+     * Done for every block at once, in phases that never interleave a DOM write
+     * with a layout read — see applySplits. Cutting, measuring and rebuilding
+     * one block at a time cost two forced layouts per block, which on On Track
+     * (100-odd blocks) was over a second of main thread on a mid-range phone. */
 
     /**
      * A block's authored content, flattened to a list of formatted runs.
@@ -159,33 +156,32 @@ export function mountReveals(opts: RevealOptions): void {
       (el.textContent ?? '').trim().length > 0 &&
       getComputedStyle(el).display.includes('block');
 
-    const splitIntoLines = (el: HTMLElement): void => {
-      const runs = runsOf(el);
+    /* Every break opportunity its own box, so offsetTop reports which line it
+     * fell on.
+     *
+     * A "word" here is NOT simply a run between spaces, because that is not
+     * where browsers are allowed to break. They also break after a hyphen —
+     * so `race-by-race` can occupy two visual lines while being a single
+     * whitespace-delimited token. Grouping by whitespace alone put that whole
+     * compound on one row and, because a `.reveal-line` is `nowrap`, produced
+     * a line 384px wide inside a 320px column and pushed the document 44px
+     * past the viewport at 360px.
+     *
+     * Each piece therefore records whether real whitespace followed it, and
+     * the row is reassembled from that rather than by rejoining with spaces —
+     * otherwise the fragments of a hyphenated compound come back as
+     * "race- by- race".
+     */
+    interface Piece {
+      span: HTMLElement;
+      text: string;
+      /** Carried through the cut so the rebuild can re-wrap it. */
+      cls: string;
+      spaceAfter: boolean;
+    }
 
-      /* Every break opportunity its own box, so offsetTop reports which line it
-       * fell on.
-       *
-       * A "word" here is NOT simply a run between spaces, because that is not
-       * where browsers are allowed to break. They also break after a hyphen —
-       * so `race-by-race` can occupy two visual lines while being a single
-       * whitespace-delimited token. Grouping by whitespace alone put that whole
-       * compound on one row and, because a `.reveal-line` is `nowrap`, produced
-       * a line 384px wide inside a 320px column and pushed the document 44px
-       * past the viewport at 360px.
-       *
-       * Each piece therefore records whether real whitespace followed it, and
-       * the row is reassembled from that rather than by rejoining with spaces —
-       * otherwise the fragments of a hyphenated compound come back as
-       * "race- by- race".
-       */
-      interface Piece {
-        span: HTMLElement;
-        text: string;
-        /** Carried through the cut so the rebuild can re-wrap it. */
-        cls: string;
-        spaceAfter: boolean;
-      }
-
+    /** WRITES only: empties a block and refills it with its measuring pieces. */
+    const cutIntoPieces = (el: HTMLElement, runs: Run[]): Piece[] => {
       el.textContent = '';
       const pieces: Piece[] = [];
       for (const run of runs) {
@@ -220,19 +216,24 @@ export function mountReveals(opts: RevealOptions): void {
           }
         }
       }
+      return pieces;
+    };
 
-      /* Grouped by each piece's vertical MIDPOINT, against a half-line
-       * tolerance — not by its offsetTop against a 1px one.
-       *
-       * offsetTop is the top of an inline box, not the line it sits on, and two
-       * faces on the same line do not agree on it: the Didone the accent clause
-       * is set in has a taller ascent than the grotesque around it, so its box
-       * starts several pixels higher. Against a 1px tolerance that reads as a
-       * line break, and a four-line paragraph came out as six rows — "still",
-       * "driving for the eighth" and "." each on their own.
-       *
-       * A midpoint moves by a few pixels between faces and by a whole
-       * line-height at a real break, so the two cases stop overlapping. */
+    /** READS only: the visual lines a block's pieces landed on.
+     *
+     * Grouped by each piece's vertical MIDPOINT, against a half-line
+     * tolerance — not by its offsetTop against a 1px one.
+     *
+     * offsetTop is the top of an inline box, not the line it sits on, and two
+     * faces on the same line do not agree on it: the Didone the accent clause
+     * is set in has a taller ascent than the grotesque around it, so its box
+     * starts several pixels higher. Against a 1px tolerance that reads as a
+     * line break, and a four-line paragraph came out as six rows — "still",
+     * "driving for the eighth" and "." each on their own.
+     *
+     * A midpoint moves by a few pixels between faces and by a whole
+     * line-height at a real break, so the two cases stop overlapping. */
+    const rowsOf = (el: HTMLElement, pieces: Piece[]): Piece[][] => {
       const leading = Number.parseFloat(getComputedStyle(el).lineHeight);
       const tolerance = Number.isFinite(leading) ? leading / 2 : 2;
 
@@ -250,83 +251,80 @@ export function mountReveals(opts: RevealOptions): void {
         }
         current.push(piece);
       }
+      return rows;
+    };
 
-      /** A row's text, with the separators it actually had.
-       *
-       * The trailing space on a row's last piece is kept rather than trimmed.
-       * Dropping it looked harmless — a line box discards trailing whitespace,
-       * so nothing moves — but the block's own text is the concatenation of its
-       * lines, and without it the word boundary at every break disappeared:
-       * "61 of" + "them from" read back as "61 ofthem" to `textContent`,
-       * find-in-page, copy-paste and anything extracting the accessible name. */
-      const fillRow = (line: HTMLElement, row: Piece[]): void => {
-        /* Consecutive pieces sharing a class go into ONE span rather than one
-           each, so a clause set in the accent face stays a single run of text
-           and kerns as it was written. */
-        let wrapper: HTMLElement | null = null;
-        let open: string | null = null;
-        for (const piece of row) {
-          if (piece.cls !== open) {
-            open = piece.cls;
-            wrapper = null;
-            if (piece.cls) {
-              wrapper = document.createElement('span');
-              wrapper.className = piece.cls;
-              line.appendChild(wrapper);
-            }
+    /** A row's text, with the separators it actually had.
+     *
+     * The trailing space on a row's last piece is kept rather than trimmed.
+     * Dropping it looked harmless — a line box discards trailing whitespace,
+     * so nothing moves — but the block's own text is the concatenation of its
+     * lines, and without it the word boundary at every break disappeared:
+     * "61 of" + "them from" read back as "61 ofthem" to `textContent`,
+     * find-in-page, copy-paste and anything extracting the accessible name. */
+    const fillRow = (line: HTMLElement, row: Piece[]): void => {
+      /* Consecutive pieces sharing a class go into ONE span rather than one
+         each, so a clause set in the accent face stays a single run of text
+         and kerns as it was written. */
+      let wrapper: HTMLElement | null = null;
+      let open: string | null = null;
+      for (const piece of row) {
+        if (piece.cls !== open) {
+          open = piece.cls;
+          wrapper = null;
+          if (piece.cls) {
+            wrapper = document.createElement('span');
+            wrapper.className = piece.cls;
+            line.appendChild(wrapper);
           }
-          const text = piece.spaceAfter ? `${piece.text} ` : piece.text;
-          (wrapper ?? line).appendChild(document.createTextNode(text));
         }
-      };
-
-      // One line is not a cascade, and wrapping it would swap its inline layout
-      // for a block one for no gain. Put the block back exactly as it was.
-      if (rows.length < 2) {
-        writeRuns(el, runs);
-        delete el.dataset.revealSplit;
-        return;
+        const text = piece.spaceAfter ? `${piece.text} ` : piece.text;
+        (wrapper ?? line).appendChild(document.createTextNode(text));
       }
+    };
 
+    /** WRITES only: rebuilds a block one `.reveal-line` per row. */
+    const buildLines = (el: HTMLElement, rows: Piece[][], stagger: number): void => {
       el.textContent = '';
       rows.forEach((row, i) => {
         const line = document.createElement('span');
         line.className = 'reveal-line';
         fillRow(line, row);
-        line.style.setProperty('--reveal-delay', `${i * LINE_STAGGER}ms`);
+        line.style.setProperty('--reveal-delay', `${i * stagger}ms`);
         el.appendChild(line);
       });
       el.dataset.revealSplit = '';
+    };
 
-      /* Backstop. Every line is `nowrap`, so one that does not fit does not
-       * wrap — it spills, and the page grows sideways. The tokeniser above is
-       * the fix for the case we found; this catches the ones we have not, from
-       * a break opportunity nobody anticipated (an em dash, a slash, a soft
-       * hyphen) to a font whose metrics shift after the split.
-       *
-       * Reverting to plain text costs the per-line cascade and keeps the whole
-       * block's single reveal, which is what an unsplittable block already
-       * gets. A line reveal is never worth a broken layout. */
-      /* Measured with a Range over the line's own text, NOT via scrollWidth,
-       * which counts anything a line's styles hang outside it (a bar with an
-       * overhang once reverted every split block on the page this way) rather
-       * than the words themselves.
-       *
-       * Compared against the BLOCK's width, not the line's. A `.reveal-line` is
-       * `inline-size: fit-content` — it is sized BY its text, so its own width
-       * can never be exceeded by that text and the test would pass for every
-       * line however far it hung off the page. The block is the box the words
-       * actually have to fit inside. */
+    /** READS only: whether any of a split block's lines is wider than the block.
+     *
+     * The backstop. Every line is `nowrap`, so one that does not fit does not
+     * wrap — it spills, and the page grows sideways. The tokeniser above is
+     * the fix for the case we found; this catches the ones we have not, from
+     * a break opportunity nobody anticipated (an em dash, a slash, a soft
+     * hyphen) to a font whose metrics shift after the split.
+     *
+     * Reverting to plain text costs the per-line cascade and keeps the whole
+     * block's single reveal, which is what an unsplittable block already
+     * gets. A line reveal is never worth a broken layout.
+     *
+     * Measured with a Range over the line's own text, NOT via scrollWidth,
+     * which counts anything a line's styles hang outside it (a bar with an
+     * overhang once reverted every split block on the page this way) rather
+     * than the words themselves.
+     *
+     * Compared against the BLOCK's width, not the line's. A `.reveal-line` is
+     * `inline-size: fit-content` — it is sized BY its text, so its own width
+     * can never be exceeded by that text and the test would pass for every
+     * line however far it hung off the page. The block is the box the words
+     * actually have to fit inside. */
+    const spills = (el: HTMLElement): boolean => {
       const limit = el.clientWidth;
       const range = document.createRange();
-      const spills = [...el.querySelectorAll<HTMLElement>('.reveal-line')].some((line) => {
+      return [...el.querySelectorAll<HTMLElement>('.reveal-line')].some((line) => {
         range.selectNodeContents(line);
         return range.getBoundingClientRect().width > limit + 1;
       });
-      if (spills) {
-        writeRuns(el, runs);
-        delete el.dataset.revealSplit;
-      }
     };
 
     /* Split every block that turns out to be more than one line long.
@@ -340,32 +338,65 @@ export function mountReveals(opts: RevealOptions): void {
      * barely move, but below 992 the root locks at 16px while the column keeps
      * narrowing — and there the breaks change completely. A block that has
      * already played is marked done rather than re-cut into a fresh animation,
-     * so re-measuring never replays a reveal the reader has watched. */
+     * so re-measuring never replays a reveal the reader has watched.
+     *
+     * Every block goes through each phase before any block starts the next, so
+     * reads and writes never interleave: two layouts for the whole page, where
+     * cutting one block at a time cost two per block. */
     const applySplits = (): void => {
+      // READ: which blocks qualify, and which have already played, before any
+      // of them is touched.
       const targets = lines.filter(splittable);
+      const played = targets.filter((el) => el.classList.contains('is-in'));
 
-      /* Restore every block to plain text BEFORE measuring any of them.
+      /* WRITE: every block back to its authored runs, cut into measuring pieces.
        *
-       * A `.reveal-line` is `nowrap`, so its width is a hard minimum for
-       * whatever column it sits in. Re-cutting one block at a time means the
-       * stale lines of its neighbours are still propping that column open, and
-       * the fresh measurement is taken against the OLD width — which produces
-       * lines that fit the old width, and the column never comes back down.
+       * All of them BEFORE measuring any of them. A `.reveal-line` is `nowrap`,
+       * so its width is a hard minimum for whatever column it sits in: were a
+       * neighbour's stale lines still in place, the fresh measurement would be
+       * taken against the OLD width — which produces lines that fit the old
+       * width, and the column never comes back down.
        *
        * Measured: resizing 1728 -> 360 left the band's grid column pinned at
        * 378px inside a 320px shell, 41px of horizontal document overflow that a
        * fresh load at 360 did not have. Clearing first lets the column collapse
        * to its real width, and every block is then measured against it. */
-      for (const el of targets) {
-        writeRuns(el, runsOf(el));
+      const cuts = targets.map((el) => {
+        const runs = runsOf(el);
         delete el.dataset.revealSplit;
+        return { el, runs, pieces: cutIntoPieces(el, runs) };
+      });
+
+      /* READ: one layout, then every block's rows.
+       *
+       * The beat between lines is read from --stagger-line rather than restated
+       * here. The token said 150ms and this said 150, which is two sources of
+       * truth for one beat — and the token was the one nothing read, so tuning
+       * it did nothing. Read here, where layout is being flushed anyway, rather
+       * than at mount, where it forced a style pass during module evaluation. */
+      const stagger =
+        Number.parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue('--stagger-line'),
+        ) || 150;
+      const measured = cuts.map((cut) => ({ ...cut, rows: rowsOf(cut.el, cut.pieces) }));
+
+      // WRITE: the lines. One line is not a cascade, and wrapping it would swap
+      // its inline layout for a block one for no gain, so a one-row block is put
+      // back exactly as it was.
+      for (const { el, runs, rows } of measured) {
+        if (rows.length < 2) writeRuns(el, runs);
+        else buildLines(el, rows, stagger);
       }
 
-      for (const el of targets) {
-        const played = el.classList.contains('is-in');
-        splitIntoLines(el);
-        if (played) el.classList.add('is-done');
+      // READ: the backstop, against the finished layout.
+      const spilled = measured.filter(({ el, rows }) => rows.length >= 2 && spills(el));
+
+      // WRITE: the spilled blocks back to plain text, and the played ones done.
+      for (const { el, runs } of spilled) {
+        writeRuns(el, runs);
+        delete el.dataset.revealSplit;
       }
+      for (const el of played) el.classList.add('is-done');
     };
 
     void document.fonts.ready.then(() => {
