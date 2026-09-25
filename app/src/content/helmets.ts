@@ -79,7 +79,18 @@ export function revealAlt(helmet: Helmet): string {
 const F1_HELMETS =
   'https://www.formula1.com/en/latest/article/lewis-hamiltons-best-helmets-through-the-years.4ouvU4h5ACxxHU4g6uhvZW';
 
-/* OLDEST FIRST, one record per asset id.
+/* Mercedes' own round-up of his São Paulo lids, which prints the 2023 one and
+   describes the 2022 season's return to fluorescent yellow. */
+const MERCEDES_BRAZIL = 'https://www.mercedesamgf1.com/news/our-favourite-lewis-brasil-helmets';
+
+/* formula1.com on the 2021 Silverstone lid, and on the 2025 Ferrari one, which
+   dates the yellow, purple and black design it replaced to 2024. */
+const F1_MAD_DOG_JONES =
+  'https://www.formula1.com/en/latest/article/hamilton-unveils-new-helmet-by-artist-mad-dog-jones-as-leclercs-design-marks.371Uk08SWPcIcJi9syf2Jo';
+const F1_FERRARI_FIRST_LOOK =
+  'https://www.formula1.com/en/latest/article/hamilton-shares-first-look-at-striking-helmet-design-for-new-ferrari-chapter.11rtWRLdH3qTzNXfMu8Orh';
+
+/* OLDEST FIRST, one record per asset id, in asset order except where noted.
 
    Ids 1-3 stay null because their two photographs disagree with each other,
    not for want of a source. Reveal 01 is the 2010 Monaco "casino" lid and
@@ -116,16 +127,32 @@ const byId: readonly Helmet[] = [
   { id: 13, name: 'Monaco', year: 2019, source: F1_HELMETS },
   // Purple and black, "Black Lives Matter" on the crown.
   { id: 14, name: 'Season', year: 2020, source: F1_HELMETS },
-  { id: 15, name: null, year: null },
-  { id: 16, name: null, year: null },
-  { id: 17, name: null, year: null },
+  /* 16 before 15, the one place the ids run against the calendar. 16 is the
+     Silverstone lid of July 2021; 15 is the Progress Pride lid, first raced in
+     Qatar that November. Both sources below date them, so the display follows
+     the races rather than the filenames. */
+  // Mad Dog Jones: a recycling sign, a BLM fist, the corners round the base.
+  { id: 16, name: 'Silverstone', year: 2021, source: F1_MAD_DOG_JONES },
+  // The Progress Pride flag over the purple 2021 lid, "love is love" on the side.
+  { id: 15, name: 'Pride', year: 2021, source: F1_HELMETS },
+  /* Year only. The helmet is the fluorescent-yellow 2022 season lid; the reveal
+     is the flag-covered one he wore in São Paulo that November. Both are 2022,
+     but no one name fits both pictures. */
+  { id: 17, name: null, year: 2022, source: MERCEDES_BRAZIL },
   // Hajime Sorayama's chrome lid with the illuminated visor.
   { id: 18, name: 'Japan', year: 2023, source: F1_HELMETS },
-  { id: 19, name: null, year: null },
-  { id: 20, name: null, year: null },
+  /* Yellow, purple and black: his last Mercedes lid. Not the similar 2023 one,
+     which carried Monster across the brow where this has Solera, and the reveal
+     wears WhatsApp, a team partner only from November 2023. */
+  { id: 19, name: 'Season', year: 2024, source: F1_FERRARI_FIRST_LOOK },
+  /* Name only. Both pictures are his São Paulo lid, but from different years:
+     the reveal is the 2023 one Mercedes prints, flag on the crown; the helmet
+     is the 2024 one, which carries Signify, a team partner only from July 2024. */
+  { id: 20, name: 'Brazil', year: null, source: MERCEDES_BRAZIL },
   // Back to the yellow of his karting days, for his first Ferrari season.
   { id: 21, name: 'Season', year: 2025, source: F1_HELMETS },
-  { id: 23, name: null, year: null },
+  // Blue lines for red, worn with the blue-and-white HP suit to a Sprint podium.
+  { id: 23, name: 'Miami', year: 2025, source: F1_HELMETS },
   // White and yellow, "NIKI LAUDA" on the side: his first Monza for Ferrari.
   { id: 24, name: 'Monza', year: 2025, source: F1_HELMETS },
   // The gold lid, with the lion on the side.
