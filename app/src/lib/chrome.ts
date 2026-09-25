@@ -627,79 +627,108 @@ export function mountChrome(): void {
   const menuBtn = document.querySelector<HTMLButtonElement>('.menu-btn');
   const menuIcon = mountMenuButton();
   const menuLabel = document.querySelector<HTMLSpanElement>('[data-menu-label]');
+  const navInner = document.querySelector<HTMLElement>('.nav-inner');
 
   if (menu && menuBtn) {
-    /* The reveal cascade.
+    /* The reveal cascade, read out of the reference's own menu timeline in
+     * lando-gl.js rather than fitted to samples. Seconds:
      *
-     * Every group expands the same ellipse (see home.css) but on its own delay
-     * and curve. These numbers are fitted to the reference's real transition,
-     * sampled per animation frame, not estimated:
+     *   group       at     for    curve
+     *   overlay     0      0.8    power3.out
+     *   tiles       0.15   0.8    power3.out, 0.06 apart, rising 25px
+     *   links       0.35   0.6    back.out(1.2), 0.08 apart, rising 20px
+     *   mark        0.4    0.6    power2.inOut
+     *   highlights  0.5    0.7    back.out(1.1), 0.04 apart, wiping in from the
+     *                             left with a 15px rise
+     *   their bars  0.7    0.6    power2.inOut, 0.05 apart
+     *   backdrop    0.6    0.6    GSAP's default curve, up to its resting strength
      *
-     *   overlay  no delay, ~750ms. Fitting power4.out against the samples gives
-     *            79.0/95.1/99.3% at 0.32/0.53/0.72 of the way through, measured
-     *            78.9/94.7/99.1 — so the curve is power4.out and not expo.out,
-     *            which would have been ~10 points high across that whole range.
-     *   tiles    ~150ms in, ~37ms apart, same curve.
-     *   links    ~350ms in, ~80ms apart, and they OVERSHOOT: the reference's
-     *            first link reaches 105.2% before settling back to 100. That is
-     *            a back ease, and the overshoot is what stops four big lines
-     *            arriving as a slab. They also translate 20px up into place.
-     *
-     * The overshoot is why the links get `back.out` rather than the same
-     * power4.out as everything else — an ellipse that only ever approaches its
-     * final size from below reads as sliding, while one that passes it and
-     * returns reads as landing. */
-    /* Timings are the reference's proportions stretched by about a third, which
-     * is the "slightly slower, smoother" ask: the ORDER and the relative offsets
-     * are what make the cascade read, so they are scaled together rather than
-     * retuned individually. The overlay and tiles also drop from power4.out to
-     * power3.out — same shape, less abrupt in the final third, which is where a
-     * power4 deceleration reads as a snap.
+     * Every group opens the same ellipse (home.css) on its own delay and curve.
+     * The links' back ease is what makes them land rather than slide. It closes
+     * by running the same timeline backwards at 1.5x.
      *
      * `at` is kept OUT of the tween objects rather than stripped at the call
      * site. Spreading a config that carried it put `at` among the tween vars,
      * where GSAP has no such property — it warned on every tween and tried to
-     * animate a name that does not exist. The motion looked right only because
-     * the position is also passed as the third argument, so the stray copy was
-     * silent apart from the console. Splitting the shape makes it
+     * animate a name that does not exist. Splitting the shape makes it
      * unrepresentable. */
     const MENU_REVEAL = {
-      overlay: { at: 0, tween: { duration: 1, ease: 'power3.out' } },
-      tiles: { at: 0.2, tween: { duration: 1, ease: 'power3.out', stagger: 0.05 } },
-      links: { at: 0.47, tween: { duration: 0.85, ease: 'back.out(0.8)', stagger: 0.105 } },
-      mark: { at: 0.62, tween: { duration: 0.7, ease: 'power2.inOut' } },
-      footer: { at: 0.76, tween: { duration: 0.56, ease: 'back.out(1.1)', stagger: 0.08 } },
+      overlay: { at: 0, tween: { duration: 0.8, ease: 'power3.out' } },
+      tiles: { at: 0.15, tween: { duration: 0.8, ease: 'power3.out', stagger: 0.06 } },
+      links: { at: 0.35, tween: { duration: 0.6, ease: 'back.out(1.2)', stagger: 0.08 } },
+      mark: { at: 0.4, tween: { duration: 0.6, ease: 'power2.inOut' } },
+      highlights: { at: 0.5, tween: { duration: 0.7, ease: 'back.out(1.1)', stagger: 0.04 } },
+      bars: { at: 0.7, tween: { duration: 0.6, ease: 'power2.inOut', stagger: 0.05 } },
+      backdrop: { at: 0.6, tween: { duration: 0.6 } },
     } as const;
+    const MENU_CLOSE_SPEED = 1.5;
 
-    const tiles = menu.querySelectorAll<HTMLElement>('[data-menu-tile]');
+    // In page order, not column order: the reference staggers its tiles by the
+    // page each belongs to, so they arrive interleaved across the two columns.
+    const tiles = [...menu.querySelectorAll<HTMLElement>('[data-menu-tile]')].sort(
+      (a, b) => Number(a.dataset.menuTile) - Number(b.dataset.menuTile),
+    );
     const links = menu.querySelectorAll<HTMLAnchorElement>('.menu__link');
-    const footerLinks = menu.querySelectorAll<HTMLAnchorElement>('.menu__footer a');
+    // The team line and the footer links, which wipe in as one group.
+    const highlights = menu.querySelectorAll<HTMLElement>('[data-menu-highlight]');
     const images = menu.querySelector<HTMLElement>('.menu__images');
+    const backdrop = menu.querySelector<HTMLElement>('.menu__bg');
     const mark = menu.querySelector<SVGPathElement>('.menu__link-mark path');
 
-    /* The current page's tile rests part-lit rather than dark, so the collage is
-       never entirely flat and the mark always has somewhere to return to. */
+    /* Tiles answer the link under the pointer, on the reference's timings: the
+       pointed-at tile comes up in 0.2s, the others drop out in 0.3s. Leaving a
+       link waits 50ms before settling back, so running the pointer down the
+       list goes straight from one tile to the next without flashing the resting
+       arrangement in between. At rest the current page's tile is part-lit and
+       the rest are dark, so the collage is never entirely flat. */
     const TILE_REST = 0.5;
+    const TILE_LEAVE_DELAY_MS = 50;
     const currentTile = menu.querySelector<HTMLAnchorElement>('.menu__link.is-current')?.dataset
       .menuLink;
+    let litTile: string | null = null;
+    let onLink = false;
 
-    /** Bring one page's tile to full colour and drop the rest back. */
-    const litTiles = (active: string | null) => {
+    const fadeTile = (tile: HTMLElement, lit: number, tween: gsap.TweenVars) => {
+      if (reducedMotion) tile.style.setProperty('--tile-lit', String(lit));
+      else gsap.to(tile, { '--tile-lit': lit, ...tween, overwrite: 'auto' });
+    };
+    const lightTile = (page: string) => {
+      litTile = page;
       for (const tile of tiles) {
-        const i = tile.dataset.menuTile;
-        const target = active === i ? 1 : active === null && i === currentTile ? TILE_REST : 0;
-        if (reducedMotion) tile.style.setProperty('--tile-lit', String(target));
-        else gsap.to(tile, { '--tile-lit': target, duration: 0.45, ease: 'power2.out', overwrite: 'auto' });
+        if (tile.dataset.menuTile === page) fadeTile(tile, 1, { duration: 0.2, ease: 'power2.inOut' });
+        else fadeTile(tile, 0, { duration: 0.3 });
+      }
+    };
+    const restTiles = () => {
+      litTile = null;
+      for (const tile of tiles) {
+        const lit = tile.dataset.menuTile === currentTile ? TILE_REST : 0;
+        fadeTile(tile, lit, { duration: 0.2, ease: 'power2.inOut' });
       }
     };
 
     for (const link of links) {
-      const i = link.dataset.menuLink ?? null;
-      link.addEventListener('pointerenter', () => litTiles(i));
-      link.addEventListener('focus', () => litTiles(i));
-      link.addEventListener('pointerleave', () => litTiles(null));
-      link.addEventListener('blur', () => litTiles(null));
+      const page = link.dataset.menuLink;
+      if (page === undefined) continue;
+      const enter = () => {
+        onLink = true;
+        lightTile(page);
+      };
+      const leave = () => {
+        onLink = false;
+        window.setTimeout(() => {
+          if (!onLink && litTile === page) restTiles();
+        }, TILE_LEAVE_DELAY_MS);
+      };
+      link.addEventListener('pointerenter', enter);
+      link.addEventListener('focus', enter);
+      link.addEventListener('pointerleave', leave);
+      link.addEventListener('blur', leave);
     }
+    menu.addEventListener('pointerleave', () => {
+      onLink = false;
+      restTiles();
+    });
 
     /* Modal while it is open: the page behind the panel can take neither focus
        nor a screen reader's cursor. The nav is left live, because the close
@@ -709,66 +738,19 @@ export function mountChrome(): void {
       for (const el of behindPanel) if (el) el.inert = inert;
     };
 
-    const reveal = gsap.timeline({
-      paused: true,
-      // Only take it out of the layout once it has finished closing. Setting
-      // `hidden` any earlier would kill the animation mid-flight, because
-      // `display: none` stops the clip-path from rendering at all.
-      onReverseComplete: () => {
-        menu.hidden = true;
-        setBehindInert(false);
-        // Cleared here rather than when the close starts, so the monogram fades
-        // back in as the panel finishes clearing instead of over the top of it.
-        document.documentElement.removeAttribute('data-menu-open');
-      },
-    });
-
-    if (!reducedMotion) {
-      reveal
-        .to(menu, { '--menu-p': 1, ...MENU_REVEAL.overlay.tween }, MENU_REVEAL.overlay.at)
-        .to(tiles, { '--tile-p': 1, ...MENU_REVEAL.tiles.tween }, MENU_REVEAL.tiles.at)
-        .fromTo(
-          links,
-          { '--link-p': 0, y: 20 },
-          { '--link-p': 1, y: 0, ...MENU_REVEAL.links.tween },
-          MENU_REVEAL.links.at,
-        )
-        // Wipe in from the left with a 15px rise, rather than fading — a fade
-        // would have this type arrive grey, and it is small enough already.
-        .fromTo(
-          footerLinks,
-          { '--wipe': 0, y: 15 },
-          { '--wipe': 1, y: 0, ...MENU_REVEAL.footer.tween },
-          MENU_REVEAL.footer.at,
-        );
-
-      if (mark) {
-        // Dash the path with its OWN length so the line draws on rather than
-        // fading in. Measured from the path, never hardcoded: the reference's is
-        // 433px for its shape, ours is whatever ours happens to be, and the
-        // number changes the moment the path or the viewport does.
-        const length = mark.getTotalLength();
-        gsap.set(mark, { strokeDasharray: length, strokeDashoffset: length });
-        reveal.to(mark, { strokeDashoffset: 0, ...MENU_REVEAL.mark.tween }, MENU_REVEAL.mark.at);
-      }
-    }
-
-    /* Cursor-height parallax. The two columns counter-slide as the pointer moves
-       up and down, which is what stops the collage feeling like a static grid
-       behind the links. Measured off the reference: linear in cursor Y, +/-5.98rem
-       at the extremes, zero at the vertical centre.
+    /* Cursor-height parallax: the two columns counter-slide as the pointer moves
+       up and down, +/-6rem at the edges of the viewport and zero at its middle,
+       easing over 2s — the reference's own numbers. Only while the menu is open.
 
        quickTo rather than a tween per event: it retargets a single running tween
-       instead of spawning one per pointermove, so the follow stays smooth under a
-       fast mouse instead of queueing up. */
-    if (images && !reducedMotion) {
-      const followParallax = gsap.quickTo(images, '--menu-parallax', {
-        duration: 0.9,
-        ease: 'power2.out',
-      });
-      // Passive, like the page's other two pointermove listeners: this never
-      // calls preventDefault, and saying so lets the browser skip waiting on it
-      // before it scrolls.
+       instead of spawning one per pointermove. */
+    const followParallax =
+      images && !reducedMotion
+        ? gsap.quickTo(images, '--menu-parallax', { duration: 2, ease: 'power2.out' })
+        : null;
+    if (followParallax) {
+      // Passive, like the page's other pointermove listeners: this never calls
+      // preventDefault, and saying so lets the browser skip waiting on it.
       window.addEventListener(
         'pointermove',
         (e) => {
@@ -779,10 +761,89 @@ export function mountChrome(): void {
       );
     }
 
+    const reveal = gsap.timeline({
+      paused: true,
+      // Only take it out of the layout once it has finished closing. Setting
+      // `hidden` any earlier would kill the animation mid-flight, because
+      // `display: none` stops the clip-path from rendering at all.
+      onReverseComplete: () => {
+        menu.hidden = true;
+        setBehindInert(false);
+        document.documentElement.removeAttribute('data-menu-open');
+        // The columns go back to centre for the next opening. The reference
+        // eases them there, but the panel is already gone, so it is the same.
+        followParallax?.(0, 0);
+      },
+    });
+
+    if (!reducedMotion) {
+      /* Each highlighted line wipes in under a bar of the brand colour, which
+         then retracts to the right and leaves the type behind it. The bars
+         only exist when there is a timeline to run them. */
+      const bars = [...highlights].map((line) => {
+        const bar = document.createElement('span');
+        bar.className = 'menu__highlight-bar';
+        bar.setAttribute('aria-hidden', 'true');
+        line.append(bar);
+        return bar;
+      });
+
+      reveal
+        .to(menu, { '--menu-p': 1, ...MENU_REVEAL.overlay.tween }, MENU_REVEAL.overlay.at)
+        .fromTo(
+          tiles,
+          { '--tile-p': 0, y: 25 },
+          { '--tile-p': 1, y: 0, ...MENU_REVEAL.tiles.tween },
+          MENU_REVEAL.tiles.at,
+        )
+        .fromTo(
+          links,
+          { '--link-p': 0, y: 20 },
+          { '--link-p': 1, y: 0, ...MENU_REVEAL.links.tween },
+          MENU_REVEAL.links.at,
+        )
+        .fromTo(
+          highlights,
+          { '--wipe': 0, y: 15 },
+          { '--wipe': 1, y: 0, ...MENU_REVEAL.highlights.tween },
+          MENU_REVEAL.highlights.at,
+        )
+        .fromTo(bars, { scaleX: 1 }, { scaleX: 0, ...MENU_REVEAL.bars.tween }, MENU_REVEAL.bars.at);
+
+      if (backdrop) {
+        // Up to the strength the stylesheet gives it, so that stays in one place.
+        const rest = Number(getComputedStyle(backdrop).opacity);
+        reveal.fromTo(
+          backdrop,
+          { opacity: 0 },
+          { opacity: rest, ...MENU_REVEAL.backdrop.tween },
+          MENU_REVEAL.backdrop.at,
+        );
+      }
+
+      if (mark) {
+        // Dash the path with its OWN length so the line draws on rather than
+        // fading in. Measured from the path, never hardcoded: the number changes
+        // the moment the path or the viewport does.
+        const length = mark.getTotalLength();
+        gsap.set(mark, { strokeDasharray: length, strokeDashoffset: length });
+        reveal.to(mark, { strokeDashoffset: 0, ...MENU_REVEAL.mark.tween }, MENU_REVEAL.mark.at);
+      }
+    }
+
     const setOpen = (open: boolean) => {
       if (open) menu.hidden = false;
       menuBtn.setAttribute('aria-expanded', String(open));
       menuIcon?.setOpen(open);
+      // The monogram fades out with the button's state (home.css) and back in
+      // here, over the same 0.4s, as the close starts.
+      if (!open && navInner && !reducedMotion) {
+        gsap.fromTo(
+          navInner,
+          { '--menu-mono': 0 },
+          { '--menu-mono': 1, duration: 0.4, ease: 'power2.out' },
+        );
+      }
       // The icon is aria-hidden, so the accessible name is the only thing telling
       // a screen reader what the button will do next. It has to track the state.
       if (menuLabel) menuLabel.textContent = open ? 'Close menu' : 'Open menu';
@@ -807,7 +868,7 @@ export function mountChrome(): void {
 
       // Back to the resting arrangement each time it opens: the current page's
       // tile part-lit, the rest dark.
-      if (open) litTiles(null);
+      if (open) restTiles();
 
       if (reducedMotion) {
         if (!open) {
@@ -815,9 +876,9 @@ export function mountChrome(): void {
           setBehindInert(false);
         }
       } else if (open) {
-        reveal.play();
+        reveal.timeScale(1).play();
       } else {
-        reveal.reverse();
+        reveal.timeScale(MENU_CLOSE_SPEED).reverse();
       }
 
       // Move focus to the panel, not to its first link: browsers treat

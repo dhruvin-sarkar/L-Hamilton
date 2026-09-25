@@ -188,7 +188,9 @@
      0-2-0 specificity later in this file and would otherwise win the tie. */
   /* Falls back to 1, not 0: before the scroll timeline has run once the
      variable is unset, and a 0 fallback hides the mark on the hero at rest. */
-  opacity: var(--mono-in, 1);
+  /* --menu-mono is the menu's share: lib/chrome.ts runs it 0 -> 1 as the menu
+     starts to close, which fades the mark back over whatever the scroll says. */
+  opacity: calc(var(--mono-in, 1) * var(--menu-mono, 1));
   transition-property: visibility;
   /* The centring translate has to be restated at THIS specificity for the same
      reason opacity is. `.monogram` sets `translate: -50% -50%` at 0-1-0 and
@@ -210,15 +212,26 @@
   pointer-events: none;
 }
 
-[data-menu-open] .nav-inner .monogram {
+/* Keyed to the button rather than to the panel, so it follows the reference:
+   out as the menu starts to open and back as it starts to close, 0.4s on
+   GSAP's power2.out each way. The way back is played from lib/chrome.ts,
+   because the resting opacity is scrubbed and so cannot carry a transition. */
+.nav-inner:has(.menu-btn[aria-expanded='true']) .monogram {
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
   /* Hold the visibility flip until the fade has finished, so it does not blink
-     out; on the way back both run together from the first frame. */
+     out. */
   transition:
-    opacity 0.45s var(--cubic-default),
-    visibility 0s linear 0.45s;
+    opacity 0.4s cubic-bezier(0.33, 1, 0.68, 1),
+    visibility 0s linear 0.4s;
+}
+
+/* The open menu is a dark panel wherever the page was, so the lockup takes its
+   colours over the dark ground, as the reference switches its nav to the light
+   theme on opening. */
+.nav-inner:has(.menu-btn[aria-expanded='true']) {
+  --nav-ink: 0;
 }
 
 /* The controls, back on. Everything else in the bar is a label. */
@@ -1470,21 +1483,14 @@
 /* The two columns are pushed in opposite directions so the tiles interlock
    instead of forming a plain grid — and the amount TRACKS THE CURSOR'S HEIGHT.
    --menu-parallax runs -1 at the bottom of the viewport to +1 at the top, and
-   the columns counter-slide by up to +/-5.98rem (105.57px), which is the
-   reference's own measured extreme rather than a constant offset:
-
-       cursor y     col 1
-       0            +94.7      (easing toward +105.6)
-       centre       +6.2       (~0)
-       bottom       -103.1
-
-   Applied as a transform, not a margin, so it composes with the centring above
+   the columns counter-slide by up to +/-6rem, the reference's own number
+   (lando-gl.js), zero with the cursor at the vertical centre. Applied as a transform, not a margin, so it composes with the centring above
    rather than fighting it. */
 .menu__col:first-child {
-  transform: translateY(calc(var(--menu-parallax, 0) * 5.98rem));
+  transform: translateY(calc(var(--menu-parallax, 0) * 6rem));
 }
 .menu__col:last-child {
-  transform: translateY(calc(var(--menu-parallax, 0) * -5.98rem));
+  transform: translateY(calc(var(--menu-parallax, 0) * -6rem));
 }
 
 .menu__tile {
@@ -1670,12 +1676,26 @@
   font-size: 0.79rem; /* 14px */
 }
 
-.menu__footer a {
+/* The team line and the footer links wipe in from the left, each under a bar
+   of the brand colour that lib/chrome.ts adds and then retracts to the right —
+   the reference's lime `.high-line-reveal`, in Rosso Corsa. The bar is a child,
+   so the line's own clip trims it as the wipe opens. */
+[data-menu-highlight] {
+  position: relative;
   clip-path: inset(0 calc(100% - var(--wipe, 0) * 100%) 0 0);
 }
 
+.menu__highlight-bar {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--rosso-corsa);
+  transform-origin: 100% 50%;
+  pointer-events: none;
+}
+
 .menu__contact {
-  color: var(--accent);
+  color: var(--text);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -1710,7 +1730,7 @@
   .menu,
   .menu__tile,
   .menu__link,
-  .menu__footer a {
+  [data-menu-highlight] {
     clip-path: none;
   }
 }
