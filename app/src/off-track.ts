@@ -16,6 +16,7 @@ import './styles/off-track.css';
 import Lenis from 'lenis';
 import { gsap, mm, reducedMotion, ScrollTrigger } from './lib/motion';
 import { mountChrome } from './lib/chrome';
+import { whenEntranceCued } from './lib/transition';
 import { mountReveals } from './lib/reveal';
 import { mountGalleryScroll } from './lib/gallery';
 import { mountSocials } from './lib/showcase';
@@ -291,7 +292,8 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
       },
     }, HERO_CUE);
 
-  void document.fonts.ready.then(() => entrance.play());
+  // Held for the loader too: the entrance plays as it opens onto the page.
+  void Promise.all([document.fonts.ready, whenEntranceCued()]).then(() => entrance.play());
 
   return () => {
     live = false;
@@ -857,7 +859,8 @@ mountReveals({
   sideways: '.gallery',
   sidewaysMargin: '0px -5% -10% 0px',
   sidewaysFromBelow: 2,
-  whenReady: (run) => void document.fonts.ready.then(() => gsap.delayedCall(HERO_CUE, run)),
+  whenReady: (run) =>
+    void Promise.all([document.fonts.ready, whenEntranceCued()]).then(() => gsap.delayedCall(HERO_CUE, run)),
 });
 
 void document.fonts.ready.then(() => {
