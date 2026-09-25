@@ -107,14 +107,14 @@ function mountStoreFill(): void {
 }
 
 /**
- * Every Rosso button below the nav: the two On Track / Off Track arrows, the
- * callout under the helmet wall (and On Track's store callout, the same
- * component), and On Track's buttons.
+ * The Rosso buttons below the nav that take the store button's liquid fill:
+ * the callout under the helmet wall, the store call and the footer call.
+ * The On Track / Off Track arrows and On Track's buttons are not among them:
+ * their hovers live with their own sections.
  *
- * Same fill as the store button, mounted the same way — these are the only
- * other Rosso buttons on the site, so they should answer the pointer the way
- * the nav does rather than with a hover of their own invention. Each gets its
- * own state, so hovering one never moves another.
+ * Mounted the same way as the store button, so these answer the pointer the
+ * way the nav does. Each gets its own state, so hovering one never moves
+ * another.
  */
 function mountSectionFills(): void {
   const buttons = document.querySelectorAll<HTMLAnchorElement>(
@@ -635,13 +635,16 @@ export function mountChrome(): void {
      *
      *   group       at     for    curve
      *   overlay     0      0.8    power3.out
-     *   tiles       0.15   0.8    power3.out, 0.06 apart, rising 25px
-     *   links       0.35   0.6    back.out(1.2), 0.08 apart, rising 20px
-     *   mark        0.4    0.6    power2.inOut
+     *   tiles       0.15   0.8    power3.out, a slot 0.06, rising 25px
+     *   links       0.35   0.6    back.out(1.2), a slot 0.08, rising 20px
+     *   mark        0.4    0.6    power2.inOut, from its link's slot x 0.05
      *   highlights  0.5    0.7    back.out(1.1), 0.04 apart, wiping in from the
      *                             left with a 15px rise
      *   their bars  0.7    0.6    power2.inOut, 0.05 apart
      *   backdrop    0.6    0.6    GSAP's default curve, up to its resting strength
+     *
+     * The slots are the reference's five menu entries, one of them a hidden
+     * Partnerships link fourth in the list, so Calendar arrives a slot late.
      *
      * Every group opens the same ellipse (home.css) on its own delay and curve.
      * The links' back ease is what makes them land rather than slide. It closes
@@ -654,21 +657,42 @@ export function mountChrome(): void {
      * unrepresentable. */
     const MENU_REVEAL = {
       overlay: { at: 0, tween: { duration: 0.8, ease: 'power3.out' } },
-      tiles: { at: 0.15, tween: { duration: 0.8, ease: 'power3.out', stagger: 0.06 } },
-      links: { at: 0.35, tween: { duration: 0.6, ease: 'back.out(1.2)', stagger: 0.08 } },
-      mark: { at: 0.4, tween: { duration: 0.6, ease: 'power2.inOut' } },
+      tiles: { at: 0.15, tween: { duration: 0.8, ease: 'power3.out' }, slot: 0.06 },
+      links: { at: 0.35, tween: { duration: 0.6, ease: 'back.out(1.2)' }, slot: 0.08 },
+      mark: { at: 0.4, tween: { duration: 0.6, ease: 'power2.inOut' }, slot: 0.05 },
       highlights: { at: 0.5, tween: { duration: 0.7, ease: 'back.out(1.1)', stagger: 0.04 } },
       bars: { at: 0.7, tween: { duration: 0.6, ease: 'power2.inOut', stagger: 0.05 } },
       backdrop: { at: 0.6, tween: { duration: 0.6 } },
     } as const;
     const MENU_CLOSE_SPEED = 1.5;
+    // Home, On Track, Off Track, Calendar, each in its reference slot.
+    const MENU_SLOTS = [0, 1, 2, 4];
+    const bySlot = (each: number) => (i: number) => (MENU_SLOTS[i] ?? i) * each;
+
+    const links = [...menu.querySelectorAll<HTMLAnchorElement>('.menu__link')];
+
+    /* The page you are on, marked in the list. The menu is one partial shared by
+       every page, so which link is current is decided here, from the address,
+       and the drawn mark moves into that link. */
+    const pageKey = (path: string) => path.replace(/(index)?(\.html)?$/, '');
+    const here = pageKey(window.location.pathname);
+    const markSvg = menu.querySelector('.menu__link-mark');
+    const currentLink = links.find((link) => pageKey(new URL(link.href).pathname) === here);
+    for (const link of links) {
+      link.classList.toggle('is-current', link === currentLink);
+      if (link === currentLink) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    }
+    if (markSvg) {
+      if (currentLink) currentLink.append(markSvg);
+      else markSvg.remove();
+    }
 
     // In page order, not column order: the reference staggers its tiles by the
     // page each belongs to, so they arrive interleaved across the two columns.
     const tiles = [...menu.querySelectorAll<HTMLElement>('[data-menu-tile]')].sort(
       (a, b) => Number(a.dataset.menuTile) - Number(b.dataset.menuTile),
     );
-    const links = menu.querySelectorAll<HTMLAnchorElement>('.menu__link');
     // The team line and the footer links, which wipe in as one group.
     const highlights = menu.querySelectorAll<HTMLElement>('[data-menu-highlight]');
     const images = menu.querySelector<HTMLElement>('.menu__images');
@@ -683,8 +707,7 @@ export function mountChrome(): void {
        the rest are dark, so the collage is never entirely flat. */
     const TILE_REST = 0.5;
     const TILE_LEAVE_DELAY_MS = 50;
-    const currentTile = menu.querySelector<HTMLAnchorElement>('.menu__link.is-current')?.dataset
-      .menuLink;
+    const currentTile = currentLink?.dataset.menuLink;
     let litTile: string | null = null;
     let onLink = false;
 
@@ -793,13 +816,13 @@ export function mountChrome(): void {
         .fromTo(
           tiles,
           { '--tile-p': 0, y: 25 },
-          { '--tile-p': 1, y: 0, ...MENU_REVEAL.tiles.tween },
+          { '--tile-p': 1, y: 0, ...MENU_REVEAL.tiles.tween, stagger: bySlot(MENU_REVEAL.tiles.slot) },
           MENU_REVEAL.tiles.at,
         )
         .fromTo(
           links,
           { '--link-p': 0, y: 20 },
-          { '--link-p': 1, y: 0, ...MENU_REVEAL.links.tween },
+          { '--link-p': 1, y: 0, ...MENU_REVEAL.links.tween, stagger: bySlot(MENU_REVEAL.links.slot) },
           MENU_REVEAL.links.at,
         )
         .fromTo(
@@ -827,7 +850,8 @@ export function mountChrome(): void {
         // the moment the path or the viewport does.
         const length = mark.getTotalLength();
         gsap.set(mark, { strokeDasharray: length, strokeDashoffset: length });
-        reveal.to(mark, { strokeDashoffset: 0, ...MENU_REVEAL.mark.tween }, MENU_REVEAL.mark.at);
+        const slot = bySlot(MENU_REVEAL.mark.slot)(currentLink ? links.indexOf(currentLink) : 0);
+        reveal.to(mark, { strokeDashoffset: 0, ...MENU_REVEAL.mark.tween }, MENU_REVEAL.mark.at + slot);
       }
     }
 
