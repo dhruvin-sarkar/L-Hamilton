@@ -3994,7 +3994,10 @@
 }
 
 /* The reference's slot is 5.625rem wide and draws its mark at 2:1, so the box
-   is 90x45 and the crest is contained in it rather than stretched to it. */
+   is 90x45 and the crest is contained in it rather than stretched to it. The
+   <svg> in the markup crops its viewBox to the drawing (-0.5 8.5 65 30) rather
+   than the crest's full 64x44 plate: the reference's wreath spans about 80x43
+   of its box, and the whole plate contained left ours at 50x29. */
 .callout__icon {
   inline-size: 5.625rem;
   block-size: 2.8125rem;

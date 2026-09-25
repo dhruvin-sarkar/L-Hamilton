@@ -237,10 +237,11 @@ export function mountHofDrift(): void {
  *
  * The reference's callout mark is a Rive file (artboard "helmet-reef", state
  * machine "helmet-reef_scroll") keyed to the callout's scroll position. Read
- * off its canvas at 1728x1080: nothing until the section top reaches 67% of
- * the viewport, then the two branches grow up from their stems until the top
- * is at 16%, then the helmet comes up between them, complete once the section
- * top has passed about 10% above the fold.
+ * off its canvas at 1728x1080, as painted pixels at held scroll positions:
+ * nothing until the section top reaches 67% of the viewport, the two branches
+ * grown up from their stems by the time it is at a third, then the helmet
+ * coming up between them, complete with the section top about 5% from the top
+ * of the screen.
  *
  * Ours is the site's own crest — the same drawing the next-race card and the
  * menu carry — through the two hooks it already exposes for the On Track
@@ -258,20 +259,32 @@ export function mountCalloutCrest(): void {
       const section = icon.closest<HTMLElement>('.callout');
       if (!section) throw new Error('callout crest: .callout__icon outside a .callout');
 
-      gsap.set(icon, { '--crest-branch-hide': '100%', '--crest-helmet': 0 });
+      /* fromTo, not set-then-to: a `.to` reads its start value when it first
+         renders, and a reload landing past this range renders it first at its
+         END — so the branches recorded 0% as their start and never grew again
+         on the way back up. Both ends are stated, so the scrub is the same
+         whichever way the page arrives. */
       gsap
         .timeline({
           scrollTrigger: {
             trigger: section,
             start: 'top 67%',
-            end: 'top -10%',
+            end: 'top 5%',
             scrub: true,
-            invalidateOnRefresh: true,
           },
         })
-        // 550 of the 832px range is the branches, the rest the helmet.
-        .to(icon, { '--crest-branch-hide': '0%', duration: 0.66, ease: 'none' })
-        .to(icon, { '--crest-helmet': 1, duration: 0.34, ease: 'none' });
+        // The first 55% of the range is the branches, the rest the helmet.
+        .fromTo(
+          icon,
+          { '--crest-branch-hide': '100%' },
+          { '--crest-branch-hide': '0%', duration: 0.55, ease: 'none', immediateRender: true },
+        )
+        .fromTo(
+          icon,
+          { '--crest-helmet': 0 },
+          { '--crest-helmet': 1, duration: 0.45, ease: 'none', immediateRender: true },
+          0.55,
+        );
     }
   });
 }
