@@ -11,7 +11,14 @@ import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountGalleryScroll } from './lib/gallery';
 import { mountFooterMarquee, mountMarquee } from './lib/marquee';
 import { mountReveals } from './lib/reveal';
-import { mountHelmets, mountHofDrift, mountRiser, mountSocials, mountStore } from './lib/showcase';
+import {
+  mountCalloutCrest,
+  mountHelmets,
+  mountHofDrift,
+  mountRiser,
+  mountSocials,
+  mountStore,
+} from './lib/showcase';
 import { BackgroundField } from './BackgroundField';
 import { HeadScene } from './HeadScene';
 import { Signature } from './Signature';
@@ -101,7 +108,7 @@ let background: BackgroundField | null = null;
  * same answer as scrolling through them would.
  * ------------------------------------------------------------------ */
 
-const groundCross = { darkening: 0, ink: 0, lightening: 0, panel: 0 };
+const groundCross = { darkening: 0, ink: 0, lightening: 0, panel: 0, visor: 0 };
 
 /** Resolved once. The script is a module, so the nav is already parsed. */
 const navGroundStyle = document.querySelector<HTMLElement>('.nav-inner')?.style ?? null;
@@ -116,10 +123,18 @@ function applyGroundCross(): void {
      the field at all — it is an opaque block laid over it. So it does not
      belong in the subtraction above (there is nothing for the store's return
      to light to undo); it just overrides, for as long as it is under the nav.
-     Without this the wordmark stays dark ink on the dark panel. */
+     Without this the wordmark stays dark ink on the dark panel. The store's
+     visor is the same kind of surface: an opaque dark dome that is still under
+     the wordmark after its own bend has reported the ground back to light. */
   navGroundStyle?.setProperty(
     '--nav-ground-dark',
-    String(Math.max(clamp(groundCross.ink - groundCross.lightening), groundCross.panel)),
+    String(
+      Math.max(
+        clamp(groundCross.ink - groundCross.lightening),
+        groundCross.panel,
+        groundCross.visor,
+      ),
+    ),
   );
 }
 
@@ -700,6 +715,7 @@ mm.add(WIDE_AND_ANIMATED, () => {
 
 mountRiser();
 mountHofDrift();
+mountCalloutCrest();
 mountStore({
   /* Home has a field to report into; the model in this file owns what the
      value means. See lib/showcase.ts for why it is reported rather than
@@ -716,11 +732,10 @@ mountStore({
  *
  *   the row      a linear loop whose period is exactly one copy of the list,
  *                which is the only distance it can travel without the joint
- *                showing. Same mechanic as the hero marquee, and the same
- *                scroll-velocity coupling.
- *   the cursor   hovering slows the row rather than stopping it. A hard stop
- *                reads as a bug on a band that has been moving for ten
- *                seconds; a decelerating one reads as an invitation to look.
+ *                showing. It runs RIGHT while the page scrolls down and left
+ *                while it scrolls up, 87px/s at 1728, and slides 10vw either
+ *                side of centre across its pass — the reference's
+ *                data-marquee-direction="right", speed and scroll-speed.
  *   the word     each path dashed with its own measured length and the offset
  *                run to zero on scroll, which is how the menu draws its
  *                current-page mark. Length from getTotalLength rather than a
@@ -742,9 +757,20 @@ if (collabs) {
 
   const track = collabs.querySelector<HTMLElement>('.collabs__track');
   const marqueeBox = collabs.querySelector<HTMLElement>('[data-collab-marquee]');
+  const scroller = collabs.querySelector<HTMLElement>('.collabs__marquee-scroll');
 
-  if (track && marqueeBox) {
-    mountMarquee({ track, box: marqueeBox, items: PARTNERS, itemClass: 'collabs__item', lenis });
+  if (track && marqueeBox && scroller) {
+    mountMarquee({
+      track,
+      box: marqueeBox,
+      items: PARTNERS,
+      itemClass: 'collabs__item',
+      direction: 'right',
+      /* 87px/s at 1728. */
+      secondsPerScreen: 19.8,
+      drift: 10,
+      scroller,
+    });
   }
 
   /* ---- the drawn word ---- */
@@ -818,12 +844,34 @@ if (collabs) {
    Ends at the nav's own height rather than at the viewport top, because what
    decides the wordmark's colour is what is under the WORDMARK. */
 const footerPanel = document.querySelector<HTMLElement>('.footer__panel');
+const storeVisor = document.querySelector<HTMLElement>('.shop__visor');
+
+const navHeight = (): number =>
+  parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-height')) *
+    parseFloat(getComputedStyle(document.documentElement).fontSize) || 0;
+
+/* The store's visor, and the opaque dark callout above it: the store reports
+   the field back to light while its top climbs from the fold to 34%, but for
+   that whole climb the wordmark is standing on the callout, and then on the
+   visor's dark dome — neither of which is the field. So the dark ground holds
+   from the store's top entering until the visor's middle leaves the viewport
+   top. The middle rather than the bottom because the dome is shallower at the
+   wordmark's end of the page, about 90px of its 128, so by the time the middle
+   has gone the wordmark stands on cream. */
+if (storeVisor) {
+  ScrollTrigger.create({
+    trigger: storeVisor,
+    start: 'top bottom',
+    end: 'center top',
+    invalidateOnRefresh: true,
+    onToggle: (self) => {
+      groundCross.visor = self.isActive ? 1 : 0;
+      applyGroundCross();
+    },
+  });
+}
 
 if (footerPanel) {
-  const navHeight = (): number =>
-    parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-height')) *
-      parseFloat(getComputedStyle(document.documentElement).fontSize) || 0;
-
   ScrollTrigger.create({
     trigger: footerPanel,
     start: () => `top top+=${navHeight()}`,
@@ -837,9 +885,9 @@ if (footerPanel) {
 }
 
 /* The footer's row: the same names and the same behaviour as the partners row
-   above, in the accent instead of the ink, plus the drift that row does not
-   have. aria-hidden in the markup — the readable list is the one up there. */
-mountFooterMarquee(lenis);
+   above, in the accent instead of the ink, running the other way. aria-hidden
+   in the markup — the readable list is the one up there. */
+mountFooterMarquee();
 mountSocials();
 
 /* ------------------------------------------------------------------ *
@@ -1119,6 +1167,12 @@ if (stage) {
     lockBtn.setAttribute('aria-pressed', String(locked));
   });
 
+  // Hovering the team row brings the whole helmet up over the head -- the
+  // reference's [data-gl-helmet="hover"] on the same row of the same card.
+  const helmetRow = document.querySelector<HTMLElement>('.next-race__row.is-2');
+  helmetRow?.addEventListener('mouseenter', () => head.setHelmetHover(true));
+  helmetRow?.addEventListener('mouseleave', () => head.setHelmetHover(false));
+
   window.addEventListener(
     'pointermove',
     (e) => {
@@ -1384,10 +1438,9 @@ if (stage) {
       if (signature) {
         signature.progress = (t - SIGN_FROM) / (SIGN_TO - SIGN_FROM);
       }
-      // Muted, not faded. Draining saturation keeps the plate solid; dropping
-      // opacity would dissolve it into the screen behind. Stops at 0.2 — a
-      // fully grey plate reads as broken rather than as receding.
-      head.saturation = 1 - 0.8 * eased;
+      // The reference's uFilter: scrubbed 0 -> 1 with power1.inOut over the
+      // same first viewport of scroll, which is exactly `eased`.
+      head.filter = eased;
       /* These go on the NAV, not on the document element.
        *
        * A custom property set on :root invalidates style for every element

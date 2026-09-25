@@ -23,7 +23,13 @@ import { mountHelmetScroll } from './HelmetScroll';
 import { mountFooterMarquee } from './lib/marquee';
 import { Signature } from './Signature';
 import { mountReveals } from './lib/reveal';
-import { mountHelmets, mountHofDrift, mountRiser, mountSocials } from './lib/showcase';
+import {
+  mountCalloutCrest,
+  mountHelmets,
+  mountHofDrift,
+  mountRiser,
+  mountSocials,
+} from './lib/showcase';
 import {
   age,
   driver,
@@ -63,10 +69,9 @@ import { circuitFacts, formatKm } from './content/circuit-facts';
  * Lenis is stepped from gsap's ticker, so the two share one clock.
  * ------------------------------------------------------------------ */
 
-/** The page's scroller, for its two other users: a calendar row taking the
-    reader up to the panel it changed, and the footer's row, which couples its
-    loop to the scroll velocity. Null under reduced motion, where there is no
-    smoothing to go through, and both have to cope without one. */
+/** The page's scroller, for its one other user: a calendar row taking the
+    reader up to the panel it changed. Null under reduced motion, where there
+    is no smoothing to go through, and that user has to cope without one. */
 let smoothScroller: Lenis | null = null;
 
 if (!reducedMotion) {
@@ -108,8 +113,9 @@ mountGalleryScroll({ start: 'rising', scrub: 1 });
 mountHelmets();
 mountRiser();
 mountHofDrift();
+mountCalloutCrest();
 mountSocials();
-mountFooterMarquee(smoothScroller);
+mountFooterMarquee();
 
 /* ------------------------------------------------------------------ *
  * Formatting — one place, so the table and the stat grid cannot disagree

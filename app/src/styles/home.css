@@ -620,10 +620,14 @@
   margin-block-start: -100dvh;
 }
 
+/* .hero-mark too: it is a full-screen layer ABOVE .hero, so without this it
+   swallows every pointer event meant for the next-race card and the lock
+   button beneath it. It is aria-hidden with nothing to interact with. */
 .hero-bg,
 .hero-back,
 .hero__stage,
-.hero-sign {
+.hero-sign,
+.hero-mark {
   pointer-events: none;
 }
 
@@ -780,6 +784,14 @@
   align-items: center;
   gap: var(--gap);
   padding-block-start: calc(50dvh - 22.5rem);
+}
+
+/* The mark is where the SHRUNK hero lands, over the revealed cream screen.
+   Without the pinned sequence the hero never shrinks, so it would sit on the
+   dark portrait instead, dark ink on dark ground. It is aria-hidden and the
+   marquee's sr-only heading carries the same words, so nothing is lost. */
+:root:not([data-hero-pinned]) .hero-mark {
+  display: none;
 }
 
 .hero-mark__svg {
@@ -2712,8 +2724,11 @@
 
 /* The one accent item in the columns, and a size down from the links so it
    reads as a departure from the list rather than another entry in it. */
+/* 4% white in oklab on the accent: #ff391c, 4.68:1 on the panel where the
+   accent itself is 4.44 — under AA at the 16.7px this sets at 1440. A lift
+   rather than a size change, because the size is the reference's. */
 .footer__store {
-  color: var(--accent);
+  color: color-mix(in oklab, var(--accent), white 4%);
 }
 
 .footer__store .btn-text {
@@ -2758,12 +2773,16 @@
   pointer-events: none;
 }
 
+/* The reference's .text-impact-sm-mona: "wdth" 93, "wght" 660 and all but no
+   tracking (-0.0625px at 84px). Ours had been set at 800 and -1.05px, which
+   read a step heavier and pulled every line ~10px narrower than its own. */
 .footer__headline {
   margin: 0;
   font-size: 5.25rem;
   line-height: 0.856;
-  letter-spacing: -0.0125em;
-  font-weight: 800;
+  letter-spacing: -0.0039rem;
+  font-weight: 660;
+  font-stretch: 93%;
   text-transform: uppercase;
 }
 
@@ -2780,6 +2799,10 @@
 .footer__headline em {
   font-family: var(--font-serif);
   font-size: 1.0357em;
+  /* 0.84 rather than the inherited 0.856: Playfair's taller ascent stood each
+     line box at 76.9px where the reference's Brier leaves 75.9, and the second
+     line landed a pixel low for it. */
+  line-height: 0.84;
   font-style: normal;
   font-weight: 700;
   letter-spacing: -0.023em;
@@ -2819,20 +2842,25 @@
   flex: none;
   /* Sized against the reference's HEAD, not its box. Its footer figure is a
      helmet on shoulders, and the helmet is what reads as the size of the
-     thing: 335px at its widest at 1728, its crown 320.5px down the panel, over
-     the foot of the headline's second line. The same box here left the head
-     301px wide — visibly the smaller figure beside a helmet — so the portrait
-     is scaled until its own widest row (1200 of 3780, ears included) is 335
-     too, and hung so the crown lands on the helmet's.
+     thing: 335px wide and ~397px crown to chin bar at 1728, its crown 321px
+     down the panel, over the foot of the headline's second line.
 
-     Both solved off the file's own alpha rather than nudged: at 49.45rem the
-     picture is 791px tall with the crown 109.4px down it, so the crown sits
-     at 320.5 when the frame's top is at 211 — which is a 6.64rem overhang
+     Matching that by the head's widest row (ears included, 1190 of the file's
+     rows) still left the figure reading smaller: the hair is dark on a dark
+     panel, so the eye takes the FACE for the head, and a face is narrower than
+     a shell that encloses one. So the skull itself — 1056px of the file at
+     brow height, ears excluded — is sized to within 3% of the helmet's width
+     (325px against 335), which is the user's "a little bigger, matching
+     Lando's", and the crown stays on the helmet's.
+
+     Solved off the file's own alpha rather than nudged: at 54.4rem the
+     picture is 870.4px tall, the crown 120.4px down it (392 of 2834), so the
+     crown sits at 321 when the frame's top is at 200.6 — a 10.93rem overhang
      below a 56rem panel. The shoulders take the extra crop, as the
      reference's own do. */
-  inset-block-end: -6.64rem;
+  inset-block-end: -10.93rem;
   inline-size: auto;
-  block-size: 49.45rem;
+  block-size: 54.4rem;
 }
 
 .footer__cta {
@@ -2850,6 +2878,9 @@
   gap: calc(var(--gap) * 0.5);
   block-size: 3rem;
   padding-inline: 1rem;
+  /* The reference's .btn-w border, 1px in the fill's colour: without it the
+     button ran 202.5 wide against its 204.5. */
+  border: 1px solid transparent;
   border-radius: var(--radius--btn);
   font-size: var(--text--btn-primary);
   font-weight: 800;
@@ -2886,11 +2917,9 @@
 }
 
 /* Wider than the panel and pulled back by half the overhang, so the drift has
-   somewhere to travel without exposing an end.
-   112, not 110: GSAP writes xPercent against the element's OWN width, so a 5%
-   drift reaches 0.05 * 1.1P = 5.5% of the panel while 110% only reserves 5% a
-   side — the row's left edge came 8px inside the clip box at full travel. The
-   reserve has to beat the reach, which needs a width of at least 1.111P. */
+   somewhere to travel without exposing an end. The drift is 5vw either way
+   (86px at 1728) and 6% of the panel reserves 101px — the reference's own
+   5% reserves 84px and leaves its row's end 2px inside at full travel. */
 .footer__marquee-scroll {
   inline-size: 112%;
   margin-inline-start: -6%;
@@ -3665,53 +3694,64 @@
 
 /* ---- the standfirst ---- */
 
+/* `.title-layout.grid-main` and the `.spacer._8-75rem` under it. */
 .hof__head {
   display: grid;
-  /* Two equal halves. The reference starts its paragraph at 855 of 1728 — just
-     under the midpoint — which is what a 1fr 1fr split produces. */
-  grid-template-columns: 1fr 1fr;
-  gap: var(--gap);
-  /* 272px between the top of the title and the top of the grid at 1728, less
-     the two lines of title above it. */
-  margin-block-end: 9rem;
+  grid-template-columns: repeat(4, 23.55%);
+  column-gap: var(--gap);
+  margin-block-end: 8.75rem;
 }
 
+/* `.text-title-lg-mona`: Mona Sans at "wdth" 93 "wght" 750, not the condensed
+   cut — the condensed face set HELMETS 90px short of the reference's 299. */
 .hof__title {
+  grid-column: 1 / span 2;
   margin: 0;
-  font-size: var(--text--h2); /* 72px at the design width */
-  /* 64px between line tops at a 72px size. */
-  line-height: 0.89;
+  font-family: var(--font-body);
+  font-stretch: 93%;
+  font-size: 4.5rem;
+  font-weight: 750;
+  line-height: 0.886;
+  letter-spacing: -0.125rem;
   text-transform: uppercase;
 }
 
 .hof__title-line {
   display: block;
-  font-family: var(--font-display);
-  font-weight: 700;
   /* The sweep bar behind .reveal-text spans its element, so the line has to be
      as wide as its words rather than as wide as the column — otherwise the bar
      runs on across empty space. Same fix the gallery captions needed. */
   inline-size: fit-content;
 }
 
-/* The second line drops to the Didone in the accent, mirroring the wordmark's
-   own pairing of a serif given name against the block capitals. The reference
-   makes the same move with its own accent on this exact line. */
+/* `.text-title-lg-brier.c-lime-off` on Home, `.c-grey-on-track` on On Track
+   (see the tail block in on-track.css): the second face at 4.6875rem, in
+   capitals like the line above it. lime-off maps to --accent-off, as it does
+   everywhere else.
+
+   0.9037 rather than Brier's 0.886: the reference's line box is 67.78px, not
+   66.45, because the serif sits inside a sans line and the two baselines pull
+   it taller — the same value the On Track headings use. Matching the box keeps
+   the grid under it at the reference's 312. */
 .hof__title-line.is-serif {
   font-family: var(--font-serif);
-  font-weight: 400;
-  text-transform: none;
-  color: var(--accent);
+  font-style: normal;
+  font-weight: 500;
+  font-size: 4.6875rem;
+  font-variant-numeric: lining-nums;
+  line-height: 0.9037;
+  color: var(--accent-off);
 }
 
+/* `.title-para-w.c-grey-on-track` > `.text-body-reg-mona`: one grid column,
+   1.25rem on 1.25, at the top of its cell. */
 .hof__blurb {
-  /* 398px of measure at the design width, and the paragraph sits at the top of
-     its column rather than centred against the title. */
-  max-inline-size: 25rem;
+  grid-column: 3;
   margin: 0;
   font-size: 1.25rem;
-  line-height: 1.4;
-  color: var(--text-muted);
+  line-height: 1.25;
+  letter-spacing: -0.0125rem;
+  color: var(--grey-on-track);
 }
 
 /* Carries the clipPath and nothing else. Zero-sized rather than display:none,
@@ -3742,24 +3782,19 @@
      `clip` rather than `hidden`: hidden would make all 26 cards scroll
      containers. Measured at a 1728 viewport: scrollWidth 1735 -> 1713. */
   overflow: clip;
+  /* The label is sized off the card rather than the root, so it stays inside
+     the notch at every card width — see .hof__label. */
+  container-type: inline-size;
   /* Columns 1 and 3 — the leaders. */
   transform: translate3d(0, var(--hof-lead, 0px), 0);
   will-change: transform;
 }
 
-/* Columns 2 and 4. Three times the travel of their neighbours, which is what
+/* Columns 2 and 4. Five times the travel of their neighbours, which is what
    makes the wall breathe as it passes rather than arriving as one block. */
 .hof__item:nth-child(4n + 2),
 .hof__item:nth-child(4n + 4) {
   transform: translate3d(0, var(--hof-lag, 0px), 0);
-}
-
-/* Focusable because the wearing shot is content, and hover is the only other
-   way to reach it. Without this a sighted keyboard-only visitor gets 26 cards
-   whose second photograph simply does not exist for them. */
-.hof__item:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 4px;
 }
 
 /* Clipped to the card shape — the same outline the frame strokes, so the
@@ -3783,12 +3818,17 @@
    width and then drops the `right` offset as over-constrained — so `inset: 6%
    6% 11%` sized every helmet to the full card and shunted it 6% off to the
    right, under the clip where it was easy to miss. */
+/* Sized to the reference's subject rather than to its box. Its helmet shots are
+   1727px squares with the helmet at 63% of the width, centred 48% of the way
+   down a square sitting at the top of the card. Ours are trimmed to the helmet
+   (97% of an 800 square), so the box shrinks to 65% instead — 264px of a 407px
+   card — and sits where the reference's subject sits. */
 .hof__helmet {
   position: absolute;
-  inset-inline-start: 6%;
-  inset-block-start: 6%;
-  inline-size: 88%; /* 100 - 6 - 6 */
-  block-size: 83%; /* 100 - 6 - 11, the deeper foot clearing the label */
+  inset-inline-start: 17.5%;
+  inset-block-start: 15.5%;
+  inline-size: 65%;
+  block-size: 64.4%; /* the same 264px, as a share of the 411px height */
   z-index: 1;
   object-fit: contain;
   transform: scale(1);
@@ -3822,8 +3862,7 @@
     transform var(--animation-default);
 }
 
-.hof__item:hover .hof__reveal-w,
-.hof__item:focus-visible .hof__reveal-w {
+.hof__item:hover .hof__reveal-w {
   /* 120%, not 100%: the ellipse has to overshoot the bottom edge, or its curve
      is still readable as a dome across the foot of the card at the end. */
   clip-path: ellipse(100% 120% at 50% 0);
@@ -3856,8 +3895,7 @@
   object-fit: contain;
 }
 
-.hof__item:hover .hof__helmet,
-.hof__item:focus-visible .hof__helmet {
+.hof__item:hover .hof__helmet {
   transform: scale(1.1);
 }
 
@@ -3882,41 +3920,45 @@
 .hof__frame path {
   fill: none;
   stroke: currentColor;
-  stroke-width: 1;
-  /* The path is drawn in the 407x411 viewBox and scales with the card, so the
-     stroke has to be told not to scale with it, or the line thickens on wide
-     screens and thins on narrow ones. */
+  stroke-width: 2;
+}
+
+/* The reference's `.helmet-grid-frame.is-base`: --color--dark-green-tint-2
+   (#535450) at a 2px non-scaling stroke, which maps to our --dark-tint-2. The
+   non-scaling stroke keeps the resting line the same weight at every width. */
+.hof__frame--base {
+  color: var(--dark-tint-2);
+}
+
+.hof__frame--base path {
   vector-effect: non-scaling-stroke;
 }
 
-/* Giallo, not the reference's grey.
- *
- * Worth recording that this is a deliberate departure and not a mismeasure:
- * the reference carries BOTH strokes, #535450 at rest and its lime accent on
- * hover, and that pairing was reproduced here first. Yellow at rest was asked
- * for directly, so the two states now separate by weight rather than by hue —
- * a calm line that comes up to full strength under the pointer. */
-.hof__frame--base {
-  color: var(--giallo-modena);
-  opacity: 0.45;
-}
-
-/* A second copy rather than a transition on the first: animating opacity on a
-   single stroke would fade the whole card outline out and back, where fading a
-   second line up over the first only ever adds. */
+/* `.helmet-grid-frame.is-overlay`: the accent, faded up over the resting line
+   on hover. A second copy rather than a transition on the first: animating
+   opacity on a single stroke would fade the whole outline out and back, where
+   fading a second line up over the first only ever adds. */
 .hof__frame--on {
-  color: var(--giallo-modena);
+  color: var(--accent);
   opacity: 0;
   transition: opacity var(--animation-default);
 }
 
-.hof__item:hover .hof__frame--on,
-.hof__item:focus-visible .hof__frame--on {
+.hof__item:hover .hof__frame--on {
   opacity: 1;
 }
 
 /* ---- the label, in the notch ---- */
 
+/* `.helmet-grid-item-text-w`: a 2rem box on the card's bottom-right corner,
+   name at .9rem 600 and the date at .9rem 700 in the accent, .8rem apart.
+
+   Written in container units of the card, which at every desktop width are
+   those same values (a 407px card at a 16px root: 2rem is 7.86cqi, .9rem is
+   3.54cqi) — and below that they keep the label inside the notch, where rem
+   would not: our phone root holds at 16px while the card drops to 165px, and
+   a .9rem "Silverstone 2021" ran twice the notch's width across the frame. The
+   floor is the reference's own phone size, .9rem of its 10.8px root. */
 .hof__label {
   position: absolute;
   inset: auto 0 0 auto;
@@ -3924,9 +3966,11 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  block-size: 2rem;
-  font-size: 0.9rem;
-  line-height: 1;
+  block-size: 7.86cqi;
+  margin: 0;
+  font-size: max(0.6rem, 3.54cqi);
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .hof__name {
@@ -3935,9 +3979,12 @@
 }
 
 .hof__year {
-  margin-inline-start: 0.8rem;
   font-weight: 700;
   color: var(--accent);
+}
+
+.hof__name + .hof__year {
+  margin-inline-start: max(0.27rem, 3.15cqi);
 }
 
 /* ==================================================================== *
@@ -3985,7 +4032,10 @@
 }
 
 /* The reference's slot is 5.625rem wide and draws its mark at 2:1, so the box
-   is 90x45 and the crest is contained in it rather than stretched to it. */
+   is 90x45 and the crest is contained in it rather than stretched to it. The
+   <svg> in the markup crops its viewBox to the drawing (-0.5 8.5 65 30) rather
+   than the crest's full 64x44 plate: the reference's wreath spans about 80x43
+   of its box, and the whole plate contained left ours at 50x29. */
 .callout__icon {
   inline-size: 5.625rem;
   block-size: 2.8125rem;
@@ -4071,10 +4121,9 @@
 /* Same box as .callout__arrow — it is the same mark on the same button, and
    the gap comes from .store-cta__link's own inline-flex. */
 .store-cta__arrow {
-  inline-size: 1.25rem;
-  block-size: 1.25rem;
+  inline-size: 1.2rem;
+  block-size: 1.2rem;
   flex: none;
-  margin-inline-start: 0.5rem;
 }
 
 /* ---- narrow screens ----
@@ -4095,12 +4144,22 @@
     margin-block-end: 3rem;
   }
 
+  /* Back to the one column, or the wide layout's placements would open
+     implicit tracks beside it. */
+  .hof__title,
+  .hof__blurb {
+    grid-column: auto;
+  }
+
   .hof__title {
     font-size: var(--text--h3);
   }
 
+  .hof__title-line.is-serif {
+    font-size: calc(var(--text--h3) * 1.0417);
+  }
+
   .hof__blurb {
-    max-inline-size: none;
     font-size: 1rem;
   }
 
@@ -4140,8 +4199,7 @@
     transform: none;
   }
 
-  .hof__item:hover .hof__helmet,
-  .hof__item:focus-visible .hof__helmet {
+  .hof__item:hover .hof__helmet {
     transform: none;
   }
 }
@@ -4225,11 +4283,15 @@
 .shop__eyebrow {
   display: flex;
   align-items: center;
-  gap: 0.62rem;
+  gap: calc(var(--gap) * 0.5);
   margin: 0;
+  /* The reference's .text-eyebrow.large: "wght" 812, "wdth" 81.3. Ours had no
+     weight at all and set the label at a regular 400. */
   font-size: 1.125rem;
+  font-weight: 812;
+  font-stretch: 81.3%;
   line-height: 1;
-  letter-spacing: -0.009em;
+  letter-spacing: -0.01rem;
   text-transform: uppercase;
   color: var(--dark);
 }
@@ -4242,12 +4304,17 @@
 
 /* ---- headline ---- */
 
+/* 1.875rem under the eyebrow, as under the headline and the body: the
+   reference's column is one flex stack on a 1.5 * --gap rhythm. 3.05rem was the
+   eyebrow's TOP to the headline's top, applied as a gap, and dropped the whole
+   block 19px. Type is its .text-impact-lg-mona: "wght" 750, "wdth" 93, -0.25rem. */
 .shop__title {
-  margin: 3.05rem 0 0;
+  margin: 1.875rem 0 0;
   font-size: 7rem;
   line-height: 0.816;
-  letter-spacing: -0.0357em;
-  font-weight: 800;
+  letter-spacing: -0.25rem;
+  font-weight: 750;
+  font-stretch: 93%;
   text-transform: uppercase;
 }
 
@@ -4265,16 +4332,22 @@
   font-family: var(--font-serif);
   font-weight: 700;
   font-style: normal;
+  /* The reference's serif line stands 93.4px to the others' 91.4, and the
+     body and button below it sit 2px lower for it. */
+  line-height: 0.834;
 }
 
 /* ---- body ---- */
 
+/* Its .text-body-reg-mona: "wght" 500, -0.0125rem. */
 .shop__body {
-  margin: 1.87rem 0 0;
+  margin: 1.875rem 0 0;
   inline-size: 32.43rem;
   max-inline-size: 100%;
   font-size: 1.25rem;
+  font-weight: 500;
   line-height: 1.25;
+  letter-spacing: -0.0125rem;
   color: var(--dark);
 }
 
@@ -4289,12 +4362,18 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-block-start: 3.28rem;
+  /* The reference's .btn-w on the 1.5 * --gap rhythm: a 1px border in the
+     fill's own colour (transparent here, so the liquid shows through it), a
+     half-gap between label and arrow, the label at "wdth" 86. 173 x 48. */
+  gap: calc(var(--gap) * 0.5);
+  margin-block-start: 1.875rem;
   block-size: 3rem;
   padding-inline: 1rem;
+  border: 1px solid transparent;
   border-radius: var(--radius--btn);
   font-size: var(--text--btn-primary);
   font-weight: 800;
+  font-stretch: 86%;
   text-transform: uppercase;
   line-height: 1;
   background: linear-gradient(
@@ -4308,10 +4387,23 @@
 
 /* ---- the art ----
  *
- * Positioned against the section rather than the column, because the reference
- * places these against the viewport: its big frame starts at exactly 50% and
- * two of them run off an edge. Percentages where the placement is proportional,
- * rem where it is a measured size. */
+ * The reference's four frames and one sticker, in its slots. Read off its
+ * .exe-cta-img-w boxes at 1728 on a 16px root, so every rem below is its px
+ * over 16:
+ *
+ *   is-1  hero     630 x 833  at 864, 64      (the column edge, 50%)
+ *   is-2  side     400 x 286  at 1388, 256    runs off the right edge
+ *   is-3  print    227 x 290  at 683, 799     over the hero's lower corner
+ *   is-4  patch    262 x 190  at -48, 737     runs off the left edge
+ *   sticker        243 x 184  at 1161, 809
+ *
+ * THE MECHANIC. A photograph frame is a static clip and the picture inside it
+ * is 4rem taller, travelling up through the frame as the section passes — the
+ * frame's edges never move, only what is in them. The two photographs here
+ * are ordinary pictures and take that mechanic as the reference does, cropped
+ * with object-fit. The print and the patch are cut-outs with no ground of
+ * their own, so there is no frame edge to hold still: they take the same
+ * travel as a whole, which reads identically. */
 
 /* Above the visor, so the big frame overlaps the dome the way the reference's
    does — the photograph crossing the seam is what ties the two grounds
@@ -4323,24 +4415,31 @@
   pointer-events: none;
 }
 
-/* Every frame carries its SOURCE aspect ratio, and the picture is contained
-   rather than covered.
- *
- * The reference clips a taller image inside a shorter frame and travels the
- * overflow, which is free for it: its art is shot to be cropped. Ours is
- * product photography where the crop costs the product — at the reference's
- * proportions the patch lost a third of its width and the print lost its
- * title. So the frame takes the picture's own shape and the parallax moves the
- * WHOLE frame instead of sliding an image inside it. Same drift, nothing
- * thrown away. */
 .shop__frame {
   position: absolute;
-  /* 4rem = the reference's measured 64px of drift. 2.83rem travelled 45.3. */
+}
+
+/* 4rem of travel: the reference's picture is 64px taller than its frame and
+   covers all of it by the time the section has passed. */
+.shop__frame--photo {
+  overflow: clip;
+}
+
+.shop__frame--photo .shop__img {
+  display: block;
+  inline-size: 100%;
+  block-size: calc(100% + 4rem);
+  object-fit: cover;
   transform: translateY(calc(var(--store-parallax, 0) * -4rem));
   will-change: transform;
 }
 
-.shop__img {
+.shop__frame--cutout {
+  transform: translateY(calc(var(--store-parallax, 0) * -4rem));
+  will-change: transform;
+}
+
+.shop__frame--cutout .shop__img {
   display: block;
   inline-size: 100%;
   block-size: 100%;
@@ -4349,78 +4448,51 @@
 
 .shop__frame--hero {
   inset-inline-start: 50%;
-  inset-block-start: 4.02rem;
-  inline-size: 39.4rem;
-  aspect-ratio: 1400 / 1820;
+  inset-block-start: 4rem;
+  inline-size: 39.375rem;
+  block-size: 52.0625rem;
 }
 
+/* Portrait source in a landscape slot: the crop keeps the head and the star
+   yoke across the shoulders, which is the product, and gives up the jeans. */
 .shop__frame--side {
   inset-inline-start: 80.34%;
-  inset-block-start: 12rem;
+  inset-block-start: 16rem;
   inline-size: 25rem;
-  aspect-ratio: 900 / 1170;
+  block-size: 17.875rem;
 }
 
-/* Moved out of the reference's bottom-centre slot. That position sits directly
-   under the big frame, and with the print at its own full height the two
-   overlapped and the title was the part that went. It reads better in the open
-   ground between the button and the big frame. */
-/* Clear of the body copy, which ends at 46.13rem and runs 32.4rem wide, and
-   clear of the button beside it. Placed against its TRAVELLED position rather
-   than its static one: the parallax lifts every frame by up to 2.83rem, so a
-   gap measured at rest closes to nothing by the time the section has passed. */
+.shop__frame--side .shop__img {
+  object-position: 50% 15%;
+}
+
+/* Last of the frames in the DOM, as the reference's is-3 is, so it paints over
+   the hero's lower-left corner rather than under it — which is what keeps the
+   print's title in view. */
 .shop__frame--print {
-  inset-inline-start: 31rem;
-  inset-block-start: 49.5rem;
-  inline-size: 14.2rem;
-  aspect-ratio: 620 / 804;
+  inset-inline-start: 42.7rem;
+  inset-block-start: 49.94rem;
+  inline-size: 14.1875rem;
+  block-size: 18.125rem;
 }
 
-/* Runs off the left edge, as the reference fourth frame does. */
 .shop__frame--patch {
   inset-inline-start: -3rem;
-  inset-block-start: 46.02rem;
-  inline-size: 16.36rem;
-  aspect-ratio: 640 / 325;
+  inset-block-start: 46.04rem;
+  inline-size: 16.375rem;
+  block-size: 11.875rem;
 }
 
-/* Stickers are flat on the ground: no frame, no clip, no parallax. They read as
-   applied to the page rather than as photographs of it, which is the same
-   distinction the reference draws between its scrolling frames and its flat
-   LN1 mark. */
+/* The one sticker, flat on the ground: no frame and no travel, as the
+   reference's .exe-cta-sticker-w has neither. Contained in its box so the
+   artwork centres where the reference's does. */
 .shop__sticker {
   position: absolute;
-  block-size: auto;
-}
-
-.shop__sticker--keyring {
-  inset-inline-start: 67.19%;
-  inset-block-start: 50.55rem;
-  inline-size: 15.17rem;
-  rotate: -4deg;
-}
-
-.shop__sticker--roundel {
-  inset-inline-start: 40rem;
-  inset-block-start: 15.5rem;
-  inline-size: 5.5rem;
-  rotate: 9deg;
-}
-
-/* Out of the body copy's way now that the print has taken the ground beside
-   the button. */
-.shop__sticker--oval {
-  inset-inline-start: 46.5rem;
-  inset-block-start: 37rem;
-  inline-size: 7rem;
-  rotate: -7deg;
-}
-
-.shop__sticker--silverstone {
-  inset-inline-start: 10.98rem;
-  inset-block-start: 54.5rem;
-  inline-size: 12rem;
-  rotate: 3deg;
+  inset-inline-start: 72.575rem;
+  inset-block-start: 50.5625rem;
+  inline-size: 15.1875rem;
+  block-size: 11.5rem;
+  object-fit: contain;
 }
 
 /* ---- narrow screens ----
@@ -4457,9 +4529,9 @@
     padding-inline: var(--gutter);
   }
 
-  /* Each keeps its own source ratio here too — no forced shape, so nothing is
-     cropped on a phone either. The parallax goes with the placement: sliding a
-     frame inside a static column reads as a misalignment, not as depth. */
+  /* Each takes its own source ratio here — no forced shape, so nothing is
+     cropped on a phone. The travel goes with the placement: sliding a picture
+     inside a static column reads as a misalignment, not as depth. */
   .shop__frame {
     position: relative;
     inset: auto;
@@ -4469,26 +4541,30 @@
     align-self: start;
   }
 
+  .shop__frame .shop__img,
+  .shop__frame--photo .shop__img {
+    block-size: auto;
+    transform: none;
+  }
+
   /* The big one takes the full width; the rest pair up beneath it. */
   .shop__frame--hero {
     grid-column: 1 / -1;
   }
 
-  /* Off-canvas placement and rotation are both viewport composition, so the
-     stickers simply go. Nothing is lost: they carry no content. */
+  /* Off-canvas placement is viewport composition, so the sticker simply goes.
+     Nothing is lost: it carries no content. */
   .shop__sticker {
     display: none;
   }
 }
 
-/* The parallax and the bend are the motion here. Without them the frames still
+/* The travel and the bend are the motion here. Without them the frames still
    hold their pictures and the visor still separates the two grounds, so the
    section arrives assembled rather than absent. */
 @media (prefers-reduced-motion: reduce) {
-  /* .shop__frame, not .shop__img: the parallax translate lives on the frame,
-     so this guard had been neutralising an element that never moved and the
-     drift played in full for anyone who asked for no motion. */
-  .shop__frame {
+  .shop__frame--cutout,
+  .shop__frame--photo .shop__img {
     transform: none;
   }
 
@@ -4515,7 +4591,11 @@
 .collabs {
   position: relative;
   isolation: isolate;
-  padding-block-start: 20rem;
+  /* 20rem at both ends, the reference's two ._20rem spacers. The closing one
+     is the section's rather than the row's so the row's box is the row: the
+     drift and the loop's visibility both key off that box, and with the
+     padding inside it the drift ran 34px behind the reference's. */
+  padding-block: 20rem;
   color: var(--dark);
   background: var(--field-ground);
   overflow-x: clip;
@@ -4546,10 +4626,18 @@
   pointer-events: none;
 }
 
+/* Set on the reference's slant and spread. Its word climbs at 23 degrees from
+   the bottom-left of the drawn box to the top-right, its ink 1020px across
+   and centred at 528,469 of the section; ours is written level, so it is
+   turned and enlarged about its own ink centre (51.6% 55.9% of the box) until
+   its ink lies along the same axis over the same span — measured as the
+   ink's principal axis and extent on both screenshots. */
 .collabs__mark-svg {
   inline-size: 100%;
   block-size: 100%;
   overflow: visible;
+  transform-origin: 51.6% 55.9%;
+  transform: translate(0.94rem, -2.56rem) rotate(-26.2deg) scale(1.07);
 }
 
 /* Dash length and offset are written by main.ts from each path's own measured
@@ -4559,22 +4647,27 @@
   stroke-dashoffset: var(--draw-offset, 0);
 }
 
+/* The reference's .title-layout.grid-main: two 47.1% columns on a 2 * --gap
+   gutter, which starts the paragraph at 855 on 1728 where 1fr 1fr put it at
+   880. */
 .collabs__inner {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  grid-template-columns: 47.1% 47.1%;
+  column-gap: calc(var(--gap) * 2);
   align-items: start;
   padding-inline: 1.25rem;
 }
 
+/* .text-title-lg-mona, as the socials heading: "wght" 750, "wdth" 93. */
 .collabs__title {
   margin: 0;
   font-size: 4.5rem;
   line-height: 0.886;
-  letter-spacing: -0.0278em;
-  font-weight: 800;
+  letter-spacing: -0.125rem;
+  font-weight: 750;
+  font-stretch: 93%;
   text-transform: uppercase;
 }
 
@@ -4587,19 +4680,24 @@
    It is a cap-height match rather than a size change: Playfair sets smaller on
    the body than the grotesque at the same nominal size, so leaving both at
    4.5rem drops the serif line visibly below the one above it. */
+/* Uppercase like the line above it — the reference sets "&CAMPAIGNS" — and on
+   a 67.8px line box, its own: at the inherited 0.886 the line stood 66.4 and
+   the logo row landed 1.4px high. */
 .collabs__title-line.is-serif {
   font-family: var(--font-serif);
   font-size: 4.6875rem;
   font-weight: 700;
-  text-transform: lowercase;
+  line-height: 0.904;
 }
 
+/* .text-body-reg-mona: "wght" 500, -0.0125rem. */
 .collabs__body {
   margin: 0;
   max-inline-size: 25rem;
   font-size: 1.25rem;
+  font-weight: 500;
   line-height: 1.25;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.0125rem;
 }
 
 /* ---- the logo row ----
@@ -4613,18 +4711,23 @@
 .collabs__marquee {
   margin-block-start: 8rem;
   overflow: clip;
-  /* The row is the section's last element and carries the closing space. 20rem
-     rather than 8: the reference's section is 1053 tall against 700 of content,
-     and that trailing third is what stops the drawn word - which runs to 952 -
-     reading as though it overflows the section it belongs to. */
-  padding-block-end: 20rem;
+}
+
+/* The drift's element: wider than the row and pulled back by more than the
+   10vw it travels either way, so neither end is ever exposed. The reference
+   sizes its own the same way, at (100 + 2 * 10)% and -10%. */
+.collabs__marquee-scroll {
+  display: flex;
+  inline-size: 122%;
+  margin-inline-start: -11%;
+  will-change: transform;
 }
 
 .collabs__track {
   display: flex;
   align-items: center;
   inline-size: max-content;
-  /* Written by main.ts; the loop owns transform on this element. */
+  /* Written by lib/marquee.ts; the loop owns transform on this element. */
   will-change: transform;
 }
 
@@ -4653,12 +4756,14 @@
  *
  *   step   scale    rotate   x         y        z
  *   0      1        0        0         0        10
- *   1      0.9346   7deg     10.98rem  1.3rem   3
- *   2      0.8498   14deg    22.02rem  4.02rem  2
+ *   1      0.9346   7deg     11rem     1.3rem   3
+ *   2      0.8498   14deg    22rem     4rem     2
  *   3      0.7756   21deg    30rem     7.3rem   1
  *
  * Rotation is exactly 7 degrees a step. Scale and offset are not linear
- * and are not fitted - they are the measured numbers.
+ * and are not fitted - they are the reference's own transforms, read off its
+ * settled cards at 1728 (translate -176/-352/-480px, 20.8/64/116.8px on a
+ * 16px root). They had been 10.98/22.02/4.02rem, from a 17.667px root.
  * ==================================================================== */
 
 /* The same plain ground as .collabs, off the same token. */
@@ -4693,12 +4798,14 @@
   mask: url('/assets/brand/dot-ball.svg') center / contain no-repeat;
 }
 
+/* The reference's .text-title-lg-mona: "wght" 750, "wdth" 93, -0.125rem. */
 .socials__title {
   margin: 0;
   font-size: 4.5rem;
   line-height: 0.886;
-  letter-spacing: -0.0278em;
-  font-weight: 800;
+  letter-spacing: -0.125rem;
+  font-weight: 750;
+  font-stretch: 93%;
   text-transform: uppercase;
   text-align: center;
 }
@@ -4712,10 +4819,17 @@
   margin-inline: auto;
 }
 
+/* 4.5rem, the sans line's own size, as the reference sets it (its Brier line
+   computes 72px here, unlike the partners heading's 75). Measured as glyphs:
+   at 4.6875rem the caps stood 54px against the reference's 52 and ran 429px
+   wide against 383; at 4.5 they stand 52. */
 .socials__title-line.is-serif {
   font-family: var(--font-serif);
-  font-size: 4.6875rem;
+  font-size: 4.5rem;
   font-weight: 700;
+  /* 64.8px, the reference's second line box (its clip wrap), against the
+     63.8 the inherited 0.886 gives. */
+  line-height: 0.9;
   /* No text-transform reset here. .socials__title sets uppercase and this rule
      used to override it back to title case, so the serif line read "On Socials"
      where the reference sets "ON SOCIALS" — both of its lines are uppercase and
@@ -4729,13 +4843,10 @@
   inline-size: 80rem;
   max-inline-size: 100%;
   block-size: 36rem;
-  /* Measured as boxes, on the running reference at 1728: its heading runs
-     224 to 352.6 and its card layout starts at 392.6. Ours is 1.6px taller —
-     the Didone line is set a step up to match cap heights — so the gap that
-     lands the fan on 392.6 is 2.4rem. 2.875rem put it 8px low, and with the
-     two margins below that was the whole of the 18px this section ran over
-     the reference's 1158. */
-  margin: 2.4rem auto 0;
+  /* The reference's layout gap, 2 * --gap: its heading runs 224 to 352.6 and
+     its card layout starts at 392.6, and with the serif line on the same
+     64.8px box ours now runs to the same 352.6. */
+  margin: calc(var(--gap) * 2) auto 0;
 }
 
 /* The card composes FOUR independent signals into one transform:
@@ -4760,7 +4871,9 @@
  */
 .socials__card {
   position: absolute;
-  inset-block-start: 0;
+  /* 0.5rem: the reference centres its 35rem cards in the 36rem layout (flex,
+     align-items center), so every card sits 8px lower than a top-aligned one. */
+  inset-block-start: 0.5rem;
   inset-inline-start: 50%;
   inline-size: 20rem;
   block-size: 35rem;
@@ -4787,7 +4900,9 @@
      card out of it to dodge an overlap trades one artefact for a worse one. The
      hovered card gets its room from --push moving its neighbours instead. */
   z-index: var(--fan-z, 1);
-  border-radius: 1.4rem;
+  /* The reference's .callout-socials-card-w, 3.31625rem: a phone-screen corner,
+     not a photo-print one. */
+  border-radius: 3.31625rem;
   overflow: clip;
   background: var(--dark);
 }
@@ -4836,7 +4951,7 @@
 .socials__card[data-step='2'] {
   --fan-scale: 0.8498;
   /* See the note on step 3. Measured drop 80px, matching the reference. */
-  --fan-y: 4.02rem;
+  --fan-y: 4rem;
   --fan-z: 2;
 }
 
@@ -4860,22 +4975,22 @@
 
 .socials__card[data-step='-1'] {
   --fan-rot: -7deg;
-  --fan-x: -10.98rem;
+  --fan-x: -11rem;
 }
 
 .socials__card[data-step='1'] {
   --fan-rot: 7deg;
-  --fan-x: 10.98rem;
+  --fan-x: 11rem;
 }
 
 .socials__card[data-step='-2'] {
   --fan-rot: -14deg;
-  --fan-x: -22.02rem;
+  --fan-x: -22rem;
 }
 
 .socials__card[data-step='2'] {
   --fan-rot: 14deg;
-  --fan-x: 22.02rem;
+  --fan-x: 22rem;
 }
 
 .socials__card[data-step='-3'] {
@@ -4907,7 +5022,8 @@
 .socials__links {
   display: flex;
   justify-content: center;
-  gap: 2rem;
+  /* The reference's .callout-socials-links-layout: 1.5 * --gap, 30px. */
+  gap: calc(var(--gap) * 1.5);
   margin: 2.5rem 0 0;
   padding: 0;
   list-style: none;
@@ -4917,10 +5033,13 @@
   line-height: 1;
 }
 
+/* Its .btn-text: "wdth" 86, 800, uppercase. At full width the four ran 280px
+   of type against the reference's 247. */
 .socials__links a {
   display: inline-block;
   font-size: 1rem;
   font-weight: 800;
+  font-stretch: 86%;
   text-transform: uppercase;
   text-decoration: none;
   color: var(--dark);
@@ -4932,6 +5051,22 @@
   line-height: 1;
 }
 
+/* The site's rosso focus ring is 2.6:1 on the cream grounds and all but gone
+   on the accent under the legal row, so on those grounds it takes the ink
+   instead (12.6:1 on cream, 4.8:1 on the accent). On Track sets its socials
+   on the dark wall ground, where the rosso ring is the one that reads. */
+.shop :focus-visible,
+.collabs :focus-visible,
+.socials :focus-visible,
+.footer__legal :focus-visible,
+body:not([data-page='on-track']) .otot :focus-visible {
+  outline-color: var(--dark);
+}
+
+[data-page='on-track'] .socials :focus-visible {
+  outline-color: var(--era);
+}
+
 /* ---- narrow screens ----
  *
  * The fan depends on 80rem of width to spread into and a phone has a fifth of
@@ -4939,7 +5074,7 @@
  * gesture here rather than a hijacked scroll, so it stays horizontal. */
 @media (max-width: 991px) {
   .collabs {
-    padding-block-start: 8rem;
+    padding-block: 8rem 4rem;
   }
 
   .collabs__inner {
@@ -4961,9 +5096,14 @@
     block-size: 24rem;
   }
 
+  /* Level again at this width: tilted, the word would climb out of a section
+     this short. */
+  .collabs__mark-svg {
+    transform: none;
+  }
+
   .collabs__marquee {
     margin-block-start: 4rem;
-    padding-block-end: 4rem;
   }
 
   .socials {
