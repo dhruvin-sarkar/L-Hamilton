@@ -2224,11 +2224,13 @@ function mountCountdown(section: HTMLElement): void {
   const dayWidth = Math.max(2, String(Math.floor(remaining() / 86_400_000)).length);
   digits.style.setProperty('--count-scale', String(8 / (dayWidth + 6)));
 
+  /* Under reduced motion the seconds are left out: a figure changing every
+     second is motion. The other three still keep time -- see the tick below. */
   const UNITS: [string, number][] = [
     ['D', 86_400_000],
     ['H', 3_600_000],
     ['M', 60_000],
-    ['S', 1000],
+    ...(reducedMotion ? [] : ([['S', 1000]] as [string, number][])),
   ];
   const phrase = digits.querySelector('[data-countdown-phrase]');
   /* Each field holds the width of its zeros, so a ticking figure never nudges
@@ -2255,10 +2257,17 @@ function mountCountdown(section: HTMLElement): void {
   };
   render();
 
-  /* One interval, cleared at zero. Under reduced motion the figures render once
-     and hold: the start time is still stated in full, and what is dropped is a
-     display changing every second, which is motion rather than information. */
-  if (!reducedMotion) {
+  /* One interval, cleared at zero. Under reduced motion there are no seconds
+     to tick, but the figures still keep time: they update once a minute, on
+     the minute, because a countdown frozen at load is simply wrong a minute
+     later. A text change once a minute is information, not motion. */
+  if (reducedMotion) {
+    const untilNextMinute = (): number => (remaining() % 60_000) + 50;
+    const onTheMinute = (): void => {
+      if (!render()) window.setTimeout(onTheMinute, untilNextMinute());
+    };
+    window.setTimeout(onTheMinute, untilNextMinute());
+  } else {
     const tick = window.setInterval(() => {
       if (render()) window.clearInterval(tick);
     }, 1000);
