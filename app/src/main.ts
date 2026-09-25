@@ -10,6 +10,8 @@ import { whenEntranceCued } from './lib/transition';
 import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountGalleryScroll } from './lib/gallery';
 import { mountFooterMarquee, mountMarquee } from './lib/marquee';
+import { mountHomeInk } from './lib/home-ink';
+import { cssRGB, hexRGB, legibleOn, mixRGB, toLinear, type RGB } from './lib/legible';
 import { mountReveals } from './lib/reveal';
 import {
   mountCalloutCrest,
@@ -556,6 +558,24 @@ mountGalleryScroll({ start: 'rising', scrub: 1 });
 mm.add(WIDE_AND_ANIMATED, () => {
   if (!gallery) return;
 
+  /* The ground as it actually lands on screen, for the gallery's text to be
+     measured against. The field is handed its two ends as sRGB and lerps
+     between them, but every channel it outputs comes out linearised once more
+     (the defect documented at --field-ground in tokens.css), so that is
+     applied here too: at t 0 this is exactly --field-ground. */
+  const css = getComputedStyle(document.documentElement);
+  const token = (name: string): RGB => hexRGB(css.getPropertyValue(name));
+  const groundFrom = token('--gl-rev-bg');
+  const groundTo = token('--gl-bg');
+  const groundAt = (t: number): RGB => {
+    const c = mixRGB(groundFrom, groundTo, t);
+    return [255 * toLinear(c[0]), 255 * toLinear(c[1]), 255 * toLinear(c[2])];
+  };
+  const inkDark = token('--dark-tint-2');
+  const inkLight = token('--off-white-2');
+  const accentDark = token('--dark');
+  const accentLight = token('--cream');
+
   /**
    * Put the ground, the section's ink and the nav at `progress` through the
    * darkening.
@@ -584,6 +604,15 @@ mm.add(WIDE_AND_ANIMATED, () => {
     const x = gsap.utils.clamp(0, 1, (t - 0.38) / 0.24);
     const ink = x * x * (3 - 2 * x);
     gallery.style.setProperty('--gallery-ink', String(ink));
+
+    /* Home's captions and callouts: the reference's fixed inks at either end,
+       held to 4.5:1 (4.6 before rounding) through the crossing. lib/legible. */
+    const ground = groundAt(t);
+    gallery.style.setProperty('--gallery-text', cssRGB(legibleOn(ground, inkDark, inkLight, 4.6)));
+    gallery.style.setProperty(
+      '--gallery-accent',
+      cssRGB(legibleOn(ground, accentDark, accentLight, 4.6)),
+    );
 
     /* On/Off Track sits on the same continuous field and inherits nothing from
        here — it is a sibling, not a child — so it is told directly. Without
@@ -634,6 +663,8 @@ mm.add(WIDE_AND_ANIMATED, () => {
   return () => {
     gallery.style.removeProperty('--gallery-dark');
     gallery.style.removeProperty('--gallery-ink');
+    gallery.style.removeProperty('--gallery-text');
+    gallery.style.removeProperty('--gallery-accent');
     otot?.style.removeProperty('--otot-ink');
     // Withdraw this section's contribution rather than clearing the value: the
     // store still has a say, and in the column layout there is no darkening
@@ -941,13 +972,19 @@ setTimeout(markReady, 1200);
  * ------------------------------------------------------------------ */
 
 /* Gallery lines fire as they cross 95% of the width — the reference's
-   containerAnimation trigger, "left 95%". */
+   containerAnimation trigger, "left 95%" — all but the first two captions,
+   which rise into view with the opening column and take "top 90%" (C_()). */
 mountReveals({
   immediate: '.hero',
   sideways: '.gallery',
   sidewaysMargin: '0px -5% 0px 0px',
+  sidewaysFromBelow: 2,
   whenReady: onReady,
 });
+
+/* The drawn marks — the impact crest, the script "On" and the arrow buttons.
+   See lib/home-ink.ts. */
+mountHomeInk();
 /* ------------------------------------------------------------------ *
  * Circuit outline — drawn on rather than faded in.
  * ------------------------------------------------------------------ */
@@ -996,79 +1033,6 @@ if (circuit) {
     );
     drawer.observe(circuit);
   }
-}
-
-/* ------------------------------------------------------------------ *
- * Cursor — a ring that trails the pointer and swells over targets.
- *
- * Skipped entirely without a fine pointer or with reduced motion: the ring is
- * decorative, and the native cursor is the correct fallback in both cases.
- * ------------------------------------------------------------------ */
-
-const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-
-if (finePointer && !reducedMotion) {
-  const ring = document.createElement('div');
-  ring.className = 'cursor';
-  ring.setAttribute('aria-hidden', 'true');
-  const dot = document.createElement('span');
-  dot.className = 'cursor__dot';
-  ring.append(dot);
-  document.body.append(ring);
-
-  let targetX = 0;
-  let targetY = 0;
-  let x = 0;
-  let y = 0;
-  let started = false;
-
-  window.addEventListener(
-    'pointermove',
-    (e) => {
-      targetX = e.clientX;
-      targetY = e.clientY;
-      if (!started) {
-        // Jump to the first known position instead of gliding in from 0,0.
-        x = targetX;
-        y = targetY;
-        started = true;
-        ring.classList.add('is-active');
-      }
-      // Swell over anything clickable. Checked on move rather than with
-      // per-element listeners so it covers content added later for free.
-      const el = e.target as Element | null;
-      ring.classList.toggle('is-hovering', Boolean(el?.closest('a, button')));
-    },
-    { passive: true },
-  );
-
-  // The ring must not linger over a window it has left.
-  document.addEventListener('pointerleave', () => ring.classList.remove('is-active'));
-  document.addEventListener('pointerenter', () => ring.classList.add('is-active'));
-
-  const followCursor = () => {
-    requestAnimationFrame(followCursor);
-    // Lags the true pointer. The trailing ring against the exact dot is what
-    // gives the cursor a sense of weight rather than being a second crosshair.
-    x += (targetX - x) * 0.16;
-    y += (targetY - y) * 0.16;
-    // Off the layout path, so not top/left. But specifically the `translate`
-    // PROPERTY rather than `transform`, and that distinction is load-bearing.
-    //
-    // CSS composes the transform family as T · R · S · transform, and a point
-    // is mapped right to left — so `transform` applies FIRST and the standalone
-    // `scale` from .is-hovering applies after it. Written into `transform`, the
-    // hover scale multiplied the translation itself: the negative margins that
-    // centre the ring put its transform-origin at viewport 0,0, so hovering the
-    // STORE pill at x 765 threw the ring to 765 * 1.75 = 1339, clean off a
-    // 950px viewport. It only ever misbehaved in the far corner because the
-    // error is proportional to distance from that origin.
-    //
-    // Writing to `translate` puts the scale INSIDE the translation instead, so
-    // the ring swells about its own centre and is then moved into place.
-    ring.style.translate = `${x}px ${y}px`;
-  };
-  requestAnimationFrame(followCursor);
 }
 
 /* ------------------------------------------------------------------ *

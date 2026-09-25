@@ -776,10 +776,13 @@
  *
  * Both halves are scrubbed on the pin's RAW progress, written as --hero-t:
  *
- *   mark     fades in and rises 0.9375rem over 0.78-0.90, easing out
- *            (sampled: opacity 0.09 / 0.66 / 0.91 at 850 / 900 / 950px)
- *   label    each character rises out of a clipped line, 0.14 of the pin
- *            apiece, staggered left to right across 0.69-0.93
+ *   label    each character rises out of a clipped line, 0.218 of the pin
+ *            apiece and 0.00545 apart from 0.70, on power3.out
+ *   mark     fades in and rises 1rem over 0.782-1.0, power3.out
+ *
+ * The reference's Z_() timeline, mapped onto the pin: 1.1s scrubbed over
+ * 756-1080px, chars 0.8s each staggered 0.02s, the mark 0.8s at "<0.3".
+ * GSAP's power3 is the quartic, hence the fourth powers below.
  *
  * Above everything else in the hero: the furniture it might otherwise collide
  * with has already gone by the time this appears. */
@@ -808,15 +811,17 @@
 }
 
 .hero-mark__svg {
-  --mark-x: clamp(0, (var(--hero-t) - 0.78) / 0.12, 1);
+  --mark-x: clamp(0, (var(--hero-t) - 0.782) / 0.218, 1);
+  /* What is left of the move; to the 4th power it is GSAP's power3.out. */
+  --mark-r: calc(1 - var(--mark-x));
   inline-size: auto;
   /* 34px of mark at the top of the reference's 2.284rem slot. */
   block-size: 2.125rem;
   margin-block-end: 0.1594rem;
   flex: none;
   color: var(--rosso-corsa);
-  opacity: calc(1 - (1 - var(--mark-x)) * (1 - var(--mark-x)));
-  transform: translateY(calc((1 - var(--mark-x)) * (1 - var(--mark-x)) * 0.9375rem));
+  opacity: calc(1 - var(--mark-r) * var(--mark-r) * var(--mark-r) * var(--mark-r));
+  transform: translateY(calc(var(--mark-r) * var(--mark-r) * var(--mark-r) * var(--mark-r) * 1rem));
   will-change: transform, opacity;
 }
 
@@ -833,9 +838,10 @@
 }
 
 .hero-mark__char {
-  --char-x: clamp(0, (var(--hero-t) - 0.69 - var(--i, 0) * 0.00667) / 0.14, 1);
+  --char-x: clamp(0, (var(--hero-t) - 0.7 - var(--i, 0) * 0.00545) / 0.218, 1);
+  --char-r: calc(1 - var(--char-x));
   display: inline-block;
-  translate: 0 calc((1 - var(--char-x)) * (1 - var(--char-x)) * (1 - var(--char-x)) * 100%);
+  translate: 0 calc(var(--char-r) * var(--char-r) * var(--char-r) * var(--char-r) * 100%);
 }
 
 .hero {
@@ -1005,10 +1011,6 @@
   transition: color var(--animation-default);
 }
 
-.next-race__row.is-2:hover .next-race__crest {
-  color: var(--accent);
-}
-
 /* Two centred lines in the card's one ink — the reference's "mclaren f1 /
    since 2019", which it also sets without a second, fainter tone. */
 .next-race__team {
@@ -1138,73 +1140,6 @@
   }
 }
 
-/* ============================================================ Cursor
- * A ring that trails the pointer and swells over interactive targets. The
- * native cursor is hidden only where the ring actually replaces it, and only
- * on devices that have a real pointer — a touch device gets neither.
- * ------------------------------------------------------------------ */
-
-@media (hover: hover) and (pointer: fine) {
-  .hero,
-  .hero a,
-  .hero button {
-    cursor: none;
-  }
-}
-
-.cursor {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 300;
-  inline-size: 2.2rem;
-  block-size: 2.2rem;
-  margin: -1.1rem 0 0 -1.1rem; /* centre on the hotspot */
-  border: 1px solid var(--accent);
-  border-radius: 50%;
-  /* Inert: it sits above everything, so anything but none would swallow every
-     click on the page. */
-  pointer-events: none;
-  opacity: 0;
-  transition:
-    opacity var(--dur-base) var(--cubic-default),
-    scale var(--dur-base) var(--cubic-default),
-    background-color var(--dur-base) var(--cubic-default);
-  /* Positioned via the `translate` property, not `transform` — see the note in
-     main.ts. Hinting the wrong property here would leave the ring off the
-     compositor's fast path. */
-  will-change: translate;
-}
-
-/* The dot is the precise hotspot; the ring lags behind it. */
-.cursor__dot {
-  position: absolute;
-  inset: 50%;
-  inline-size: 0.22rem;
-  block-size: 0.22rem;
-  margin: -0.11rem 0 0 -0.11rem;
-  background: var(--accent);
-  border-radius: 50%;
-}
-
-.cursor.is-active {
-  opacity: 1;
-}
-
-.cursor.is-hovering {
-  scale: 1.75;
-  background-color: color-mix(in srgb, var(--accent) 16%, transparent);
-}
-
-/* No ring without a fine pointer, and none when motion is reduced — a lagging
-   element that chases the pointer is exactly what that preference asks to
-   remove, and the native cursor is the accessible fallback. */
-@media (prefers-reduced-motion: reduce), (hover: none), (pointer: coarse) {
-  .cursor {
-    display: none;
-  }
-}
-
 /* ====================================================== Text reveals
  * The reference's signature entrance: an accent bar wipes across the line and
  * the text is behind it when it retreats. Not a fade — the bar is the event.
@@ -1224,31 +1159,41 @@
   position: relative;
 }
 
-/* The bar ALREADY COVERS the line, and revealing means retracting it.
+/* TWO PHASES per line, as the reference's AE() runs every [data-anim-high]:
  *
- * This used to travel: scaleX 0 -> 1 from the left, flip origin, 1 -> 0 to the
- * right, with the text held at opacity 0 until the bar had arrived. That first
- * half is dead time — the reader is looking straight at a line that has not
- * begun to appear yet — and no amount of moving the scroll trigger earlier
- * removes it, because the wait is inside the animation rather than in front of
- * it. Compressing it to 19% of the duration only shortened it to ~285ms.
+ *   wipe     the line is clipped shut, inset(0 100% 0 0), and opens left to
+ *            right over 0.6s on power2.out — carrying its bar with it, so what
+ *            sweeps across is a block of accent, not text
+ *   retract  0.3s into the wipe the bar retracts to the right over 0.6s on
+ *            power2.inOut, uncovering the letters in reading order
  *
- * The reference does not do that. Its .high-line-reveal rests at scaleX(1) with
- * transform-origin right, over text that is never hidden, and the whole
- * animation is the retract — so the first frame after the trigger already shows
- * letterforms. That is also what puts solid accent blocks over copy that has
- * not been reached yet, which is the look, not a glitch. Measured off the
- * reference: ~0.47s per line, ~0.15s apart.
+ * Lines of one block are 150ms apart, so a line takes 0.9s and the seven-line
+ * impact wall 1.8s — the length of the reference's own timeline. Before the
+ * trigger nothing of the line shows at all; the bar only exists inside the
+ * clip.
  *
- * The text needs no opacity animation at all now — the bar covering it is what
- * hides it — which is one less thing that can leave a line invisible. */
+ * The bar is exactly the line box — the reference's .high-line-reveal is
+ * top 0 / left 0 / 100% x 100% of its .line — and so are the open clip's left
+ * and right edges, which are the ones the wipe moves.
+ *
+ * Its top and bottom stand 0.25em off the box, and that is the only place this
+ * departs from the reference's inset(0 0% 0 0). Our serif is Playfair, whose
+ * content area is 1.333em: on the gallery quotes' 0.94 line its baseline sits
+ * 0.055em above the line box's bottom while a g or y drops 0.188em, so a clip
+ * flush with the box cut 3px off every descender for good. 0.25em clears the
+ * tightest case on the site (0.8 lines, 0.204em). Nothing but the line's own
+ * letters is in that margin, so where the glyphs already fit it changes
+ * nothing. */
+[data-reveal-animated] .reveal-text:not([data-reveal-split]),
+[data-reveal-animated] .reveal-line {
+  clip-path: inset(-0.25em 100% -0.25em 0);
+}
+
 [data-reveal-animated] .reveal-text::after,
 [data-reveal-animated] .reveal-line::after {
   content: '';
   position: absolute;
-  /* Slightly larger than the text box so the bar covers descenders and the
-     letterforms never peek out from under its edge. */
-  inset: -0.1em -0.15em;
+  inset: 0;
   background: var(--accent);
   transform: scaleX(1);
   /* Retracts to the right, so the line is uncovered left-to-right — in reading
@@ -1287,22 +1232,33 @@
   inline-size: fit-content;
 }
 
-/* One rule now, covering both the unsplit block and every line of a split one.
+/* One pair of rules, covering both the unsplit block and every line of a split
+ * one.
  *
  * A split block's own .is-in is what starts its lines, so a single trigger
  * drives the whole paragraph and the cascade inside it comes from each line's
  * own --reveal-delay rather than from seven separate observers firing at seven
- * slightly different scroll positions.
- *
- * --ease-reveal, not the house curve. cubic-bezier(0.65, 0.05, 0, 1) is an
- * ease-IN-out: it barely moves for its first fifth, which on a 1.5s retract is
- * ~300ms of a bar sitting still over the line — the exact lateness this rebuild
- * exists to remove, reintroduced through the easing instead of the keyframes.
- * The reveal curve leaves immediately and decelerates into place. */
+ * slightly different scroll positions. */
+.reveal-text.is-in:not([data-reveal-split]),
+.reveal-text.is-in .reveal-line {
+  animation: reveal-open var(--dur-reveal) var(--ease-reveal-open) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
 .reveal-text.is-in::after,
 .reveal-text.is-in .reveal-line::after {
-  animation: bar-retract var(--dur-reveal) var(--ease-reveal) both;
-  animation-delay: var(--reveal-delay, 0ms);
+  animation: bar-retract var(--dur-reveal) var(--ease-reveal-retract) both;
+  animation-delay: calc(var(--reveal-delay, 0ms) + var(--reveal-retract-lag));
+}
+
+@keyframes reveal-open {
+  from {
+    clip-path: inset(-0.25em 100% -0.25em 0);
+  }
+
+  to {
+    clip-path: inset(-0.25em 0 -0.25em 0);
+  }
 }
 
 @keyframes bar-retract {
@@ -1317,6 +1273,12 @@
 /* Already read. Set when a resize re-cuts a block that had played, because the
    new line spans are fresh elements and would otherwise animate in from fully
    covered — replaying a reveal over text the reader is looking at. */
+.reveal-text.is-done:not([data-reveal-split]),
+.reveal-text.is-done .reveal-line {
+  animation: none;
+  clip-path: none;
+}
+
 .reveal-text.is-done::after,
 .reveal-text.is-done .reveal-line::after {
   animation: none;
@@ -2203,10 +2165,14 @@
   inline-size: calc(var(--grid-spacer) * 0.5);
 }
 
-/* Caption, frame and slot stacked on one gap, as .horizontal-item-layout. The
-   ink is fixed per picture, as the reference's is: the first five carry the
-   muted ink of the screen they arrive over, the rest the ink of the screen the
-   ground has crossed to by then. */
+/* Caption, frame and slot stacked on one gap, as .horizontal-item-layout.
+ *
+ * The ink follows the ground. The reference fixes it per picture (the first
+ * five in the muted dark of the light screen, the rest in the muted light of
+ * the dark one) and that is where ours rests too, but a fixed ink falls to
+ * ~2:1 while the ground crosses under it. main.ts writes --gallery-text from
+ * the ground each frame (lib/legible.ts); with no darkening running (below
+ * 992px, reduced motion) the ground stays light and so does the fallback. */
 .gallery--home .gallery__item,
 .gallery--home .gallery__callout {
   position: relative;
@@ -2216,11 +2182,7 @@
   gap: var(--gap);
   inline-size: auto;
   margin-block-start: 0;
-  color: var(--dark-tint-2);
-}
-
-.gallery--home .is-crossed {
-  color: var(--off-white-2);
+  color: var(--gallery-text, var(--dark-tint-2));
 }
 
 .gallery--home .gallery__cap {
@@ -2307,9 +2269,10 @@
   font-variant-numeric: normal;
 }
 
-/* The reference lifts two words of its first callout a step brighter. */
+/* The reference lifts two words of its first callout a step brighter. Held to
+   the ground the same way as the rest of the text. */
 .gallery--home .gallery__quote-accent {
-  color: var(--dark);
+  color: var(--gallery-accent, var(--dark));
 }
 
 /* Where the reference's signature and race-win pill sit. Kept empty — see the
@@ -2325,50 +2288,21 @@
   block-size: 4.44vh;
 }
 
-/* The reveal, as the reference runs it on THIS section's lines (C_() in
- * lando-gl.js) rather than as it runs everywhere else: each line is clipped
- * shut and wiped open left to right over 0.6s (power2.out) with its accent bar
- * inside it, and the bar retracts 0.3s later over another 0.6s
- * (power2.inOut). So the accent sweeps in and back out. The clip is inset past
- * the line box on three sides so it never trims the bar's own overhang. */
-[data-reveal-animated] .gallery--home .reveal-text:not([data-reveal-split]),
-[data-reveal-animated] .gallery--home .reveal-line {
-  clip-path: inset(-0.2em 100% -0.2em -0.2em);
-}
-
-.gallery--home .reveal-text.is-in:not([data-reveal-split]),
-.gallery--home .reveal-text.is-in .reveal-line {
-  animation: gallery-home-line-open 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) both;
-  animation-delay: var(--reveal-delay, 0ms);
-}
-
-.gallery--home .reveal-text.is-in::after,
-.gallery--home .reveal-text.is-in .reveal-line::after {
-  animation-duration: 0.6s;
-  animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
-  animation-delay: calc(var(--reveal-delay, 0ms) + 300ms);
-}
-
-.gallery--home .reveal-text.is-done:not([data-reveal-split]),
-.gallery--home .reveal-text.is-done .reveal-line {
-  animation: none;
-  clip-path: none;
-}
-
-@keyframes gallery-home-line-open {
-  from {
-    clip-path: inset(-0.2em 100% -0.2em -0.2em);
-  }
-
-  to {
-    clip-path: inset(-0.2em -0.2em -0.2em -0.2em);
-  }
-}
+/* The captions and callouts take the default line reveal (.reveal-text above)
+ * unchanged: the reference's C_() runs this section's lines on the same shape
+ * as AE() everywhere else — clip wiped open over 0.6s on power2.out, bar
+ * retracted 0.3s later over 0.6s on power2.inOut. Only the trigger differs,
+ * which lib/reveal.ts owns. */
 
 /* Below 992px the reference stacks the wall (its I_() never runs there): the
    track becomes a column with 5rem between pictures, the offsets drop, and
-   every other picture moves to the right-hand edge. */
-@media (max-width: 991px) {
+   every other picture moves to the right-hand edge.
+ *
+ * Reduced motion takes the same column at every width. Without the travel the
+ * wall would be a sideways scroller, and with scrollbars unpainted site-wide
+ * and nothing focusable inside it, half the pictures and the second callout
+ * could not be reached at all. */
+@media (max-width: 991px), (prefers-reduced-motion: reduce) {
   .gallery--home .gallery__track {
     block-size: auto;
     padding: var(--padding--xlarge) var(--padding--container);
@@ -2425,11 +2359,26 @@
   }
 }
 
-/* Motion off: an ordinary scrolling row from the container's edge rather
-   than from the 75vw lead-in the sideways travel needs. */
+/* Motion off on a wide screen: the column above, plus the parts of the phone
+   layout that the shared rules only apply below 992px — no clipped pin, one
+   column of columns, no horizontal spacers and no per-image pan. */
 @media (prefers-reduced-motion: reduce) and (min-width: 992px) {
+  .gallery--home .gallery__pin {
+    overflow: visible;
+    display: block;
+  }
+
   .gallery--home .gallery__track {
-    padding-inline-start: var(--padding--container);
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .gallery--home .gallery__col {
+    inline-size: 100%;
+  }
+
+  .gallery--home .gallery__spacer {
+    display: none;
   }
 
   .gallery--home .gallery__frame img {
@@ -3343,6 +3292,8 @@
 }
 
 .otot__head {
+  /* The script "On" hangs off this box. */
+  position: relative;
   display: flex;
   flex-direction: column;
   /* Each line only as wide as its own word, so the reveal bar sweeps the word
@@ -3350,6 +3301,20 @@
   align-items: inherit;
   margin: 0;
   text-transform: uppercase;
+}
+
+/* The script "On" across ON TRACK: the reference's `.otot-home-text-rive` slot,
+   15.94 x 12.125rem from the heading's top, hung a rem past its right edge and
+   laid over both words. home-ink.ts writes it in. */
+.otot__script {
+  position: absolute;
+  top: 0;
+  right: -1rem;
+  z-index: 10;
+  inline-size: 15.94rem;
+  block-size: 12.125rem;
+  color: var(--accent);
+  pointer-events: none;
 }
 
 /* "TRACK": Mona Sans at wdth 93, wght 750. */
@@ -3403,66 +3368,39 @@
   inline-size: 3.75rem;
   block-size: 3.75rem;
   border-radius: 0.54rem;
-  /* The same liquid fill the store and menu buttons carry, and deliberately
-     the same declaration rather than a lookalike — Giallo rises through Rosso
-     behind a meniscus as the level climbs. These buttons already sat at Rosso
-     at rest, so they take the treatment unchanged.
-
-     main.ts drives --liquid-level through mountLiquidFill, which is where the
-     curve and the fill/drain asymmetry live; nothing about the physics is
-     restated here. */
-  background: linear-gradient(
-    to top,
-    var(--giallo-modena) calc(var(--liquid-level) * 100%),
-    var(--rosso-corsa) calc((var(--liquid-level) + var(--liquid-gap)) * 100%)
-  );
-  /* Dark ink, not cream — the same call the store button makes. Cream reads on
-     Rosso but not on the Giallo that rises over it, so the arrow would fade out
-     at exactly the moment the hover completes. */
+  /* Flat, and it stays flat on hover: the reference's `.btn-w.icon-only`
+     keeps its ground and answers the pointer with the arrow instead, which
+     home-ink.ts lifts off and writes back. */
+  background: var(--rosso-corsa);
   color: var(--dark);
 }
 
+/* The reference's 16px glyph in its 60px button. */
 .otot__arrow {
-  inline-size: 1.2rem;
-  block-size: 1.2rem;
+  inline-size: 1rem;
+  block-size: 1rem;
 }
 
-/* On Track points back, Off Track points on — the two face away from each
-   other, mirroring the cutouts they sit under. One drawing, flipped, rather
-   than a second path to keep in sync with the first. */
+/* On Track points back, Off Track points on — the reference's two arrows are
+   one drawing turned half round, curl and all, so this is a rotation rather
+   than a mirror. One drawing, rather than a second to keep in sync. */
 .otot__col.is-on .otot__arrow {
-  scale: -1 1;
+  scale: -1 -1;
 }
 
-/* The reveal the reference gives these lines (data-anim-high): each line is
- * clipped shut and wiped open towards the middle over 0.6s (power2.out) with a
- * bar of near-ink inside it, and the bar retracts 0.3s later over another 0.6s
- * (power2.inOut) — from the right in the first column, from the left in the
- * second, so both open outward from the gutter between them. */
-[data-reveal-animated] .otot .reveal-text:not([data-reveal-split]),
-[data-reveal-animated] .otot .reveal-line {
-  clip-path: inset(-0.2em 100% -0.2em -0.2em);
+/* The default line reveal (.reveal-text), with the two things the reference's
+ * data-anim-high attributes change here: the bar is near-ink rather than the
+ * accent, and the second column runs "left" — clipped from the left and
+ * retracting to the left — so both columns open outward from the gutter
+ * between them. */
+[data-reveal-animated] .otot .reveal-text::after,
+[data-reveal-animated] .otot .reveal-line::after {
+  background: var(--off-white-1);
 }
 
 [data-reveal-animated] .otot .is-off .reveal-text:not([data-reveal-split]),
 [data-reveal-animated] .otot .is-off .reveal-line {
-  clip-path: inset(-0.2em -0.2em -0.2em 100%);
-}
-
-.otot .reveal-text.is-in:not([data-reveal-split]),
-.otot .reveal-text.is-in .reveal-line {
-  animation: otot-line-open 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) both;
-  animation-delay: var(--reveal-delay, 0ms);
-}
-
-.otot .is-off .reveal-text.is-in:not([data-reveal-split]),
-.otot .is-off .reveal-text.is-in .reveal-line {
-  animation-name: otot-line-open-left;
-}
-
-[data-reveal-animated] .otot .reveal-text::after,
-[data-reveal-animated] .otot .reveal-line::after {
-  background: var(--off-white-1);
+  clip-path: inset(-0.25em 0 -0.25em 100%);
 }
 
 [data-reveal-animated] .otot .is-off .reveal-text::after,
@@ -3470,36 +3408,26 @@
   transform-origin: left;
 }
 
-.otot .reveal-text.is-in::after,
-.otot .reveal-text.is-in .reveal-line::after {
-  animation-duration: 0.6s;
-  animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
-  animation-delay: calc(var(--reveal-delay, 0ms) + 300ms);
+.otot .is-off .reveal-text.is-in:not([data-reveal-split]),
+.otot .is-off .reveal-text.is-in .reveal-line {
+  animation-name: reveal-open-left;
 }
 
-.otot .reveal-text.is-done:not([data-reveal-split]),
-.otot .reveal-text.is-done .reveal-line {
+/* Re-stated after the rule above at the same weight, which is what lets a
+   re-cut line that has already played stay open. */
+.otot .is-off .reveal-text.is-done:not([data-reveal-split]),
+.otot .is-off .reveal-text.is-done .reveal-line {
   animation: none;
   clip-path: none;
 }
 
-@keyframes otot-line-open {
+@keyframes reveal-open-left {
   from {
-    clip-path: inset(-0.2em 100% -0.2em -0.2em);
+    clip-path: inset(-0.25em 0 -0.25em 100%);
   }
 
   to {
-    clip-path: inset(-0.2em -0.2em -0.2em -0.2em);
-  }
-}
-
-@keyframes otot-line-open-left {
-  from {
-    clip-path: inset(-0.2em -0.2em -0.2em 100%);
-  }
-
-  to {
-    clip-path: inset(-0.2em -0.2em -0.2em -0.2em);
+    clip-path: inset(-0.25em 0 -0.25em 0);
   }
 }
 
