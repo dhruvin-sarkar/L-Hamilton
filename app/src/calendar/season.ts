@@ -1,9 +1,637 @@
 /**
- * The season: the round panel, its track visualiser, and the two lists.
+ * The season: the round panel with its track visualiser, every round already
+ * run, and every round still to come.
+ *
+ * The reference's mechanics, read off its script and measured on its page:
+ *
+ *   - the panel shows the next round on arrival; its arrows step through every
+ *     round of the season, wrapping at either end;
+ *   - every value in the panel sits in a clip with an accent bar over it. On
+ *     the panel's first arrival the clips open left to right and the bars
+ *     retract; a swap closes the clips (0.5s, power2.in), rewrites the values,
+ *     and opens them again the same way;
+ *   - for a round already run the schedule's last two columns become his
+ *     result in each session and his time or gap, and the UK-time note goes;
+ *   - a row sends the panel to its round and scrolls the page to it, 8rem
+ *     above its top, over 1.2s on an ease-in-out quad;
+ *   - over each list a card follows the pointer, 20px right of it and 20px up:
+ *     the round's picture over the rounds run, its circuit over those to come.
+ *
+ * Rows are buttons, so every round is reachable from the keyboard; the
+ * reference's are clickable divs with no keyboard path.
  */
 
 import type Lenis from 'lenis';
+import { gsap, mm, reducedMotion, ScrollTrigger } from '../lib/motion';
+import { hasTrack, mountCircuit } from '../lib/circuit';
+import {
+  el,
+  monthAbbr,
+  ordinal,
+  place,
+  raceDay,
+  sessionWhen,
+  spell,
+  weekendSessions,
+  weekendSpan,
+} from '../lib/schedule';
+import type { SessionKind } from '../lib/schedule';
+import { calendar, circuitById, nextRound, roundStart } from '../content/live-stats';
+import type { CalendarRound, RoundResult } from '../content/live-stats';
+import { countryName, flagUrl } from '../content/countries';
+import { circuitFacts, formatKm } from '../content/circuit-facts';
+import { roundPhoto } from '../content/calendar-media';
+import { TrackScene } from './TrackScene';
 
-export function mountSeason(section: HTMLElement, _scroller: Lenis | null): void {
-  void section;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/* ------------------------------------------------------------------ *
+ * Words for a round
+ * ------------------------------------------------------------------ */
+
+/**
+ * Where a round is, as the reference's lists name it: the country, or the
+ * race's own city where the race is named for its city -- MIAMI, LAS VEGAS,
+ * ABU DHABI. Derived from the calendar's race name and locality, not typed.
+ */
+export function placeName(round: CalendarRound): string {
+  const named = round.raceName.replace(/ Grand Prix.*$/, '');
+  return named === round.locality ? named : countryName(round.country);
+}
+
+/** A classification the way a timing screen prints it: 4TH, DNF, DSQ. */
+export function finishText(positionText: string): string {
+  const n = Number(positionText);
+  if (Number.isInteger(n) && n > 0) return ordinal(n);
+  const codes: Record<string, string> = { R: 'DNF', D: 'DSQ', E: 'DSQ', W: 'DNS', F: 'DNQ', N: 'NC' };
+  const code = codes[positionText];
+  if (!code) throw new Error(`[calendar] unknown classification "${positionText}"`);
+  return code;
+}
+
+/** "retired from 4th on the grid", "finished 6th from 4th on the grid". */
+function outcomeOf(result: RoundResult): string {
+  const grid = result.grid > 0 ? `${ordinal(result.grid)} on the grid` : 'the pit lane';
+  if (result.position) return `finished ${ordinal(result.position)} from ${grid}`;
+  if (result.positionText === 'D') return `was disqualified, having started from ${grid}`;
+  if (result.status === 'Retired') return `retired from ${grid}`;
+  return `did not finish (${result.status.toLowerCase()}), from ${grid}`;
+}
+
+/** "one win, two podiums and one pole position". */
+function tallyOf(record: { wins: number; podiums: number; poles: number }): string {
+  const counts: [number, string, string][] = [
+    [record.wins, 'win', 'wins'],
+    [record.podiums, 'podium', 'podiums'],
+    [record.poles, 'pole position', 'pole positions'],
+  ];
+  const said = counts
+    .filter(([n]) => n > 0)
+    .map(([n, one, many]) => `${spell(n)} ${n === 1 ? one : many}`);
+  if (said.length < 2) return said.join('');
+  return `${said.slice(0, -1).join(', ')} and ${said[said.length - 1]}`;
+}
+
+/**
+ * His record at a round's circuit, as a sentence: third-person narration built
+ * from the circuit record and, for a round already run, its result. Where the
+ * reference has a line of editorial copy per circuit, every clause here is a
+ * number from the data layer said in words -- the rule On Track follows.
+ */
+function circuitStory(round: CalendarRound): string {
+  const record = circuitById.get(round.circuitId);
+  const where = round.locality;
+  const outcome = round.result ? outcomeOf(round.result) : null;
+
+  if (!record) return `${round.season} is his first Grand Prix in ${where}.`;
+  if (record.starts === 1 && outcome && record.firstRaced === round.season) {
+    return `His first Grand Prix in ${where}: he ${outcome}.`;
+  }
+
+  const starts = `${spell(record.starts)} ${record.starts === 1 ? 'start' : 'starts'}`;
+  let text = `${starts.charAt(0).toUpperCase()}${starts.slice(1)} in ${where} since ${record.firstRaced}`;
+  const tally = tallyOf(record);
+  if (tally) text += `: ${tally}.`;
+  else if (record.bestFinish) text += `, with a best finish of ${ordinal(record.bestFinish)}.`;
+  else text += ', without a classified finish.';
+  if (outcome) text += ` In ${round.season} he ${outcome}.`;
+  return text;
+}
+
+/** His result and time in one session of a weekend already run. */
+function sessionResult(kind: SessionKind, result: RoundResult): { place: string; time: string } {
+  const dash = '–';
+  switch (kind) {
+    case 'race':
+      return { place: finishText(result.positionText), time: result.time ?? dash };
+    case 'qualifying':
+      return {
+        place: result.qualifying?.position ? ordinal(result.qualifying.position) : dash,
+        time: result.qualifying?.time ?? dash,
+      };
+    case 'sprint':
+      return result.sprint
+        ? { place: finishText(result.sprint.positionText), time: result.sprint.time ?? dash }
+        : { place: dash, time: dash };
+    default:
+      /* Practice is not classified in the record the site is built on
+         (Jolpica carries qualifying, sprint and race results only), so a
+         practice session reads as a dash rather than as a figure from
+         somewhere else. */
+      return { place: dash, time: dash };
+  }
+}
+
+/** The accent strike over a round already run: two brush strokes, our own. */
+function strike(): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('class', 'cal-row__strike');
+  svg.setAttribute('viewBox', '0 0 69 33');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  for (const d of ['M3 29C18 20 36 12 66 4', 'M20 25C32 19 44 14 55 11']) {
+    const path = document.createElementNS(SVG_NS, 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('stroke', 'currentColor');
+    path.setAttribute('stroke-width', '4.5');
+    path.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(path);
+  }
+  return svg;
+}
+
+/* ------------------------------------------------------------------ *
+ * The section
+ * ------------------------------------------------------------------ */
+
+export function mountSeason(section: HTMLElement, scroller: Lenis | null): void {
+  const need = <T extends Element = HTMLElement>(selector: string): T => {
+    const node = section.querySelector<T>(selector);
+    if (!node) throw new Error(`[calendar] no ${selector} in the markup`);
+    return node;
+  };
+
+  const panel = need('[data-cal-panel]');
+  const live = need('[data-cal-live]');
+  const glHost = need('[data-cal-gl]');
+  const sessionsHost = need('[data-cal-sessions]');
+  const nameNode = need('[data-cal-name]');
+  const note = need('[data-cal-note]');
+  const pastHeads = [...section.querySelectorAll<HTMLElement>('[data-cal-past]')];
+  const previousList = need('[data-cal-previous]');
+  const upcomingList = need('[data-cal-upcoming]');
+
+  const rounds = calendar;
+  const upcoming = nextRound();
+  let current = upcoming ? rounds.indexOf(upcoming) : rounds.length - 1;
+
+  /** Run, by the clock: a round is past the moment it starts. Its result may
+      trail that until the record is fetched again. */
+  const now = Date.now();
+  const isPast = (round: CalendarRound): boolean => roundStart(round).getTime() <= now;
+
+  const roundAt = (index: number): CalendarRound => {
+    const round = rounds[index];
+    if (!round) throw new Error(`[calendar] no round at index ${index}`);
+    return round;
+  };
+
+  /* ------------------------------------------------------ Swap targets */
+
+  /** Wraps a value in its clip and bar. Closed until the panel arrives. */
+  const wrap = (target: Element): void => {
+    const clip = el('div', 'ot-cal__t');
+    const bar = el('div', 'ot-cal__t-bar');
+    target.before(clip);
+    clip.append(target, bar);
+    if (!reducedMotion) {
+      gsap.set(clip, { clipPath: 'inset(0 100% 0 0)' });
+      gsap.set(bar, { scaleX: 1 });
+    }
+  };
+
+  for (const target of panel.querySelectorAll('[data-cal-target]')) wrap(target);
+
+  const clips = (): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('.ot-cal__t')];
+  const bars = (): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('.ot-cal__t-bar')];
+
+  /* ------------------------------------------------ Track visualiser */
+
+  const scene = new TrackScene(glHost);
+
+  /* ------------------------------------------------------ The values */
+
+  const setText = (selector: string, value: string): void => {
+    need(selector).textContent = value;
+  };
+
+  const setStat = (selector: string, value: string, unit = ''): void => {
+    const node = need(selector);
+    node.replaceChildren(el('span', 'ot-cal__stat-value', value));
+    if (unit) node.appendChild(el('span', 'ot-cal__stat-unit', unit));
+  };
+
+  /** Shrinks a name too long for the tab -- the frame's tab is ~29rem tall. */
+  const fitName = (): void => {
+    nameNode.style.removeProperty('--name-scale');
+    const style = getComputedStyle(nameNode);
+    if (!style.writingMode.startsWith('vertical')) return;
+    const room = (Number.parseFloat(style.fontSize) / 4.5) * 25;
+    const height = nameNode.getBoundingClientRect().height;
+    if (height > room) nameNode.style.setProperty('--name-scale', (room / height).toFixed(3));
+  };
+  void document.fonts.ready.then(fitName);
+  window.addEventListener('resize', fitName);
+
+  const fill = (round: CalendarRound): void => {
+    const record = circuitById.get(round.circuitId);
+    const facts = circuitFacts(round);
+    const span = weekendSpan(round);
+
+    setText('[data-cal-days]', span.days);
+    setText('[data-cal-month]', span.month);
+
+    setStat('[data-cal-length]', formatKm(facts.lengthKm), 'km');
+    setStat('[data-cal-first]', record ? String(record.firstRaced) : '–');
+    setStat('[data-cal-distance]', formatKm(facts.raceDistanceKm), 'km');
+    setStat('[data-cal-laps]', String(facts.laps));
+
+    setText('[data-cal-at]', round.locality);
+    setText('[data-cal-story]', circuitStory(round));
+    setText('[data-cal-name]', round.locality);
+    fitName();
+
+    const flag = need('[data-cal-flag]');
+    const image = el('img');
+    image.src = flagUrl(round.country);
+    image.alt = '';
+    image.width = 34;
+    image.height = 20;
+    flag.replaceChildren(image);
+
+    /* A round already run and recorded shows his sessions; one to come, or
+       one run but not yet in the record, shows the timetable. */
+    const result = round.result;
+    for (const head of pastHeads) head.hidden = !result;
+    note.hidden = Boolean(result);
+
+    sessionsHost.replaceChildren();
+    for (const { kind, label, session } of weekendSessions(round)) {
+      const race = kind === 'race';
+      const row = el('p', race ? 'ot-cal__session ot-cal__session--race' : 'ot-cal__session');
+      if (result) {
+        const done = sessionResult(kind, result);
+        row.append(el('span', undefined, label), el('span', undefined, done.place), el('span', undefined, done.time));
+      } else {
+        const when = sessionWhen(session);
+        row.append(
+          el('span', undefined, label),
+          el('span', undefined, `${when.day} ${monthAbbr(when.month)}`),
+          el('span', undefined, when.time),
+        );
+      }
+      sessionsHost.appendChild(row);
+      wrap(row);
+    }
+  };
+
+  /* ----------------------------------------------------------- Rows */
+
+  const rowFor = (round: CalendarRound, index: number): HTMLButtonElement => {
+    const past = isPast(round);
+    const facts = circuitFacts(round);
+    const name = placeName(round);
+
+    const row = el('button', `ot-cal__row cal-row ${past ? 'cal-row--past' : 'cal-row--next'}`);
+    row.type = 'button';
+    row.setAttribute('aria-controls', panel.id);
+
+    const cell = (className = 'ot-cal__cell'): HTMLSpanElement => {
+      const node = el('span', className);
+      row.appendChild(node);
+      return node;
+    };
+
+    /* Round, struck through once it has been run. */
+    const roundCell = cell('ot-cal__cell cal-row__round');
+    roundCell.appendChild(el('span', 'ot-cal__major cal-row__round-n', String(round.round).padStart(2, '0')));
+    if (past) roundCell.appendChild(strike());
+
+    const location = cell();
+    location.appendChild(el('span', 'ot-cal__major ot-cal__nowrap', name));
+    const flag = el('img', 'ot-cal__row-flag');
+    flag.src = flagUrl(round.country);
+    flag.alt = '';
+    flag.width = 34;
+    flag.height = 23;
+    location.appendChild(flag);
+
+    let label: string;
+    if (past) {
+      /* Race day, his finish, his fastest lap. */
+      const day = raceDay(round.date);
+      cell().append(
+        el('span', 'ot-cal__major', day.dayMonth),
+        el('span', 'ot-cal__major', day.year),
+      );
+
+      const finish = cell('ot-cal__cell cal-row__finish');
+      const result = round.result;
+      if (result?.position) {
+        const [figure, letters] = place(result.position);
+        finish.append(el('span', 'ot-cal__major', figure), el('span', 'ot-cal__suffix cal-row__suffix', letters));
+        if (result.position <= 3) {
+          const cup = el('span', `cal-row__trophy cal-row__trophy--p${result.position}`);
+          const cupImg = el('img');
+          cupImg.src = '/assets/highlights/trophy.svg';
+          cupImg.alt = '';
+          cupImg.width = 64;
+          cupImg.height = 64;
+          cup.appendChild(cupImg);
+          finish.appendChild(cup);
+        }
+      } else {
+        finish.appendChild(el('span', 'ot-cal__major', result ? finishText(result.positionText) : 'TBC'));
+      }
+
+      const lap = cell('ot-cal__cell ot-cal__cell--unit');
+      const fastest = result?.fastestLap ?? null;
+      lap.append(el('span', 'ot-cal__reg', fastest ?? '-'));
+      if (fastest) lap.append(el('span', 'ot-cal__unit', 's'));
+
+      label =
+        `Round ${round.round}, ${round.raceName}, ${day.dayMonth} ${round.season}. ` +
+        (result
+          ? `He ${outcomeOf(result)}${fastest ? `, fastest lap ${fastest}` : ''}.`
+          : 'Result not yet recorded.');
+    } else {
+      const span = weekendSpan(round);
+      cell().append(
+        el('span', 'ot-cal__major', span.days),
+        el('span', 'ot-cal__major ot-cal__month', span.month),
+      );
+      cell().appendChild(el('span', 'ot-cal__major', String(facts.laps)));
+      const distance = formatKm(facts.raceDistanceKm);
+      cell('ot-cal__cell ot-cal__cell--unit').append(
+        el('span', 'ot-cal__reg', distance),
+        el('span', 'ot-cal__unit', 'km'),
+      );
+      label =
+        `Round ${round.round}, ${round.raceName}, ${name}, ${span.days} ${span.month}, ` +
+        `${facts.laps} laps, ${distance} km.${round === upcoming ? ' Next race.' : ''}`;
+    }
+    row.setAttribute('aria-label', label);
+
+    row.append(el('span', 'ot-cal__rule'), el('span', 'ot-cal__row-bar'));
+    row.addEventListener('click', () => {
+      show(index, true);
+      travelToPanel();
+    });
+    return row;
+  };
+
+  const buttons = rounds.map((round, index) => {
+    const row = rowFor(round, index);
+    const item = el('li');
+    item.appendChild(row);
+    (isPast(round) ? previousList : upcomingList).appendChild(item);
+    return row;
+  });
+
+  /* A list with nothing in it -- before the first round, after the last --
+     steps aside rather than showing a header over no rows. */
+  need('[data-cal-previous-wrap]').hidden = previousList.childElementCount === 0;
+  need('[data-cal-upcoming-wrap]').hidden = upcomingList.childElementCount === 0;
+
+  const markActive = (): void => {
+    buttons.forEach((row, i) => {
+      row.classList.toggle('is-active', i === current);
+      row.setAttribute('aria-pressed', String(i === current));
+    });
+  };
+
+  /* ----------------------------------------------------------- Swaps */
+
+  let arrived = false;
+  let swap: ReturnType<typeof gsap.timeline> | null = null;
+
+  const open = (): ReturnType<typeof gsap.timeline> =>
+    gsap
+      .timeline()
+      .set(bars(), { scaleX: 1 })
+      .to(clips(), { clipPath: 'inset(0 0% 0 0)', duration: 0.5, stagger: 0.015, ease: 'power2.out' })
+      .to(bars(), { scaleX: 0, duration: 0.5, stagger: 0.015, ease: 'power2.inOut' }, '-=0.2');
+
+  const show = (index: number, announce: boolean): void => {
+    current = index;
+    const round = roundAt(index);
+    scene.show(round.circuitId);
+    markActive();
+    if (announce) live.textContent = `Showing round ${round.round}, the ${round.raceName}.`;
+
+    if (reducedMotion || !arrived) {
+      fill(round);
+      return;
+    }
+    swap?.kill();
+    swap = gsap
+      .timeline()
+      .to(clips(), { clipPath: 'inset(0 100% 0 0)', duration: 0.5, stagger: 0.015, ease: 'power2.in' })
+      .call(() => {
+        fill(round);
+        swap?.add(open());
+      });
+  };
+
+  const step = (by: number): void => {
+    show((current + by + rounds.length) % rounds.length, true);
+  };
+  need('[data-cal-next]').addEventListener('click', () => step(1));
+  need('[data-cal-prev]').addEventListener('click', () => step(-1));
+
+  show(current, false);
+
+  if (!reducedMotion) {
+    ScrollTrigger.create({
+      trigger: panel,
+      start: 'top 90%',
+      once: true,
+      onEnter: () => {
+        arrived = true;
+        open();
+      },
+    });
+  }
+
+  /** A row's second job: take the reader to the panel it just changed. */
+  const travelToPanel = (): void => {
+    const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const top = window.scrollY + panel.getBoundingClientRect().top - rem * 8;
+    if (scroller) {
+      scroller.scrollTo(top, {
+        duration: 1.2,
+        easing: (t) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2),
+      });
+    } else {
+      window.scrollTo({ top, behavior: 'auto' });
+    }
+    panel.focus({ preventScroll: true });
+  };
+
+  /* ------------------------------------------------- Row entrance */
+
+  if (!reducedMotion) {
+    for (const list of [previousList, upcomingList]) {
+      const rows = [...list.querySelectorAll<HTMLElement>('.ot-cal__row')];
+      if (!rows.length) continue;
+      const rowBars = rows.map((row) => row.querySelector('.ot-cal__row-bar'));
+      gsap.set(rows, { clipPath: 'inset(0 100% 0 0)' });
+      gsap.set(rowBars, { scaleX: 1 });
+      rows.forEach((row, i) => {
+        const enter = gsap.timeline({
+          paused: true,
+          scrollTrigger: { trigger: row, start: 'top 95%', once: true },
+        });
+        enter.to(row, { clipPath: 'inset(0 0% 0 0)', duration: 0.6, ease: 'power2.out' }, 0);
+        enter.to(rowBars[i] ?? [], { scaleX: 0, duration: 0.6, ease: 'power2.inOut' }, 0.3);
+      });
+    }
+  }
+
+  /* ----------------------------------------------------- Hover cards */
+
+  mm.add('(min-width: 992px) and (prefers-reduced-motion: no-preference)', () => {
+    const cleanups = [
+      mountCard(need('[data-cal-previous-wrap]'), buttons, rounds, 'photo'),
+      mountCard(need('[data-cal-upcoming-wrap]'), buttons, rounds, 'circuit'),
+    ];
+    return () => {
+      for (const done of cleanups) done();
+    };
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * The card that follows the pointer over a list
+ *
+ * Pointer-only and wide-only, as the reference's is (display:none below
+ * 992px): a decoration over rows whose content is one click away in the panel.
+ * Tracked from the document's pointer position rather than from enter/leave on
+ * the rows, so it follows through the gaps, and re-checked on scroll so a still
+ * pointer over a moving list stays right. On On Track's measurements: in over
+ * 0.8s with the accent curtain lifting after it, out twice as fast, following
+ * on a 0.5s power2.out.
+ * ------------------------------------------------------------------ */
+
+function mountCard(
+  wrap: HTMLElement,
+  buttons: HTMLButtonElement[],
+  rounds: CalendarRound[],
+  kind: 'photo' | 'circuit',
+): () => void {
+  const area = wrap.querySelector<HTMLElement>('[data-cal-area]');
+  const card = wrap.querySelector<HTMLElement>('[data-cal-card]');
+  const reveal = wrap.querySelector<HTMLElement>('[data-cal-card-reveal]');
+  if (!area || !card || !reveal) throw new Error('[calendar] a list has lost its hover card');
+
+  gsap.set(card, { clipPath: 'ellipse(120% 0% at 50% 0%)', autoAlpha: 0, x: 0, y: 0 });
+  gsap.set(reveal, { clipPath: 'ellipse(120% 120% at 50% 100%)' });
+  const appear = gsap
+    .timeline({ paused: true })
+    .to(card, { clipPath: 'ellipse(120% 120% at 50% 0%)', autoAlpha: 1, duration: 0.8, ease: 'power2.out' })
+    .to(reveal, { clipPath: 'ellipse(120% 0% at 50% 100%)', duration: 0.6, ease: 'power2.out' }, '-=0.4');
+  const toX = gsap.quickTo(card, 'x', { duration: 0.5, ease: 'power2.out' });
+  const toY = gsap.quickTo(card, 'y', { duration: 0.5, ease: 'power2.out' });
+
+  /* What the card shows for a row. */
+  let draw: (round: CalendarRound) => void;
+  let dispose = (): void => {};
+
+  if (kind === 'photo') {
+    const frame = card.querySelector<HTMLElement>('[data-cal-card-photo]');
+    if (!frame) throw new Error('[calendar] the photo card has no frame');
+    const img = el('img', 'cal-card__img');
+    img.alt = '';
+    img.width = 330;
+    img.height = 394;
+    img.decoding = 'async';
+    frame.appendChild(img);
+    draw = (round) => {
+      const src = roundPhoto(round);
+      if (img.getAttribute('src') !== src) img.src = src;
+    };
+    dispose = () => img.remove();
+  } else {
+    const shapeHost = card.querySelector<HTMLElement>('[data-cal-card-circuit]');
+    if (!shapeHost) throw new Error('[calendar] the circuit card has no shape host');
+    type Circuit = Awaited<ReturnType<typeof mountCircuit>>;
+    const firstDrawable = rounds.find((r) => hasTrack(r.circuitId));
+    let shape: Promise<Circuit> | null = firstDrawable
+      ? mountCircuit(shapeHost, { circuitId: firstDrawable.circuitId, ground: 'light' })
+      : null;
+    shape?.catch((error: unknown) => {
+      console.warn('[calendar] card circuit did not load', error);
+      shape = null;
+    });
+    draw = (round) => {
+      const drawable = hasTrack(round.circuitId);
+      shapeHost.classList.toggle('is-empty', !drawable);
+      if (drawable && shape) {
+        void shape.then((handle) => shapeHost.classList.toggle('is-empty', !handle.select(round.circuitId)));
+      }
+    };
+    dispose = () => void shape?.then((handle) => handle.destroy());
+  }
+
+  let pointer: { x: number; y: number } | null = null;
+  let over = false;
+  let near = false;
+
+  const follow = (): void => {
+    if (!pointer || !near) return;
+    const box = area.getBoundingClientRect();
+    const inside =
+      pointer.x >= box.left && pointer.x <= box.right && pointer.y >= box.top && pointer.y <= box.bottom;
+    if (inside && !over) {
+      over = true;
+      appear.timeScale(1).play();
+    } else if (!inside && over) {
+      over = false;
+      appear.timeScale(2).reverse();
+    }
+    if (inside) {
+      toX(pointer.x - box.left + 20);
+      toY(pointer.y - box.top - 20);
+    }
+  };
+
+  const onMove = (event: PointerEvent): void => {
+    if (event.pointerType === 'touch') return;
+    pointer = { x: event.clientX, y: event.clientY };
+    follow();
+  };
+  const onOver = (event: PointerEvent): void => {
+    const row = (event.target as Element | null)?.closest('.ot-cal__row');
+    const index = row ? buttons.indexOf(row as HTMLButtonElement) : -1;
+    const round = rounds[index];
+    if (round) draw(round);
+  };
+  const watch = new IntersectionObserver(([entry]) => {
+    near = entry?.isIntersecting ?? false;
+  });
+
+  watch.observe(area);
+  document.addEventListener('pointermove', onMove, { passive: true });
+  window.addEventListener('scroll', follow, { passive: true });
+  area.addEventListener('pointerover', onOver);
+
+  return () => {
+    watch.disconnect();
+    document.removeEventListener('pointermove', onMove);
+    window.removeEventListener('scroll', follow);
+    area.removeEventListener('pointerover', onOver);
+    appear.kill();
+    dispose();
+  };
 }
