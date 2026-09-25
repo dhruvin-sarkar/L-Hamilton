@@ -1,12 +1,13 @@
 /**
- * The three sections Home and On Track both carry.
+ * The sections Home and On Track both carry.
  *
- * The reference runs the same helmet wall, the same socials block and the same
- * store call-to-action at the foot of both pages, and its own study of that says
- * plainly: reuse the component, do not re-implement it
+ * The reference runs the same full-screen picture into the same helmet wall,
+ * and the same socials block, at the foot of both pages, and its own study of
+ * that says plainly: reuse the component, do not re-implement it
  * (docs/ON-TRACK-REFERENCE.md §13). This module is that reuse. The markup lives
- * in partials/helmets.html, partials/socials.html and partials/store.html; the
- * behaviour lives here; both entry points call the mounts.
+ * in partials/otot-end.html, partials/helmets.html and partials/socials.html
+ * (and Home's store in partials/store.html); the behaviour lives here; both
+ * entry points call the mounts.
  *
  * Moved out of main.ts unchanged, with one exception, which is the only thing
  * about these sections that actually differs between the two pages: the store's
@@ -16,7 +17,59 @@
  */
 
 import { gsap, mm, ScrollTrigger, reducedMotion, WIDE_AND_ANIMATED } from './motion';
-import { helmets, helmetSrc, helmetAlt, revealSrc, revealAlt, pendingHelmets } from '../content/helmets';
+import { helmets, helmetSrc, helmetAlt, revealSrc, pendingHelmets } from '../content/helmets';
+import type { Helmet } from '../content/helmets';
+
+/* ------------------------------------------------------------------ *
+ * The riser — one screen of photograph handing on to the wall.
+ *
+ * The reference's `.s.is-otot-end`, which it runs on both pages: Home as the
+ * second screen of On Track / Off Track, On Track straight after its
+ * schedule. Same picture, same tween, so one mount.
+ *
+ * A slow push-in over exactly the span in which the frame covers the screen —
+ * its top entering at the bottom to its top reaching the top — and then it
+ * scrolls away whole. See .otot__end-img in home.css for why the push-in, and
+ * not the reference's lift, is what this photograph can take.
+ *
+ * The progress is written on the riser itself, not on a section around it: on
+ * On Track there is no section around it.
+ * ------------------------------------------------------------------ */
+
+export function mountRiser(): void {
+  mm.add(WIDE_AND_ANIMATED, () => {
+    const riser = document.querySelector<HTMLElement>('[data-riser]');
+    if (!riser) return;
+
+    const apply = (progress: number): void => {
+      riser.style.setProperty('--otot-rise', String(progress));
+    };
+
+    gsap.to(
+      {},
+      {
+        ease: 'none',
+        scrollTrigger: {
+          trigger: riser,
+          start: 'top bottom',
+          end: 'top top',
+          scrub: true,
+          invalidateOnRefresh: true,
+          // Also on refresh: a reload landing inside the range fires no update
+          // until something moves, and the picture would sit at its opening
+          // scale rather than where the scroll position puts it.
+          onUpdate: (self) => apply(self.progress),
+          onRefresh: (self) => apply(self.progress),
+        },
+      },
+    );
+
+    /* Our own inline write, so the context will not clear it. Removed, the CSS
+       falls back to the resting value, which is what the stacked layout and
+       reduced motion both want. */
+    return () => riser.style.removeProperty('--otot-rise');
+  });
+}
 
 /* ------------------------------------------------------------------ *
  * Helmets hall of fame — the wall itself.
@@ -43,9 +96,17 @@ export function mountHelmets(): void {
      The #hof-card clipPath in index.html is this same outline normalised to the
      0..1 box, and clips each photograph to it. Change one and the other has to
      follow, or the pictures will stop where the line does not. */
+  /* Two outlines, as the reference draws them: the resting line inset half a
+     pixel with a non-scaling 2px stroke, the hover line inset a whole pixel at a
+     2px stroke that scales with the card. The corners where the step meets the
+     diagonal are rounded rather than mitred — 23.5 and 22.5 radii, measured. */
   const HOF_CARD_PATH =
-    'M8 0.5 H399 A7.5 7.5 0 0 1 406.5 8 V364.5 A7.5 7.5 0 0 1 399 372 ' +
-    'H263 L211 410.5 H8 A7.5 7.5 0 0 1 0.5 403 V8 A7.5 7.5 0 0 1 8 0.5 Z';
+    'M8 .5h390.89a7.5 7.5 0 0 1 7.5 7.5v356.983a7.5 7.5 0 0 1-7.5 7.5H263.329' +
+    'a23.502 23.502 0 0 0-18.375 8.849l-16.499 20.695a22.502 22.502 0 0 1-17.593 8.473' +
+    'H8A7.5 7.5 0 0 1 .5 403V8A7.5 7.5 0 0 1 8 .5Z';
+  const HOF_CARD_PATH_ON =
+    'M8 1h390.89a7 7 0 0 1 7 7v356.983a7 7 0 0 1-7 7H263.329a23.999 23.999 0 0 0-18.766 9.038' +
+    'l-16.499 20.694A21.999 21.999 0 0 1 210.862 410H8a7 7 0 0 1-7-7V8a7 7 0 0 1 7-7Z';
 
   /** Attribute-safe text. The data is ours, but a name carrying a quote would
       otherwise close the attribute it sits in and swallow the rest of the tag. */
@@ -56,32 +117,47 @@ export function mountHelmets(): void {
   function hofFrame(variant: 'base' | 'on'): string {
     return (
       `<svg class="hof__frame hof__frame--${variant}" viewBox="0 0 407 411" ` +
-      `preserveAspectRatio="none" aria-hidden="true"><path d="${HOF_CARD_PATH}" /></svg>`
+      `preserveAspectRatio="none" aria-hidden="true">` +
+      `<path d="${variant === 'on' ? HOF_CARD_PATH_ON : HOF_CARD_PATH}" /></svg>`
     );
   }
 
 
 
+  /* Not focusable, as the reference's cards are not: a card has no action, so a
+     tab stop on each was 26 stops that did nothing. The wearing shot is a hover
+     flourish over the helmet shot rather than content of its own, so it is
+     decorative, and the helmet's alt and the label carry what there is to say.
+
+     The label only writes the parts that exist. An empty year span still took
+     its 0.8rem margin and pushed a name-only label off the notch's right edge;
+     a card with neither renders no label at all, as the reference would with
+     an empty CMS field. */
+  function hofLabel(helmet: Helmet): string {
+    const parts = [
+      helmet.name ? `<span class="hof__name">${attr(helmet.name)}</span>` : '',
+      helmet.year !== null ? `<span class="hof__year">${helmet.year}</span>` : '',
+    ].join('');
+    return parts ? `<p class="hof__label">${parts}</p>` : '';
+  }
+
   if (hofGrid) {
     hofGrid.innerHTML = helmets
       .map(
         (helmet) => `
-        <li class="hof__item" tabindex="0">
+        <li class="hof__item">
           <div class="hof__media">
             <img class="hof__helmet" src="${helmetSrc(helmet)}"
               alt="${attr(helmetAlt(helmet))}" loading="lazy" decoding="async" />
-            <span class="hof__reveal-w">
-              <img class="hof__reveal-bg" src="${revealSrc(helmet)}" alt="" aria-hidden="true"
+            <span class="hof__reveal-w" aria-hidden="true">
+              <img class="hof__reveal-bg" src="${revealSrc(helmet)}" alt=""
                 loading="lazy" decoding="async" />
-              <img class="hof__reveal" src="${revealSrc(helmet)}"
-                alt="${attr(revealAlt(helmet))}" loading="lazy" decoding="async" />
+              <img class="hof__reveal" src="${revealSrc(helmet)}" alt=""
+                loading="lazy" decoding="async" />
             </span>
           </div>
           <div class="hof__frame-w">${hofFrame('base')}${hofFrame('on')}</div>
-          <p class="hof__label">
-            <span class="hof__name">${helmet.name ? attr(helmet.name) : ''}</span>
-            <span class="hof__year">${helmet.year ?? ''}</span>
-          </p>
+          ${hofLabel(helmet)}
         </li>`,
       )
       .join('');
@@ -107,7 +183,7 @@ export function mountHelmets(): void {
  *
  * Two offsets, both easing to nothing as the wall crosses the screen, and both
  * moving the same direction: columns 1 and 3 travel 5rem, columns 2 and 4
- * travel 15rem. Measured off the reference, where the ratio is exactly 3 and
+ * travel 25rem. Measured off the reference, where the ratio is exactly 5 and
  * the scrub is linear rather than eased.
  *
  * That every column moves UP is worth stating plainly, because the effect
@@ -127,20 +203,16 @@ export function mountHofDrift(): void {
   mm.add(WIDE_AND_ANIMATED, () => {
     if (!hof || !hofGrid) return;
 
-    /* The reference's own travel is 5rem and 15rem. Both are scaled by the same
-       factor here, deliberately, so the wall drifts further than the reference's
-       does while the 3:1 relationship that produces the stagger is untouched.
-       Currently 2.4x, which puts the trailing columns most of a card lower than
-       their neighbours as the wall comes onto the screen. */
+    /* The reference's transforms, read straight off its cards at sixteen scroll
+       positions (1728x1080): columns 1 and 3 sit 5rem low, columns 2 and 4 sit
+       25rem low — two nested tweens of 10rem and 15rem on the same range — and
+       both fall linearly to zero between the grid's top reaching the bottom of
+       the screen and its bottom leaving the top. Sampled at the section's own
+       top it reads 57.9px and 289.7px, which is what these produce. */
     const apply = (progress: number) => {
       const rest = 1 - progress;
-      /* Solved against the reference's own drift, measured on the running site:
-         sampling the topmost card of each column at four scroll positions, its
-         lead columns travel 44px and its lag columns 219px. Ours travelled 180
-         and 540 — four times and two and a half times too far — which is what
-         forced the CTA's outsized clearance below and inflated the section. */
-      hof.style.setProperty('--hof-lead', `${2.93 * rest}rem`);
-      hof.style.setProperty('--hof-lag', `${14.6 * rest}rem`);
+      hof.style.setProperty('--hof-lead', `${5 * rest}rem`);
+      hof.style.setProperty('--hof-lag', `${25 * rest}rem`);
     };
 
     gsap.to(
@@ -166,13 +238,70 @@ export function mountHofDrift(): void {
     );
 
     /* Our own inline writes, so the context will not clear them. Left behind,
-       every even column would stay parked 15rem low in the two-column layout. */
+       every even column would stay parked 25rem low in the two-column layout. */
     return () => {
       hof.style.removeProperty('--hof-lead');
       hof.style.removeProperty('--hof-lag');
     };
   });
 
+}
+
+/* ------------------------------------------------------------------ *
+ * The callout's crest, drawn in by scroll.
+ *
+ * The reference's callout mark is a Rive file (artboard "helmet-reef", state
+ * machine "helmet-reef_scroll") keyed to the callout's scroll position. Read
+ * off its canvas at 1728x1080, as painted pixels at held scroll positions and
+ * allowed two seconds to settle (the Rive eases toward its scroll target, so a
+ * quick read lags): nothing until the section top reaches 65% of the
+ * viewport, the two branches grown up from their stems by 39%, then the
+ * helmet coming up between them, complete by 23%.
+ *
+ * Ours is the site's own crest — the same drawing the next-race card and the
+ * menu carry — through the two hooks it already exposes for the On Track
+ * header's entrance: --crest-branch-hide clips the branches from the top, so
+ * running it from 100% to 0% grows them upward, and --crest-helmet is the
+ * helmet's opacity. Set on the <svg>, they reach the <use> clone by
+ * inheritance.
+ *
+ * Reduced motion leaves both unset, and the crest is simply whole.
+ * ------------------------------------------------------------------ */
+
+export function mountCalloutCrest(): void {
+  mm.add('(prefers-reduced-motion: no-preference)', () => {
+    for (const icon of document.querySelectorAll<SVGSVGElement>('.callout__icon')) {
+      const section = icon.closest<HTMLElement>('.callout');
+      if (!section) throw new Error('callout crest: .callout__icon outside a .callout');
+
+      /* fromTo, not set-then-to: a `.to` reads its start value when it first
+         renders, and a reload landing past this range renders it first at its
+         END — so the branches recorded 0% as their start and never grew again
+         on the way back up. Both ends are stated, so the scrub is the same
+         whichever way the page arrives. */
+      gsap
+        .timeline({
+          scrollTrigger: {
+            trigger: section,
+            start: 'top 65%',
+            end: 'top 23%',
+            scrub: true,
+          },
+        })
+        // The first 62% of the range is the branches, the rest the helmet.
+        .fromTo(
+          icon,
+          { '--crest-branch-hide': '100%' },
+          { '--crest-branch-hide': '0%', duration: 0.62, ease: 'none', immediateRender: true },
+        )
+        .fromTo(
+          icon,
+          { '--crest-helmet': 0 },
+          { '--crest-helmet': 1, duration: 0.38, ease: 'none', immediateRender: true },
+          0.62,
+        );
+    }
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -310,40 +439,54 @@ export function mountSocials(): void {
         card.style.setProperty('--lean', '0deg');
       }
 
+      /* Timed off the reference frame by frame, from a fresh load, at 1728:
+       *
+       *   trigger  fires with the fan's top at 90% of the viewport (its section
+       *            top between 588 and 578 of 1080). 80% dealt the cards a
+       *            108px later than the reference does.
+       *   rise     160px (10rem) to 0 over 0.8s on a CUBIC out — GSAP's power2;
+       *            its power3 is quartic, and ran visibly ahead of the samples —
+       *            with no fade: the cards come up from below the fold, where
+       *            they were never visible. LAST card first, 83ms apart: the
+       *            right-hand card starts at 0ms, the centre at 252, the
+       *            left-hand at 501.
+       *   spread   the centre's slot at 910ms, before the last card is home, then
+       *            65ms per step outwards. It overshoots and rings — the outer
+       *            card reaches 110% of its offset about 370ms in, dips to 99.4%
+       *            and settles — which is an elastic, not a back: a back never
+       *            comes up short on the way down. Fitted against 40 samples
+       *            across three cards, elastic.out(1, 0.78) over 1.12s lands
+       *            within 0.01 of every one.
+       *
+       * `amount` rather than `each` in both staggers, because from a centre or an
+       * end GSAP spreads `each * (count - 1)` over the largest distance, which
+       * made `each` mean twice the gap it reads as.
+       *
+       * The old deal ran 0.5s from 26rem with a fade, then spread on a quartic
+       * with no give at the end, so the fan arrived flat where the reference's
+       * lands. */
       ScrollTrigger.create({
         trigger: fan,
-        start: 'top 80%',
+        start: 'top 90%',
         once: true,
         onEnter: () => {
           gsap
             .timeline({ onComplete: () => fan.classList.add('is-settled') })
-            /* One at a time, and quickly. They arrive in document order rather
-               than from the centre, because this is a stack being built: each
-               card lands on the one before it. 55ms apart is fast enough that the
-               seven read as one gesture and slow enough to see them arrive
-               separately. */
             .to(cards, {
               '--rise': 0,
-              duration: 0.5,
-              ease: 'power3.out',
-              stagger: 0.055,
+              duration: 0.8,
+              ease: 'power2.out',
+              stagger: { amount: 0.5, from: 'end' },
             })
-            /* Then the stack opens. From the CENTRE OUT this time — the middle
-               card is already home while the outer pair is still travelling,
-               which is what reads as a deal rather than as a queue.
-             *
-               Overlapped by 0.15s so the last card has not quite settled when the
-               spread begins. Waiting for a full stop puts a beat between the two
-               halves and they stop reading as one move. */
             .to(
               cards,
               {
                 '--spread': 1,
-                duration: 1.1,
-                ease: 'power3.out',
-                stagger: { each: 0.075, from: 'center' },
+                duration: 1.12,
+                ease: 'elastic.out(1, 0.78)',
+                stagger: { amount: 0.195, from: 'center' },
               },
-              '-=0.15',
+              0.91,
             );
         },
       });

@@ -1,18 +1,22 @@
       <section class="hof" data-hof aria-labelledby="hof-h">
 
         <!-- The card silhouette, once, for all 26 to clip their photographs
-             against. objectBoundingBox units — the same path the frame strokes
-             in its 407x411 viewBox, divided through by 407 and 411 — so one
-             definition tracks the cards at any width instead of a px path that
-             would only be right at one viewport. -->
+             against. objectBoundingBox units — the resting path the frame
+             strokes in its 407x411 viewBox (HOF_CARD_PATH in lib/showcase.ts),
+             divided through by 407 and 411 — so one definition tracks the cards
+             at any width instead of a px path that would only be right at one
+             viewport. Change one and the other has to follow. -->
         <svg class="hof__defs" aria-hidden="true" focusable="false">
           <defs>
             <clipPath id="hof-card" clipPathUnits="objectBoundingBox">
-              <path d="M0.018428 0 H0.981572 A0.018428 0.018248 0 0 1 1 0.018248
-                       V0.886861 A0.018428 0.018248 0 0 1 0.981572 0.905109
-                       H0.646192 L0.518428 1 H0.018428
-                       A0.018428 0.018248 0 0 1 0 0.981752
-                       V0.018248 A0.018428 0.018248 0 0 1 0.018428 0 Z" />
+              <path d="M0.019656 0.001217 H0.980074
+                       A0.018428 0.018248 0 0 1 0.998501 0.019465 V0.888036
+                       A0.018428 0.018248 0 0 1 0.980074 0.906285 H0.647000
+                       A0.057744 0.057182 0 0 0 0.601853 0.927815
+                       L0.561314 0.978168
+                       A0.055287 0.054749 0 0 1 0.518088 0.998783 H0.019656
+                       A0.018428 0.018248 0 0 1 0.001229 0.980535 V0.019465
+                       A0.018428 0.018248 0 0 1 0.019656 0.001217 Z" />
             </clipPath>
           </defs>
         </svg>
@@ -23,9 +27,10 @@
              to .shell the cards came out 383px instead of the reference's 407,
              and the wall stopped well short of both edges. -->
         <div class="hof__inner">
-          <!-- Title left, standfirst at the half. Both measured: the title sits
-               on the same 20px gutter as the grid below it, and the paragraph
-               starts at 855px of 1728 — a hair under halfway. -->
+          <!-- The reference's `.title-layout.grid-main`: four 23.55% columns on
+               one --gap, the title across the first two and the standfirst in
+               the third — which is what puts the paragraph at 855px of 1728,
+               397.5px wide. -->
           <header class="hof__head">
             <h2 class="hof__title" id="hof-h">
               <span class="hof__title-line reveal-text">Helmets</span>
@@ -41,24 +46,11 @@
           </header>
 
           <ul class="hof__grid" data-hof-grid></ul>
-
-          <div class="hof__cta">
-            <!-- The same crest as the next-race card and the menu, by reference
-                 rather than by a third copy that would drift out of sync. -->
-            <svg class="hof__cta-crest" viewBox="0 0 64 44" aria-hidden="true">
-              <use href="#nr-crest" />
-            </svg>
-            <p class="hof__cta-line reveal-text">
-              See more helmets and highlights from Lewis on the track
-            </p>
-            <a class="hof__cta-link" href="/on-track.html">
-              <span class="sr-only">View on Track</span>
-              <span class="btn-text" aria-hidden="true" data-split-chars>View on Track</span>
-              <svg class="hof__cta-arrow" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor"
-                  stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </a>
-          </div>
         </div>
+
+        <!-- No closing callout in here. The reference ends this section on the
+             grid and runs its callout as a section of its own, because the two
+             pages close the wall differently: Home points on to On Track, and On
+             Track — already there — goes on to the socials instead. See
+             .callout in home.css. -->
       </section>

@@ -1416,6 +1416,10 @@ body[data-page='on-track'] {
   font-style: normal;
   font-weight: 500;
   font-size: 4.6875rem;
+  /* The reference's serif line box, 67.78px at 1728: 0.9037 of the serif's
+     size, as on the highlights heading. The inherited 0.886 set it 1.4px
+     shallow and lifted the car photograph under it by as much. */
+  line-height: 0.9037;
   font-variant-numeric: lining-nums;
   letter-spacing: -0.125rem;
   text-transform: uppercase;
@@ -3273,6 +3277,12 @@ button.ot-cal__row:focus-visible {
     min-inline-size: auto;
   }
 
+  /* An item keeps its width, as the reference's do here: a long distance
+     takes its room from the spacer, never by folding the weekend's dates. */
+  .ot-cal__item {
+    flex: none;
+  }
+
   /* 9 units, given up first when the row is short of room. */
   .ot-cal__spacer {
     flex: 0 1 auto;
@@ -3282,8 +3292,10 @@ button.ot-cal__row:focus-visible {
     font-size: calc(var(--u) * 2.2);
   }
 
+  /* Dropped 0.1 unit rather than lifted: the reference's small label takes a
+     `top` here, and a `top` beats the `bottom` it is lifted by above. */
   .ot-cal__stat-unit {
-    inset-block-end: calc(var(--u) * 0.1);
+    inset-block: calc(var(--u) * 0.1) auto;
     font-size: calc(var(--u) * 1.3);
   }
 
@@ -3882,12 +3894,16 @@ button.ot-cal__row:focus-visible {
 }
 
 /* `.text-title-lg-brier.c-grey-on-track`: the second face, upright capitals,
-   in grey. Playfair stands in for Brier, as it does on every serif line. */
+   in grey. Playfair stands in for Brier, as it does on every serif line.
+   Its line box is the reference's 67.78px at 1728, 0.9037 of the serif's size,
+   as on the highlights heading: inherited 0.886 left it 1.4px shallow, and the
+   image row and everything under it rode that much high. */
 .ot-pref1__title-line--serif {
   font-family: var(--font-serif);
   font-style: normal;
   font-weight: 500;
   font-size: calc(4.6875 * var(--u));
+  line-height: 0.9037;
   font-variant-numeric: lining-nums;
   color: var(--grey-on-track);
 }
@@ -4288,3 +4304,45 @@ button.ot-cal__row:focus-visible {
   }
 }
 
+/* ================================================== The tail, on one ground
+ *
+ * Reference sections 7 and 8. After its full-screen picture the reference runs
+ * the helmets, the socials and the store callout on ONE `.s-group.bg-black`,
+ * and puts its footer on that same black — sampled down the whole range, the
+ * ground never moves again once the wall has taken over from the picture.
+ *
+ * The components are Home's (home.css), and Home sets two of them on its light
+ * screen: the socials on the field's cream, and the footer's lead-in on it too.
+ * Here both take the wall's ground instead, --gl-bg, so the one change of
+ * colour is INTO the wall and nothing after it steps back to cream.
+ *
+ * Page-qualified rather than relying on this sheet loading after home.css: in
+ * a build the two land as separate files, and a tie on specificity would be
+ * decided by link order nobody wrote down. */
+
+/* The wall's second title line is `.c-grey-on-track` here where Home's is
+   `.c-lime-off` — the one thing the shared partial sets differently per page. */
+[data-page='on-track'] .hof__title-line.is-serif {
+  color: var(--grey-on-track);
+}
+
+[data-page='on-track'] .socials {
+  background: var(--gl-bg);
+  color: var(--cream);
+}
+
+/* The reference's ornament here is its own grey on the black, well under the
+   heading's ink — a mark, not a second headline. */
+[data-page='on-track'] .socials__ball {
+  color: var(--dark-tint-2);
+}
+
+[data-page='on-track'] .socials__links a {
+  color: var(--cream);
+}
+
+/* The accent still pools around the panel; it pools out of the wall's ground
+   rather than out of cream, which is how the reference's does it. */
+[data-page='on-track'] .footer {
+  background: var(--gl-bg);
+}
