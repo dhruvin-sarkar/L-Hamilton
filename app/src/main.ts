@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import Lenis from 'lenis';
 import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './lib/motion';
 import { mountChrome } from './lib/chrome';
+import { whenEntranceCued } from './lib/transition';
 import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountGalleryScroll } from './lib/gallery';
 import { mountFooterMarquee, mountMarquee } from './lib/marquee';
@@ -942,13 +943,20 @@ function onReady(fn: () => void): void {
   else readyCallbacks.push(fn);
 }
 
-/** Release the entrance. Called once the scene has painted, or on a timeout. */
+let sceneReported = false;
+
+/** Release the entrance. Called once the scene has painted, or on a timeout —
+ *  and then held until the loader is about to open onto the page, as the
+ *  reference's hero cues are, so the entrance plays in view, not under it. */
 function markReady(): void {
-  if (readyFired) return;
-  readyFired = true;
-  document.body.classList.add('is-ready');
-  for (const fn of readyCallbacks) fn();
-  readyCallbacks.length = 0;
+  if (sceneReported) return;
+  sceneReported = true;
+  void whenEntranceCued().then(() => {
+    readyFired = true;
+    document.body.classList.add('is-ready');
+    for (const fn of readyCallbacks) fn();
+    readyCallbacks.length = 0;
+  });
 }
 
 // Backstop: if the WebGL scene never reports in — no GL context, a failed

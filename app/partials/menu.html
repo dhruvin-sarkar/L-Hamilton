@@ -16,7 +16,11 @@
          to the first link. Focusing a link instead put a focus ring on HOME
          every time the menu was opened with a mouse, which read as an error
          state; keyboard users still Tab straight into the list from here. -->
-    <div class="menu" id="menu" tabindex="-1" hidden>
+    <!-- A dialog, modal by `inert` on <main> and the footer while it is open
+         (lib/chrome.ts). Not aria-modal: the close button is in the nav, outside
+         this element, and aria-modal would hide it from a screen reader along
+         with the page. -->
+    <div class="menu" id="menu" role="dialog" aria-label="Menu" tabindex="-1" hidden>
       <!-- The contour backdrop. The reference fills this slot with a static SVG
            rather than its live field, and so does ours: the curves are
            generated as iso-lines of a warped simplex field at the same
@@ -85,7 +89,7 @@
         <div class="menu__side">
           <div class="menu__block">
             <nav class="menu__links" aria-label="Primary">
-              <a class="menu__link is-current" href="/index.html" aria-current="page" data-menu-link="0">
+              <a class="menu__link" href="/index.html" data-menu-link="0">
                 <!-- Same arrangement as the store button: the visible copy is
                      split per character and hidden from assistive tech, and an
                      sr-only twin carries the real accessible name. -->
@@ -105,7 +109,7 @@
                     d="M2 13h69c14 0 20-9 34-9h79c14 0 20 18 34 18h79c14 0 20-9 34-9h79"
                     fill="none"
                     stroke="currentColor"
-                    stroke-width="4"
+                    stroke-width="6"
                     stroke-linecap="round"
                     stroke-linejoin="round"
                   />
@@ -133,7 +137,11 @@
               <svg class="menu__crest" viewBox="0 0 64 44" aria-hidden="true">
                 <use href="#nr-crest" />
               </svg>
-              <p class="menu__eyebrow" data-bind="team-line">Scuderia Ferrari since 2025</p>
+              <!-- The binding is on an inner span so that writing the team line
+                   leaves the highlight bar the menu adds beside it alone. -->
+              <p class="menu__eyebrow" data-menu-highlight>
+                <span data-bind="team-line">Scuderia Ferrari since 2025</span>
+              </p>
             </div>
           </div>
 
@@ -142,24 +150,24 @@
                  guessed handle would be inventing data, and a nav link that
                  goes to the wrong account is worse than one that goes nowhere.
                  Swap the hrefs once the real accounts are confirmed. -->
-            <a class="menu__contact" href="#" data-placeholder-href>
+            <a class="menu__contact" href="#" data-placeholder-href data-menu-highlight>
               <span class="sr-only">Business enquiries</span>
               <span class="btn-text" aria-hidden="true" data-split-chars>Business enquiries</span>
             </a>
             <div class="menu__socials">
-              <a href="#" data-placeholder-href>
+              <a href="#" data-placeholder-href data-menu-highlight>
                 <span class="sr-only">Instagram</span>
                 <span class="btn-text" aria-hidden="true" data-split-chars>Instagram</span>
               </a>
-              <a href="#" data-placeholder-href>
+              <a href="#" data-placeholder-href data-menu-highlight>
                 <span class="sr-only">X</span>
                 <span class="btn-text" aria-hidden="true" data-split-chars>X</span>
               </a>
-              <a href="#" data-placeholder-href>
+              <a href="#" data-placeholder-href data-menu-highlight>
                 <span class="sr-only">TikTok</span>
                 <span class="btn-text" aria-hidden="true" data-split-chars>TikTok</span>
               </a>
-              <a href="#" data-placeholder-href>
+              <a href="#" data-placeholder-href data-menu-highlight>
                 <span class="sr-only">YouTube</span>
                 <span class="btn-text" aria-hidden="true" data-split-chars>YouTube</span>
               </a>

@@ -56,10 +56,15 @@
     <link rel="stylesheet" href="/src/styles/main.css" />
   </head>
   <body>
+    <!--#include "partials/transition.html"-->
     <!--#include "partials/circuit-filters.html"-->
     <!--#include "partials/nav.html"-->
 
     <main id="main">
+      <!-- The page's one h1. The nav's lockup reads the same, but it is on every
+           page and is a paragraph there; On Track names itself the same way. -->
+      <h1 class="sr-only">Lewis Hamilton</h1>
+
       <!-- ================================================== Hero track
            Two viewport heights with the canvas pinned across both, matching
            the reference's [data-sticky-hero="track"] (measured: 1964px against

@@ -16,6 +16,7 @@ import './styles/on-track.css';
 import Lenis from 'lenis';
 import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './lib/motion';
 import { mountChrome } from './lib/chrome';
+import { whenEntranceCued } from './lib/transition';
 import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountGalleryScroll } from './lib/gallery';
 import { mountHelmetScroll } from './HelmetScroll';
@@ -1386,7 +1387,8 @@ if (trackWord && scriptWord && crest && signHost) {
       .to(crest, { '--crest-branch-hide': '0%', duration: 0.55, ease: 'none' }, HERO_CUE + 0.42)
       .to(crest, { '--crest-helmet': 1, duration: 0.5, ease: 'none' }, HERO_CUE + 0.9);
 
-    void document.fonts.ready.then(() => entrance.play());
+    // Held for the loader too: the entrance plays as it opens onto the page.
+    void Promise.all([document.fonts.ready, whenEntranceCued()]).then(() => entrance.play());
 
     return () => {
       live = false;
@@ -2921,7 +2923,8 @@ mountReveals({
      still rising) -- one margin covers both. */
   sideways: '.gallery',
   sidewaysMargin: '0px -5% -10% 0px',
-  whenReady: (run) => void document.fonts.ready.then(() => gsap.delayedCall(HERO_CUE, run)),
+  whenReady: (run) =>
+    void Promise.all([document.fonts.ready, whenEntranceCued()]).then(() => gsap.delayedCall(HERO_CUE, run)),
 });
 
 void document.fonts.ready.then(() => {
