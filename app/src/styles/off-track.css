@@ -1,0 +1,16 @@
+/* /off-track — page-scoped rules.
+ *
+ * The shared chrome, the reveal, the gallery and the socials block all come from
+ * home.css through main.css; this file holds only what the Off Track page does
+ * differently. Measured off the reference (public/off-track.html) at 1728x1080,
+ * where 1rem = 16px, so every rem below is the reference's own value.
+ *
+ * Palette: the reference's Off Track page is one cream ground from hero to
+ * socials, with dark-green ink, a grey-green accent face and lime highlights.
+ * Ours inverts light and dark the way every other page here does — one warm
+ * near-black ground, cream ink, the off-white grey for the accent face and
+ * rosso for the highlight bars. */
+
+body[data-page='off-track'] {
+  --bg: var(--black);
+}

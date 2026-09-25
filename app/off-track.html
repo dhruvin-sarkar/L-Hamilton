@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Lewis Hamilton off track: Mission 44, the Hamilton Commission, fashion, film, music and the causes he backs."
+    />
+    <title>Off Track — Lewis Hamilton</title>
+    <link rel="icon" href="/assets/brand/lh-monogram.svg" type="image/svg+xml" />
+
+    <!-- The same two faces as the other pages, preloaded for the same reason:
+         the display grotesque and the Didone both set type that paints before
+         anything is scrolled. See index.html for why crossorigin is required on
+         a same-origin font preload. -->
+    <link
+      rel="preload"
+      href="/assets/fonts/mona-sans-latin-standard-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/assets/fonts/playfair-display-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <!-- Render-blocking on purpose; see the note in index.html. -->
+    <link rel="stylesheet" href="/src/styles/main.css" />
+  </head>
+  <body data-page="off-track">
+    <!--#include "partials/nav.html"-->
+
+    <main id="main">
+      <!-- Reference order (public/off-track.html): the hero and the statement
+           share one scroll group, then the side-scrolling gallery, then the
+           socials block. There is no helmet wall and no store call here. -->
+
+      <!--#include "partials/socials.html"-->
+    </main>
+
+    <!--#include "partials/menu.html"-->
+    <!--#include "partials/footer.html"-->
+
+    <script type="module" src="/src/off-track.ts"></script>
+  </body>
+</html>
