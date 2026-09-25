@@ -143,9 +143,15 @@ function mountSectionFills(): void {
  * the visible copy is aria-hidden and an sr-only twin carries the real name.
  * ------------------------------------------------------------------ */
 
+/** The reference's QE(): every label rolls the same way. */
+const ROLL = { duration: 0.6, ease: 'power3.out', stagger: 0.02 } as const;
+
 function mountRollingText(): void {
   const targets = document.querySelectorAll<HTMLElement>('[data-split-chars]');
 
+  /* DOM writes only. Nothing here reads layout or style, so splitting every
+     label on the page costs no forced layout: the first roll of each label
+     is what first reads its transforms, one label at a time, on hover. */
   for (const el of targets) {
     const label = el.textContent ?? '';
     if (!label) continue;
@@ -158,55 +164,34 @@ function mountRollingText(): void {
         span.className = 'char';
         // Non-breaking space, so a gap between words survives becoming its own
         // inline-block.
-        span.textContent = ch === ' ' ? ' ' : ch;
+        span.textContent = ch === ' ' ? '\u00a0' : ch;
         line.appendChild(span);
       }
       return line;
     };
 
     const outgoing = buildLine('');
-    const incoming = buildLine(' btn-text__line--in');
-    el.textContent = '';
-    el.append(outgoing, incoming);
+    el.replaceChildren(outgoing);
 
-    const outChars = [...outgoing.children] as HTMLElement[];
-    const inChars = [...incoming.children] as HTMLElement[];
+    // No roll under reduced motion, so no incoming copy either: just the label.
+    if (reducedMotion) continue;
+
+    const incoming = buildLine(' btn-text__line--in');
+    el.append(incoming);
+    const outChars = [...outgoing.children];
+    const inChars = [...incoming.children];
 
     // The button, not the label, owns the hover — the label is inline and its
     // box does not cover the padding the user is actually pointing at.
     const button = el.closest<HTMLElement>('a, button') ?? el;
 
-    if (reducedMotion) {
-      // No roll. The incoming copy would otherwise sit permanently below the
-      // clip, so drop it and leave a plain static label.
-      incoming.remove();
-      continue;
-    }
-
-    gsap.set(inChars, { yPercent: 0 });
-
+    // The outgoing line rolls up and out and the incoming one up into its
+    // place, letter by letter from the left: two tweens, so each copy staggers
+    // from its own first letter.
     const roll = (active: boolean) => {
-      gsap.killTweensOf([...outChars, ...inChars]);
-      const opts = {
-        duration: 0.75,
-        /* expo.out, NOT the site's cubic-bezier(0.65, 0.05, 0, 1).
-         *
-         * Passing that string to GSAP does nothing useful — parsing a raw
-         * cubic-bezier needs the CustomEase plugin, so it silently falls back
-         * to the default power1.out. That was measurable rather than
-         * theoretical: at 260ms our first char sat at 56.5% of travel and
-         * 1-(1-0.347)^2 is 57.4%, which is exactly power1.out. The reference
-         * was at 94% by the same moment. expo.out gives ~91% there, so it
-         * tracks the real curve closely without pulling in a plugin. */
-        ease: 'expo.out',
-        /* Solved for, not picked. Normalised against total travel, the
-         * reference's spread across five letters is 9.5%. 24ms gave 18.5% and
-         * 12ms gave 5.3%, so interpolating between the two measured points
-         * lands here. */
-        stagger: 0.016,
-      };
-      gsap.to(outChars, { ...opts, yPercent: active ? -100 : 0 });
-      gsap.to(inChars, { ...opts, yPercent: active ? -100 : 0 });
+      const to = { yPercent: active ? -100 : 0, ...ROLL, overwrite: true };
+      gsap.to(outChars, to);
+      gsap.to(inChars, to);
     };
 
     button.addEventListener('pointerenter', () => roll(true));
@@ -600,6 +585,31 @@ function mountLandscapeSteer(): void {
   });
 }
 
+/** A page's path with any `index` and `.html` taken off, so `/`,
+    `/index.html`, `/on-track` and `/on-track.html` compare as two pages. */
+function pageKey(path: string): string {
+  return path.replace(/(index)?(\.html)?$/, '');
+}
+
+/**
+ * The page being viewed, marked in the menu and the footer.
+ *
+ * Both are partials shared by every page, so neither can say in its markup
+ * which link is the current one. This is the one place that does, from the
+ * address: every site-relative page link that leads here gets
+ * aria-current="page", and every other one loses it.
+ */
+function markCurrentPage(): void {
+  const here = pageKey(window.location.pathname);
+  const pageLinks = document.querySelectorAll<HTMLAnchorElement>(
+    '.menu__link[href^="/"], .footer__nav a[href^="/"]',
+  );
+  for (const link of pageLinks) {
+    if (pageKey(link.pathname) === here) link.setAttribute('aria-current', 'page');
+    else link.removeAttribute('aria-current');
+  }
+}
+
 export function mountChrome(): void {
   /* The menu is mounted further down; the transition only needs to be able to
      shut it, and only once a link is followed, by which time it exists. */
@@ -608,6 +618,7 @@ export function mountChrome(): void {
   // Inert links first: the transition skips any click already prevented, so
   // the placeholder links' listener has to be registered before its own.
   mountInertLinks();
+  markCurrentPage();
   mountTransition({ closeMenu: () => closeMenu() });
   mountScrollIndicator();
   mountLandscapeSteer();
@@ -671,18 +682,11 @@ export function mountChrome(): void {
 
     const links = [...menu.querySelectorAll<HTMLAnchorElement>('.menu__link')];
 
-    /* The page you are on, marked in the list. The menu is one partial shared by
-       every page, so which link is current is decided here, from the address,
-       and the drawn mark moves into that link. */
-    const pageKey = (path: string) => path.replace(/(index)?(\.html)?$/, '');
-    const here = pageKey(window.location.pathname);
+    // markCurrentPage() has already said which link this page is; the drawn
+    // mark moves into it.
+    const currentLink = links.find((link) => link.getAttribute('aria-current') === 'page');
     const markSvg = menu.querySelector('.menu__link-mark');
-    const currentLink = links.find((link) => pageKey(new URL(link.href).pathname) === here);
-    for (const link of links) {
-      link.classList.toggle('is-current', link === currentLink);
-      if (link === currentLink) link.setAttribute('aria-current', 'page');
-      else link.removeAttribute('aria-current');
-    }
+    for (const link of links) link.classList.toggle('is-current', link === currentLink);
     if (markSvg) {
       if (currentLink) currentLink.append(markSvg);
       else markSvg.remove();
