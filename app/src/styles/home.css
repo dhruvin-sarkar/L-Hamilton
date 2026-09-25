@@ -2817,20 +2817,25 @@
   flex: none;
   /* Sized against the reference's HEAD, not its box. Its footer figure is a
      helmet on shoulders, and the helmet is what reads as the size of the
-     thing: 335px at its widest at 1728, its crown 320.5px down the panel, over
-     the foot of the headline's second line. The same box here left the head
-     301px wide — visibly the smaller figure beside a helmet — so the portrait
-     is scaled until its own widest row (1200 of 3780, ears included) is 335
-     too, and hung so the crown lands on the helmet's.
+     thing: 335px wide and ~397px crown to chin bar at 1728, its crown 321px
+     down the panel, over the foot of the headline's second line.
 
-     Both solved off the file's own alpha rather than nudged: at 49.45rem the
-     picture is 791px tall with the crown 109.4px down it, so the crown sits
-     at 320.5 when the frame's top is at 211 — which is a 6.64rem overhang
+     Matching that by the head's widest row (ears included, 1190 of the file's
+     rows) still left the figure reading smaller: the hair is dark on a dark
+     panel, so the eye takes the FACE for the head, and a face is narrower than
+     a shell that encloses one. So the skull itself — 1056px of the file at
+     brow height, ears excluded — is sized to within 3% of the helmet's width
+     (325px against 335), which is the user's "a little bigger, matching
+     Lando's", and the crown stays on the helmet's.
+
+     Solved off the file's own alpha rather than nudged: at 54.4rem the
+     picture is 870.4px tall, the crown 120.4px down it (392 of 2834), so the
+     crown sits at 321 when the frame's top is at 200.6 — a 10.93rem overhang
      below a 56rem panel. The shoulders take the extra crop, as the
      reference's own do. */
-  inset-block-end: -6.64rem;
+  inset-block-end: -10.93rem;
   inline-size: auto;
-  block-size: 49.45rem;
+  block-size: 54.4rem;
 }
 
 .footer__cta {
