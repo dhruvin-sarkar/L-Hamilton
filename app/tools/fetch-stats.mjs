@@ -380,9 +380,35 @@ async function main() {
   const session = (node) => (node?.date ? { date: node.date, time: node.time ?? null } : null);
 
   const raced = new Map(results.map((r) => [`${r.season}-${r.round}`, r]));
+  const qualified = new Map(quali.map((r) => [`${r.season}-${r.round}`, r]));
+  const sprinted = new Map(sprints.map((r) => [`${r.season}-${r.round}`, r]));
+
+  /* His qualifying classification and his best lap of the session: the last of
+     Q3, Q2, Q1 he set a time in. Null where the source has no qualifying for
+     the round yet. */
+  const qualifyingOf = (key) => {
+    const q = qualified.get(key)?.QualifyingResults?.[0];
+    if (!q) return null;
+    return {
+      position: finishedPosition(q.position),
+      time: q.Q3 || q.Q2 || q.Q1 || null,
+    };
+  };
+
+  /* His sprint result: place, and the sprint winner's time or his gap to it. */
+  const sprintOf = (key) => {
+    const s = sprinted.get(key)?.SprintResults?.[0];
+    if (!s) return null;
+    return {
+      position: finishedPosition(s.positionText),
+      positionText: s.positionText,
+      time: s.Time?.time ?? null,
+    };
+  };
 
   const calendar = rounds.map((race) => {
-    const result = raced.get(`${race.season}-${race.round}`);
+    const key = `${race.season}-${race.round}`;
+    const result = raced.get(key);
     const r = result?.Results?.[0];
     return {
       season: Number(race.season),
@@ -411,8 +437,39 @@ async function main() {
             points: Number(r.points),
             grid: Number(r.grid),
             status: r.status,
+            // The winner's race time for a win, his gap to the winner
+            // otherwise; null for a non-finish or a lapped finish.
+            time: r.Time?.time ?? null,
+            // His own fastest lap of the race, whatever its rank in the field.
+            fastestLap: r.FastestLap?.Time?.time ?? null,
+            qualifying: qualifyingOf(key),
+            sprint: sprintOf(key),
           }
         : null,
+    };
+  });
+
+  /* ------------------------------------------------------------------ *
+   * Every Grand Prix he has started, in order
+   *
+   * The calendar page's season-by-season results list. No extra requests --
+   * the same result objects paged above, projected.
+   * ------------------------------------------------------------------ */
+
+  const raceRecord = results.map((race) => {
+    const r = race.Results[0];
+    return {
+      season: Number(race.season),
+      round: Number(race.round),
+      raceName: race.raceName,
+      date: race.date,
+      circuitId: race.Circuit.circuitId,
+      country: race.Circuit.Location.country,
+      locality: race.Circuit.Location.locality,
+      position: finishedPosition(r.positionText),
+      positionText: r.positionText,
+      status: r.status,
+      fastestLap: r.FastestLap?.Time?.time ?? null,
     };
   });
 
@@ -442,6 +499,7 @@ async function main() {
     wins,
     circuits: [...circuits.values()].sort((a, b) => b.wins - a.wins || a.name.localeCompare(b.name)),
     calendar,
+    races: raceRecord,
   };
 
   await mkdir(path.dirname(OUT), { recursive: true });
