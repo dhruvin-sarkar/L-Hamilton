@@ -3104,11 +3104,16 @@ button.ot-cal__row:focus-visible {
   fill: var(--accent);
 }
 
+/* The reference's `.f1-highlight-mouse-over-reveal`: an accent sheet its
+   script wipes off the card as it opens, which its own stylesheet holds at
+   opacity 0 -- so no sheet is ever seen, only the oval opening. Kept at the
+   same zero so the card reads the same. */
 .ot-cal__card-reveal {
   position: absolute;
   inset: 0;
   z-index: 5;
   background: var(--accent);
+  opacity: 0;
 }
 
 .ot-cal__card-label {

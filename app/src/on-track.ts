@@ -2631,11 +2631,15 @@ function mountCalendar(section: HTMLElement): void {
     const reveal = need('[data-cal-card-reveal]');
     const shapeHost = need('[data-cal-card-circuit]');
 
-    gsap.set(card, { clipPath: 'ellipse(120% 0% at 50% 0%)', autoAlpha: 0, x: 0, y: 0 });
+    /* The reference's card never fades: it sits at full opacity and only the
+       oval opens (0.8s power2.out) and closes (the same, reversed at double
+       speed). Its inner accent sheet is `opacity: 0` in the reference's CSS,
+       so it is timed here but never seen -- see `.ot-cal__card-reveal`. */
+    gsap.set(card, { clipPath: 'ellipse(120% 0% at 50% 0%)', visibility: 'visible', x: 0, y: 0 });
     gsap.set(reveal, { clipPath: 'ellipse(120% 120% at 50% 100%)' });
     const appear = gsap
       .timeline({ paused: true })
-      .to(card, { clipPath: 'ellipse(120% 120% at 50% 0%)', autoAlpha: 1, duration: 0.8, ease: 'power2.out' })
+      .to(card, { clipPath: 'ellipse(120% 120% at 50% 0%)', duration: 0.8, ease: 'power2.out' })
       .to(reveal, { clipPath: 'ellipse(120% 0% at 50% 100%)', duration: 0.6, ease: 'power2.out' }, '-=0.4');
     const toX = gsap.quickTo(card, 'x', { duration: 0.5, ease: 'power2.out' });
     const toY = gsap.quickTo(card, 'y', { duration: 0.5, ease: 'power2.out' });
