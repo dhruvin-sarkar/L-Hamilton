@@ -1924,17 +1924,25 @@ if (juniorGrid) {
     juniorGrid.appendChild(item);
   }
 
-  /* Grown once each, as the reference plays each Rive when its canvas top
-     passes 80% of the screen. Drawn full-grown, and left so, when motion is
-     reduced. */
-  mm.add('(prefers-reduced-motion: no-preference)', () => {
+  /* Grown once each, as the reference plays each `reef` Rive when its canvas
+     top passes 80% of the screen: its `main-play`, 110 frames at 60fps (1.83s),
+     with the canvas raised from opacity 0 over 0.1s as it starts -- the same
+     `data-rive-scrolltrigger` handler as the P1 and Race Day. Drawn full-grown,
+     and left so, below 992px and when motion is reduced. */
+  const REEF_PLAY = 1.83;
+  const REEF_EASE = 'power2.inOut';
+  mm.add(WIDE_AND_ANIMATED, () => {
     const tweens = wreaths.map(({ mark, branches }) => {
       const growth = { g: 0 };
       drawClosedReef(branches, 0);
+      gsap.set(mark, { opacity: 0 });
       return gsap.to(growth, {
         g: 1,
-        duration: 1.1,
-        ease: 'power2.out',
+        duration: REEF_PLAY,
+        ease: REEF_EASE,
+        onStart: () => {
+          gsap.to(mark, { opacity: 1, duration: 0.1, ease: 'power1.inOut' });
+        },
         onUpdate: () => drawClosedReef(branches, growth.g),
         scrollTrigger: { trigger: mark, start: 'top 80%', once: true },
       });
