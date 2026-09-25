@@ -105,9 +105,11 @@ body[data-page='off-track'] {
   font-weight: 700;
   line-height: 0.886;
   /* Playfair's capitals are wider than Brier's at the same height. Tracking
-     them in by 1.25rem takes OFF from 735px to Brier's 673, so TRACK lands on
-     the reference's x=619 and runs off the right edge by the same 60px. */
-  letter-spacing: calc(-1.25 * var(--r));
+     them in by 1.25rem at 23.2rem takes OFF from 735px to Brier's 673, so
+     TRACK lands on the reference's x=619 and runs off the right edge by the
+     same 60px. In em, because it corrects the face rather than restating a
+     reference value: it has to shrink with the word at the narrow sizes. */
+  letter-spacing: -0.0539em;
   font-variant-numeric: lining-nums;
   text-transform: uppercase;
 }
@@ -938,9 +940,22 @@ body[data-page='off-track'] {
   }
 }
 
-/* Below 992px the reference stops translating and stacks the groups, 5rem
- * apart, its frames still in vh. Over the component's own column layout in
- * home.css. */
+/* Narrow widths.
+ *
+ * Below 992px the reference stops translating and stacks the columns, 5rem
+ * apart, over the component's own column layout in home.css. Its rules there,
+ * against --u (its rem at every width):
+ *
+ *   under 992  the track a column with the gutter each side; spacers gone;
+ *              the frames keep their vh sizes and the side offsets drop;
+ *              the callout copy 1.9rem, its signature slot 9rem
+ *   under 480  no padding over and under the track; 3rem inside a column;
+ *              the large-picture columns two equal cells a gap apart; every
+ *              frame resized as below; titles and their descriptors side by
+ *              side; the opening picture over its heading, the mark beside it
+ *
+ * The captions are the reference's .text-eyebrow: 0.8rem under 992, 1rem
+ * under 768 and 0.8rem again under 480. */
 @media (max-width: 991px) {
   .gallery--off-track {
     --u: calc(100vw / 86.4);
@@ -950,46 +965,64 @@ body[data-page='off-track'] {
     block-size: auto;
     gap: calc(5 * var(--u));
     padding-block: 7vh calc(2.5 * var(--u));
-    padding-inline: var(--padding--container);
+    padding-inline: calc(1.25 * var(--u));
   }
 
   .gallery--off-track .gallery__col {
     gap: calc(5 * var(--u));
   }
 
+  /* home.css pushes every fourth column to the right; this track places its
+     own pictures. */
   .gallery--off-track .gallery__col:nth-child(4n + 3) .gallery__item,
   .gallery--off-track .gallery__col:nth-child(4n + 3) .gallery__callout {
     align-self: auto;
   }
 
-  .oft-gal__title--top,
-  .oft-gal__title--mid {
-    margin-block: 0;
+  /* The frames keep the reference's sizes; home.css caps them at 86%. */
+  .gallery--off-track .gallery__item,
+  .gallery--off-track .gallery__callout {
+    inline-size: min(var(--w), 100%);
   }
 
-  .oft-gal__eyebrow,
-  .oft-gal__descriptor,
-  .oft-gal__name {
-    white-space: normal;
+  .gallery--off-track .gallery__cap {
+    font-size: calc(0.8 * var(--u));
   }
 
-  .oft-callout--head-hidden {
-    opacity: 1;
+  .gallery--off-track .oft-callout__text {
+    font-size: calc(1.9 * var(--u));
   }
 
-  .oft-callout--foot,
+  /* .callout-1 widens to 31rem; .callout-2 keeps its 30. */
   .oft-callout--head,
   .oft-callout--head-hidden {
     max-inline-size: calc(31 * var(--u));
-    margin-block: 0;
   }
 
-  .oft-pair-a-1,
-  .oft-pair-a-2,
+  .oft-callout__mark {
+    inline-size: calc(9 * var(--u));
+    block-size: auto;
+    aspect-ratio: 4.125 / 1.875;
+  }
+
+  .oft-gal__eyebrow,
+  .oft-gal__descriptor {
+    white-space: normal;
+  }
+
+  /* .is-10 and .is-offt3 / .is-offt4 go to the right; .is-offt7 comes back
+     to the left edge. .is-offt8 keeps its offsets. */
+  .oft-pair-a-1 {
+    --top: 0;
+    margin-inline-start: auto;
+  }
+
+  .oft-pair-a-2 {
+    inset-inline-start: 0;
+  }
+
   .oft-pair-b-1,
-  .oft-pair-b-2,
-  .oft-pair-d-1,
-  .oft-pair-d-2 {
+  .oft-pair-b-2 {
     inset-inline-start: 0;
     margin-block-end: 0;
     margin-inline-start: auto;
@@ -1000,18 +1033,196 @@ body[data-page='off-track'] {
   }
 }
 
+@media (max-width: 767px) {
+  .gallery--off-track .gallery__cap {
+    font-size: var(--u);
+  }
+}
+
 @media (max-width: 479px) {
   .gallery--off-track {
     --u: calc(100vw / 36);
   }
 
-  .gallery--off-track .gallery__item {
+  .gallery--off-track .gallery__track {
+    padding-block: 0;
+  }
+
+  .gallery--off-track .gallery__col {
+    gap: calc(3 * var(--u));
+  }
+
+  .gallery--off-track .gallery__item,
+  .gallery--off-track .gallery__callout {
     inline-size: 100%;
   }
 
-  .oft-gal__heading-plain,
+  .gallery--off-track .gallery__cap {
+    font-size: calc(0.8 * var(--u));
+  }
+
+  .gallery--off-track .gallery__frame img {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  /* ---- the opening column: the picture, then the heading beside its mark ---- */
+
+  .oft-gal__lead {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: calc(1.25 * var(--u));
+  }
+
+  .oft-gal__lead .gallery__frame {
+    block-size: 40.91vh;
+    aspect-ratio: auto;
+    margin-block-start: 0;
+  }
+
+  .oft-gal__head {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: calc(1.25 * var(--u));
+    align-items: start;
+    margin-block-end: 0;
+  }
+
+  .oft-gal__heading {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  .oft-gal__icon {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .oft-gal__heading-plain {
+    font-size: calc(2.6 * var(--u));
+    letter-spacing: calc(-0.07 * var(--u));
+  }
+
   .oft-gal__heading-serif {
-    font-size: calc(3 * var(--u));
+    font-size: calc(2.7 * var(--u));
+  }
+
+  /* ---- the titles: the name and its descriptor side by side ---- */
+
+  .oft-gal__title {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: calc(1.25 * var(--u));
+  }
+
+  .oft-gal__title--mid {
+    margin-block: 0;
+  }
+
+  .oft-gal__name {
+    white-space: normal;
+  }
+
+  /* ---- the large picture and its callout, two cells ---- */
+
+  .gallery--off-track .gallery__col--large {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: calc(1.25 * var(--u));
+  }
+
+  .oft-frame--large .gallery__frame {
+    aspect-ratio: 1;
+  }
+
+  .gallery--off-track .oft-callout__text {
+    font-size: calc(1.5 * var(--u));
+  }
+
+  .oft-callout__mark {
+    inline-size: calc(5 * var(--u));
+  }
+
+  /* .callout-2: 19rem, 1.9rem down. */
+  .oft-callout--foot {
+    max-inline-size: calc(19 * var(--u));
+    margin-block: calc(1.9 * var(--u)) 0;
+  }
+
+  /* .callout-1: 20rem. The hidden one keeps its .mob-offset, 2.1rem down,
+     and stays hidden here as the reference's does; the shown one is
+     .top-gap, 2rem down. */
+  .oft-callout--head,
+  .oft-callout--head-hidden {
+    max-inline-size: calc(20 * var(--u));
+  }
+
+  .oft-callout--head-hidden {
+    margin-block-start: calc(2.1 * var(--u));
+  }
+
+  .oft-callout--head {
+    margin-block-start: calc(2 * var(--u));
+  }
+
+  /* ---- the pairs ---- */
+
+  .oft-pair-a-1,
+  .oft-pair-b-2,
+  .oft-pair-d-2 {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .oft-pair-a-1 .gallery__frame {
+    inline-size: calc(11 * var(--u));
+    aspect-ratio: 1;
+  }
+
+  .oft-pair-a-2 {
+    --top: calc(-7 * var(--u));
+    margin-block-end: 0;
+  }
+
+  .oft-pair-a-2 .gallery__frame {
+    inline-size: 40%;
+    aspect-ratio: 1;
+  }
+
+  .oft-pair-b-1 {
+    margin-inline-start: 0;
+  }
+
+  .oft-pair-b-1 .gallery__frame {
+    inline-size: calc(10 * var(--u));
+    aspect-ratio: 1;
+  }
+
+  .oft-pair-b-2 {
+    --top: calc(-7 * var(--u));
+  }
+
+  .oft-pair-b-2 .gallery__frame {
+    inline-size: 40%;
+    aspect-ratio: 34 / 30;
+  }
+
+  .oft-pair-d-1 .gallery__frame {
+    inline-size: calc(13 * var(--u));
+    aspect-ratio: 1;
+  }
+
+  .oft-pair-d-2 {
+    --top: calc(-5 * var(--u));
+    inset-inline-start: 0;
+    margin-block-end: 0;
+  }
+
+  .oft-pair-d-2 .gallery__frame {
+    inline-size: 40%;
+    aspect-ratio: 1;
   }
 }
 

@@ -737,8 +737,8 @@ interface ProjectLayout {
 /** One per project, in the reference's order. */
 const LAYOUT: readonly ProjectLayout[] = [
   { title: 'top', descriptor: 'eyebrow', callout: 'foot', pair: 'a', after: ['full', 'half'] },
-  /* The reference hides this callout above 991px (`.op-0`) and shows it in the
-     stacked phone layout; the same here. */
+  /* The reference keeps this callout in the flow but invisible (`.op-0`) at
+     every width, holding its cell open beside the picture; the same here. */
   { title: 'mid', descriptor: 'descriptor', callout: 'head-hidden', pair: 'b', after: ['half', 'full'] },
   { title: 'top', descriptor: 'eyebrow', callout: 'foot', pair: 'a', after: ['full', 'half'] },
   { title: 'mid', descriptor: 'eyebrow', callout: 'head', pair: 'd', after: ['half', 'full'] },
