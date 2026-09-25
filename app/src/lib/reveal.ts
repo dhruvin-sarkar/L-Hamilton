@@ -283,14 +283,20 @@ export function mountReveals(opts: RevealOptions): void {
       }
     };
 
-    /** WRITES only: rebuilds a block one `.reveal-line` per row. */
-    const buildLines = (el: HTMLElement, rows: Piece[][], stagger: number): void => {
+    /** WRITES only: rebuilds a block one `.reveal-line` per row.
+     *
+     * Each line waits its index times --stagger-line, the token, resolved by
+     * CSS rather than parsed here. Parsing it was two bugs in one: the read
+     * forced a style pass during module evaluation, and the production build's
+     * CSS minifier rewrites `150ms` as `.15s`, which parseFloat read as 0.15 —
+     * so every built page staggered its lines 0.15ms apart instead of 150. */
+    const buildLines = (el: HTMLElement, rows: Piece[][]): void => {
       el.textContent = '';
       rows.forEach((row, i) => {
         const line = document.createElement('span');
         line.className = 'reveal-line';
         fillRow(line, row);
-        line.style.setProperty('--reveal-delay', `${i * stagger}ms`);
+        line.style.setProperty('--reveal-delay', `calc(var(--stagger-line) * ${i})`);
         el.appendChild(line);
       });
       el.dataset.revealSplit = '';
@@ -367,17 +373,7 @@ export function mountReveals(opts: RevealOptions): void {
         return { el, runs, pieces: cutIntoPieces(el, runs) };
       });
 
-      /* READ: one layout, then every block's rows.
-       *
-       * The beat between lines is read from --stagger-line rather than restated
-       * here. The token said 150ms and this said 150, which is two sources of
-       * truth for one beat — and the token was the one nothing read, so tuning
-       * it did nothing. Read here, where layout is being flushed anyway, rather
-       * than at mount, where it forced a style pass during module evaluation. */
-      const stagger =
-        Number.parseFloat(
-          getComputedStyle(document.documentElement).getPropertyValue('--stagger-line'),
-        ) || 150;
+      // READ: one layout, then every block's rows.
       const measured = cuts.map((cut) => ({ ...cut, rows: rowsOf(cut.el, cut.pieces) }));
 
       // WRITE: the lines. One line is not a cascade, and wrapping it would swap
@@ -385,7 +381,7 @@ export function mountReveals(opts: RevealOptions): void {
       // back exactly as it was.
       for (const { el, runs, rows } of measured) {
         if (rows.length < 2) writeRuns(el, runs);
-        else buildLines(el, rows, stagger);
+        else buildLines(el, rows);
       }
 
       // READ: the backstop, against the finished layout.
