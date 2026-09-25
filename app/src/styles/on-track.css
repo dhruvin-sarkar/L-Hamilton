@@ -1416,6 +1416,10 @@ body[data-page='on-track'] {
   font-style: normal;
   font-weight: 500;
   font-size: 4.6875rem;
+  /* The reference's serif line box, 67.78px at 1728: 0.9037 of the serif's
+     size, as on the highlights heading. The inherited 0.886 set it 1.4px
+     shallow and lifted the car photograph under it by as much. */
+  line-height: 0.9037;
   font-variant-numeric: lining-nums;
   letter-spacing: -0.125rem;
   text-transform: uppercase;
@@ -3890,12 +3894,16 @@ button.ot-cal__row:focus-visible {
 }
 
 /* `.text-title-lg-brier.c-grey-on-track`: the second face, upright capitals,
-   in grey. Playfair stands in for Brier, as it does on every serif line. */
+   in grey. Playfair stands in for Brier, as it does on every serif line.
+   Its line box is the reference's 67.78px at 1728, 0.9037 of the serif's size,
+   as on the highlights heading: inherited 0.886 left it 1.4px shallow, and the
+   image row and everything under it rode that much high. */
 .ot-pref1__title-line--serif {
   font-family: var(--font-serif);
   font-style: normal;
   font-weight: 500;
   font-size: calc(4.6875 * var(--u));
+  line-height: 0.9037;
   font-variant-numeric: lining-nums;
   color: var(--grey-on-track);
 }
