@@ -263,13 +263,18 @@ export function mountHelmetScroll(opts: HelmetScrollOptions): () => void {
   let disposed = false;
   let model: HelmetModel | null = null;
   void loadHelmetModel(renderer).then(
-    (loadedModel) => {
+    async (loadedModel) => {
       if (disposed) {
         loadedModel.dispose();
         return;
       }
       model = loadedModel;
-      nod.add(placeHelmet(loadedModel));
+      const helmet = placeHelmet(loadedModel);
+      // Its programs linked before it joins the scene, so the first frame it is
+      // drawn in does not wait on the driver to compile them.
+      await renderer.compileAsync(helmet, camera, scene);
+      if (disposed) return;
+      nod.add(helmet);
       loaded = true;
       ScrollTrigger.refresh();
     },

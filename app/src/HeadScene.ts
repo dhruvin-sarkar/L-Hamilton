@@ -717,6 +717,16 @@ export class HeadScene {
   }
 
   async load(): Promise<void> {
+    /* Every program the portrait draws with, compiled while the maps download
+       and upload (in parallel, where the driver has KHR_parallel_shader_compile)
+       and awaited before the first frame -- rather than compiled, and waited
+       on, inside that frame. */
+    const linked = Promise.all([
+      this.renderer.compileAsync(this.scene, this.camera),
+      this.fluid.compile(),
+      this.contour.compile(),
+    ]);
+
     const loader = new THREE.TextureLoader();
     // NoColorSpace on every map, diffuse included. Tagging the diffuse sRGB
     // makes the GPU decode it to linear on sample, and nothing converts back on
@@ -749,6 +759,7 @@ export class HeadScene {
       get('alpha-map.webp', false),
     ]);
     await uploadAcrossFrames(this.renderer, [diffuse, depth, alpha]);
+    await linked;
 
     this.headU.uDiffuse.value = diffuse;
     this.headU.uDepth.value = depth;
@@ -889,7 +900,6 @@ export class HeadScene {
       pose.add(upright);
       const root = new THREE.Group();
       root.add(pose);
-      this.scene.add(root);
       return { root, pose };
     };
     const litStack = stack(merged);
@@ -897,6 +907,14 @@ export class HeadScene {
 
     const environment = createStudioEnvironment(this.renderer);
     this.scene.environment = environment;
+
+    /* Both drawings' programs compiled as they will be drawn -- in this scene,
+       under its environment -- and linked before either joins it, so the
+       frame the helmet first appears in does not wait on the driver. */
+    const rig = new THREE.Group();
+    rig.add(litStack.root, wireStack.root);
+    await this.renderer.compileAsync(rig, this.camera, this.scene);
+    this.scene.add(litStack.root, wireStack.root);
 
     this.helmet = {
       model,
