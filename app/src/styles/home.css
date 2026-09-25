@@ -4783,6 +4783,9 @@
   font-family: var(--font-serif);
   font-size: 4.5rem;
   font-weight: 700;
+  /* 64.8px, the reference's second line box (its clip wrap), against the
+     63.8 the inherited 0.886 gives. */
+  line-height: 0.9;
   /* No text-transform reset here. .socials__title sets uppercase and this rule
      used to override it back to title case, so the serif line read "On Socials"
      where the reference sets "ON SOCIALS" — both of its lines are uppercase and
@@ -4796,13 +4799,10 @@
   inline-size: 80rem;
   max-inline-size: 100%;
   block-size: 36rem;
-  /* Measured as boxes, on the running reference at 1728: its heading runs
-     224 to 352.6 and its card layout starts at 392.6. Ours is 1.6px taller —
-     the Didone line is set a step up to match cap heights — so the gap that
-     lands the fan on 392.6 is 2.4rem. 2.875rem put it 8px low, and with the
-     two margins below that was the whole of the 18px this section ran over
-     the reference's 1158. */
-  margin: 2.4rem auto 0;
+  /* The reference's layout gap, 2 * --gap: its heading runs 224 to 352.6 and
+     its card layout starts at 392.6, and with the serif line on the same
+     64.8px box ours now runs to the same 352.6. */
+  margin: calc(var(--gap) * 2) auto 0;
 }
 
 /* The card composes FOUR independent signals into one transform:
