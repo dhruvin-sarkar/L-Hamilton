@@ -5,6 +5,7 @@ import { ContourField } from './ContourField';
 import { createStudioEnvironment, HELMET_UPRIGHT, loadHelmetModel } from './HelmetModel';
 import type { HelmetModel } from './HelmetModel';
 import { gsap, reducedMotion } from './lib/motion';
+import { uploadAcrossFrames } from './lib/upload';
 
 /**
  * The hero scene: a contour-line field, the portrait on top of it, the helmet
@@ -720,21 +721,34 @@ export class HeadScene {
     // NoColorSpace on every map, diffuse included. Tagging the diffuse sRGB
     // makes the GPU decode it to linear on sample, and nothing converts back on
     // output — see tokenColor. Passthrough shows the photo exactly as authored.
-    const get = (name: string) =>
+    const get = (name: string, mipmaps: boolean) =>
       loader.loadAsync(`${HERO_BASE}/${name}`).then((t) => {
         t.colorSpace = THREE.NoColorSpace;
         // Never wrap: a sampled offset running past the edge must clamp, not
         // reappear on the opposite side of the face.
         t.wrapS = THREE.ClampToEdgeWrapping;
         t.wrapT = THREE.ClampToEdgeWrapping;
+        if (!mipmaps) {
+          t.generateMipmaps = false;
+          t.minFilter = THREE.LinearFilter;
+        }
         return t;
       });
 
+    /* The reference's sizes: colour and alpha at 2048, depth at 512. The
+       photo's own 3780px file stays for the footer portrait; this is a copy
+       made for the GL, without the alpha channel the shader never reads.
+
+       Depth and alpha skip mipmaps. The canvas always renders at full
+       viewport size -- the plate shrinks by CSS transform, not in GL -- so
+       both are sampled at about the scale they are drawn, where a mip chain is
+       a third more memory and a generateMipmap pass for nothing. */
     const [diffuse, depth, alpha] = await Promise.all([
-      get('lewis-hero.webp'),
-      get('depth-map.webp'),
-      get('alpha-map.webp'),
+      get('lewis-hero-gl.webp', true),
+      get('depth-map.webp', false),
+      get('alpha-map.webp', false),
     ]);
+    await uploadAcrossFrames(this.renderer, [diffuse, depth, alpha]);
 
     this.headU.uDiffuse.value = diffuse;
     this.headU.uDepth.value = depth;
