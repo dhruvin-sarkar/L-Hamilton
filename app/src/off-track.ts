@@ -19,7 +19,7 @@ import { mountChrome } from './lib/chrome';
 import { mountReveals } from './lib/reveal';
 import { mountGalleryScroll } from './lib/gallery';
 import { mountSocials } from './lib/showcase';
-import { Signature } from './Signature';
+import { Signature, signatureTrace } from './Signature';
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
 import { age, driver, eras } from './content/hamilton';
 import { career } from './content/live-stats';
@@ -250,11 +250,7 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
   let signature: Signature | null = null;
   let live = true;
   signHost.classList.add('is-writing');
-  fetch('/assets/brand/signature.svg')
-    .then((res) => {
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      return res.text();
-    })
+  signatureTrace(signHost)
     .then((markup) => {
       if (!live) return;
       const ink = getComputedStyle(signHost).getPropertyValue('--grey-on-track').trim();
@@ -545,11 +541,7 @@ void document.fonts.ready.then(() => {
     let live = true;
     const pen = { p: 0 };
     host.classList.add('is-writing');
-    fetch('/assets/brand/signature.svg')
-      .then((res) => {
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        return res.text();
-      })
+    signatureTrace(host)
       .then((markup) => {
         if (!live) return;
         const ink = getComputedStyle(host).getPropertyValue('--grey-on-track').trim();

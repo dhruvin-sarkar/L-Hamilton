@@ -20,7 +20,7 @@ import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountGalleryScroll } from './lib/gallery';
 import { mountHelmetScroll } from './HelmetScroll';
 import { mountFooterMarquee } from './lib/marquee';
-import { Signature } from './Signature';
+import { Signature, signatureTrace } from './Signature';
 import { mountReveals } from './lib/reveal';
 import {
   mountCalloutCrest,
@@ -1065,11 +1065,7 @@ if (wreath) {
 const impactSign = document.querySelector<HTMLElement>('[data-impact-sign]');
 
 if (impactSign && !reducedMotion) {
-  fetch('/assets/brand/signature.svg')
-    .then((res) => {
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      return res.text();
-    })
+  signatureTrace(impactSign)
     .then((markup) => {
       const colour = getComputedStyle(document.documentElement)
         .getPropertyValue('--grey-on-track')
@@ -1180,11 +1176,7 @@ if (trackWord && scriptWord && crest && signHost) {
     let signature: Signature | null = null;
     let live = true;
     signHost.classList.add('is-writing');
-    fetch('/assets/brand/signature.svg')
-      .then((res) => {
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        return res.text();
-      })
+    signatureTrace(signHost)
       .then((markup) => {
         if (!live) return;
         const ink = getComputedStyle(signHost).getPropertyValue('--grey-on-track').trim();

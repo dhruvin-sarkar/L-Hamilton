@@ -22,7 +22,7 @@ import {
 } from './lib/showcase';
 import { BackgroundField } from './BackgroundField';
 import { HeadScene } from './HeadScene';
-import { Signature } from './Signature';
+import { Signature, signatureTrace } from './Signature';
 import { age, driver, eras, seasonsRacing } from './content/hamilton';
 import { nextRound } from './content/live-stats';
 import { PARTNERS } from './content/partners';
@@ -1282,11 +1282,7 @@ if (stage) {
   let signature: Signature | null = null;
 
   if (signatureHost && !reducedMotion) {
-    fetch('/assets/brand/signature.svg')
-      .then((res) => {
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        return res.text();
-      })
+    signatureTrace(signatureHost)
       .then((markup) => {
         // The ink colour comes from the cascade rather than from a constant, so
         // the signature stays tied to the palette the rest of the page uses.
