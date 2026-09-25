@@ -1,6 +1,7 @@
 @import './fonts.css';
 @import './tokens.css';
 @import './home.css';
+@import './chrome.css';
 
 /* ---------------------------------------------------------------- *
  * Fonts
@@ -210,7 +211,9 @@ a {
   inset-inline-start: var(--padding--container);
   padding: 0.6rem 1rem;
   background: var(--rosso-corsa);
-  color: var(--white);
+  /* Dark ink, as on the Store pill: white on Rosso Corsa is 3.43:1 at this
+     size, short of AA; dark is 4.81:1. */
+  color: var(--dark);
   font-family: var(--font-display);
   font-weight: 700;
   text-transform: uppercase;
