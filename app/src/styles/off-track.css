@@ -567,6 +567,9 @@ body[data-page='off-track'] {
 .oft-impact__sign {
   inline-size: 8rem;
   aspect-ratio: 6.0625 / 3.1875;
+  /* Without this the pen's canvas, sized in pixels, sets the automatic
+     minimum height and the box grows to it once writing starts. */
+  min-block-size: 0;
   scale: 1.3;
   background-color: var(--grey-on-track);
   mask-image: url('/assets/brand/signature.svg');
@@ -992,6 +995,36 @@ body[data-page='off-track'] {
   .oft-gal__heading-serif {
     font-size: calc(3 * var(--u));
   }
+}
+
+/* ============================================================== The tail
+ *
+ * The reference paints its Off Track page one ground from the header to the
+ * footer. Its socials section is the light-mode variant, which has no
+ * background of its own, and its footer sits on the same cream. There is no
+ * change of colour anywhere on the page.
+ *
+ * The socials and the footer here are Home's (home.css), and Home puts them on
+ * its light field. On this page they take the page's ground instead, the same
+ * way On Track puts them on its own. Qualified by page, so these rules do not
+ * depend on which stylesheet loads last. */
+
+[data-page='off-track'] .socials {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* The reference's ball is its grey, a step under the heading's ink. */
+[data-page='off-track'] .socials__ball {
+  color: var(--grey-on-track);
+}
+
+[data-page='off-track'] .socials__links a {
+  color: var(--text);
+}
+
+[data-page='off-track'] .footer {
+  background: var(--bg);
 }
 
 /* ================================================================ Mobile */
