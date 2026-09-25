@@ -3639,14 +3639,14 @@ button.ot-cal__row:focus-visible {
 .gallery--on-track .reveal-text.is-in:not([data-reveal-split]),
 .gallery--on-track .reveal-text.is-in .reveal-line {
   opacity: 1;
-  animation: gallery-line-open 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation: gallery-line-open 0.6s cubic-bezier(0.215, 0.61, 0.355, 1) both;
   animation-delay: var(--reveal-delay, 0ms);
 }
 
 .gallery--on-track .reveal-text.is-in::after,
 .gallery--on-track .reveal-text.is-in .reveal-line::after {
   animation-duration: 0.6s;
-  animation-timing-function: cubic-bezier(0.455, 0.03, 0.515, 0.955);
+  animation-timing-function: cubic-bezier(0.645, 0.045, 0.355, 1);
   animation-delay: calc(var(--reveal-delay, 0ms) + 300ms);
 }
 
