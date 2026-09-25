@@ -19,9 +19,10 @@ import { mountChrome } from './lib/chrome';
 import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountGalleryScroll } from './lib/gallery';
 import { mountHelmetScroll } from './HelmetScroll';
+import { mountFooterMarquee } from './lib/marquee';
 import { Signature } from './Signature';
 import { mountReveals } from './lib/reveal';
-import { mountHelmets, mountHofDrift, mountSocials, mountStore } from './lib/showcase';
+import { mountHelmets, mountHofDrift, mountRiser, mountSocials } from './lib/showcase';
 import {
   age,
   driver,
@@ -46,6 +47,7 @@ import {
 } from './content/live-stats';
 import type { CalendarRound, RaceSession } from './content/live-stats';
 import { countryName, flagUrl } from './content/countries';
+import { circuitFacts, formatKm } from './content/circuit-facts';
 
 /* ------------------------------------------------------------------ *
  * Smooth scroll
@@ -60,13 +62,14 @@ import { countryName, flagUrl } from './content/countries';
  * Lenis is stepped from gsap's ticker, so the two share one clock.
  * ------------------------------------------------------------------ */
 
-/** The page's scroller, for the one place that moves the page on purpose: a
-    calendar row taking the reader up to the panel it changed. Null under
-    reduced motion, where there is no smoothing to go through. */
+/** The page's scroller, for its two other users: a calendar row taking the
+    reader up to the panel it changed, and the footer's row, which couples its
+    loop to the scroll velocity. Null under reduced motion, where there is no
+    smoothing to go through, and both have to cope without one. */
 let smoothScroller: Lenis | null = null;
 
 if (!reducedMotion) {
-  const lenis = new Lenis({
+  const instance = new Lenis({
     lerp: 0.1,
     smoothWheel: true,
     syncTouch: true,
@@ -74,37 +77,38 @@ if (!reducedMotion) {
     wheelMultiplier: 1,
     touchMultiplier: 1.25,
   });
-  lenis.on('scroll', ScrollTrigger.update);
-  gsap.ticker.add((t) => lenis.raf(t * 1000));
+  instance.on('scroll', ScrollTrigger.update);
+  gsap.ticker.add((t) => instance.raf(t * 1000));
   gsap.ticker.lagSmoothing(0);
-  smoothScroller = lenis;
+  smoothScroller = instance;
 }
 
 /* ------------------------------------------------------------------ *
  * The tail Home and On Track share
  *
- * Reference section 8 — the helmet wall, the socials block and the store call
- * to action. Its own study of them is explicit that On Track should reuse
- * Home's components rather than re-implement them, so it does: same partials,
- * same module, same measured motion. See src/lib/showcase.ts.
+ * Reference sections 7 and 8 — the full-screen picture, the helmet wall, the
+ * socials block and the footer's row. Its own study of them is explicit that
+ * On Track should reuse Home's components rather than re-implement them, so it
+ * does: same partials, same modules, same measured motion. See
+ * src/lib/showcase.ts and src/lib/marquee.ts.
  *
  * The wall is built first, before any ScrollTrigger on this page exists, for
  * the reason it is built first on Home — twenty-six cards is most of the
  * document's height, and a trigger that measures before they are in the DOM
  * measures the wrong page.
  *
- * mountStore takes no ground reporter here. Home wires that to its WebGL
- * field's ground-cross model; this page has no field, and the visor animates
- * the same either way.
+ * No mountStore: Home's big store section is not on this page. The reference's
+ * On Track closes on the short callout instead, which is static markup.
  * ------------------------------------------------------------------ */
 
 /* The reference's own timing for this page's gallery: travel from the moment
    the section enters, with a second of catch-up. See lib/gallery.ts. */
 mountGalleryScroll({ start: 'rising', scrub: 1 });
 mountHelmets();
+mountRiser();
 mountHofDrift();
 mountSocials();
-mountStore();
+mountFooterMarquee(smoothScroller);
 
 /* ------------------------------------------------------------------ *
  * Formatting — one place, so the table and the stat grid cannot disagree
@@ -832,6 +836,15 @@ if (podium && gigantic && giganticSr) {
   fit();
   remeasure(fit);
 
+  /* The rise is spread over the reference's layout, which is its number's line
+     box: 114rem at a 0.85 line, 1550px at 1728. Ours is that box scaled by
+     --podium-fit, so a `bottom center` end arrived 445px of scroll early and the
+     digits finished rising before the reader had scrolled as far. Dividing the
+     fit back out restores the reference's distance, and the quotient does not
+     depend on when the fit last ran, because the box scales with it. */
+  const referenceBox = (): number =>
+    gigantic.offsetHeight / (Number(podium.style.getPropertyValue('--podium-fit')) || 1);
+
   mm.add('(prefers-reduced-motion: no-preference)', () => {
     gsap.fromTo(
       podium,
@@ -839,7 +852,12 @@ if (podium && gigantic && giganticSr) {
       {
         '--podium-p': 1,
         ease: 'power1.in',
-        scrollTrigger: { trigger: podium, start: 'top bottom', end: 'bottom center', scrub: true },
+        scrollTrigger: {
+          trigger: podium,
+          start: 'top bottom',
+          end: () => `+=${referenceBox() + window.innerHeight / 2}`,
+          scrub: true,
+        },
       },
     );
   });
@@ -2253,21 +2271,18 @@ function mountCalendar(section: HTMLElement): void {
 
   const fill = (round: CalendarRound): void => {
     const record = circuitById.get(round.circuitId);
+    const facts = circuitFacts(round);
     const span = weekendSpan(round);
 
     setText('[data-cal-days]', span.days);
     setText('[data-cal-month]', span.month);
 
-    setStat('[data-cal-starts]', String(record?.starts ?? 0));
+    /* The circuit's figures, and the one that is his: the year he first
+       raced here, or a dash where he never has. */
+    setStat('[data-cal-length]', formatKm(facts.lengthKm), 'km');
     setStat('[data-cal-first]', record ? String(record.firstRaced) : '–');
-    if (record?.bestFinish) {
-      const [figure, letters] = place(record.bestFinish);
-      setStat('[data-cal-best]', figure, letters);
-    } else {
-      // Raced here and never classified, or never raced here at all.
-      setStat('[data-cal-best]', record ? 'DNF' : '–');
-    }
-    setStat('[data-cal-wins]', String(record?.wins ?? 0));
+    setStat('[data-cal-distance]', formatKm(facts.raceDistanceKm), 'km');
+    setStat('[data-cal-laps]', String(facts.laps));
 
     setText('[data-cal-at]', round.locality);
     setText('[data-cal-story]', circuitStory(round));
@@ -2300,7 +2315,8 @@ function mountCalendar(section: HTMLElement): void {
   /* ----------------------------------------------------------- Rows */
 
   const buttons = rounds.map((round, index) => {
-    const record = circuitById.get(round.circuitId);
+    const facts = circuitFacts(round);
+    const distance = formatKm(facts.raceDistanceKm);
     const span = weekendSpan(round);
     const state = round === upcoming ? 'Next race.' : round.result ? `He ${outcomeOf(round.result)}.` : '';
 
@@ -2308,10 +2324,10 @@ function mountCalendar(section: HTMLElement): void {
     const row = el('button', 'ot-cal__row');
     row.type = 'button';
     row.setAttribute('aria-controls', panel.id);
-    row.setAttribute(
-      'aria-label',
-      `Round ${round.round}, ${round.raceName}, ${round.locality}, ${span.days} ${span.month}. ${state}`.trim(),
-    );
+    const label =
+      `Round ${round.round}, ${round.raceName}, ${round.locality}, ${span.days} ${span.month}, ` +
+      `${facts.laps} laps, ${distance} km. ${state}`;
+    row.setAttribute('aria-label', label.trim());
 
     const cell = (className = 'ot-cal__cell'): HTMLSpanElement => {
       const node = el('span', className);
@@ -2336,15 +2352,12 @@ function mountCalendar(section: HTMLElement): void {
       el('span', 'ot-cal__major ot-cal__month', span.month),
     );
 
-    cell().appendChild(el('span', 'ot-cal__major', String(record?.wins ?? 0)));
+    cell().appendChild(el('span', 'ot-cal__major', String(facts.laps)));
 
-    const best = cell('ot-cal__cell ot-cal__cell--unit');
-    if (record?.bestFinish) {
-      const [figure, letters] = place(record.bestFinish);
-      best.append(el('span', 'ot-cal__reg', figure), el('span', 'ot-cal__unit', letters));
-    } else {
-      best.appendChild(el('span', 'ot-cal__reg', record ? 'DNF' : '–'));
-    }
+    cell('ot-cal__cell ot-cal__cell--unit').append(
+      el('span', 'ot-cal__reg', distance),
+      el('span', 'ot-cal__unit', 'km'),
+    );
 
     row.append(el('span', 'ot-cal__rule'), el('span', 'ot-cal__row-bar'));
     row.addEventListener('click', () => {
@@ -2586,92 +2599,15 @@ for (const [selector, label] of scrollRegions) {
 }
 
 /* ------------------------------------------------------------------ *
- * Nav ink over the light band
+ * Nav ink
  *
- * The nav is fixed and coloured for the dark hero: the given name in Rosso and
- * the surname in Giallo Modena. The stat band below it is cream, and Giallo on
- * that cream measures about 1.06:1 — not "a bit low", the same colour. The
- * surname simply disappeared, and the rest of the lockup sat unreadable over
- * the gigantic number.
- *
- * home.css already solves this: `--nav-ink` is `--nav-invert * (1 -
- * --nav-ground-dark)`, and the wordmark mixes toward the page's ink as it
- * rises. The homepage drives `--nav-ground-dark` from its GL ground; this page
- * has no GL, so it drives `--nav-invert` directly and leaves the other term at
- * its initial 0.
- *
- * Scrubbed rather than toggled, so the lockup crosses with the edge it is
- * crossing instead of snapping a frame early or late.
+ * Nothing to cross. The nav is coloured for a dark ground, and this page no
+ * longer has a light one: the reference's On Track paints its near-black from
+ * the hero to the footer, the stat band followed it there, and the tail now
+ * does too — the socials sit on the wall's ground and Home's cream store
+ * section is not on this page. The inversion that used to run here watched
+ * exactly those two sections and nothing else, so it went with them.
  * ------------------------------------------------------------------ */
-
-const navInner = document.querySelector<HTMLElement>('.nav-inner');
-/* Every light ground on this page.
- *
- * Measured, not assumed: sampling the painted background under the nav strip
- * every 400px down the document returns cream at 1386-5005 and again from
- * 14444 to the footer. The first is the stat band. The second is the socials
- * and store sections this page shares with Home — both carry their own light
- * ground rather than taking it from the field, which is why they are still
- * cream on a page that has no field at all. */
-/* `.ot-band` used to be here. It is dark now — the reference's On Track page
-   paints one near-black from its hero to its footer, sampled every 1000px down
-   its document, and this band was the only place ours stepped to a light
-   ground. Leaving it listed inverted the nav over four thousand pixels of dark
-   page. */
-const lightBands = ['.socials', '.shop']
-  .map((selector) => document.querySelector<HTMLElement>(selector))
-  .filter((el): el is HTMLElement => el !== null);
-
-if (navInner && lightBands.length) {
-  /* What the lockup is actually sitting on, rather than which section it is in.
-   *
-   * Keying off the band alone was wrong and the screenshot proved it: the
-   * gigantic number is near-black ink ON the cream, tall enough to fill the
-   * frame, so it passes under the nav inside the very section that is supposed
-   * to mean "light ground". The lockup went dark ink on a dark glyph and
-   * disappeared just as completely as the giallo had on the cream.
-   *
-   * So the test is the grounds this page actually has, in order: the number if
-   * it is under the nav, otherwise any of the light sections. */
-  const navBand = (): number => navInner.getBoundingClientRect().bottom;
-
-  const groundIsLight = (): number => {
-    const nav = navBand();
-    if (gigantic) {
-      const g = gigantic.getBoundingClientRect();
-      // Overlapping the nav's strip at all is enough — the lockup sits at the
-      // top of that strip and the number's glyphs are solid.
-      if (g.top < nav && g.bottom > 0) return 0;
-    }
-    return lightBands.some((el) => {
-      const box = el.getBoundingClientRect();
-      return box.top < nav && box.bottom > 0;
-    })
-      ? 1
-      : 0;
-  };
-
-  if (reducedMotion) {
-    const apply = () => navInner.style.setProperty('--nav-invert', String(groundIsLight()));
-    apply();
-    window.addEventListener('scroll', apply, { passive: true });
-  } else {
-    /* quickTo, so the crossing is a short blend rather than a snap on the frame
-       an edge happens to pass. It retargets one running tween instead of
-       spawning a tween per scroll event. */
-    const toInvert = gsap.quickTo(navInner, '--nav-invert', {
-      duration: 0.35,
-      ease: 'power2.out',
-    });
-    ScrollTrigger.create({
-      trigger: document.body,
-      start: 0,
-      end: 'max',
-      onUpdate: () => toInvert(groundIsLight()),
-      onRefresh: () => toInvert(groundIsLight()),
-    });
-  }
-}
 
 /* ------------------------------------------------------------------ *
  * Chrome, reveals, and the entrance

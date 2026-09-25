@@ -14,7 +14,7 @@
  * or vice versa, is fine.
  */
 
-import { gsap, reducedMotion } from './motion';
+import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './motion';
 
 /* ------------------------------------------------------------------ *
  * Monogram
@@ -107,7 +107,8 @@ function mountStoreFill(): void {
 
 /**
  * Every Rosso button below the nav: the two On Track / Off Track arrows, the
- * hall of fame's closing callout, and On Track's buttons.
+ * callout under the helmet wall (and On Track's store callout, the same
+ * component), and On Track's buttons.
  *
  * Same fill as the store button, mounted the same way — these are the only
  * other Rosso buttons on the site, so they should answer the pointer the way
@@ -116,7 +117,7 @@ function mountStoreFill(): void {
  */
 function mountSectionFills(): void {
   const buttons = document.querySelectorAll<HTMLAnchorElement>(
-    '.otot__link, .hof__cta-link, .store-cta__link, .footer-cta__link, .ot-btn',
+    '.otot__link, .callout__link, .store-cta__link, .footer-cta__link, .ot-btn',
   );
   for (const link of buttons) {
     mountLiquidFill(link, (level) => link.style.setProperty('--liquid-level', String(level)));
@@ -414,8 +415,101 @@ function mountInertLinks(): void {
   });
 }
 
+/* ------------------------------------------------------------------ *
+ * Nav settle
+ *
+ * The reference sets its brand and its button pair to scale 1.2 at the top of
+ * every page and scrubs them back to 1 over the first tenth of a screen, on
+ * power2.out (L$() in lando-gl.js, against a 10vh `.top-marker`). Only above
+ * 991px; below it they sit at 1. The factor goes on --nav-shrink, which the
+ * wordmark and the topbar already multiply into their transforms.
+ * ------------------------------------------------------------------ */
+
+function mountNavSettle(): void {
+  const nav = document.querySelector<HTMLElement>('.nav-inner');
+  if (!nav) return;
+
+  mm.add(WIDE_AND_ANIMATED, () => {
+    const settle = (progress: number): void => {
+      const eased = 1 - (1 - progress) ** 3; // GSAP's power2.out
+      nav.style.setProperty('--nav-shrink', String(1.2 - 0.2 * eased));
+    };
+
+    ScrollTrigger.create({
+      start: 0,
+      end: () => window.innerHeight * 0.1,
+      invalidateOnRefresh: true,
+      onUpdate: (self) => settle(self.progress),
+      onRefresh: (self) => settle(self.progress),
+    });
+
+    return () => nav.style.removeProperty('--nav-shrink');
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * Monogram park
+ *
+ * The reference's centre mark leaves as soon as the page does. The same
+ * function that settles its nav switches the LN4 Rive's `logo-active` input
+ * off the moment the reader scrolls and back on at the very top, on every page
+ * and at every width (onEnter/onLeaveBack of the `.top-marker` trigger above
+ * 991px, `scrollY <= 10` below it). Sampled off its canvas, the exit collapses
+ * the mark to a point a little left of and below its centre over ~0.6s, and
+ * the return draws it back down from its top edge over ~0.8s.
+ *
+ * One ten-pixel rule at every width rather than the reference's two: the
+ * difference is less than a single notch of the wheel. Clipped rather than
+ * faded, because opacity already belongs to the hero entrance and the menu;
+ * `inert` takes the invisible link out of the tab order and hit-testing.
+ * ------------------------------------------------------------------ */
+
+const MONOGRAM_PARKED = 'inset(55% 58% 45% 42%)';
+const MONOGRAM_DRAW_FROM = 'inset(0% 76% 100% 23%)';
+const MONOGRAM_SHOWN = 'inset(0% 0% 0% 0%)';
+
+function mountMonogramPark(): void {
+  const monogram = document.querySelector<HTMLElement>('.nav-inner .monogram');
+  if (!monogram) return;
+
+  let parked: boolean | null = null;
+
+  const update = (): void => {
+    const next = window.scrollY > 10;
+    if (next === parked) return;
+    // The first call only records where the page loaded, so a mid-page reload
+    // starts parked instead of playing the exit.
+    const animate = parked !== null && !reducedMotion;
+    parked = next;
+    monogram.inert = next;
+    gsap.killTweensOf(monogram);
+
+    if (!animate) {
+      gsap.set(monogram, next ? { clipPath: MONOGRAM_PARKED } : { clearProps: 'clipPath' });
+    } else if (next) {
+      gsap.fromTo(
+        monogram,
+        { clipPath: MONOGRAM_SHOWN },
+        { clipPath: MONOGRAM_PARKED, duration: 0.6, ease: 'power2.in' },
+      );
+    } else {
+      // Cleared at the end, so the liquid fill's overshoot is not clipped at rest.
+      gsap.fromTo(
+        monogram,
+        { clipPath: MONOGRAM_DRAW_FROM },
+        { clipPath: MONOGRAM_SHOWN, duration: 0.8, ease: 'power2.out', clearProps: 'clipPath' },
+      );
+    }
+  };
+
+  update();
+  window.addEventListener('scroll', update, { passive: true });
+}
+
 export function mountChrome(): void {
   mountInertLinks();
+  mountNavSettle();
+  mountMonogramPark();
 
   mountMonogram();
   mountStoreFill();

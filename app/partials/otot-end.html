@@ -1,0 +1,26 @@
+      <!-- The riser: one whole screen of photograph that climbs over whatever
+           came before it and hands straight on to the hall of fame.
+
+           Home runs it as the second screen of On Track / Off Track, where it
+           rises over the pinned cutouts; On Track runs it on its own, straight
+           after the schedule. The reference does exactly that — the same
+           `.s.is-otot-end` section, the same picture and the same motion on both
+           pages — so this is one partial and one mount (mountRiser, in
+           lib/showcase.ts) rather than two copies that could drift. -->
+      <div class="otot__end" data-riser>
+        <div class="otot__end-frame">
+          <!-- Two layers, the same arrangement the hall of fame cards use. The
+               photograph is 16:9 and this frame is a whole viewport, so `cover`
+               alone was taking 69px off the top and the same off the bottom —
+               the raised hands and the ground he stands on. The blurred copy
+               fills the frame and carries the setting; the sharp copy over it is
+               contained, so the picture reads whole. One src, so it stays one
+               download and one decode. -->
+          <img class="otot__end-img otot__end-img--bed" src="/assets/otot/hall-of-fame.webp"
+            alt="" aria-hidden="true" width="2400" height="1350" loading="lazy"
+            decoding="async" />
+          <img class="otot__end-img otot__end-img--sharp" src="/assets/otot/hall-of-fame.webp"
+            alt="Lewis Hamilton with both arms raised, seen from behind" width="2400"
+            height="1350" loading="lazy" decoding="async" />
+        </div>
+      </div>

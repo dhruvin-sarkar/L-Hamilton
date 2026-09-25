@@ -794,15 +794,15 @@
            schedule.
 
            The panel carries the round's name set up the frame's tab, the
-           weekend, his record at the circuit, the session times in UK time and
-           the circuit drawn large. The arrows and the rows retarget it, and the
-           arrows cycle the same five rounds the rows show, as the reference's
-           do. Where the reference prints lap length and race distance -- which
-           our data does not carry -- the panel and the table print his own
-           record at that circuit.
+           weekend, the circuit's length, race distance and laps, the year he
+           first raced there, his record there in words, the session times in
+           UK time and the circuit drawn large. The arrows and the rows
+           retarget it, and the arrows cycle the same five rounds the rows show,
+           as the reference's do.
 
-           Every value is written by on-track.ts from the season calendar and
-           the circuit records; nothing below is typed. -->
+           Every value is written by on-track.ts from the season calendar, the
+           circuit records and the sourced circuit facts (content/
+           circuit-facts.ts); nothing below is typed. -->
       <section class="ot-cal" aria-labelledby="ot-cal-h">
         <div class="ot-cal__c">
           <div
@@ -827,8 +827,8 @@
                     <div class="ot-cal__spacer" aria-hidden="true"></div>
                     <div class="ot-cal__group">
                       <div class="ot-cal__item">
-                        <p class="ot-cal__eyebrow reveal-text">Starts</p>
-                        <p class="ot-cal__stat" data-cal-target data-cal-starts></p>
+                        <p class="ot-cal__eyebrow reveal-text">Length</p>
+                        <p class="ot-cal__stat" data-cal-target data-cal-length></p>
                       </div>
                       <div class="ot-cal__item">
                         <p class="ot-cal__eyebrow reveal-text">First competed</p>
@@ -837,12 +837,12 @@
                     </div>
                     <div class="ot-cal__group">
                       <div class="ot-cal__item">
-                        <p class="ot-cal__eyebrow reveal-text">Best finish</p>
-                        <p class="ot-cal__stat" data-cal-target data-cal-best></p>
+                        <p class="ot-cal__eyebrow reveal-text">Distance</p>
+                        <p class="ot-cal__stat" data-cal-target data-cal-distance></p>
                       </div>
                       <div class="ot-cal__item">
-                        <p class="ot-cal__eyebrow reveal-text">Wins</p>
-                        <p class="ot-cal__stat" data-cal-target data-cal-wins></p>
+                        <p class="ot-cal__eyebrow reveal-text">Laps</p>
+                        <p class="ot-cal__stat" data-cal-target data-cal-laps></p>
                       </div>
                     </div>
                   </div>
@@ -989,8 +989,8 @@
             <p class="ot-cal__eyebrow reveal-text">Rnd</p>
             <p class="ot-cal__eyebrow reveal-text">Location</p>
             <p class="ot-cal__eyebrow reveal-text">When</p>
-            <p class="ot-cal__eyebrow reveal-text">Wins</p>
-            <p class="ot-cal__eyebrow reveal-text">Best finish</p>
+            <p class="ot-cal__eyebrow reveal-text">Laps</p>
+            <p class="ot-cal__eyebrow reveal-text">Distance</p>
           </div>
 
           <div class="ot-cal__collection" data-cal-rows>
@@ -1024,17 +1024,53 @@
         </div>
       </section>
       <!-- ============================== The tail Home and On Track share
-           Reference section 8: helmets, then socials, then the store call to
-           action, in that order — which is not Home's order (Home puts the
-           store between them and adds a partners block that does not appear
-           here). Same three components either way.
+           Reference sections 7 and 8, measured at 1728x1080: the full-screen
+           picture (`.s.is-otot-end`, 1080), then ONE dark group holding the
+           helmets (2036), the socials (1158) and a store callout (572), then
+           the footer on that same ground.
+
+           Two things about that order are easy to get wrong, and both were:
+
+             - The picture is Home's riser, the same partial and the same
+               motion. The reference carries the identical section, image and
+               tween on both pages.
+             - The ground does NOT change after the helmets. The socials sit on
+               the wall's own ground, not Home's cream, and there is no big store
+               section — only the short callout, the same component Home puts
+               under its wall. The one change of ground is INTO the wall, where
+               the picture hands over to it.
 
            Its own study of this section says plainly: reuse the component, do
            not re-implement it. So these are the partials Home renders and the
            behaviour Home runs — see src/lib/showcase.ts. -->
+      <!--#include "partials/otot-end.html"-->
       <!--#include "partials/helmets.html"-->
       <!--#include "partials/socials.html"-->
-      <!--#include "partials/store.html"-->
+
+      <!-- ============================================== The store callout
+           Reference: `.c.is-callout` after the socials, pointing at the store's
+           scale replicas. The same component Home closes its wall with; the
+           line here is site copy about the official store and names only what
+           the store's own products carry — the +44 mark. -->
+      <section class="callout">
+        <div class="callout__layout">
+          <svg class="callout__icon" viewBox="0 0 64 44" aria-hidden="true">
+            <use href="#nr-crest" />
+          </svg>
+          <p class="callout__text reveal-text">
+            Explore the official collection of +44 apparel and accessories
+          </p>
+          <a class="callout__link" href="https://store.lewishamilton.com" target="_blank"
+            rel="noopener noreferrer">
+            <span class="sr-only">Visit the store (opens in a new tab)</span>
+            <span class="btn-text" aria-hidden="true" data-split-chars>Visit the store</span>
+            <svg class="callout__arrow" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9.5 9.5H19M15 5.5l4 4-4 4M9.5 9.5a4.5 4.5 0 0 0 0 9h5" fill="none" stroke="currentColor"
+                stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </a>
+        </div>
+      </section>
     </main>
 
     <!--#include "partials/menu.html"-->
