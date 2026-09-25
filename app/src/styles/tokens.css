@@ -157,6 +157,13 @@ html {
   --gl-cursor-fg: #a33a34;
   --gl-cursor-outline: var(--gl-bg);
 
+  /* The tint the hero plate settles into as it shrinks: the reference's
+     COLOR_FILTER, hard-light blended over the greyed plate. Theirs, #50593F,
+     is its revealed screen's own hue at 17% saturation and 30% lightness. This
+     is the same recipe on our revealed palette's hue (the cream and salmon
+     around 15deg). Read by HeadScene as a value, not as a managed colour. */
+  --gl-filter: #5a463f;
+
   /* Era accents. Content-level only; never re-themes global chrome. */
   --era: var(--accent);
   --era-soft: var(--accent-off);
