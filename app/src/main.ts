@@ -100,7 +100,7 @@ let background: BackgroundField | null = null;
  * same answer as scrolling through them would.
  * ------------------------------------------------------------------ */
 
-const groundCross = { darkening: 0, ink: 0, lightening: 0, panel: 0 };
+const groundCross = { darkening: 0, ink: 0, lightening: 0, panel: 0, visor: 0 };
 
 /** Resolved once. The script is a module, so the nav is already parsed. */
 const navGroundStyle = document.querySelector<HTMLElement>('.nav-inner')?.style ?? null;
@@ -115,10 +115,18 @@ function applyGroundCross(): void {
      the field at all — it is an opaque block laid over it. So it does not
      belong in the subtraction above (there is nothing for the store's return
      to light to undo); it just overrides, for as long as it is under the nav.
-     Without this the wordmark stays dark ink on the dark panel. */
+     Without this the wordmark stays dark ink on the dark panel. The store's
+     visor is the same kind of surface: an opaque dark dome that is still under
+     the wordmark after its own bend has reported the ground back to light. */
   navGroundStyle?.setProperty(
     '--nav-ground-dark',
-    String(Math.max(clamp(groundCross.ink - groundCross.lightening), groundCross.panel)),
+    String(
+      Math.max(
+        clamp(groundCross.ink - groundCross.lightening),
+        groundCross.panel,
+        groundCross.visor,
+      ),
+    ),
   );
 }
 
@@ -827,12 +835,34 @@ if (collabs) {
    Ends at the nav's own height rather than at the viewport top, because what
    decides the wordmark's colour is what is under the WORDMARK. */
 const footerPanel = document.querySelector<HTMLElement>('.footer__panel');
+const storeVisor = document.querySelector<HTMLElement>('.shop__visor');
+
+const navHeight = (): number =>
+  parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-height')) *
+    parseFloat(getComputedStyle(document.documentElement).fontSize) || 0;
+
+/* The store's visor, and the opaque dark callout above it: the store reports
+   the field back to light while its top climbs from the fold to 34%, but for
+   that whole climb the wordmark is standing on the callout, and then on the
+   visor's dark dome — neither of which is the field. So the dark ground holds
+   from the store's top entering until the visor's middle leaves the viewport
+   top. The middle rather than the bottom because the dome is shallower at the
+   wordmark's end of the page, about 90px of its 128, so by the time the middle
+   has gone the wordmark stands on cream. */
+if (storeVisor) {
+  ScrollTrigger.create({
+    trigger: storeVisor,
+    start: 'top bottom',
+    end: 'center top',
+    invalidateOnRefresh: true,
+    onToggle: (self) => {
+      groundCross.visor = self.isActive ? 1 : 0;
+      applyGroundCross();
+    },
+  });
+}
 
 if (footerPanel) {
-  const navHeight = (): number =>
-    parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-height')) *
-      parseFloat(getComputedStyle(document.documentElement).fontSize) || 0;
-
   ScrollTrigger.create({
     trigger: footerPanel,
     start: () => `top top+=${navHeight()}`,

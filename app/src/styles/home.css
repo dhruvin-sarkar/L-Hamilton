@@ -2710,8 +2710,11 @@
 
 /* The one accent item in the columns, and a size down from the links so it
    reads as a departure from the list rather than another entry in it. */
+/* 4% white in oklab on the accent: #ff391c, 4.68:1 on the panel where the
+   accent itself is 4.44 — under AA at the 16.7px this sets at 1440. A lift
+   rather than a size change, because the size is the reference's. */
 .footer__store {
-  color: var(--accent);
+  color: color-mix(in oklab, var(--accent), white 4%);
 }
 
 .footer__store .btn-text {
@@ -5002,6 +5005,22 @@
    are capitals — nothing descends below the box to be cut. */
 .socials__links .btn-text {
   line-height: 1;
+}
+
+/* The site's rosso focus ring is 2.6:1 on the cream grounds and all but gone
+   on the accent under the legal row, so on those grounds it takes the ink
+   instead (12.6:1 on cream, 4.8:1 on the accent). On Track sets its socials
+   on the dark wall ground, where the rosso ring is the one that reads. */
+.shop :focus-visible,
+.collabs :focus-visible,
+.socials :focus-visible,
+.footer__legal :focus-visible,
+body:not([data-page='on-track']) .otot :focus-visible {
+  outline-color: var(--dark);
+}
+
+[data-page='on-track'] .socials :focus-visible {
+  outline-color: var(--era);
 }
 
 /* ---- narrow screens ----
