@@ -1444,16 +1444,18 @@ body[data-page='on-track'] {
   display: block;
 }
 
-/* The accent band that wipes the picture in from the top — the reference's
-   `data-img-highlight="top, lime"`. Driven from on-track.ts, which is why the
-   custom property is declared rather than animated here. */
+/* The accent sheet the picture is revealed behind -- the reference's
+   `.img-highlight-reveal` under `data-img-highlight="top, lime"`. An ellipse
+   anchored at the bottom edge, its height --img-veil * 120%: 0 (nothing) at
+   rest, so it only ever shows while on-track.ts is running the reveal. */
 .ot-career__img::after {
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 5;
   background: var(--accent);
-  transform-origin: 50% 100%;
-  scale: 1 var(--img-wipe, 0);
+  clip-path: ellipse(120% calc(var(--img-veil, 0) * 120%) at 50% 100%);
+  pointer-events: none;
 }
 
 /* --------------------------------------------------- Headline stats */
@@ -3958,13 +3960,15 @@ button.ot-cal__row:focus-visible {
   object-fit: cover;
 }
 
+/* The accent sheet, as on the career portrait above. */
 .ot-pref1__img::after {
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 5;
   background: var(--accent);
-  transform-origin: 50% 100%;
-  scale: 1 var(--img-wipe, 0);
+  clip-path: ellipse(120% calc(var(--img-veil, 0) * 120%) at 50% 100%);
+  pointer-events: none;
 }
 
 /* `.pre-f1-car-stats-grid`: two columns, a gap across and two down. */

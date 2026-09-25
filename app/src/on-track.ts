@@ -1435,31 +1435,34 @@ if (podium && podiumPhoto && podiumImg) {
 }
 
 /* ------------------------------------------------------------------ *
- * The career portrait's accent wipe
+ * The career portrait's reveal
  *
- * The reference's `data-img-highlight="top, lime"` — a band of colour covering
- * the picture, which lifts away downward so the image arrives from the top. The
- * same idea as the text reveal, on the other axis.
+ * The reference's `data-img-highlight="top, lime"`, to the number. The picture
+ * starts hidden, clipped to an ellipse with no height at its top edge. When
+ * its top crosses 80% of the screen the ellipse drops open over 0.8s
+ * (power2.out) and shows an accent sheet lying over the photo; 0.4s in, that
+ * sheet shrinks away toward the bottom edge over 0.6s (power2.out) as an
+ * ellipse of its own, uncovering the picture top first.
+ *
+ * The sheet is the box's ::after, sized by --img-veil (1 covers, 0 gone).
+ * Wide and animated only: elsewhere the picture is simply there, no sheet.
  * ------------------------------------------------------------------ */
 
 /* The pre-F1 photograph carries the same `data-img-highlight="top, lime"` in
-   the reference, so it runs the same wipe. */
-const wipedImages = document.querySelectorAll<HTMLElement>('[data-career-img], [data-junior-img]');
+   the reference, so it runs the same reveal. */
+const revealedImages = [
+  ...document.querySelectorAll<HTMLElement>('[data-career-img], [data-junior-img]'),
+];
 
-if (!reducedMotion) {
-  for (const wiped of wipedImages) {
-    gsap.fromTo(
-      wiped,
-      { '--img-wipe': 1 },
-      {
-        '--img-wipe': 0,
-        duration: 0.9,
-        ease: 'power3.inOut',
-        scrollTrigger: { trigger: wiped, start: 'top 85%' },
-      },
-    );
+mm.add(WIDE_AND_ANIMATED, () => {
+  for (const box of revealedImages) {
+    gsap.set(box, { clipPath: 'ellipse(120% 0% at 50% 0%)', '--img-veil': 1 });
+    gsap
+      .timeline({ scrollTrigger: { trigger: box, start: 'top 80%', once: true } })
+      .to(box, { clipPath: 'ellipse(120% 120% at 50% 0%)', duration: 0.8, ease: 'power2.out' })
+      .to(box, { '--img-veil': 0, duration: 0.6, ease: 'power2.out' }, '-=0.4');
   }
-}
+});
 
 /* ------------------------------------------------------------------ *
  * Provenance
