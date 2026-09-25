@@ -72,6 +72,29 @@ export default defineConfig({
   publicDir: fileURLToPath(new URL('./public', import.meta.url)),
   plugins: [htmlPartials()],
   server: { port: 5173, open: false },
+  /* The dependency cache lives beside this config, not in node_modules. Every
+     worktree links app/node_modules to one shared install, so the default
+     node_modules/.vite put every dev server on ONE cache directory: they
+     clobbered each other's optimised deps (504 "Outdated Optimize Dep", mixed
+     ?v= hashes, duplicate three) and Windows refused the rename a re-optimise
+     needs while another server held the folder open (EPERM). app/.vite/ is
+     already gitignored. */
+  cacheDir: path.resolve(here, '.vite'),
+  /* Pre-bundle three and every addon we import in ONE pass. Left to runtime
+     discovery, the addons (first reached through HelmetModel's lazy import)
+     were optimised in a later pass than three itself, each carrying its own
+     copy of it — the dev console's "Multiple instances of Three.js" warning,
+     and two WebGL state caches that do not know about each other. Dev-only:
+     the production build resolves a single three through Rollup. */
+  optimizeDeps: {
+    include: [
+      'three',
+      'three/examples/jsm/loaders/GLTFLoader.js',
+      'three/examples/jsm/loaders/DRACOLoader.js',
+      'three/examples/jsm/environments/RoomEnvironment.js',
+      'three/examples/jsm/utils/BufferGeometryUtils.js',
+    ],
+  },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
