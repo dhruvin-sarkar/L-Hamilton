@@ -2782,6 +2782,10 @@
 .footer__headline em {
   font-family: var(--font-serif);
   font-size: 1.0357em;
+  /* 0.84 rather than the inherited 0.856: Playfair's taller ascent stood each
+     line box at 76.9px where the reference's Brier leaves 75.9, and the second
+     line landed a pixel low for it. */
+  line-height: 0.84;
   font-style: normal;
   font-weight: 700;
   letter-spacing: -0.023em;
@@ -4723,9 +4727,13 @@
   margin-inline: auto;
 }
 
+/* 4.5rem, the sans line's own size, as the reference sets it (its Brier line
+   computes 72px here, unlike the partners heading's 75). Measured as glyphs:
+   at 4.6875rem the caps stood 54px against the reference's 52 and ran 429px
+   wide against 383; at 4.5 they stand 52. */
 .socials__title-line.is-serif {
   font-family: var(--font-serif);
-  font-size: 4.6875rem;
+  font-size: 4.5rem;
   font-weight: 700;
   /* No text-transform reset here. .socials__title sets uppercase and this rule
      used to override it back to title case, so the serif line read "On Socials"
