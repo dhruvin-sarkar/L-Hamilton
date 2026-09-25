@@ -133,3 +133,58 @@
             </button>
           </div>
     </div>
+
+    <!-- The scroll position, on the right edge: the reference's
+         `.scroll-indicator`. A track 80vh tall from 10vh down, and a bar sized
+         to the share of the page on screen. Out of sight at rest; it fades up
+         while the page moves and away half a second after it stops (lib/chrome.ts).
+         Decorative — the scrollbar's job is done by the page itself for
+         assistive tech. -->
+    <div class="scroll-indicator" aria-hidden="true">
+      <div class="scroll-indicator__bar"></div>
+    </div>
+
+    <!-- A phone turned on its side: the reference's `.mob-landscape-block`. The
+         site is laid out for a phone held upright, so in landscape it asks to be
+         turned back, over everything. Shown by CSS alone (a coarse pointer, a
+         landscape viewport no taller than a phone's); the wheel's steering loop
+         is started and stopped with it from lib/chrome.ts.
+
+         The reference animates a steering wheel in its hands in a Rive file.
+         This one is drawn here: an original line drawing of a wheel, its display
+         carrying the LH mark. Site copy, the reference's own line. -->
+    <div class="landscape-block" role="alert">
+      <svg class="landscape-block__wheel" viewBox="0 0 200 200" aria-hidden="true">
+        <g class="landscape-block__steer">
+          <!-- Grips -->
+          <path class="landscape-block__grip" d="M38 70c-14 2-24 14-24 34l2 38c1 12 11 18 21 14l14-6c8-4 11-11 10-20l-4-40c-2-14-9-22-19-20Z" />
+          <path class="landscape-block__grip" d="M162 70c14 2 24 14 24 34l-2 38c-1 12-11 18-21 14l-14-6c-8-4-11-11-10-20l4-40c2-14 9-22 19-20Z" />
+          <!-- Body -->
+          <path class="landscape-block__body" d="M44 66c10-10 30-16 56-16s46 6 56 16c8 8 10 20 8 34l-4 26c-2 14-12 22-26 22H66c-14 0-24-8-26-22l-4-26c-2-14 0-26 8-34Z" />
+          <!-- Display, with the mark -->
+          <rect class="landscape-block__screen" x="76" y="62" width="48" height="32" rx="4" />
+          <use href="#lh-mark" class="landscape-block__mark" transform="translate(92 67) scale(0.0355)" />
+          <!-- Rotaries and buttons -->
+          <circle cx="80" cy="116" r="8" /><path d="M80 110v6" />
+          <circle cx="100" cy="120" r="8" /><path d="M100 114v6" />
+          <circle cx="120" cy="116" r="8" /><path d="M120 110v6" />
+          <circle cx="60" cy="84" r="4" /><circle cx="58" cy="98" r="4" /><circle cx="60" cy="112" r="4" />
+          <circle cx="140" cy="84" r="4" /><circle cx="142" cy="98" r="4" /><circle cx="140" cy="112" r="4" />
+          <!-- Paddles behind the rim -->
+          <path d="M70 148l-6 18M130 148l6 18" />
+          <!-- Gloved hands on the grips, forearms running out of the frame -->
+          <g class="landscape-block__hand">
+            <path d="M22 86c-8 4-12 12-11 22l3 30c1 8 5 13 11 15l4 47h34l-4-52c6-5 8-12 6-20l-5-28c-2-11-9-17-18-17Z" />
+            <path fill="none" d="M24 98c8-1 16 1 22 5M22 112c8-1 16 1 23 5M22 126c8-1 16 1 23 5" />
+          </g>
+          <g class="landscape-block__hand" transform="translate(200 0) scale(-1 1)">
+            <path d="M22 86c-8 4-12 12-11 22l3 30c1 8 5 13 11 15l4 47h34l-4-52c6-5 8-12 6-20l-5-28c-2-11-9-17-18-17Z" />
+            <path fill="none" d="M24 98c8-1 16 1 22 5M22 112c8-1 16 1 23 5M22 126c8-1 16 1 23 5" />
+          </g>
+        </g>
+      </svg>
+      <p class="landscape-block__text">
+        Please rotate your device,<br />
+        <span class="landscape-block__serif">This is a vertical drive.</span>
+      </p>
+    </div>

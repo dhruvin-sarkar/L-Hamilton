@@ -507,6 +507,99 @@ function mountMonogramPark(): void {
   window.addEventListener('scroll', update, { passive: true });
 }
 
+/* ------------------------------------------------------------------ *
+ * Scroll indicator
+ *
+ * The reference's qZ() in lando-gl.js, which listens to the window's scroll:
+ *   - the bar is clamp(10%, viewport / document, 25%) of the track;
+ *   - on scroll the track fades up (autoAlpha 1, 0.5s) and the bar eases to
+ *     progress x (track - bar) over 0.3s on power2.out;
+ *   - 500ms after the last scroll event the track fades out again (0.5s).
+ * The size is re-read as each scroll starts rather than only on resize: these
+ * pages grow as their images and scenes arrive, and a bar sized against the
+ * document as it was at load under-reports the page.
+ * ------------------------------------------------------------------ */
+
+const SCROLL_IDLE_MS = 500;
+
+function mountScrollIndicator(): void {
+  const track = document.querySelector<HTMLElement>('.scroll-indicator');
+  const bar = track?.querySelector<HTMLElement>('.scroll-indicator__bar');
+  if (!track || !bar) return;
+
+  const fade = reducedMotion ? 0 : 0.5;
+  const moveBar = gsap.quickTo(bar, 'y', { duration: reducedMotion ? 0 : 0.3, ease: 'power2.out' });
+  let shown = false;
+  let idle = 0;
+  let share = 10;
+
+  const measure = (): void => {
+    const doc = document.documentElement.scrollHeight;
+    share = gsap.utils.clamp(10, 25, (window.innerHeight / doc) * 100);
+    bar.style.blockSize = `${share}%`;
+  };
+
+  const target = (): number => {
+    const range = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = range > 0 ? window.scrollY / range : 0;
+    return progress * track.offsetHeight * (1 - share / 100);
+  };
+
+  measure();
+  gsap.set(bar, { y: target() });
+
+  window.addEventListener(
+    'scroll',
+    () => {
+      if (!shown) {
+        shown = true;
+        measure();
+        gsap.to(track, { autoAlpha: 1, duration: fade, overwrite: 'auto' });
+      }
+      moveBar(target());
+      window.clearTimeout(idle);
+      idle = window.setTimeout(() => {
+        shown = false;
+        gsap.to(track, { autoAlpha: 0, duration: fade, overwrite: 'auto' });
+      }, SCROLL_IDLE_MS);
+    },
+    { passive: true },
+  );
+  window.addEventListener('resize', () => {
+    measure();
+    gsap.set(bar, { y: target() });
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * Landscape block
+ *
+ * CSS decides when it shows (see chrome.css); this only runs the wheel's
+ * steering while it does, on the shared matchMedia context so it starts and
+ * stops with the block. The reference's Rive loop, read frame by frame: the
+ * wheel sits level, steers one way and holds, sweeps back a little past level,
+ * and settles — about 2.7s round. Reduced motion leaves the wheel level.
+ * ------------------------------------------------------------------ */
+
+const LANDSCAPE_QUERY =
+  '(orientation: landscape) and (max-height: 540px) and (hover: none) and (pointer: coarse) and (prefers-reduced-motion: no-preference)';
+
+function mountLandscapeSteer(): void {
+  const steer = document.querySelector<SVGGElement>('.landscape-block__steer');
+  if (!steer) return;
+  mm.add(LANDSCAPE_QUERY, () => {
+    const tl = gsap
+      .timeline({ repeat: -1, repeatDelay: 0.4 })
+      .to(steer, { rotation: -14, duration: 0.3, ease: 'power2.inOut', svgOrigin: '100 110' }, 0.4)
+      .to(steer, { rotation: 8, duration: 0.4, ease: 'power2.inOut', svgOrigin: '100 110' }, 1.3)
+      .to(steer, { rotation: 0, duration: 0.3, ease: 'power2.inOut', svgOrigin: '100 110' }, 1.9);
+    return () => {
+      tl.kill();
+      gsap.set(steer, { clearProps: 'transform' });
+    };
+  });
+}
+
 export function mountChrome(): void {
   /* The menu is mounted further down; the transition only needs to be able to
      shut it, and only once a link is followed, by which time it exists. */
@@ -516,6 +609,8 @@ export function mountChrome(): void {
   // the placeholder links' listener has to be registered before its own.
   mountInertLinks();
   mountTransition({ closeMenu: () => closeMenu() });
+  mountScrollIndicator();
+  mountLandscapeSteer();
   mountNavSettle();
   mountMonogramPark();
 
