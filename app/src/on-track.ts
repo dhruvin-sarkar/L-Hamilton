@@ -1040,6 +1040,58 @@ if (statGrid) {
       });
     };
   });
+
+  /* The P1 scribble's entrance: the reference's `phrase_p1` Rive, played once
+   * by its `data-rive-scrolltrigger` handler when the canvas top passes 80% of
+   * the screen. That handler holds the canvas at opacity 0 and raises it over
+   * 0.1s (ease-in-out) as it plays. The animation is 85 frames at 60fps, but
+   * its ink is all down by 1.05s -- sampled off the reference's own file: 50%
+   * of the final ink at ~0.5s, 98% at 1.0s, 100% at 1.05s, near linear -- and
+   * the last 0.37s holds the finished mark. So the four strokes are drawn in
+   * order, each for its share of the total length, over those 1.05s. Drawn and
+   * still below 992px and under reduced motion. */
+  const P1_INK = 1.05;
+  mm.add(WIDE_AND_ANIMATED, () => {
+    const entrances = [...statGrid.querySelectorAll<HTMLElement>('.ot-stats__scribble')].map(
+      (scribble) => {
+        const paths = [...scribble.querySelectorAll<SVGPathElement>('path')];
+        const lengths = paths.map((path) => path.getTotalLength());
+        const total = lengths.reduce((a, b) => a + b, 0);
+
+        /* A dash the stroke's own length, and a gap twice that, so the hidden
+           stroke sits wholly inside the gap with no zero-length dash at either
+           end for a round cap to paint as a dot. Set as attributes: GSAP rounds
+           the CSS property to whole pixels, which leaves a sliver of every
+           waiting stroke showing as a dot. */
+        const hand = gsap.timeline({ paused: true });
+        paths.forEach((path, i) => {
+          const length = lengths[i] ?? 0;
+          gsap.set(path, {
+            attr: { 'stroke-dasharray': `${length} ${2 * length}`, 'stroke-dashoffset': length },
+          });
+          hand.to(path, {
+            attr: { 'stroke-dashoffset': 0 },
+            duration: (P1_INK * length) / total,
+            ease: 'none',
+          });
+        });
+        gsap.set(scribble, { opacity: 0 });
+
+        return ScrollTrigger.create({
+          trigger: scribble,
+          start: 'top 80%',
+          once: true,
+          onEnter: () => {
+            gsap.to(scribble, { opacity: 1, duration: 0.1, ease: 'power1.inOut' });
+            hand.play();
+          },
+        });
+      },
+    );
+    return () => {
+      for (const trigger of entrances) trigger.kill();
+    };
+  });
 }
 
 /* ------------------------------------------------------------------ *
