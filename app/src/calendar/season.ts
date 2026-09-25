@@ -54,7 +54,7 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
  * race's own city where the race is named for its city -- MIAMI, LAS VEGAS,
  * ABU DHABI. Derived from the calendar's race name and locality, not typed.
  */
-export function placeName(round: CalendarRound): string {
+export function placeName(round: Pick<CalendarRound, 'raceName' | 'locality' | 'country'>): string {
   const named = round.raceName.replace(/ Grand Prix.*$/, '');
   return named === round.locality ? named : countryName(round.country);
 }
@@ -479,20 +479,25 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
 
   /* ------------------------------------------------- Row entrance */
 
+  /* The reference's stat-list reveal: one timeline per list, fired when the
+     list's hover ground reaches 90% of the screen, each row opening from the
+     left 0.05s after the one above (0.6s power2.out) and its accent bar
+     retracting 0.3s into that (0.6s power2.inOut). */
   if (!reducedMotion) {
-    for (const list of [previousList, upcomingList]) {
+    const lists: [HTMLElement, HTMLElement][] = [
+      [previousList, need('[data-cal-previous-wrap]')],
+      [upcomingList, need('[data-cal-upcoming-wrap] [data-cal-area]')],
+    ];
+    for (const [list, ground] of lists) {
       const rows = [...list.querySelectorAll<HTMLElement>('.ot-cal__row')];
       if (!rows.length) continue;
       const rowBars = rows.map((row) => row.querySelector('.ot-cal__row-bar'));
       gsap.set(rows, { clipPath: 'inset(0 100% 0 0)' });
       gsap.set(rowBars, { scaleX: 1 });
+      const enter = gsap.timeline({ scrollTrigger: { trigger: ground, start: 'top 90%', once: true } });
       rows.forEach((row, i) => {
-        const enter = gsap.timeline({
-          paused: true,
-          scrollTrigger: { trigger: row, start: 'top 95%', once: true },
-        });
-        enter.to(row, { clipPath: 'inset(0 0% 0 0)', duration: 0.6, ease: 'power2.out' }, 0);
-        enter.to(rowBars[i] ?? [], { scaleX: 0, duration: 0.6, ease: 'power2.inOut' }, 0.3);
+        enter.to(row, { clipPath: 'inset(0 0% 0 0)', duration: 0.6, ease: 'power2.out' }, i * 0.05);
+        enter.to(rowBars[i] ?? [], { scaleX: 0, duration: 0.6, ease: 'power2.inOut' }, i * 0.05 + 0.3);
       });
     }
   }

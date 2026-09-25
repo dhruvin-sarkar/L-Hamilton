@@ -49,7 +49,10 @@
         <div class="cal-hero__layout">
           <h1 class="cal-hero__title">
             <span class="cal-hero__line">Upcoming</span>
-            <span class="cal-hero__line cal-hero__line--serif" data-cal-hero-year></span>
+            <!-- The second line keeps the first line's face as its strut and
+                 sets the year in the serif inside it, as the reference's
+                 <br><span> does: the line box is the pair's union. -->
+            <span class="cal-hero__line"><span class="cal-hero__serif" data-cal-hero-year></span></span>
           </h1>
           <div class="cal-hero__sign" data-cal-hero-sign aria-hidden="true"></div>
         </div>

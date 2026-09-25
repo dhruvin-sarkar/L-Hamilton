@@ -70,12 +70,17 @@ body[data-page='calendar'] {
   white-space: nowrap;
 }
 
-.cal-hero__line--serif {
+/* The reference's serif is 8.25rem on an 83% line; that line box, unioned
+   with the title face's strut, comes to 116.3px at 1728 -- the title 230.6px
+   tall. Playfair's taller ascent would make it 118.3, so its own line is
+   taken to 80%, which On Track measured to put the box's top, and so the
+   baseline, where Brier's are (.ot-impact__accent). */
+.cal-hero__serif {
   font-family: var(--font-serif);
   font-stretch: 100%;
   font-size: calc(var(--u) * 8.25);
   font-weight: 500;
-  line-height: 83%;
+  line-height: 80%;
   letter-spacing: calc(var(--u) * -0.1875);
   color: var(--grey-on-track);
 }
@@ -401,5 +406,297 @@ body[data-page='calendar'] {
   .cal-panel__gl {
     inset: calc(var(--u) * 3) 0 auto;
     block-size: calc(var(--u) * 23);
+  }
+}
+
+/* =========================================================== All results
+ *
+ * The reference's third section: a title row on grid-main -- "Formula 1"
+ * over "All results" in the second face in columns 1-2, a line of copy in
+ * 3-4 -- then 10rem, then one row per season on the results grid. Each row
+ * opens its season below it (calendar/results.ts).
+ *
+ *   title row    4 x 23.55%, --g apart, padded by the gutter
+ *   table        10rem under it, full bleed; the header 1 --g above the rows
+ *   season row   chevron | year (2 columns) | place and laurel | podiums,
+ *                85px, a rule along its foot
+ *   open         a sub-header 1.5 --g down, then the season's Grands Prix on
+ *                the lists' own rows
+ *   10rem        to the countdown
+ */
+
+.cal-results {
+  --u: 1rem;
+  --g: calc(var(--u) * 1.25);
+  position: relative;
+  z-index: 1;
+  padding-block-end: calc(var(--u) * 10);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.cal-results__title-row {
+  display: grid;
+  grid-template-columns: repeat(4, 23.55%);
+  column-gap: var(--g);
+  padding-inline: var(--g);
+}
+
+/* Reference `.text-title-lg-mona.split-flex`: 4.5rem at "wdth" 93 "wght" 750,
+   on 0.886, -0.125rem, in capitals, one line each. */
+.cal-results__h {
+  grid-column: 1 / 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin: 0;
+  font-family: var(--font-body);
+  font-stretch: 93%;
+  font-size: calc(var(--u) * 4.5);
+  font-weight: 750;
+  line-height: 0.886;
+  letter-spacing: calc(var(--u) * -0.125);
+  text-transform: uppercase;
+}
+
+.cal-results__h-line {
+  display: block;
+  white-space: nowrap;
+}
+
+/* Reference `.text-title-lg-brier.c-grey-on-track`: the second face one step
+   larger, in grey, upright capitals. The line box is On Track's measured one
+   for the same pair (.ot-hl__title-line--serif): 0.9037 of the serif's size. */
+.cal-results__h-line--serif {
+  font-family: var(--font-serif);
+  font-size: calc(var(--u) * 4.6875);
+  font-weight: 500;
+  line-height: 0.9037;
+  font-variant-numeric: lining-nums;
+  color: var(--grey-on-track);
+}
+
+/* Reference `.text-body-reg-mona` in grey, columns 3-4. */
+.cal-results__para {
+  grid-column: 3 / 5;
+  align-self: start;
+  margin: 0;
+  font-family: var(--font-body);
+  font-stretch: 100%;
+  font-size: calc(var(--u) * 1.25);
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: calc(var(--u) * -0.0125);
+  color: var(--grey-on-track);
+}
+
+.cal-results__table {
+  margin-block-start: calc(var(--u) * 10);
+}
+
+/* Reference `.f1-highlight-grid.top.dropdown-top`: Location over two columns,
+   one gutter above the first season. */
+.cal-results__head {
+  margin-block-end: var(--g);
+}
+
+.cal-results__head-loc,
+.cal-results__subhead > :nth-child(2) {
+  grid-column: span 2;
+}
+
+.cal-results__list,
+.cal-results__races {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cal-results__heading {
+  margin: 0;
+  font: inherit;
+}
+
+/* Reference `.calendar-dropdown-trigger .f1-highlight-grid.row-head`. On
+   Track's schedule hover is taken back off: a season row fills with the
+   accent instead, below. */
+button.cal-results__trigger:hover {
+  background: transparent;
+  color: inherit;
+}
+
+.cal-results__chevron-w {
+  display: flex;
+  align-self: center;
+}
+
+/* Reference `.calendar-dropdown-chevron`: 1.4375rem in the accent, turned
+   half round until its season opens. */
+.cal-results__chevron {
+  inline-size: calc(var(--u) * 1.4375);
+  block-size: calc(var(--u) * 1.4375);
+  color: var(--accent);
+  transform: rotate(180deg);
+}
+
+.cal-results__year {
+  grid-column: span 2;
+}
+
+/* Reference `.icon-svg-closed-reef.pre-f1-car.is-history` in its
+   `.f1-highlight-trophy-w`: a 3.75rem wreath at the right of a square as tall
+   as the row, hung 5.6rem left of the place -- in the accent for a title, in
+   grey for a runner-up. The reference leaves it its colour on hover and when
+   open, so a title's wreath goes into the fill; so does ours. */
+.cal-results__reef {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: calc(var(--u) * -5.6);
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  block-size: 100%;
+  aspect-ratio: 1;
+  color: var(--accent);
+}
+
+.cal-results__reef--p2 {
+  color: var(--grey-on-track);
+}
+
+.cal-results__reef svg {
+  display: block;
+  inline-size: calc(var(--u) * 3.75);
+  block-size: calc(var(--u) * 3.75);
+}
+
+/* Reference `.f1-grid-row-head-line`: along the row's foot, inset by the
+   gutter. */
+.cal-results__line {
+  position: absolute;
+  inset: auto var(--g) 0;
+  block-size: 1px;
+  background: var(--dark-tint-1);
+}
+
+/* Open: the row takes the accent and black ink, the chevron turns home. */
+.cal-results__item.is-open .cal-results__trigger {
+  background: var(--accent);
+  color: var(--black);
+}
+
+.cal-results__item.is-open .cal-results__chevron {
+  color: var(--black);
+  transform: none;
+}
+
+/* Reference `.f1-highlight-grid.top.dropdown-item`: 1.5 --g above it. */
+.cal-results__subhead {
+  padding-block-start: calc(var(--g) * 1.5);
+}
+
+/* A season's round number: plain, in grey, no strike. */
+.cal-results__round {
+  min-inline-size: calc(var(--u) * 3.4);
+  color: var(--grey-on-track);
+}
+
+.cal-results__content[hidden] {
+  display: none;
+}
+
+@media (min-width: 992px) and (hover: hover) {
+  button.cal-results__trigger:hover {
+    background: var(--accent);
+    color: var(--black);
+  }
+
+  button.cal-results__trigger:hover .cal-results__chevron,
+  button.cal-results__trigger:hover .cal-row__suffix {
+    color: inherit;
+  }
+}
+
+/* The reference's rem below 992px, as On Track's sections take it. */
+@media (max-width: 991px) {
+  .cal-hero,
+  .cal-results {
+    --u: calc(clamp(768px, 100vw, 991px) / 1728 * 20);
+  }
+}
+
+@media (max-width: 767px) {
+  .cal-hero,
+  .cal-results {
+    --u: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
+  }
+
+  .cal-results__title-row {
+    grid-template-columns: 1fr;
+    row-gap: calc(var(--g) * 2);
+  }
+
+  .cal-results__h,
+  .cal-results__para {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 479px) {
+  .cal-hero,
+  .cal-results {
+    --u: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
+  }
+
+  /* The reference's `data-hide="m"`: a run round drops its date here and
+     keeps its fastest lap, where a round to come drops its distance. */
+  .cal-row--past > :nth-child(3),
+  #calendar-list .ot-cal__row--head > :nth-child(3) {
+    display: none;
+  }
+
+  .cal-row--past > .ot-cal__cell--unit,
+  #calendar-list .ot-cal__row--head > :nth-child(5) {
+    display: flex;
+  }
+
+  /* Reference `.f1-highlight-grid.row-head` and `.is-history` here. */
+  .cal-results__trigger,
+  .cal-results__head {
+    grid-template-columns: minmax(0, 0.5fr) minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr) minmax(0, 0.75fr);
+  }
+
+  .cal-results__year,
+  .cal-results__head-loc {
+    grid-column: auto;
+  }
+
+  .cal-results__race,
+  .cal-results__subhead {
+    grid-template-columns: minmax(0, 0.5fr) minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .cal-results__race > :nth-child(2) {
+    grid-column: span 2;
+  }
+
+  .cal-results__race > :nth-child(3) {
+    display: none;
+  }
+
+  .cal-results__race > .ot-cal__cell--unit,
+  .cal-results__subhead > :nth-child(4) {
+    display: flex;
+  }
+
+  .cal-results__reef {
+    position: relative;
+    inset-inline-start: auto;
+    block-size: auto;
+  }
+
+  .cal-results__reef svg {
+    inline-size: calc(var(--u) * 2);
+    block-size: calc(var(--u) * 2);
   }
 }

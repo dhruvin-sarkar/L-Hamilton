@@ -50,7 +50,7 @@ if (!reducedMotion) {
   smoothScroller = instance;
 }
 
-mountFooterMarquee(smoothScroller);
+mountFooterMarquee();
 
 /* ------------------------------------------------------------------ *
  * The season this page is about
@@ -154,7 +154,7 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-cal-jump]
  * ------------------------------------------------------------------ */
 
 mountSeason(need('.cal-sched'), smoothScroller);
-mountResults(need('.cal-results'));
+mountResults(need('.cal-results'), smoothScroller);
 mountCountdown(need('[data-countdown]'));
 
 /* ------------------------------------------------------------------ *
