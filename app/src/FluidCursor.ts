@@ -341,6 +341,8 @@ export class FluidCursor {
   private moved = false;
   /** Seconds banked toward the next step. */
   private pending = 0;
+  /** Scratch for restOutput, so a resize allocates nothing. */
+  private readonly savedClearColor = new THREE.Color();
 
   constructor(renderer: THREE.WebGLRenderer) {
     this.renderer = renderer;
@@ -427,11 +429,31 @@ export class FluidCursor {
     this.pressure.setSize(w, h);
     this.divergence.setSize(w, h);
     this.output.setSize(Math.max(1, Math.round(cssWidth)), Math.max(1, Math.round(cssHeight)));
+    this.restOutput();
 
     this.fboSize.set(w, h);
     this.px.set(1 / CELL_DIVISOR, w / h / CELL_DIVISOR);
     // CURSOR_SIZE cells is the brush's half-extent in NDC; halve it for UV.
     this.forceScale.set((CURSOR_SIZE * this.px.x) / 2, (CURSOR_SIZE * this.px.y) / 2);
+  }
+
+  /**
+   * Fill the output with white, "nothing moving", until a step writes it.
+   *
+   * A freshly sized target is black, and black reads as fluid moving
+   * everywhere: the first frame after load or a resize would show the whole
+   * screen in the cursor palette with the full helmet over it. (The clock's
+   * first delta is zero, so that first frame never steps.)
+   */
+  private restOutput(): void {
+    const previousTarget = this.renderer.getRenderTarget();
+    this.renderer.getClearColor(this.savedClearColor);
+    const savedAlpha = this.renderer.getClearAlpha();
+    this.renderer.setRenderTarget(this.output);
+    this.renderer.setClearColor(0xffffff, 1);
+    this.renderer.clear(true, false, false);
+    this.renderer.setClearColor(this.savedClearColor, savedAlpha);
+    this.renderer.setRenderTarget(previousTarget);
   }
 
   private pass(material: THREE.ShaderMaterial, target: THREE.WebGLRenderTarget): void {

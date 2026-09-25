@@ -122,8 +122,8 @@ export const fieldFragment = /* glsl */ `
     vec4 textureBackgroundNoise = texture2D(tBackgroundNoise, vUv);
     float noiseBase = textureBackgroundNoise.r;
 
-    // uReveal fades the field in from flat background during the intro, so the
-    // topography draws itself on rather than being there from frame one.
+    // The reference's reveal term, kept as it wrote it. Both hero and
+    // background hold uReveal at 1, as the running reference does.
     vec3 background = mix(
       COLOR_BACKGROUND,
       mix(COLOR_BACKGROUND, COLOR_FOREGROUND, uReveal),
@@ -250,7 +250,6 @@ const headFragment = /* glsl */ `
 
   uniform vec2  uPointer;
   uniform float uParallax;
-  uniform float uIntro;
   uniform float uSaturation;
 
   /* The helmet's lower rim and footprint, in this plane's UV. See fitHelmet. */
@@ -273,11 +272,7 @@ const headFragment = /* glsl */ `
     vec3  color = texture2D(uDiffuse, uv).rgb;
     float alpha = texture2D(uAlpha, uv).r;
 
-    // Intro wipe, bottom up. uIntro is driven past 1 so the leading edge clears
-    // the top of the plane; comparing against it directly leaves everything
-    // above the softening band masked forever.
-    alpha *= smoothstep(vUv.y - 0.25, vUv.y, uIntro * 1.3);
-
+    // No intro wipe: the reference's head is whole from its first frame.
     if (alpha < 0.004) discard;
 
     /* The helmet's shadow, only where the helmet is showing. */
@@ -351,7 +346,10 @@ const makeFieldUniforms = (
   COLOR_CURSOR_FOREGROUND: { value: token('--gl-cursor-fg', '#ff2800') },
   COLOR_CURSOR_OUTLINE: { value: token('--gl-cursor-outline', '#ff2800') },
 
-  uReveal: { value: 0 },
+  /* 1, and never animated: the reference's shaders carry this reveal, but the
+     running site holds window.landoGL.reveal at 1 from load, so its field is
+     complete on the first frame. */
+  uReveal: { value: 1 },
   // The reference's composite uCursorIntensity: 1 at rest, taken to 0 as the
   // scroll hands the hero over. Shared with the helmet's mask.
   uCursorIntensity: { value: 1.0 },
@@ -365,7 +363,6 @@ const makeHeadUniforms = (pointer: THREE.Vector2, parallax: number, reveal: Reve
   uAlpha: { value: null as THREE.Texture | null },
   uPointer: { value: pointer },
   uParallax: { value: parallax },
-  uIntro: { value: 0 },
   uSaturation: { value: 1 },
   // Parked off the plane until the helmet is fitted, so no shadow falls.
   uShadowRim: { value: -10 },
@@ -507,11 +504,6 @@ export class HeadScene {
   /** Wants to be still; `still` follows once the reveal has faded out. */
   private goingStill = false;
 
-  /** Intro reveal, 0..1, over REVEAL_DURATION seconds. */
-  private reveal = 0;
-  /** Seconds. The reference's REVEAL_DURATION, read off its live params. */
-  private readonly revealDuration = 1.1;
-
   /**
    * How much the helmet follows the pointer, 1 at rest. The reference's
    * helmetRevealValue: the hover wipe takes it to 0 so the helmet settles
@@ -553,7 +545,6 @@ export class HeadScene {
   private readonly subjectScale: number;
   private aspect = 1;
   private readonly clock = new THREE.Clock();
-  private intro = 0;
 
   /**
    * Viewport size in DEVICE pixels, shared by reference with every material
@@ -585,6 +576,8 @@ export class HeadScene {
       tokenColor(css.getPropertyValue(name).trim() || fallback);
 
     this.contour = new ContourField(renderer);
+    // Held at 1, as the reference's landoGL.reveal is: no intro on the field.
+    this.contour.reveal = 1;
     this.revealU = makeRevealUniforms(this.fluid.texture, this.viewportPx);
 
     this.fieldU = makeFieldUniforms(this.contour.texture, this.revealU, token);
@@ -1024,22 +1017,6 @@ export class HeadScene {
     this.runIdle(dt);
     this.fluid.update(dt);
     this.contour.update(t);
-
-    if (this.intro < 1) {
-      this.intro = Math.min(this.intro + 0.012, 1);
-      this.headU.uIntro.value = this.intro;
-    }
-
-    // REVEAL_DURATION is in seconds, so this runs off the clock rather than a
-    // per-frame increment. Cubic ease-out: the reference's UV window is
-    // divided by (1 + REVEAL_SIZE * (1 - uReveal)), which is violently
-    // non-linear near 0, and a linear ramp would sit still and then snap.
-    if (this.reveal < 1) {
-      this.reveal = Math.min(this.reveal + dt / this.revealDuration, 1);
-      const eased = 1 - Math.pow(1 - this.reveal, 3);
-      this.contour.reveal = eased;
-      this.fieldU.uReveal.value = eased;
-    }
 
     this.revealU.tCursorEffect.value = this.fluid.texture;
     this.revealU.uHelmetHover.value = this.hover.wipe;
