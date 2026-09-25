@@ -92,15 +92,15 @@ const F1_FERRARI_FIRST_LOOK =
 
 /* OLDEST FIRST, one record per asset id, in asset order except where noted.
 
-   Ids 1-3 stay null because their two photographs disagree with each other,
-   not for want of a source. Reveal 01 is the 2010 Monaco "casino" lid and
-   reveal 02 the 2009 British GP one — formula1.com prints both photographs —
-   but helmet 02 is the roulette-topped 2010 Monaco lid and helmet 01 a
-   Steinmetz-branded yellow lid with a plain crown, so the two reveals look
-   swapped. Reveal 03 is the 2007 Australian GP practice debut, while helmet
-   03 carries the "LH" stripe logo that the 2007 lid lacks. Any label would be
-   wrong for one picture of the pair, so none is given; the files, not this
-   table, are what needs fixing. */
+   Ids 1-3 stay null because the two photographs of each entry disagree, not
+   for want of a source. formula1.com prints all three reveals: 01 is the 2010
+   Monaco "casino" lid, 02 the 2009 British GP one, 03 his practice debut at
+   the 2007 Australian GP. But helmet 02 is that same roulette-topped 2010
+   Monaco lid, the partner of reveal 01, not of its own; helmet 01 is a
+   Steinmetz-branded yellow lid with a plain crown, which no source better than
+   a replica maker's catalogue dates; and helmet 03 carries the "LH" stripe logo
+   the 2007 lid lacks. Any label would be wrong for one picture of its pair, so
+   none is given. The pairing of the files is what needs fixing. */
 const byId: readonly Helmet[] = [
   { id: 1, name: null, year: null },
   { id: 2, name: null, year: null },
