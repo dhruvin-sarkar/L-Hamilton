@@ -1,0 +1,107 @@
+/* Site chrome that sits over every page: the page loader and transition panel.
+ *
+ * Imported by main.css, which every page links render-blocking in its head, so
+ * the panel is styled in the very first paint on all four pages. The markup is
+ * partials/transition.html; the behaviour is src/lib/transition.ts. */
+
+/* ================================================== Page loader / transition
+ *
+ * The reference's `.transition-w`, measured at 1728x1080: fixed, full bleed,
+ * z-index 9999, the brand colour, its button pinned `--gap` above the bottom
+ * edge in a column that aligns to flex-end. */
+
+.transition {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  background: var(--rosso-corsa);
+  color: var(--dark);
+  /* It is a wall while it is up: nothing underneath takes a click mid-load. */
+  pointer-events: auto;
+  /* If the script never takes it over, it must not stand between the reader
+     and the page for good: after 10s it steps aside on its own. transition.ts
+     gives it a data-state the moment it mounts, which ends this. */
+  animation: transition-failsafe 0s linear 10s forwards;
+}
+
+.transition[data-state] {
+  animation: none;
+}
+
+@keyframes transition-failsafe {
+  to {
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
+/* While the number zooms, the colour is the glyph, not the panel. */
+.transition[data-state='covering'],
+.transition[data-state='revealing'] {
+  background: transparent;
+}
+
+.transition[data-state='revealed'] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.transition__zoom {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  overflow: hidden;
+  fill: var(--rosso-corsa);
+}
+
+/* 59px tall at 1728x1080 and scaled like the reference's Fit.Cover artboard:
+   by whichever of 1728 wide or 1080 high the viewport is further over. Centred
+   by margins rather than a transform, because GSAP owns its transform. */
+.transition__mark {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  block-size: max(5.463vh, 3.414vw);
+  inline-size: auto;
+  aspect-ratio: 464 / 501;
+  overflow: visible;
+  fill: var(--dark);
+  transform-origin: 50% 50%;
+}
+
+/* The reference's primary button, lime on its lime panel, so only the label
+   reads: 48px tall, 1rem each side, Mona Sans 800 at "wdth" 86, 16px, upper
+   case, sitting --gap above the bottom edge. */
+.transition__label {
+  position: relative;
+  inset-block-end: var(--gap);
+  display: flex;
+  align-items: center;
+  block-size: 3rem;
+  padding-inline: 1rem;
+  font-family: var(--font-body);
+  font-size: var(--text--btn-primary);
+  font-weight: 800;
+  font-stretch: 86%;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* An arrival from another page of the site: the panel is the one the last page
+   closed, which never carried the first-load label. */
+[data-arrival] .transition__label {
+  display: none;
+}
+
+/* Reduced motion: no loader and no transition at all. The page is there from
+   the first paint and links navigate the ordinary way. */
+@media (prefers-reduced-motion: reduce) {
+  .transition {
+    display: none;
+  }
+}

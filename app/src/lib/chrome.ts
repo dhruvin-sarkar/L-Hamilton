@@ -15,6 +15,7 @@
  */
 
 import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './motion';
+import { mountTransition } from './transition';
 
 /* ------------------------------------------------------------------ *
  * Monogram
@@ -507,7 +508,14 @@ function mountMonogramPark(): void {
 }
 
 export function mountChrome(): void {
+  /* The menu is mounted further down; the transition only needs to be able to
+     shut it, and only once a link is followed, by which time it exists. */
+  let closeMenu = (): void => {};
+
+  // Inert links first: the transition skips any click already prevented, so
+  // the placeholder links' listener has to be registered before its own.
   mountInertLinks();
+  mountTransition({ closeMenu: () => closeMenu() });
   mountNavSettle();
   mountMonogramPark();
 
@@ -710,6 +718,12 @@ export function mountChrome(): void {
     // `hidden` is `boolean | "until-found"` in the DOM lib, and "until-found" is
     // still hidden, so coerce rather than compare against true.
     menuBtn.addEventListener('click', () => setOpen(Boolean(menu.hidden)));
+
+    // A followed link closes it, as the reference's transition does
+    // (closeNavigation() at the start of its transition-out).
+    closeMenu = () => {
+      if (menuBtn.getAttribute('aria-expanded') === 'true') setOpen(false);
+    };
 
     // Escape must close it. An overlay with no keyboard exit is a trap.
     window.addEventListener('keydown', (e) => {
