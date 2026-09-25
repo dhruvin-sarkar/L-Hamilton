@@ -85,8 +85,10 @@
   transform: scale(calc(var(--nav-shrink, 1) * var(--nav-scale, 1)));
   transform-origin: 0 0;
   /* Optical, not metric: the serif's own side bearing already indents it, so
-     the two lines only align by eye once that is pulled back out. */
-  padding-left: 0.06em;
+     the two lines only align by eye once that is pulled back out. 0.12em of the
+     body size: the lockup is a <p>, and this is the 0.06em it was set against
+     when it inherited an h1's 2em. */
+  padding-left: 0.12em;
 }
 
 /* Sized off the surname's cap height, not off the two font sizes independently.
@@ -186,7 +188,9 @@
      0-2-0 specificity later in this file and would otherwise win the tie. */
   /* Falls back to 1, not 0: before the scroll timeline has run once the
      variable is unset, and a 0 fallback hides the mark on the hero at rest. */
-  opacity: var(--mono-in, 1);
+  /* --menu-mono is the menu's share: lib/chrome.ts runs it 0 -> 1 as the menu
+     starts to close, which fades the mark back over whatever the scroll says. */
+  opacity: calc(var(--mono-in, 1) * var(--menu-mono, 1));
   transition-property: visibility;
   /* The centring translate has to be restated at THIS specificity for the same
      reason opacity is. `.monogram` sets `translate: -50% -50%` at 0-1-0 and
@@ -208,15 +212,26 @@
   pointer-events: none;
 }
 
-[data-menu-open] .nav-inner .monogram {
+/* Keyed to the button rather than to the panel, so it follows the reference:
+   out as the menu starts to open and back as it starts to close, 0.4s on
+   GSAP's power2.out each way. The way back is played from lib/chrome.ts,
+   because the resting opacity is scrubbed and so cannot carry a transition. */
+.nav-inner:has(.menu-btn[aria-expanded='true']) .monogram {
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
   /* Hold the visibility flip until the fade has finished, so it does not blink
-     out; on the way back both run together from the first frame. */
+     out. */
   transition:
-    opacity 0.45s var(--cubic-default),
-    visibility 0s linear 0.45s;
+    opacity 0.4s cubic-bezier(0.33, 1, 0.68, 1),
+    visibility 0s linear 0.4s;
+}
+
+/* The open menu is a dark panel wherever the page was, so the lockup takes its
+   colours over the dark ground, as the reference switches its nav to the light
+   theme on opening. */
+.nav-inner:has(.menu-btn[aria-expanded='true']) {
+  --nav-ink: 0;
 }
 
 /* The controls, back on. Everything else in the bar is a label. */
@@ -371,6 +386,10 @@
 
 .menu-btn {
   --menu-open: 0;
+  /* What the outline and bars are drawn in: the page's light ink over a dark
+     ground and its dark ink over a light one, following the lockup beside it,
+     as the reference's outline follows its nav theme. */
+  --menu-ink: color-mix(in oklab, var(--white), var(--dark) calc(var(--nav-ink, 0) * 100%));
 
   display: grid;
   place-items: center;
@@ -385,33 +404,46 @@
   outline-offset: 3px;
 }
 
-/* 0.826 of the target — the reference's own icon-to-button ratio. */
+/* The whole target. Measured off the reference at 1728x1080: its outline runs
+   edge to edge of the 72px button, the same height as the store button beside
+   it, and its bars and X sit in that frame at the proportions MENU_ICON holds. */
 .menu-btn__icon {
   display: block;
-  inline-size: 3.1rem;
-  block-size: 3.1rem;
+  inline-size: 100%;
+  block-size: 100%;
 }
 
-/* Filled, so it pairs with the store button rather than reading as a different
-   class of control. The fill is a gradient whose stops main.ts drives. */
+/* The reference's button at rest is an outline in the nav's ink with nothing
+   inside it. Pointing at it fills it from the bottom in the brand colour, the
+   store button's liquid (lib/chrome.ts drives the stop offsets), and the
+   outline stays. */
 .menu-btn__frame {
   fill: url(#menu-liquid);
+  stroke: var(--menu-ink);
+  stroke-width: 2.75;
 }
 
-/* Only the colours live here; the OFFSETS are animated from main.ts, exactly as
-   with the monogram's pair. */
 .menu-btn__stop-fill {
-  stop-color: var(--giallo-modena);
-}
-.menu-btn__stop-base {
   stop-color: var(--rosso-corsa);
 }
+/* The same colour at zero opacity rather than `transparent`, which is black at
+   zero: the gradient's short blend between the two stops would pass through a
+   dark fringe. */
+.menu-btn__stop-base {
+  stop-color: var(--rosso-corsa);
+  stop-opacity: 0;
+}
 
-/* Dark ink throughout. It has to stay legible over both ends of the fill, and
-   the page ground is the one colour that reads on Rosso and Giallo alike. */
+/* Open, it is a solid tile of the light ink with the X in the dark one — the
+   reference's open state — arriving on the same clock as the X forms. */
+.menu-btn__open {
+  fill: var(--white);
+  opacity: var(--menu-open);
+}
+
 .menu-btn__bar {
   fill: none;
-  stroke: var(--dark);
+  stroke: color-mix(in oklab, var(--menu-ink), var(--dark) calc(var(--menu-open) * 100%));
   stroke-width: 2.8;
   stroke-linecap: round;
   will-change: transform;
@@ -423,11 +455,11 @@
    (1 - --menu-open) so it decays to nothing as the X forms; a translated X
    would sit visibly off-centre. */
 .menu-btn__bar[data-menu-bar='1'] {
-  translate: calc(var(--menu-hover) * (1 - var(--menu-open)) * -2.6px) 0;
+  translate: calc(var(--menu-hover) * (1 - var(--menu-open)) * -3px) 0;
 }
 
 .menu-btn__bar[data-menu-bar='2'] {
-  translate: calc(var(--menu-hover) * (1 - var(--menu-open)) * 2.6px) 0;
+  translate: calc(var(--menu-hover) * (1 - var(--menu-open)) * 3px) 0;
 }
 
 @property --menu-hover {
@@ -1379,8 +1411,11 @@
   mask-position: center;
   /* Far fainter than the hero's field. There it is the subject; here it sits
      under photographs and 92px type and only has to keep the panel from
-     reading as a flat slab. */
-  opacity: 0.3;
+     reading as a flat slab. Measured against the reference's backdrop at
+     1728x1080: its brightest line pixels sit 37 (RGB sum) above the ground,
+     and this strength puts ours there. The menu's timeline fades it up to
+     this value. */
+  opacity: 0.13;
 }
 
 /* The panel takes focus on open, but it is a container, not a control — a ring
@@ -1401,11 +1436,11 @@
   justify-content: space-between;
   gap: 1.25rem; /* 22.08px */
   block-size: 100%;
-  /* 44.16 top/bottom. The inline padding is deliberately asymmetric and
-     includes the reference's outer container inset: 22.08 + 39.75 on the left,
-     22.08 + 141.33 on the right, which is what pulls the link column well in
+  /* The reference's .nav-menu-inner.c and .nav-menu-grid added together:
+     2.5rem above and 2rem below, and inline 1.25rem + 2.25rem on the left and
+     1.25rem + 8rem on the right, which is what pulls the link column well in
      from the edge while the tiles sit close to it. */
-  padding: 2.5rem 9.25rem 2.5rem 3.5rem;
+  padding: 2.5rem 9.25rem 2rem 3.5rem;
 }
 
 /* ------------------------------------------------------- Image collage */
@@ -1430,21 +1465,14 @@
 /* The two columns are pushed in opposite directions so the tiles interlock
    instead of forming a plain grid — and the amount TRACKS THE CURSOR'S HEIGHT.
    --menu-parallax runs -1 at the bottom of the viewport to +1 at the top, and
-   the columns counter-slide by up to +/-5.98rem (105.57px), which is the
-   reference's own measured extreme rather than a constant offset:
-
-       cursor y     col 1
-       0            +94.7      (easing toward +105.6)
-       centre       +6.2       (~0)
-       bottom       -103.1
-
-   Applied as a transform, not a margin, so it composes with the centring above
+   the columns counter-slide by up to +/-6rem, the reference's own number
+   (lando-gl.js), zero with the cursor at the vertical centre. Applied as a transform, not a margin, so it composes with the centring above
    rather than fighting it. */
 .menu__col:first-child {
-  transform: translateY(calc(var(--menu-parallax, 0) * 5.98rem));
+  transform: translateY(calc(var(--menu-parallax, 0) * 6rem));
 }
 .menu__col:last-child {
-  transform: translateY(calc(var(--menu-parallax, 0) * -5.98rem));
+  transform: translateY(calc(var(--menu-parallax, 0) * -6rem));
 }
 
 .menu__tile {
@@ -1509,27 +1537,28 @@
 
 /* --------------------------------------------------------- Right column */
 
+/* The reference's .nav-menu-links-w: a 1.25rem spacer, the links, and the
+   footer, spread with space-between, so the links sit centred between the
+   spacer and the footer. */
 .menu__side {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: space-between;
   flex: none;
   inline-size: 27.3rem; /* 481.7px */
 }
 
-/* `auto` on the block axis centres this in the leftover space AND pushes the
-   footer to the bottom, which is what the reference's layout resolves to. */
+.menu__side::before {
+  content: '';
+  block-size: 1.25rem;
+}
+
 .menu__block {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2.5rem; /* 44.17px */
-  margin-block: auto;
-  /* Not centred. The reference leaves 186px above this block and 157px below,
-     biasing it up toward the nav; `auto` margins alone would split the
-     difference evenly and sit it 36px too high. A transform rather than a
-     margin, so the footer below keeps its own measured position. */
-  transform: translateY(0.8rem);
+  gap: 2.5rem;
 }
 
 .menu__links {
@@ -1553,21 +1582,29 @@
   );
 }
 
+/* The reference's .text-nav-link: Mona Sans at "wght" 660 and "wdth" 93, not
+   the condensed display cut, with its colour easing over 0.6s. */
 .menu__link-text {
   display: block;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 5.25rem; /* 92.75px */
-  line-height: 0.94; /* 87.19px */
+  font-family: var(--font-body);
+  font-weight: 660;
+  font-stretch: 93%;
+  font-size: 5.25rem;
+  line-height: 0.94;
   text-transform: uppercase;
-  letter-spacing: -0.02em;
   white-space: nowrap;
+  transition: color 0.6s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 /* The page you are already on is stated by being DIMMER, not brighter — it is
    the one item you cannot usefully click. */
 .menu__link.is-current .menu__link-text {
   color: var(--text-muted);
+}
+
+/* Nothing to go to, so it does not answer the pointer either. */
+.menu__link.is-current {
+  pointer-events: none;
 }
 
 .menu__link:hover .menu__link-text,
@@ -1606,6 +1643,8 @@
 
 .menu__eyebrow {
   font-size: var(--text--eyebrow);
+  /* .text-eyebrow sets "wght" 700 at full width. */
+  font-weight: 700;
   /* The reference sets this line at letter-spacing `normal` and line-height 1.
      Tracking it out, as eyebrows elsewhere on the site are, made it 60px wider
      and 6px taller than the measured original. */
@@ -1622,31 +1661,53 @@
    overshoot slightly past their end (-0.14% and -0.67px), which is a back ease.
    Wiping keeps the type at full weight the whole way in; a fade would have it
    arrive grey. */
+/* .nav-menu-social-w: the contact line over the socials, --padding--small
+   apart. Every link is the reference's plain .btn-text: 1rem Mona Sans at
+   800 and "wdth" 86, upper case, set solid. */
 .menu__footer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.9rem;
-  font-size: 0.79rem; /* 14px */
+  gap: var(--padding--small);
+  font-size: var(--text--btn-primary);
+  font-weight: 800;
+  font-stretch: 86%;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
-.menu__footer a {
+/* Set solid in the roll's wrapper too, which elsewhere carries 1.25 for the
+   nav's taller buttons: the reference's footer links are 16px boxes. */
+.menu__footer .btn-text {
+  line-height: 1;
+}
+
+/* The team line and the footer links wipe in from the left, each under a bar
+   of the brand colour that lib/chrome.ts adds and then retracts to the right —
+   the reference's lime `.high-line-reveal`, in Rosso Corsa. The bar is a child,
+   so the line's own clip trims it as the wipe opens. */
+[data-menu-highlight] {
+  position: relative;
   clip-path: inset(0 calc(100% - var(--wipe, 0) * 100%) 0 0);
 }
 
-.menu__contact {
-  color: var(--accent);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+.menu__highlight-bar {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: var(--rosso-corsa);
+  transform-origin: 100% 50%;
+  pointer-events: none;
 }
 
+.menu__contact {
+  color: var(--text);
+}
+
+/* .callout-socials-links-layout */
 .menu__socials {
   display: flex;
-  gap: 1.9rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 700;
+  gap: calc(var(--gap) * 1.5);
 }
 
 .menu__socials a {
@@ -1670,8 +1731,45 @@
   .menu,
   .menu__tile,
   .menu__link,
-  .menu__footer a {
+  [data-menu-highlight] {
     clip-path: none;
+  }
+}
+
+/* The reference's smaller menus. Below 992px the collage goes and the link
+   column centres in the panel; below 480px the links come down to 3.7rem, the
+   crest to 4.7rem across, and the socials wrap onto centred rows. */
+@media (max-width: 991px) {
+  .menu__images {
+    display: none;
+  }
+
+  .menu__grid {
+    justify-content: center;
+    padding-inline: 1.25rem;
+  }
+
+  .menu__side {
+    inline-size: auto;
+  }
+}
+
+@media (max-width: 479px) {
+  .menu__link-text {
+    font-size: 3.7rem;
+  }
+
+  .menu__crest {
+    inline-size: 4.7rem;
+    block-size: auto;
+  }
+
+  .menu__socials {
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: calc(var(--gap) * 0.5) var(--gap);
+    max-inline-size: 20rem;
   }
 }
 
