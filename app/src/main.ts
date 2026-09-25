@@ -1382,10 +1382,9 @@ if (stage) {
       if (signature) {
         signature.progress = (t - SIGN_FROM) / (SIGN_TO - SIGN_FROM);
       }
-      // Muted, not faded. Draining saturation keeps the plate solid; dropping
-      // opacity would dissolve it into the screen behind. Stops at 0.2 — a
-      // fully grey plate reads as broken rather than as receding.
-      head.saturation = 1 - 0.8 * eased;
+      // The reference's uFilter: scrubbed 0 -> 1 with power1.inOut over the
+      // same first viewport of scroll, which is exactly `eased`.
+      head.filter = eased;
       /* These go on the NAV, not on the document element.
        *
        * A custom property set on :root invalidates style for every element

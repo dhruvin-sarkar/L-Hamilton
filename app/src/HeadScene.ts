@@ -80,6 +80,63 @@ const revealChunk = /* glsl */ `
   }
 `;
 
+/**
+ * The reference's scroll-out transition -- its composite's `uFilter` -- shared
+ * by everything drawn on the plate. As the plate shrinks, the whole picture
+ * cross-fades to a still:
+ *
+ *     end = portrait over a 0.05 ground, to grey, contrast 0.8, x0.75,
+ *           hard-light blended with COLOR_FILTER
+ *     out = mix(final, end, uFilter)
+ *
+ * The reference does this in its composite's working space and encodes to
+ * sRGB on output. Ours write sRGB directly, so the maths runs on linearised
+ * values and encodes back here: the same numbers reach the screen. Checked on
+ * its landed plate, whose ground reads rgb(71, 77, 65) -- exactly the sRGB
+ * encode of 2 * #50593F * 0.105, the formula's value for that ground.
+ *
+ * With the filter below 0.5 on every channel the hard light is 2 * filter * v,
+ * linear in v, so blending the portrait's end over the ground's end by alpha
+ * is the reference's end of the blended pixel. Only the anti-aliased rim of
+ * the cutout sees the difference between sRGB and linear blending.
+ */
+const filterChunk = /* glsl */ `
+  uniform float uFilter;
+  uniform vec3  COLOR_FILTER;
+
+  vec3 filterToLinear(vec3 c) {
+    c = clamp(c, 0.0, 1.0);
+    return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c));
+  }
+
+  vec3 filterToSrgb(vec3 c) {
+    c = clamp(c, 0.0, 1.0);
+    return mix(c * 12.92, 1.055 * pow(c, vec3(1.0 / 2.4)) - 0.055, step(0.0031308, c));
+  }
+
+  float filterOverlay(float base, float blend) {
+    return base < 0.5 ? 2.0 * base * blend : 1.0 - 2.0 * (1.0 - base) * (1.0 - blend);
+  }
+
+  /* The end state for a LINEAR colour. blendHardLight(end, COLOR_FILTER) is
+     the overlay with the filter as its base. */
+  vec3 filterEnd(vec3 linearColor) {
+    float gray = dot(linearColor, vec3(0.299, 0.587, 0.114));
+    float v = ((gray - 0.5) * 0.8 + 0.5) * 0.75;
+    return vec3(
+      filterOverlay(COLOR_FILTER.r, v),
+      filterOverlay(COLOR_FILTER.g, v),
+      filterOverlay(COLOR_FILTER.b, v)
+    );
+  }
+
+  /* Cross-fade an sRGB colour to a LINEAR end state, in linear. */
+  vec3 applyFilter(vec3 srgbColor, vec3 linearEnd) {
+    if (uFilter <= 0.0) return srgbColor;
+    return filterToSrgb(mix(filterToLinear(srgbColor), linearEnd, uFilter));
+  }
+`;
+
 /* ------------------------------------------------------------------ *
  * Contour field
  * ------------------------------------------------------------------ */
@@ -115,10 +172,20 @@ export const fieldFragment = /* glsl */ `
   uniform float uReveal;
   uniform float uCursorIntensity;
   uniform float uHelmetHover;
+  /* The plate has gone still: flat ground, no contours, nothing sampled. */
+  uniform bool  uFlat;
+
+  ${filterChunk}
 
   varying vec2 vUv;
 
   void main() {
+    vec3 groundEnd = filterEnd(vec3(0.05));
+    if (uFlat) {
+      gl_FragColor = vec4(applyFilter(COLOR_BACKGROUND, groundEnd), 1.0);
+      return;
+    }
+
     vec4 textureBackgroundNoise = texture2D(tBackgroundNoise, vUv);
     float noiseBase = textureBackgroundNoise.r;
 
@@ -171,7 +238,7 @@ export const fieldFragment = /* glsl */ `
     float hoverFront = vUv.y + sin(vUv.x * 3.141592) * sin(uHelmetHover * 3.141592) * 0.2;
     background = mix(background, cursorBackground, step(1.0 - hoverFront, uHelmetHover));
 
-    gl_FragColor = vec4(background, 1.0);
+    gl_FragColor = vec4(applyFilter(background, groundEnd), 1.0);
   }
 `;
 
@@ -250,7 +317,6 @@ const headFragment = /* glsl */ `
 
   uniform vec2  uPointer;
   uniform float uParallax;
-  uniform float uSaturation;
 
   /* The helmet's lower rim and footprint, in this plane's UV. See fitHelmet. */
   uniform float uShadowRim;
@@ -258,6 +324,7 @@ const headFragment = /* glsl */ `
   uniform vec2  uShadowSize;
 
   ${revealChunk}
+  ${filterChunk}
 
   varying vec2 vUv;
 
@@ -285,12 +352,9 @@ const headFragment = /* glsl */ `
       color *= 1.0 - 0.75 * band * across * shade;
     }
 
-    /* Mute, applied here rather than as a CSS filter on the wrapper.
-       filter: saturate() on a full-viewport element makes the compositor
-       rasterise the layer, run a filter pass over it and composite the result,
-       every frame the value changes. Rec. 709 luma, the CSS filter's weights. */
-    float luma = dot(color, vec3(0.2126, 0.7152, 0.0722));
-    color = mix(vec3(luma), color, uSaturation);
+    /* The scroll-out transition, here rather than as a CSS filter: a filter on
+       a full-viewport element costs a compositor pass every frame it moves. */
+    color = applyFilter(color, filterEnd(filterToLinear(color)));
 
     gl_FragColor = vec4(color, alpha);
   }
@@ -326,14 +390,30 @@ const makeRevealUniforms = (cursor: THREE.Texture, viewportPx: THREE.Vector2) =>
 });
 type RevealUniforms = ReturnType<typeof makeRevealUniforms>;
 
+/**
+ * The scroll-out transition's inputs, shared by field, portrait and helmet.
+ *
+ * COLOR_FILTER goes in as its plain sRGB components, as the reference's does
+ * (it builds a Color from the hex and calls convertLinearToSRGB on it), because
+ * the formula treats it as a value, not as a colour to be managed.
+ */
+const makeFilterUniforms = (filterColor: THREE.Color) => ({
+  uFilter: { value: 0 },
+  COLOR_FILTER: { value: filterColor.clone().convertLinearToSRGB() },
+});
+type FilterUniforms = ReturnType<typeof makeFilterUniforms>;
+
 const makeFieldUniforms = (
   noise: THREE.Texture,
   reveal: RevealUniforms,
+  filter: FilterUniforms,
   token: (name: string, fallback: string) => THREE.Color,
 ) => ({
+  ...filter,
   tBackgroundNoise: { value: noise },
   tCursorEffect: reveal.tCursorEffect,
   uHelmetHover: reveal.uHelmetHover,
+  uFlat: { value: false },
 
   OUTLINE: { value: true },
   // The reference's epsilon, unchanged. See ContourField: this is not a width.
@@ -356,14 +436,19 @@ const makeFieldUniforms = (
 });
 type FieldUniforms = ReturnType<typeof makeFieldUniforms>;
 
-const makeHeadUniforms = (pointer: THREE.Vector2, parallax: number, reveal: RevealUniforms) => ({
+const makeHeadUniforms = (
+  pointer: THREE.Vector2,
+  parallax: number,
+  reveal: RevealUniforms,
+  filter: FilterUniforms,
+) => ({
   ...reveal,
+  ...filter,
   uDiffuse: { value: null as THREE.Texture | null },
   uDepth: { value: null as THREE.Texture | null },
   uAlpha: { value: null as THREE.Texture | null },
   uPointer: { value: pointer },
   uParallax: { value: parallax },
-  uSaturation: { value: 1 },
   // Parked off the plane until the helmet is fitted, so no shadow falls.
   uShadowRim: { value: -10 },
   uShadowCentre: { value: 0.5 },
@@ -388,11 +473,27 @@ const makeWireUniforms = (heightRange: THREE.Vector2, color: THREE.Color) => ({
 });
 type WireUniforms = ReturnType<typeof makeWireUniforms>;
 
-/** Everything a revealed helmet material adds to its program. */
-const makeMaskUniforms = (reveal: RevealUniforms, intensity: THREE.IUniform<number>) => ({
+/**
+ * Everything a revealed helmet material adds to its program.
+ *
+ * The portrait's own maps and screen rectangle are in here for the transition:
+ * the reference's end state is computed from the PORTRAIT alone, so as the
+ * plate fades to it a visible helmet fades to the face beneath, not to grey.
+ */
+const makeMaskUniforms = (
+  reveal: RevealUniforms,
+  intensity: THREE.IUniform<number>,
+  filter: FilterUniforms,
+  head: HeadUniforms,
+) => ({
   ...reveal,
+  ...filter,
   uCursorIntensity: intensity,
   uShowHelmet: { value: 0 },
+  uDiffuse: head.uDiffuse,
+  uAlpha: head.uAlpha,
+  /** The portrait plane on screen, in device pixels: x, y, width, height. */
+  uPortraitRect: { value: new THREE.Vector4(0, 0, 1, 1) },
 });
 type MaskUniforms = ReturnType<typeof makeMaskUniforms>;
 
@@ -441,6 +542,7 @@ export class HeadScene {
   private readonly field: THREE.ShaderMaterial;
   private readonly head: THREE.ShaderMaterial;
   private readonly revealU: RevealUniforms;
+  private readonly filterU: FilterUniforms;
   private readonly fieldU: FieldUniforms;
   private readonly headU: HeadUniforms;
   private readonly maskU: MaskUniforms;
@@ -580,7 +682,8 @@ export class HeadScene {
     this.contour.reveal = 1;
     this.revealU = makeRevealUniforms(this.fluid.texture, this.viewportPx);
 
-    this.fieldU = makeFieldUniforms(this.contour.texture, this.revealU, token);
+    this.filterU = makeFilterUniforms(token('--gl-filter', '#5a463f'));
+    this.fieldU = makeFieldUniforms(this.contour.texture, this.revealU, this.filterU, token);
     this.field = new THREE.ShaderMaterial({
       vertexShader: quadVertex,
       fragmentShader: fieldFragment,
@@ -590,7 +693,7 @@ export class HeadScene {
     // Parallax is subtle by default: the depth map is strong enough that
     // anything higher reads as the photo sliding rather than the head having
     // volume.
-    this.headU = makeHeadUniforms(this.pointer, opts.parallax ?? 0.011, this.revealU);
+    this.headU = makeHeadUniforms(this.pointer, opts.parallax ?? 0.011, this.revealU, this.filterU);
     this.head = new THREE.ShaderMaterial({
       vertexShader: quadVertex,
       fragmentShader: headFragment,
@@ -598,7 +701,7 @@ export class HeadScene {
       uniforms: this.headU,
     });
 
-    this.maskU = makeMaskUniforms(this.revealU, this.fieldU.uCursorIntensity);
+    this.maskU = makeMaskUniforms(this.revealU, this.fieldU.uCursorIntensity, this.filterU, this.headU);
 
     const quad = new THREE.PlaneGeometry(1, 1);
 
@@ -675,8 +778,12 @@ export class HeadScene {
             '#include <common>',
             `#include <common>
             ${revealChunk}
+            ${filterChunk}
             uniform float uCursorIntensity;
-            uniform float uShowHelmet;`,
+            uniform float uShowHelmet;
+            uniform sampler2D uDiffuse;
+            uniform sampler2D uAlpha;
+            uniform vec4 uPortraitRect;`,
           )
           .replace(
             'void main() {',
@@ -692,7 +799,18 @@ export class HeadScene {
           .replace(
             '#include <dithering_fragment>',
             `#include <dithering_fragment>
-            if (!gl_FrontFacing) gl_FragColor.rgb = vec3(0.0);`,
+            if (!gl_FrontFacing) gl_FragColor.rgb = vec3(0.0);
+            /* The transition: fade toward the end state of the PORTRAIT under
+               this pixel, as the reference's composite does. */
+            if (uFilter > 0.0) {
+              vec2 portraitUv = (gl_FragCoord.xy - uPortraitRect.xy) / uPortraitRect.zw;
+              float inPlane = step(0.0, portraitUv.x) * step(portraitUv.x, 1.0)
+                            * step(0.0, portraitUv.y) * step(portraitUv.y, 1.0);
+              float portraitAlpha = texture2D(uAlpha, portraitUv).r * inPlane;
+              vec3 portrait = filterToLinear(texture2D(uDiffuse, portraitUv).rgb);
+              vec3 under = filterEnd(vec3(0.05)) * (1.0 - portraitAlpha) + filterEnd(portrait) * portraitAlpha;
+              gl_FragColor.rgb = applyFilter(gl_FragColor.rgb, under);
+            }`,
           );
       };
       material.customProgramCacheKey = () => 'hero-helmet-reveal';
@@ -946,7 +1064,10 @@ export class HeadScene {
   /** Bring the scene in line with `goingStill` — see `set inert`. */
   private applyStill(): void {
     this.still = this.goingStill;
-    this.fieldMesh.visible = !this.still;
+    /* Flat rather than hidden: the ground is still drawn, so it keeps the
+       field's own colour instead of stepping to the canvas's CSS backing, and
+       it takes the transition with everything else. */
+    this.fieldU.uFlat.value = this.still;
     if (this.helmet) {
       this.helmet.lit.visible = !this.still;
       this.helmet.wire.visible = !this.still;
@@ -954,12 +1075,13 @@ export class HeadScene {
   }
 
   /**
-   * Drain the portrait's colour as the plate closes, 1 down to 0. In the
-   * shader rather than as a CSS filter, which would cost a full-viewport
-   * filter pass every frame of the scrub.
+   * The reference's scroll-out transition, 0..1: the whole plate cross-fades
+   * to a grey, flattened, filter-tinted still as it shrinks. The reference
+   * scrubs its uFilter 0 -> 1 (power1.inOut) over the first viewport of
+   * scroll. See filterChunk.
    */
-  set saturation(v: number) {
-    this.headU.uSaturation.value = v;
+  set filter(v: number) {
+    this.filterU.uFilter.value = v;
   }
 
   /**
@@ -1025,6 +1147,18 @@ export class HeadScene {
     this.pointer.lerp(this.pointerTarget, this.ease);
     this.headMesh.position.x = this.headBase.x + this.pointer.x * this.imageShift * this.hover.follow;
     this.headMesh.position.y = this.headBase.y + this.pointer.y * this.imageShift * 0.6 * this.hover.follow;
+
+    // Where the portrait lands in the canvas, in device pixels, for the
+    // helmet's share of the transition. The camera spans -view..view by -1..1.
+    const view = this.camera.right;
+    const sx = this.headMesh.scale.x;
+    const sy = this.headMesh.scale.y;
+    this.maskU.uPortraitRect.value.set(
+      ((this.headMesh.position.x - sx / 2 + view) / (2 * view)) * this.viewportPx.x,
+      ((this.headMesh.position.y - sy / 2 + 1) / 2) * this.viewportPx.y,
+      (sx / (2 * view)) * this.viewportPx.x,
+      (sy / 2) * this.viewportPx.y,
+    );
 
     const rig = this.helmet;
     if (rig) {

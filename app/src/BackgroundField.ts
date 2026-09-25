@@ -116,6 +116,11 @@ export class BackgroundField {
         uCursorIntensity: { value: 0 },
         // The hero's helmet-hover wipe. This screen has no helmet, so never.
         uHelmetHover: { value: 0 },
+        // The hero plate's still state and scroll-out transition. This screen
+        // is the one the plate transitions ONTO, so neither applies.
+        uFlat: { value: false },
+        uFilter: { value: 0 },
+        COLOR_FILTER: { value: new THREE.Color(0, 0, 0) },
       },
       depthTest: false,
       depthWrite: false,
