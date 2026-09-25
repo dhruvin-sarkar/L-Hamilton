@@ -120,7 +120,10 @@
                     <stop class="menu-btn__stop-base" offset="0.05" />
                   </linearGradient>
                 </defs>
-                <rect class="menu-btn__frame" x="0" y="0" width="66" height="66" rx="13" />
+                <!-- Inset by half its stroke, so the outline's outer edge is the
+                     66-unit box and its corners the 13-unit radius. -->
+                <rect class="menu-btn__frame" x="1.375" y="1.375" width="63.25" height="63.25" rx="11.625" />
+                <rect class="menu-btn__open" x="0" y="0" width="66" height="66" rx="13" />
                 <path
                   class="menu-btn__bar"
                   data-menu-bar="1"

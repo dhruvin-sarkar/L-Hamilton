@@ -258,8 +258,9 @@ const MENU_ICON = {
   barStagger: 6.05,
   /** Measured bar centres. */
   barY: [29.2, 38.8],
-  /** Half-extent of the X along each axis, so each arm is this * sqrt(2) long. */
-  crossReach: 7.6,
+  /** Half-extent of the X along each axis, so each arm is this * sqrt(2) long.
+      The reference's open X covers 14px of its 72px button, caps included. */
+  crossReach: 5.2,
 } as const;
 
 function emitPath(nodes: PathNode[]): string {
@@ -653,6 +654,7 @@ export function mountChrome(): void {
      *
      *   group       at     for    curve
      *   overlay     0      0.8    power3.out
+     *   crest       0.2    1.7    GSAP's default curve, drawing the crest
      *   tiles       0.15   0.8    power3.out, a slot 0.06, rising 25px
      *   links       0.35   0.6    back.out(1.2), a slot 0.08, rising 20px
      *   mark        0.4    0.6    power2.inOut, from its link's slot x 0.05
@@ -675,6 +677,7 @@ export function mountChrome(): void {
      * unrepresentable. */
     const MENU_REVEAL = {
       overlay: { at: 0, tween: { duration: 0.8, ease: 'power3.out' } },
+      crest: { at: 0.2, tween: { duration: 1.7 } },
       tiles: { at: 0.15, tween: { duration: 0.8, ease: 'power3.out' }, slot: 0.06 },
       links: { at: 0.35, tween: { duration: 0.6, ease: 'back.out(1.2)' }, slot: 0.08 },
       mark: { at: 0.4, tween: { duration: 0.6, ease: 'power2.inOut' }, slot: 0.05 },
@@ -852,6 +855,29 @@ export function mountChrome(): void {
           { opacity: 0 },
           { opacity: rest, ...MENU_REVEAL.backdrop.tween },
           MENU_REVEAL.backdrop.at,
+        );
+      }
+
+      const crest = menu.querySelector<SVGElement>('.menu__crest');
+      if (crest) {
+        /* The reference draws its crest with a Rive state machine whose one
+           input the timeline runs from 0 to 1000. Read off that file at every
+           hundred: the laurels grow up their stems from 150 to 500 and the
+           helmet comes up inside them from 450 to 750. The same input drives the
+           two hooks in partials/crest.html here. It is also the timeline's
+           longest tween, so it sets how long the close takes. */
+        const draw = { input: 0 };
+        const clamp = gsap.utils.clamp(0, 1);
+        const paint = () => {
+          const branches = clamp((draw.input - 150) / 350);
+          crest.style.setProperty('--crest-branch-hide', `${(1 - branches) * 100}%`);
+          crest.style.setProperty('--crest-helmet', String(clamp((draw.input - 450) / 300)));
+        };
+        paint();
+        reveal.to(
+          draw,
+          { input: 1000, ...MENU_REVEAL.crest.tween, onUpdate: paint },
+          MENU_REVEAL.crest.at,
         );
       }
 
