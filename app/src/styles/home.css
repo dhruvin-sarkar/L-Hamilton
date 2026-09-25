@@ -2861,6 +2861,9 @@
   gap: calc(var(--gap) * 0.5);
   block-size: 3rem;
   padding-inline: 1rem;
+  /* The reference's .btn-w border, 1px in the fill's colour: without it the
+     button ran 202.5 wide against its 204.5. */
+  border: 1px solid transparent;
   border-radius: var(--radius--btn);
   font-size: var(--text--btn-primary);
   font-weight: 800;
@@ -2897,11 +2900,9 @@
 }
 
 /* Wider than the panel and pulled back by half the overhang, so the drift has
-   somewhere to travel without exposing an end.
-   112, not 110: GSAP writes xPercent against the element's OWN width, so a 5%
-   drift reaches 0.05 * 1.1P = 5.5% of the panel while 110% only reserves 5% a
-   side — the row's left edge came 8px inside the clip box at full travel. The
-   reserve has to beat the reach, which needs a width of at least 1.111P. */
+   somewhere to travel without exposing an end. The drift is 5vw either way
+   (86px at 1728) and 6% of the panel reserves 101px — the reference's own
+   5% reserves 84px and leaves its row's end 2px inside at full travel. */
 .footer__marquee-scroll {
   inline-size: 112%;
   margin-inline-start: -6%;
@@ -4082,10 +4083,9 @@
 /* Same box as .callout__arrow — it is the same mark on the same button, and
    the gap comes from .store-cta__link's own inline-flex. */
 .store-cta__arrow {
-  inline-size: 1.25rem;
-  block-size: 1.25rem;
+  inline-size: 1.2rem;
+  block-size: 1.2rem;
   flex: none;
-  margin-inline-start: 0.5rem;
 }
 
 /* ---- narrow screens ----
@@ -4236,11 +4236,15 @@
 .shop__eyebrow {
   display: flex;
   align-items: center;
-  gap: 0.62rem;
+  gap: calc(var(--gap) * 0.5);
   margin: 0;
+  /* The reference's .text-eyebrow.large: "wght" 812, "wdth" 81.3. Ours had no
+     weight at all and set the label at a regular 400. */
   font-size: 1.125rem;
+  font-weight: 812;
+  font-stretch: 81.3%;
   line-height: 1;
-  letter-spacing: -0.009em;
+  letter-spacing: -0.01rem;
   text-transform: uppercase;
   color: var(--dark);
 }
@@ -4253,12 +4257,17 @@
 
 /* ---- headline ---- */
 
+/* 1.875rem under the eyebrow, as under the headline and the body: the
+   reference's column is one flex stack on a 1.5 * --gap rhythm. 3.05rem was the
+   eyebrow's TOP to the headline's top, applied as a gap, and dropped the whole
+   block 19px. Type is its .text-impact-lg-mona: "wght" 750, "wdth" 93, -0.25rem. */
 .shop__title {
-  margin: 3.05rem 0 0;
+  margin: 1.875rem 0 0;
   font-size: 7rem;
   line-height: 0.816;
-  letter-spacing: -0.0357em;
-  font-weight: 800;
+  letter-spacing: -0.25rem;
+  font-weight: 750;
+  font-stretch: 93%;
   text-transform: uppercase;
 }
 
@@ -4280,12 +4289,15 @@
 
 /* ---- body ---- */
 
+/* Its .text-body-reg-mona: "wght" 500, -0.0125rem. */
 .shop__body {
-  margin: 1.87rem 0 0;
+  margin: 1.875rem 0 0;
   inline-size: 32.43rem;
   max-inline-size: 100%;
   font-size: 1.25rem;
+  font-weight: 500;
   line-height: 1.25;
+  letter-spacing: -0.0125rem;
   color: var(--dark);
 }
 
@@ -4300,12 +4312,18 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-block-start: 3.28rem;
+  /* The reference's .btn-w on the 1.5 * --gap rhythm: a 1px border in the
+     fill's own colour (transparent here, so the liquid shows through it), a
+     half-gap between label and arrow, the label at "wdth" 86. 173 x 48. */
+  gap: calc(var(--gap) * 0.5);
+  margin-block-start: 1.875rem;
   block-size: 3rem;
   padding-inline: 1rem;
+  border: 1px solid transparent;
   border-radius: var(--radius--btn);
   font-size: var(--text--btn-primary);
   font-weight: 800;
+  font-stretch: 86%;
   text-transform: uppercase;
   line-height: 1;
   background: linear-gradient(
@@ -4319,10 +4337,23 @@
 
 /* ---- the art ----
  *
- * Positioned against the section rather than the column, because the reference
- * places these against the viewport: its big frame starts at exactly 50% and
- * two of them run off an edge. Percentages where the placement is proportional,
- * rem where it is a measured size. */
+ * The reference's four frames and one sticker, in its slots. Read off its
+ * .exe-cta-img-w boxes at 1728 on a 16px root, so every rem below is its px
+ * over 16:
+ *
+ *   is-1  hero     630 x 833  at 864, 64      (the column edge, 50%)
+ *   is-2  side     400 x 286  at 1388, 256    runs off the right edge
+ *   is-3  print    227 x 290  at 683, 799     over the hero's lower corner
+ *   is-4  patch    262 x 190  at -48, 737     runs off the left edge
+ *   sticker        243 x 184  at 1161, 809
+ *
+ * THE MECHANIC. A photograph frame is a static clip and the picture inside it
+ * is 4rem taller, travelling up through the frame as the section passes — the
+ * frame's edges never move, only what is in them. The two photographs here
+ * are ordinary pictures and take that mechanic as the reference does, cropped
+ * with object-fit. The print and the patch are cut-outs with no ground of
+ * their own, so there is no frame edge to hold still: they take the same
+ * travel as a whole, which reads identically. */
 
 /* Above the visor, so the big frame overlaps the dome the way the reference's
    does — the photograph crossing the seam is what ties the two grounds
@@ -4334,24 +4365,31 @@
   pointer-events: none;
 }
 
-/* Every frame carries its SOURCE aspect ratio, and the picture is contained
-   rather than covered.
- *
- * The reference clips a taller image inside a shorter frame and travels the
- * overflow, which is free for it: its art is shot to be cropped. Ours is
- * product photography where the crop costs the product — at the reference's
- * proportions the patch lost a third of its width and the print lost its
- * title. So the frame takes the picture's own shape and the parallax moves the
- * WHOLE frame instead of sliding an image inside it. Same drift, nothing
- * thrown away. */
 .shop__frame {
   position: absolute;
-  /* 4rem = the reference's measured 64px of drift. 2.83rem travelled 45.3. */
+}
+
+/* 4rem of travel: the reference's picture is 64px taller than its frame and
+   covers all of it by the time the section has passed. */
+.shop__frame--photo {
+  overflow: clip;
+}
+
+.shop__frame--photo .shop__img {
+  display: block;
+  inline-size: 100%;
+  block-size: calc(100% + 4rem);
+  object-fit: cover;
   transform: translateY(calc(var(--store-parallax, 0) * -4rem));
   will-change: transform;
 }
 
-.shop__img {
+.shop__frame--cutout {
+  transform: translateY(calc(var(--store-parallax, 0) * -4rem));
+  will-change: transform;
+}
+
+.shop__frame--cutout .shop__img {
   display: block;
   inline-size: 100%;
   block-size: 100%;
@@ -4360,78 +4398,51 @@
 
 .shop__frame--hero {
   inset-inline-start: 50%;
-  inset-block-start: 4.02rem;
-  inline-size: 39.4rem;
-  aspect-ratio: 1400 / 1820;
+  inset-block-start: 4rem;
+  inline-size: 39.375rem;
+  block-size: 52.0625rem;
 }
 
+/* Portrait source in a landscape slot: the crop keeps the head and the star
+   yoke across the shoulders, which is the product, and gives up the jeans. */
 .shop__frame--side {
   inset-inline-start: 80.34%;
-  inset-block-start: 12rem;
+  inset-block-start: 16rem;
   inline-size: 25rem;
-  aspect-ratio: 900 / 1170;
+  block-size: 17.875rem;
 }
 
-/* Moved out of the reference's bottom-centre slot. That position sits directly
-   under the big frame, and with the print at its own full height the two
-   overlapped and the title was the part that went. It reads better in the open
-   ground between the button and the big frame. */
-/* Clear of the body copy, which ends at 46.13rem and runs 32.4rem wide, and
-   clear of the button beside it. Placed against its TRAVELLED position rather
-   than its static one: the parallax lifts every frame by up to 2.83rem, so a
-   gap measured at rest closes to nothing by the time the section has passed. */
+.shop__frame--side .shop__img {
+  object-position: 50% 15%;
+}
+
+/* Last of the frames in the DOM, as the reference's is-3 is, so it paints over
+   the hero's lower-left corner rather than under it — which is what keeps the
+   print's title in view. */
 .shop__frame--print {
-  inset-inline-start: 31rem;
-  inset-block-start: 49.5rem;
-  inline-size: 14.2rem;
-  aspect-ratio: 620 / 804;
+  inset-inline-start: 42.7rem;
+  inset-block-start: 49.94rem;
+  inline-size: 14.1875rem;
+  block-size: 18.125rem;
 }
 
-/* Runs off the left edge, as the reference fourth frame does. */
 .shop__frame--patch {
   inset-inline-start: -3rem;
-  inset-block-start: 46.02rem;
-  inline-size: 16.36rem;
-  aspect-ratio: 640 / 325;
+  inset-block-start: 46.04rem;
+  inline-size: 16.375rem;
+  block-size: 11.875rem;
 }
 
-/* Stickers are flat on the ground: no frame, no clip, no parallax. They read as
-   applied to the page rather than as photographs of it, which is the same
-   distinction the reference draws between its scrolling frames and its flat
-   LN1 mark. */
+/* The one sticker, flat on the ground: no frame and no travel, as the
+   reference's .exe-cta-sticker-w has neither. Contained in its box so the
+   artwork centres where the reference's does. */
 .shop__sticker {
   position: absolute;
-  block-size: auto;
-}
-
-.shop__sticker--keyring {
-  inset-inline-start: 67.19%;
-  inset-block-start: 50.55rem;
-  inline-size: 15.17rem;
-  rotate: -4deg;
-}
-
-.shop__sticker--roundel {
-  inset-inline-start: 40rem;
-  inset-block-start: 15.5rem;
-  inline-size: 5.5rem;
-  rotate: 9deg;
-}
-
-/* Out of the body copy's way now that the print has taken the ground beside
-   the button. */
-.shop__sticker--oval {
-  inset-inline-start: 46.5rem;
-  inset-block-start: 37rem;
-  inline-size: 7rem;
-  rotate: -7deg;
-}
-
-.shop__sticker--silverstone {
-  inset-inline-start: 10.98rem;
-  inset-block-start: 54.5rem;
-  inline-size: 12rem;
-  rotate: 3deg;
+  inset-inline-start: 72.575rem;
+  inset-block-start: 50.5625rem;
+  inline-size: 15.1875rem;
+  block-size: 11.5rem;
+  object-fit: contain;
 }
 
 /* ---- narrow screens ----
@@ -4468,9 +4479,9 @@
     padding-inline: var(--gutter);
   }
 
-  /* Each keeps its own source ratio here too — no forced shape, so nothing is
-     cropped on a phone either. The parallax goes with the placement: sliding a
-     frame inside a static column reads as a misalignment, not as depth. */
+  /* Each takes its own source ratio here — no forced shape, so nothing is
+     cropped on a phone. The travel goes with the placement: sliding a picture
+     inside a static column reads as a misalignment, not as depth. */
   .shop__frame {
     position: relative;
     inset: auto;
@@ -4480,26 +4491,30 @@
     align-self: start;
   }
 
+  .shop__frame .shop__img,
+  .shop__frame--photo .shop__img {
+    block-size: auto;
+    transform: none;
+  }
+
   /* The big one takes the full width; the rest pair up beneath it. */
   .shop__frame--hero {
     grid-column: 1 / -1;
   }
 
-  /* Off-canvas placement and rotation are both viewport composition, so the
-     stickers simply go. Nothing is lost: they carry no content. */
+  /* Off-canvas placement is viewport composition, so the sticker simply goes.
+     Nothing is lost: it carries no content. */
   .shop__sticker {
     display: none;
   }
 }
 
-/* The parallax and the bend are the motion here. Without them the frames still
+/* The travel and the bend are the motion here. Without them the frames still
    hold their pictures and the visor still separates the two grounds, so the
    section arrives assembled rather than absent. */
 @media (prefers-reduced-motion: reduce) {
-  /* .shop__frame, not .shop__img: the parallax translate lives on the frame,
-     so this guard had been neutralising an element that never moved and the
-     drift played in full for anyone who asked for no motion. */
-  .shop__frame {
+  .shop__frame--cutout,
+  .shop__frame--photo .shop__img {
     transform: none;
   }
 
@@ -4570,22 +4585,27 @@
   stroke-dashoffset: var(--draw-offset, 0);
 }
 
+/* The reference's .title-layout.grid-main: two 47.1% columns on a 2 * --gap
+   gutter, which starts the paragraph at 855 on 1728 where 1fr 1fr put it at
+   880. */
 .collabs__inner {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  grid-template-columns: 47.1% 47.1%;
+  column-gap: calc(var(--gap) * 2);
   align-items: start;
   padding-inline: 1.25rem;
 }
 
+/* .text-title-lg-mona, as the socials heading: "wght" 750, "wdth" 93. */
 .collabs__title {
   margin: 0;
   font-size: 4.5rem;
   line-height: 0.886;
-  letter-spacing: -0.0278em;
-  font-weight: 800;
+  letter-spacing: -0.125rem;
+  font-weight: 750;
+  font-stretch: 93%;
   text-transform: uppercase;
 }
 
@@ -4598,19 +4618,24 @@
    It is a cap-height match rather than a size change: Playfair sets smaller on
    the body than the grotesque at the same nominal size, so leaving both at
    4.5rem drops the serif line visibly below the one above it. */
+/* Uppercase like the line above it — the reference sets "&CAMPAIGNS" — and on
+   a 67.8px line box, its own: at the inherited 0.886 the line stood 66.4 and
+   the logo row landed 1.4px high. */
 .collabs__title-line.is-serif {
   font-family: var(--font-serif);
   font-size: 4.6875rem;
   font-weight: 700;
-  text-transform: lowercase;
+  line-height: 0.904;
 }
 
+/* .text-body-reg-mona: "wght" 500, -0.0125rem. */
 .collabs__body {
   margin: 0;
   max-inline-size: 25rem;
   font-size: 1.25rem;
+  font-weight: 500;
   line-height: 1.25;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.0125rem;
 }
 
 /* ---- the logo row ----
@@ -4631,11 +4656,21 @@
   padding-block-end: 20rem;
 }
 
+/* The drift's element: wider than the row and pulled back by more than the
+   10vw it travels either way, so neither end is ever exposed. The reference
+   sizes its own the same way, at (100 + 2 * 10)% and -10%. */
+.collabs__marquee-scroll {
+  display: flex;
+  inline-size: 122%;
+  margin-inline-start: -11%;
+  will-change: transform;
+}
+
 .collabs__track {
   display: flex;
   align-items: center;
   inline-size: max-content;
-  /* Written by main.ts; the loop owns transform on this element. */
+  /* Written by lib/marquee.ts; the loop owns transform on this element. */
   will-change: transform;
 }
 

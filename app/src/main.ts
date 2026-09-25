@@ -715,11 +715,10 @@ mountStore({
  *
  *   the row      a linear loop whose period is exactly one copy of the list,
  *                which is the only distance it can travel without the joint
- *                showing. Same mechanic as the hero marquee, and the same
- *                scroll-velocity coupling.
- *   the cursor   hovering slows the row rather than stopping it. A hard stop
- *                reads as a bug on a band that has been moving for ten
- *                seconds; a decelerating one reads as an invitation to look.
+ *                showing. It runs RIGHT while the page scrolls down and left
+ *                while it scrolls up, 87px/s at 1728, and slides 10vw either
+ *                side of centre across its pass — the reference's
+ *                data-marquee-direction="right", speed and scroll-speed.
  *   the word     each path dashed with its own measured length and the offset
  *                run to zero on scroll, which is how the menu draws its
  *                current-page mark. Length from getTotalLength rather than a
@@ -741,9 +740,20 @@ if (collabs) {
 
   const track = collabs.querySelector<HTMLElement>('.collabs__track');
   const marqueeBox = collabs.querySelector<HTMLElement>('[data-collab-marquee]');
+  const scroller = collabs.querySelector<HTMLElement>('.collabs__marquee-scroll');
 
-  if (track && marqueeBox) {
-    mountMarquee({ track, box: marqueeBox, items: PARTNERS, itemClass: 'collabs__item', lenis });
+  if (track && marqueeBox && scroller) {
+    mountMarquee({
+      track,
+      box: marqueeBox,
+      items: PARTNERS,
+      itemClass: 'collabs__item',
+      direction: 'right',
+      /* 87px/s at 1728. */
+      secondsPerScreen: 19.8,
+      drift: 10,
+      scroller,
+    });
   }
 
   /* ---- the drawn word ---- */
@@ -836,9 +846,9 @@ if (footerPanel) {
 }
 
 /* The footer's row: the same names and the same behaviour as the partners row
-   above, in the accent instead of the ink, plus the drift that row does not
-   have. aria-hidden in the markup — the readable list is the one up there. */
-mountFooterMarquee(lenis);
+   above, in the accent instead of the ink, running the other way. aria-hidden
+   in the markup — the readable list is the one up there. */
+mountFooterMarquee();
 mountSocials();
 
 /* ------------------------------------------------------------------ *
