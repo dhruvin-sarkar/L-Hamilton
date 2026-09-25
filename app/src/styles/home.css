@@ -618,10 +618,14 @@
   margin-block-start: -100dvh;
 }
 
+/* .hero-mark too: it is a full-screen layer ABOVE .hero, so without this it
+   swallows every pointer event meant for the next-race card and the lock
+   button beneath it. It is aria-hidden with nothing to interact with. */
 .hero-bg,
 .hero-back,
 .hero__stage,
-.hero-sign {
+.hero-sign,
+.hero-mark {
   pointer-events: none;
 }
 
@@ -778,6 +782,14 @@
   align-items: center;
   gap: var(--gap);
   padding-block-start: calc(50dvh - 22.5rem);
+}
+
+/* The mark is where the SHRUNK hero lands, over the revealed cream screen.
+   Without the pinned sequence the hero never shrinks, so it would sit on the
+   dark portrait instead, dark ink on dark ground. It is aria-hidden and the
+   marquee's sr-only heading carries the same words, so nothing is lost. */
+:root:not([data-hero-pinned]) .hero-mark {
+  display: none;
 }
 
 .hero-mark__svg {
