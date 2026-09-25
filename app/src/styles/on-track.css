@@ -1645,33 +1645,51 @@ body[data-page='on-track'] {
   transition: background-color var(--dur-micro) var(--ease-out);
 }
 
-/* Rest state for the entry animation, set behind .is-ready — which on-track.ts
-   adds once the fonts have landed.
+/* The entry, the reference's `.item-reveal` row wipe. on-track.ts sets
+   [data-rows-animated] only once it has committed to revealing the rows (wide,
+   animated), so a failure anywhere before that leaves real data visible rather
+   than twenty rows clipped to nothing.
 
-   That direction matters. If the hidden state were unconditional, a failure
-   anywhere in the module graph would leave twenty rows of real data
-   permanently invisible. Visible by default; hidden only once something has
-   committed to revealing them. */
-.is-ready .ot-seasons__row {
-  opacity: 0;
+   The row carries one progress for its clip (--row-open, 0 to 1) and one for
+   its accent bar (--row-bar, 1 to 0, pulling off to the right). Each cell knows
+   where it sits in the row (--cell-start, --cell-span, fractions of the row's
+   width) and takes its own share: the clip's right edge at --row-open of the
+   row, and the bar's left edge at 1 - --row-bar. So three clipped cells open as
+   ONE edge crossing the row, exactly as the reference's single clipped row
+   does. The bar is per cell for the same reason -- a bar hung off one cell
+   would be clipped to that cell.
+
+   Each cell's clip and bar reach 1px past its right edge. Cell edges fall on
+   fractional pixels, and two half-covered pixels side by side paint as a dark
+   hairline through the bar; the overlap closes it. */
+[data-rows-animated] .ot-seasons__cell {
+  position: relative;
+  clip-path: inset(
+    0
+      clamp(
+        -1px,
+        (var(--cell-start, 0) + var(--cell-span, 1) - var(--row-open, 1)) / var(--cell-span, 1) *
+          100% - 1px,
+        100%
+      )
+      0 0
+  );
 }
 
-/* The reference's .item-reveal: an accent bar wiping across the row, resting at
-   scaleX(0) and growing to cover. Ours retreats instead, matching the text
-   reveal on the rest of the site — the bar starts over the row and pulls off
-   it, so the first frame already shows the numbers.
-
-   Hung off the row's first cell and sized to the row (the row is its containing
-   block), never off the row itself: Chrome counts a row's own ::after as a
-   column even when it is absolutely positioned, and a fixed-layout table then
-   splits its last column in two to make room for it. */
-.is-ready .ot-seasons__row > :first-child::after {
+[data-rows-animated] .ot-seasons__cell::after {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: 0 -1px 0 0;
+  z-index: 5;
   background: var(--accent);
-  transform: scaleX(calc(1 - var(--row-wipe, 0)));
-  transform-origin: right;
+  transform: scaleX(
+    clamp(
+      0,
+      (var(--cell-start, 0) + var(--cell-span, 1) - 1 + var(--row-bar, 0)) / var(--cell-span, 1),
+      1
+    )
+  );
+  transform-origin: right center;
   pointer-events: none;
 }
 
@@ -4101,20 +4119,12 @@ button.ot-cal__row:focus-visible {
  * markup and its bundle returns zero. So this is additive work rather than
  * parity work, and the standard to meet is the homepage's, not the reference's.
  *
- * The rules are stated at the same specificity as the ones they undo
- * (`.is-ready .ot-seasons__row` is 0,2,0), because a media query adds no
- * specificity of its own and a bare selector here would lose. That exact
- * mistake left the homepage hero hidden under reduced motion. */
+ * The rules are stated at the same specificity as the ones they undo, because
+ * a media query adds no specificity of its own and a bare selector here would
+ * lose. That exact mistake left the homepage hero hidden under reduced motion.
+ * (The season rows need nothing here: their entry is only ever switched on
+ * behind WIDE_AND_ANIMATED in on-track.ts.) */
 @media (prefers-reduced-motion: reduce) {
-  .ot-seasons__row,
-  .is-ready .ot-seasons__row {
-    opacity: 1;
-  }
-
-  .is-ready .ot-seasons__row > :first-child::after {
-    content: none;
-  }
-
   .ot-gigantic__char,
   .ot-gigantic__char:nth-child(even) {
     transform: none;

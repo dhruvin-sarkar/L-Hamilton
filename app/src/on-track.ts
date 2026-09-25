@@ -1466,27 +1466,55 @@ if (seasonsBody) {
       `${career.championships} world championships.`;
   }
 
-  /* Row entry.
+  /* Row entry, the reference's `[data-stat-list]` to the number, and the same
+   * cascade the result highlights run below. The rows wait, clipped to
+   * nothing, until the list's top crosses 90% of the screen. Then each opens
+   * left to right over 0.6s (power2.out), 50ms behind the one above, over an
+   * accent bar that pulls off to the right 0.3s in (0.6s, power2.inOut). No
+   * opacity anywhere: the reference's rows are never faded.
    *
-   * The reference wipes each row with a lime bar (`.item-reveal`, scaleX 0 to
-   * 1). Twenty rows on twenty separate observers would arrive at twenty
-   * slightly different scroll positions, so they are batched: each row's delay
-   * comes from its index within the batch, which is what makes the table read
-   * downward instead of flickering. */
-  if (!reducedMotion) {
-    ScrollTrigger.batch(seasonsBody.querySelectorAll('.ot-seasons__row'), {
-      start: 'top 92%',
-      onEnter: (batch) =>
-        gsap.to(batch, {
-          '--row-wipe': 1,
-          opacity: 1,
-          duration: 0.62,
-          ease: 'power3.out',
-          stagger: 0.045,
-          overwrite: true,
-        }),
+   * One timeline for the list, not a trigger per row, so nineteen rows read as
+   * one cascade rather than nineteen separate arrivals.
+   *
+   * These are real table rows, and a clip on a `<tr>` is not one every engine
+   * honours, so the clip is on the CELLS. Each cell turns the row's single
+   * progress (`--row-open`, `--row-bar`) into its own share of it from where it
+   * sits in the row (`--cell-start`, `--cell-span`), so the three cells open as
+   * one edge travelling across the row -- see `.ot-seasons__cell` in
+   * on-track.css. Wide and animated only: below 992px and under reduced motion
+   * none of this is set and the table is simply there. */
+  mm.add(WIDE_AND_ANIMATED, () => {
+    const rows = [...seasonsBody.querySelectorAll<HTMLTableRowElement>('.ot-seasons__row')];
+
+    const placeCells = (): void => {
+      for (const row of rows) {
+        const box = row.getBoundingClientRect();
+        if (box.width <= 0) continue;
+        for (const cell of row.cells) {
+          const at = cell.getBoundingClientRect();
+          cell.style.setProperty('--cell-start', String((at.left - box.left) / box.width));
+          cell.style.setProperty('--cell-span', String(at.width / box.width));
+        }
+      }
+    };
+
+    placeCells();
+    seasonsBody.dataset.rowsAnimated = '';
+    gsap.set(rows, { '--row-open': 0, '--row-bar': 1 });
+    const entry = gsap.timeline({
+      scrollTrigger: { trigger: seasonsBody, start: 'top 90%', once: true },
+      onStart: placeCells,
     });
-  }
+    rows.forEach((row, i) => {
+      const at = i * 0.05;
+      entry.to(row, { '--row-open': 1, duration: 0.6, ease: 'power2.out' }, at);
+      entry.to(row, { '--row-bar': 0, duration: 0.6, ease: 'power2.inOut' }, at + 0.3);
+    });
+
+    return () => {
+      delete seasonsBody.dataset.rowsAnimated;
+    };
+  });
 }
 
 /* ------------------------------------------------------------------ *
