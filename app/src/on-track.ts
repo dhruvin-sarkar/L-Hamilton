@@ -2162,28 +2162,55 @@ function mountCountdown(section: HTMLElement): void {
   }
 
   /* "Race Day", written across the digits once, when the script's box reaches
-   * 80% down the viewport -- the reference's trigger. Each stroke is revealed
-   * along its own length, in the order the markup lists them, and the whole
-   * hand is eased as one gesture so it starts and lands softly rather than
-   * every stroke doing so. Under reduced motion it is simply there. */
+   * 80% down the viewport: the reference's `race-day` Rive, played by the same
+   * `data-rive-scrolltrigger` handler as the P1, which also raises the canvas
+   * from opacity 0 over 0.1s as it starts.
+   *
+   * Timed off the reference's own file rather than its timeline lengths. Its
+   * main animation runs 210 frames (3.5s) and nests one 120-frame timeline per
+   * stroke, but those do not overlap on screen: sampled frame by frame, the
+   * word is written a stroke at a time with the pen lifted between them -- the
+   * R down by 0.42s, "Race" by 1.2s, the D by 1.85s, "Day" by 2.6s, the
+   * underline by 3.0s -- about 2.0s of ink and 1.0s of lifts, with the last
+   * 0.5s holding the finished word. So: the strokes in the order the markup
+   * lists them, each for its share of the length, 90ms apart, each easing on
+   * and off the page (power1.inOut), and the hand itself running at a constant
+   * rate. Written and still below 992px and under reduced motion. */
   const script = digits.querySelector<SVGSVGElement>('.ot-count__script');
   const strokes = [...digits.querySelectorAll<SVGPathElement>('[data-stroke]')];
-  if (script && strokes.length && !reducedMotion) {
-    const lengths = strokes.map((path) => path.getTotalLength());
-    const total = lengths.reduce((a, b) => a + b, 0);
-    const hand = gsap.timeline({ paused: true });
-    strokes.forEach((path, i) => {
-      const length = lengths[i] ?? 0;
-      gsap.set(path, { strokeDasharray: `${length} ${length}`, strokeDashoffset: length });
-      hand.to(path, { strokeDashoffset: 0, duration: length / total, ease: 'none' });
-    });
-    ScrollTrigger.create({
-      trigger: script,
-      start: 'top 80%',
-      once: true,
-      onEnter: () => {
-        gsap.to(hand, { progress: 1, duration: 1.6, ease: 'power1.inOut' });
-      },
+  const RACE_DAY_INK = 3.0;
+  const PEN_LIFT = 0.09;
+  if (script && strokes.length) {
+    mm.add(WIDE_AND_ANIMATED, () => {
+      const lengths = strokes.map((path) => path.getTotalLength());
+      const total = lengths.reduce((a, b) => a + b, 0);
+      const inking = RACE_DAY_INK - PEN_LIFT * (strokes.length - 1);
+      const hand = gsap.timeline({ paused: true });
+      let at = 0;
+      strokes.forEach((path, i) => {
+        const length = lengths[i] ?? 0;
+        const duration = (inking * length) / total;
+        /* Attributes, not the CSS property: GSAP rounds that to whole pixels,
+           which would leave a sliver of each waiting stroke as a dot. The gap
+           is twice the dash so a hidden stroke has no dash end in it at all. */
+        gsap.set(path, {
+          attr: { 'stroke-dasharray': `${length} ${2 * length}`, 'stroke-dashoffset': length },
+        });
+        hand.to(path, { attr: { 'stroke-dashoffset': 0 }, duration, ease: 'power1.inOut' }, at);
+        at += duration + PEN_LIFT;
+      });
+      gsap.set(script, { opacity: 0 });
+
+      const trigger = ScrollTrigger.create({
+        trigger: script,
+        start: 'top 80%',
+        once: true,
+        onEnter: () => {
+          gsap.to(script, { opacity: 1, duration: 0.1, ease: 'power1.inOut' });
+          hand.play();
+        },
+      });
+      return () => trigger.kill();
     });
   }
 }
