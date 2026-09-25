@@ -1158,10 +1158,20 @@
  * clip.
  *
  * The bar is exactly the line box — the reference's .high-line-reveal is
- * top 0 / left 0 / 100% x 100% of its .line — and so is the open clip. */
+ * top 0 / left 0 / 100% x 100% of its .line — and so are the open clip's left
+ * and right edges, which are the ones the wipe moves.
+ *
+ * Its top and bottom stand 0.25em off the box, and that is the only place this
+ * departs from the reference's inset(0 0% 0 0). Our serif is Playfair, whose
+ * content area is 1.333em: on the gallery quotes' 0.94 line its baseline sits
+ * 0.055em above the line box's bottom while a g or y drops 0.188em, so a clip
+ * flush with the box cut 3px off every descender for good. 0.25em clears the
+ * tightest case on the site (0.8 lines, 0.204em). Nothing but the line's own
+ * letters is in that margin, so where the glyphs already fit it changes
+ * nothing. */
 [data-reveal-animated] .reveal-text:not([data-reveal-split]),
 [data-reveal-animated] .reveal-line {
-  clip-path: inset(0 100% 0 0);
+  clip-path: inset(-0.25em 100% -0.25em 0);
 }
 
 [data-reveal-animated] .reveal-text::after,
@@ -1228,11 +1238,11 @@
 
 @keyframes reveal-open {
   from {
-    clip-path: inset(0 100% 0 0);
+    clip-path: inset(-0.25em 100% -0.25em 0);
   }
 
   to {
-    clip-path: inset(0 0 0 0);
+    clip-path: inset(-0.25em 0 -0.25em 0);
   }
 }
 
@@ -3368,7 +3378,7 @@
 
 [data-reveal-animated] .otot .is-off .reveal-text:not([data-reveal-split]),
 [data-reveal-animated] .otot .is-off .reveal-line {
-  clip-path: inset(0 0 0 100%);
+  clip-path: inset(-0.25em 0 -0.25em 100%);
 }
 
 [data-reveal-animated] .otot .is-off .reveal-text::after,
@@ -3391,11 +3401,11 @@
 
 @keyframes reveal-open-left {
   from {
-    clip-path: inset(0 0 0 100%);
+    clip-path: inset(-0.25em 0 -0.25em 100%);
   }
 
   to {
-    clip-path: inset(0 0 0 0);
+    clip-path: inset(-0.25em 0 -0.25em 0);
   }
 }
 
