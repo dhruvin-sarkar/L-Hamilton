@@ -225,15 +225,16 @@ html {
 
   --dur-micro: 0.25s;
   --dur-base: 0.5s;
-  /* The text reveal only. A full second longer than an ordinary entrance, which
-     it can afford because none of it is spent waiting: the bar starts already
-     covering the line, so every millisecond of this is text appearing. See
-     .reveal-text in home.css. */
-  --dur-reveal: 1.5s;
-  /* Leaves hard and decelerates. The house curve is an ease-IN-out and would
-     hold the bar still for the first ~300ms of the retract, which is precisely
-     the delay the reveal was rebuilt to get rid of. */
-  --ease-reveal: cubic-bezier(0.16, 1, 0.3, 1);
+  /* The text reveal (.reveal-text in home.css), read off the reference's AE()
+     timeline. Two phases per line, each 0.6s: the line is wiped open under its
+     bar on GSAP's power2.out, and half-way through that (+0.3s) the bar
+     retracts on power2.inOut. GSAP's power2 is the CUBIC family, so these are
+     the cubic Bezier fits — sampled mid-wipe the reference reads 87.5% open
+     and the bar 93.75% at a quarter of its retract, which is what they give. */
+  --dur-reveal: 0.6s;
+  --ease-reveal-open: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --ease-reveal-retract: cubic-bezier(0.645, 0.045, 0.355, 1);
+  --reveal-retract-lag: 300ms;
   /* Between the lines of one block. Measured off the reference at ~150ms, which
      is far larger than it sounds — it is the beat that makes a paragraph arrive
      line by line instead of all at once. Not to be confused with --stagger,
