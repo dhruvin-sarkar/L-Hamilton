@@ -2034,10 +2034,15 @@ if (juniorGrid) {
   /* Grown once each, as the reference plays each `reef` Rive when its canvas
      top passes 80% of the screen: its `main-play`, 110 frames at 60fps (1.83s),
      with the canvas raised from opacity 0 over 0.1s as it starts -- the same
-     `data-rive-scrolltrigger` handler as the P1 and Race Day. Drawn full-grown,
-     and left so, below 992px and when motion is reduced. */
-  const REEF_PLAY = 1.83;
-  const REEF_EASE = 'power2.inOut';
+     `data-rive-scrolltrigger` handler as the P1 and Race Day.
+
+     The growth itself is the first 1.2s of those 1.83s; the rest holds the
+     closed wreath. Sampled off the reference's file, its ink reads 2% of the
+     final at 0.3s, 25% at 0.5s, 66% at 0.7s, 89% at 0.9s and 99% at 1.1s;
+     this drawing, grown on power1.inOut over 1.2s, tracks that curve. Drawn
+     full-grown, and left so, below 992px and when motion is reduced. */
+  const REEF_PLAY = 1.2;
+  const REEF_EASE = 'power1.inOut';
   mm.add(WIDE_AND_ANIMATED, () => {
     const tweens = wreaths.map(({ mark, branches }) => {
       const growth = { g: 0 };
