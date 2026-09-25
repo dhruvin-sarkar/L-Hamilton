@@ -4285,6 +4285,9 @@
   font-family: var(--font-serif);
   font-weight: 700;
   font-style: normal;
+  /* The reference's serif line stands 93.4px to the others' 91.4, and the
+     body and button below it sit 2px lower for it. */
+  line-height: 0.834;
 }
 
 /* ---- body ---- */
@@ -4541,7 +4544,11 @@
 .collabs {
   position: relative;
   isolation: isolate;
-  padding-block-start: 20rem;
+  /* 20rem at both ends, the reference's two ._20rem spacers. The closing one
+     is the section's rather than the row's so the row's box is the row: the
+     drift and the loop's visibility both key off that box, and with the
+     padding inside it the drift ran 34px behind the reference's. */
+  padding-block: 20rem;
   color: var(--dark);
   background: var(--field-ground);
   overflow-x: clip;
@@ -4572,10 +4579,18 @@
   pointer-events: none;
 }
 
+/* Set on the reference's slant and spread. Its word climbs at 23 degrees from
+   the bottom-left of the drawn box to the top-right, its ink 1020px across
+   and centred at 528,469 of the section; ours is written level, so it is
+   turned and enlarged about its own ink centre (51.6% 55.9% of the box) until
+   its ink lies along the same axis over the same span — measured as the
+   ink's principal axis and extent on both screenshots. */
 .collabs__mark-svg {
   inline-size: 100%;
   block-size: 100%;
   overflow: visible;
+  transform-origin: 51.6% 55.9%;
+  transform: translate(0.94rem, -2.56rem) rotate(-26.2deg) scale(1.07);
 }
 
 /* Dash length and offset are written by main.ts from each path's own measured
@@ -4649,11 +4664,6 @@
 .collabs__marquee {
   margin-block-start: 8rem;
   overflow: clip;
-  /* The row is the section's last element and carries the closing space. 20rem
-     rather than 8: the reference's section is 1053 tall against 700 of content,
-     and that trailing third is what stops the drawn word - which runs to 952 -
-     reading as though it overflows the section it belongs to. */
-  padding-block-end: 20rem;
 }
 
 /* The drift's element: wider than the row and pulled back by more than the
@@ -5001,7 +5011,7 @@
  * gesture here rather than a hijacked scroll, so it stays horizontal. */
 @media (max-width: 991px) {
   .collabs {
-    padding-block-start: 8rem;
+    padding-block: 8rem 4rem;
   }
 
   .collabs__inner {
@@ -5023,9 +5033,14 @@
     block-size: 24rem;
   }
 
+  /* Level again at this width: tilted, the word would climb out of a section
+     this short. */
+  .collabs__mark-svg {
+    transform: none;
+  }
+
   .collabs__marquee {
     margin-block-start: 4rem;
-    padding-block-end: 4rem;
   }
 
   .socials {
