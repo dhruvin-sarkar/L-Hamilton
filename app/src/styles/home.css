@@ -978,10 +978,6 @@
   transition: color var(--animation-default);
 }
 
-.next-race__row.is-2:hover .next-race__crest {
-  color: var(--accent);
-}
-
 /* Two centred lines in the card's one ink — the reference's "mclaren f1 /
    since 2019", which it also sets without a second, fainter tone. */
 .next-race__team {
