@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Lewis Hamilton off track: Mission 44, the Hamilton Commission, fashion, film, music and the causes he backs."
+    />
+    <title>Off Track — Lewis Hamilton</title>
+    <link rel="icon" href="/assets/brand/lh-monogram.svg" type="image/svg+xml" />
+
+    <!-- The same two faces as the other pages, preloaded for the same reason:
+         the display grotesque and the Didone both set type that paints before
+         anything is scrolled. See index.html for why crossorigin is required on
+         a same-origin font preload. -->
+    <link
+      rel="preload"
+      href="/assets/fonts/mona-sans-latin-standard-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/assets/fonts/playfair-display-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <!-- Render-blocking on purpose; see the note in index.html. -->
+    <link rel="stylesheet" href="/src/styles/main.css" />
+  </head>
+  <body data-page="off-track">
+    <!--#include "partials/nav.html"-->
+
+    <main id="main">
+      <!-- Reference order (public/off-track.html): the hero and the statement
+           share one scroll group, then the side-scrolling gallery, then the
+           socials block. There is no helmet wall and no store call here.
+
+           The group is the reference's `.s-group[data-heroflip="track"]`: the
+           picture in the header flies out of it and down into the statement as
+           the two scroll past, flicking through ten photographs on the way.
+           See the flight in off-track.ts. -->
+      <div class="oft-group" data-flight-track>
+        <!-- ================================================== Page header
+             Measured against the reference at 1728x1080, where its root is
+             16px. One screen tall on the four-column grid the On Track header
+             uses: the title across the full width, the identity row under it,
+             and below that the paragraph block in columns 1-2 with the picture
+             in columns 3-4, hanging 12rem up over TRACK and off the bottom of
+             the screen. -->
+        <header class="oft-hero">
+          <div class="oft-hero__c">
+            <!-- The visible title is two faces that are one phrase to a reader;
+                 the heading proper is this, hidden, as the reference does. -->
+            <h1 class="sr-only">Off Track</h1>
+
+            <div class="oft-hero__title-w">
+              <p class="oft-hero__title" aria-hidden="true"><span class="oft-hero__off">Off</span><span class="oft-hero__track">Track</span></p>
+            </div>
+
+            <div class="oft-hero__grid oft-hero__info">
+              <div class="oft-hero__sub">
+                <p class="oft-hero__quote reveal-text">Lewis Hamilton</p>
+                <div class="oft-hero__sub-col">
+                  <!-- Computed from the date of birth; see off-track.ts. -->
+                  <p class="oft-hero__quote reveal-text"><span data-bind="driver-age">&mdash;</span> y.o</p>
+                  <!-- The reference's Rive "off-icons" mark (a games pad for its
+                       driver). Ours is the site's own dot sphere, the mark the
+                       socials block already carries. Decorative. -->
+                  <span class="oft-hero__icon" aria-hidden="true"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="oft-hero__grid oft-hero__stats">
+              <div class="oft-hero__stats-w">
+                <div class="oft-hero__spacer" aria-hidden="true"></div>
+
+                <div class="oft-hero__stats-layout">
+                  <p class="oft-hero__eyebrow reveal-text" data-hero-eyebrow>&mdash;</p>
+                  <div class="oft-hero__para-w">
+                    <!-- Third-person site copy, never a quote. Filled from
+                         src/content/off-track.ts, where each claim carries its
+                         source. -->
+                    <h2 class="oft-hero__para reveal-text" data-reveal-rich data-hero-lead>&mdash;</h2>
+                  </div>
+                  <div class="oft-hero__sign" aria-hidden="true"></div>
+                </div>
+
+                <div class="oft-hero__note-w">
+                  <p class="oft-hero__note reveal-text" data-hero-recently>&mdash;</p>
+                </div>
+
+                <!-- His ventures, looping along the foot of the header where
+                     the reference runs its partners' logos. The row repeats
+                     itself, so it is hidden from assistive tech and the list is
+                     written out once, below it. -->
+                <div class="oft-hero__marquee" data-hero-marquee aria-hidden="true">
+                  <div class="oft-hero__marquee-scroll">
+                    <div class="oft-hero__marquee-track"></div>
+                  </div>
+                </div>
+                <p class="sr-only" data-hero-ventures></p>
+              </div>
+
+              <!-- The picture's first stop. It starts here, and off-track.ts
+                   lifts it out into the group for the flight. -->
+              <div class="oft-hero__img-slot">
+                <div class="oft-hero__img-w" data-flight-stop="1">
+                  <div class="oft-flight" data-flight aria-hidden="true"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- ================================================== The statement
+             Reference `.impact-content-w.off-track`: a 78rem column with 17rem
+             of air above and 12rem below; a small mark in laurels over the
+             team eyebrow, the six-line statement, and a signature under it.
+             The flying picture crosses the statement and comes to rest on the
+             signature — its second and third stops are measured off the two
+             empty boxes below. -->
+        <section class="oft-impact">
+          <svg class="oft-defs" aria-hidden="true" focusable="false">
+            <!-- The laurel branch the homepage and On Track crests are drawn
+                 with, shared rather than redrawn. -->
+            <defs><!--#include "partials/crest.html"--></defs>
+          </svg>
+
+          <div class="oft-impact__inner">
+            <div class="oft-impact__icon">
+              <!-- The reference's Rive "off-icons-reef": its ball in a pair of
+                   laurels. Ours sets the site's dot sphere between the same
+                   branches the crests use. Decorative. -->
+              <div class="oft-impact__reef" aria-hidden="true">
+                <svg viewBox="0 0 64 44" class="oft-impact__reef-branches">
+                  <use href="#nr-branch" />
+                  <use href="#nr-branch" transform="matrix(-1 0 0 1 64 0)" />
+                </svg>
+                <span class="oft-impact__reef-ball"></span>
+              </div>
+              <p class="oft-impact__eyebrow reveal-text" data-bind="team-since">&mdash;</p>
+            </div>
+
+            <div class="oft-impact__text-w">
+              <!-- Third-person narration, the same statement the On Track page
+                   carries in the same slot, as the reference repeats its own.
+                   Every claim in it is a matter of record; the title he is
+                   chasing is counted from the data, not typed. -->
+              <h2 class="oft-impact__text">
+                Rewriting<br />
+                the <span class="oft-impact__accent">records</span>,
+                <span class="oft-impact__accent">chasing</span>
+                <span data-bind="next-title-word">eight</span>. Bringing
+                <span class="oft-impact__accent">it all</span> each and every weekend.
+              </h2>
+              <!-- The picture's second stop: 22 x 25rem, centred on the
+                   statement and dropped 10rem. -->
+              <span class="oft-impact__stop oft-impact__stop--text" data-flight-stop="2"></span>
+            </div>
+
+            <div class="oft-impact__end">
+              <!-- The third stop: 7rem across at 9:10, on the signature. -->
+              <span class="oft-impact__stop oft-impact__stop--end" data-flight-stop="3"></span>
+              <div class="oft-impact__sign" aria-hidden="true"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ============================================ Personal projects
+           The reference's side-scroller (`.s.is-horizontal-track`): the shared
+           gallery component, laid out as its Off Track page lays it out — an
+           opening column, then four projects of three columns each (a title,
+           a large picture with a callout, a pair of pictures).
+
+           Built in off-track.ts from src/content/off-track.ts, where every
+           callout carries its source and every picture a named file. -->
+      <section class="gallery gallery--off-track" data-gallery aria-labelledby="oft-gallery-h">
+        <div class="gallery__pin">
+          <div class="gallery__track" data-gallery-track></div>
+        </div>
+      </section>
+
+      <!--#include "partials/socials.html"-->
+    </main>
+
+    <!--#include "partials/menu.html"-->
+    <!--#include "partials/footer.html"-->
+
+    <script type="module" src="/src/off-track.ts"></script>
+  </body>
+</html>
