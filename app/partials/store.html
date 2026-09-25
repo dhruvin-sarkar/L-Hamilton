@@ -29,7 +29,7 @@
 
             <a class="store-cta__link" href="https://store.lewishamilton.com"
               rel="noopener noreferrer" target="_blank">
-              <span class="sr-only">Visit the Store</span>
+              <span class="sr-only">Visit the Store (opens in a new tab)</span>
               <span class="btn-text" aria-hidden="true" data-split-chars>Visit the Store</span>
               <!-- Every other CTA on the page carries this arrow; this one was
                    the only button without it. Same path, same stroke. -->
@@ -41,40 +41,29 @@
           </div>
         </div>
 
-        <!-- The art. Every frame clips an image taller than itself, and the
-             overflow is what travels as the section passes - the reference's
-             own mechanic, measured at 70px of headroom for 50px of travel. -->
+        <!-- The art: the reference's four frames and one sticker, in its slots
+             and its paint order. The two photographs are clips with the picture
+             travelling inside them; the print and the patch are cut-outs and
+             travel whole. See the art block in home.css. -->
         <div class="shop__art" aria-hidden="true">
-          <div class="shop__frame shop__frame--hero">
+          <div class="shop__frame shop__frame--photo shop__frame--hero">
             <img class="shop__img" src="/assets/store/store-hero.webp" width="1400"
               height="1820" alt="" loading="lazy" decoding="async" />
           </div>
-          <div class="shop__frame shop__frame--side">
+          <div class="shop__frame shop__frame--photo shop__frame--side">
             <img class="shop__img" src="/assets/store/store-side.webp" width="900"
               height="1170" alt="" loading="lazy" decoding="async" />
           </div>
-          <div class="shop__frame shop__frame--print">
+          <div class="shop__frame shop__frame--cutout shop__frame--print">
             <img class="shop__img" src="/assets/store/store-print.webp" width="620"
               height="804" alt="" loading="lazy" decoding="async" />
           </div>
-          <div class="shop__frame shop__frame--patch">
+          <div class="shop__frame shop__frame--cutout shop__frame--patch">
             <img class="shop__img" src="/assets/store/store-patch.webp" width="640"
               height="325" alt="" loading="lazy" decoding="async" />
           </div>
 
-          <!-- Stickers sit flat on the ground rather than in a clipping frame,
-               so they read as applied to the page rather than as photographs. -->
-          <img class="shop__sticker shop__sticker--keyring"
-            src="/assets/store/store-keyring.webp" width="640" height="168" alt=""
-            loading="lazy" decoding="async" />
-          <img class="shop__sticker shop__sticker--roundel"
-            src="/assets/store/store-roundel.webp" width="520" height="511" alt=""
-            loading="lazy" decoding="async" />
-          <img class="shop__sticker shop__sticker--oval"
-            src="/assets/store/store-oval.webp" width="560" height="341" alt=""
-            loading="lazy" decoding="async" />
-          <img class="shop__sticker shop__sticker--silverstone"
-            src="/assets/store/store-silverstone.webp" width="600" height="174" alt=""
-            loading="lazy" decoding="async" />
+          <img class="shop__sticker" src="/assets/store/store-keyring.webp" width="640"
+            height="168" alt="" loading="lazy" decoding="async" />
         </div>
       </section>

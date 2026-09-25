@@ -515,8 +515,9 @@ export function mountSocials(): void {
        * back.out overshoots once and settles. elastic rings several times, which
        * on seven cards at once reads as a wobble rather than as give. */
       const SPRING = 'back.out(2.2)';
-      /** The measured rest offsets, in rem, indexed to match `cards`. */
-      const FAN_X = [-30, -22.02, -10.98, 0, 10.98, 22.02, 30];
+      /** The rest offsets, in rem, indexed to match `cards` — the same numbers as
+       *  the --fan-x steps in home.css, which are the reference's own. */
+      const FAN_X = [-30, -22, -11, 0, 11, 22, 30];
       /** How far the gap beside the hovered card opens. 131.9px at a 17.667 root. */
       const OPEN = 7.47;
       /** Neighbours also rotate a touch further out — 1.5deg at the nearest. */

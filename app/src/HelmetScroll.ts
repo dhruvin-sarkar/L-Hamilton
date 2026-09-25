@@ -1,8 +1,6 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { createStudioEnvironment, HELMET_UPRIGHT, loadHelmetModel } from './HelmetModel';
+import type { HelmetModel } from './HelmetModel';
 import { gsap, ScrollTrigger } from './lib/motion';
 
 /**
@@ -32,13 +30,10 @@ import { gsap, ScrollTrigger } from './lib/motion';
  * same framing, one pass, and nothing is clipped at the square's edge.
  *
  * The surface is ours: the black-and-gold livery supplied with the model, under
- * a clearcoat, lit by a generated studio environment. The reference's gold
- * chrome is its artwork and not copied.
+ * a clearcoat, lit by a generated studio environment -- all of it from
+ * HelmetModel, which the home hero shares. The reference's gold chrome is its
+ * artwork and not copied.
  */
-
-const HELMET_URL = '/assets/helmet/helmet.glb';
-const DRACO_PATH = '/assets/draco/';
-const MAPS = '/assets/helmet/textures/';
 
 /** The reference's lens: PerspectiveCamera(20, 1, 0.1, 1000) at z = 2. */
 const FOV = 20;
@@ -79,24 +74,6 @@ function bezier(p0: Box, c1: Box, c2: Box, p1: Box, t: number): { x: number; y: 
 }
 
 /**
- * The file carries two liveries. Its own 300-odd flat-coloured decal meshes
- * make a purple one; underneath them, the bare shell (`__DEFAULT`) is UV-mapped
- * to the black-and-gold sheet supplied with it, and the fins to its wing sheet.
- * The black and gold is the one drawn here -- the nearest thing this helmet has
- * to the reference's gold-and-black chrome -- so only the shell, the fins and
- * the parts both liveries share are kept: visor, seals, vents and the visor
- * pivots. Everything else is the purple decal layer, left out.
- */
-const SHARED_PARTS = new Set([
-  'Nuovo materiale 001', // the visor
-  'NERO GUARNIZ', // visor and neck seals
-  'NERO PLATIC', // vents
-  'ORO', // visor pivot hardware
-  'GRIG METALLO',
-  'VIOLA METALLO',
-]);
-
-/**
  * Where the reference's model has its origin, as fractions of its own size:
  * 5.6% of its height below the centre of its bounds and 3.2% of its length
  * behind it (helmet-21.glb, `helmet` mesh). The helmet turns about that point,
@@ -106,94 +83,11 @@ const PIVOT_BELOW = 0.0564;
 const PIVOT_BEHIND = 0.0324;
 
 /**
- * The model, merged by material into a handful of draw calls and turned the
- * right way up. Same orientation as HeadScene's: authored Z-up with the face on
- * -y, so -90 degrees about X brings the crown up and the visor to the camera.
+ * The shared model, sized and pivoted for this scene: longest side
+ * HELMET_LENGTH, turned upright, and turning about the reference's origin.
  */
-async function loadHelmet(renderer: THREE.WebGLRenderer): Promise<THREE.Group> {
-  const loader = new GLTFLoader();
-  const draco = new DRACOLoader();
-  draco.setDecoderPath(DRACO_PATH);
-  loader.setDRACOLoader(draco);
-  const gltf = await loader.loadAsync(HELMET_URL);
-  draco.dispose();
-
-  const textures = new THREE.TextureLoader();
-  const sheet = (file: string): THREE.Texture => {
-    const tex = textures.load(`${MAPS}${file}`);
-    tex.flipY = false; // glTF UVs start top-left
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-    return tex;
-  };
-  const sheets: Readonly<Record<string, THREE.Texture>> = {
-    __DEFAULT: sheet('helmet_d.webp'),
-    ALETTE: sheet('wing_d.webp'),
-  };
-
-  const source = gltf.scene;
-  source.updateMatrixWorld(true);
-  const buckets = new Map<string, { material: THREE.Material; parts: THREE.BufferGeometry[] }>();
-
-  source.traverse((child) => {
-    const mesh = child as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    const from = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as
-      | THREE.MeshStandardMaterial
-      | undefined;
-    const name = from?.name ?? '';
-    const map = sheets[name] ?? null;
-    if (!map && !SHARED_PARTS.has(name)) return; // the purple decal layer
-
-    const colour = from?.color?.clone() ?? new THREE.Color(0x8a8a8a);
-    // A painted sheet is paint: opaque, whatever alpha its flat colour had.
-    const opacity = map ? 1 : (from?.opacity ?? 1);
-    const key = `${colour.getHexString()}|${opacity}|${map ? map.uuid : '-'}`;
-
-    let bucket = buckets.get(key);
-    if (!bucket) {
-      /* Lacquered paint: gold ink that catches the light as metal does, over a
-         black that only the clearcoat reflects -- so the environment slides
-         across the helmet as it turns, which is what makes the spin legible. */
-      const material = new THREE.MeshPhysicalMaterial({
-        color: map ? 0xffffff : colour,
-        map,
-        metalness: map ? 0.5 : 0.4,
-        roughness: map ? 0.18 : 0.2,
-        clearcoat: 1,
-        clearcoatRoughness: 0.04,
-        envMapIntensity: 1.5,
-        transparent: opacity < 1,
-        opacity,
-        side: THREE.DoubleSide,
-      });
-      bucket = { material, parts: [] };
-      buckets.set(key, bucket);
-    }
-    // Baked into the vertices, because merging throws the scene graph away.
-    bucket.parts.push(mesh.geometry.clone().applyMatrix4(mesh.matrixWorld));
-  });
-  source.traverse((child) => {
-    const mesh = child as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    mesh.geometry.dispose();
-    (mesh.material as THREE.Material).dispose();
-  });
-
-  const merged = new THREE.Group();
-  for (const { material, parts } of buckets.values()) {
-    const geometry = mergeGeometries(parts, false);
-    for (const g of parts) g.dispose();
-    if (!geometry) throw new Error('[helmet-scroll] merge failed -- mismatched vertex attributes');
-    const mesh = new THREE.Mesh(geometry, material);
-    // See-through parts after the opaque shell, or the fins hide what is behind them.
-    mesh.renderOrder = material.transparent ? 1 : 0;
-    merged.add(mesh);
-  }
-
-  const box = new THREE.Box3().setFromObject(merged);
-  const size = box.getSize(new THREE.Vector3());
-  merged.position.sub(box.getCenter(new THREE.Vector3()));
+function placeHelmet(model: HelmetModel): THREE.Group {
+  const { merged, size } = model;
   // Authored axes: +z is up, -y is forward. Raising and advancing the helmet
   // leaves the origin below and behind its centre, where the reference's is.
   merged.position.z += PIVOT_BELOW * size.z;
@@ -202,7 +96,7 @@ async function loadHelmet(renderer: THREE.WebGLRenderer): Promise<THREE.Group> {
   const normalised = new THREE.Group();
   normalised.add(merged);
   normalised.scale.setScalar(HELMET_LENGTH / (Math.max(size.x, size.y, size.z) || 1));
-  normalised.rotation.set(-Math.PI / 2, 0, 0);
+  normalised.rotation.copy(HELMET_UPRIGHT);
   return normalised;
 }
 
@@ -219,9 +113,7 @@ export function mountHelmetScroll(opts: HelmetScrollOptions): () => void {
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
   const scene = new THREE.Scene();
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-  pmrem.dispose();
+  scene.environment = createStudioEnvironment(renderer);
 
   const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 100);
   camera.position.z = CAMERA_Z;
@@ -369,10 +261,15 @@ export function mountHelmetScroll(opts: HelmetScrollOptions): () => void {
   gsap.ticker.add(render);
 
   let disposed = false;
-  void loadHelmet(renderer).then(
-    (helmet) => {
-      if (disposed) return;
-      nod.add(helmet);
+  let model: HelmetModel | null = null;
+  void loadHelmetModel(renderer).then(
+    (loadedModel) => {
+      if (disposed) {
+        loadedModel.dispose();
+        return;
+      }
+      model = loadedModel;
+      nod.add(placeHelmet(loadedModel));
       loaded = true;
       ScrollTrigger.refresh();
     },
@@ -389,12 +286,9 @@ export function mountHelmetScroll(opts: HelmetScrollOptions): () => void {
     window.removeEventListener('resize', resize);
     for (const t of triggers) t.kill();
     timeline.kill();
-    scene.traverse((object) => {
-      const mesh = object as THREE.Mesh;
-      if (!mesh.isMesh) return;
-      mesh.geometry.dispose();
-      (mesh.material as THREE.Material).dispose();
-    });
+    // Geometry, materials and the livery sheets, which the old per-mesh
+    // traversal here never reached.
+    model?.dispose();
     scene.environment?.dispose();
     renderer.dispose();
     canvas.remove();
