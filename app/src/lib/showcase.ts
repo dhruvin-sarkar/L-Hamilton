@@ -237,11 +237,11 @@ export function mountHofDrift(): void {
  *
  * The reference's callout mark is a Rive file (artboard "helmet-reef", state
  * machine "helmet-reef_scroll") keyed to the callout's scroll position. Read
- * off its canvas at 1728x1080, as painted pixels at held scroll positions:
- * nothing until the section top reaches 67% of the viewport, the two branches
- * grown up from their stems by the time it is at a third, then the helmet
- * coming up between them, complete with the section top about 5% from the top
- * of the screen.
+ * off its canvas at 1728x1080, as painted pixels at held scroll positions and
+ * allowed two seconds to settle (the Rive eases toward its scroll target, so a
+ * quick read lags): nothing until the section top reaches 65% of the
+ * viewport, the two branches grown up from their stems by 39%, then the
+ * helmet coming up between them, complete by 23%.
  *
  * Ours is the site's own crest — the same drawing the next-race card and the
  * menu carry — through the two hooks it already exposes for the On Track
@@ -268,22 +268,22 @@ export function mountCalloutCrest(): void {
         .timeline({
           scrollTrigger: {
             trigger: section,
-            start: 'top 67%',
-            end: 'top 5%',
+            start: 'top 65%',
+            end: 'top 23%',
             scrub: true,
           },
         })
-        // The first 55% of the range is the branches, the rest the helmet.
+        // The first 62% of the range is the branches, the rest the helmet.
         .fromTo(
           icon,
           { '--crest-branch-hide': '100%' },
-          { '--crest-branch-hide': '0%', duration: 0.55, ease: 'none', immediateRender: true },
+          { '--crest-branch-hide': '0%', duration: 0.62, ease: 'none', immediateRender: true },
         )
         .fromTo(
           icon,
           { '--crest-helmet': 0 },
-          { '--crest-helmet': 1, duration: 0.45, ease: 'none', immediateRender: true },
-          0.55,
+          { '--crest-helmet': 1, duration: 0.38, ease: 'none', immediateRender: true },
+          0.62,
         );
     }
   });
