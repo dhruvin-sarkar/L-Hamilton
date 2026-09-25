@@ -9,6 +9,7 @@ import { mountChrome } from './lib/chrome';
 import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountGalleryScroll } from './lib/gallery';
 import { mountFooterMarquee, mountMarquee } from './lib/marquee';
+import { mountHomeInk } from './lib/home-ink';
 import { mountReveals } from './lib/reveal';
 import { mountHelmets, mountHofDrift, mountRiser, mountSocials, mountStore } from './lib/showcase';
 import { BackgroundField } from './BackgroundField';
@@ -894,6 +895,10 @@ mountReveals({
   sidewaysFromBelow: 2,
   whenReady: onReady,
 });
+
+/* The drawn marks — the impact crest, the script "On" and the arrow buttons.
+   See lib/home-ink.ts. */
+mountHomeInk();
 /* ------------------------------------------------------------------ *
  * Circuit outline — drawn on rather than faded in.
  * ------------------------------------------------------------------ */

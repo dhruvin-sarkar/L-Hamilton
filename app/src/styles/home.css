@@ -3210,6 +3210,8 @@
 }
 
 .otot__head {
+  /* The script "On" hangs off this box. */
+  position: relative;
   display: flex;
   flex-direction: column;
   /* Each line only as wide as its own word, so the reveal bar sweeps the word
@@ -3217,6 +3219,20 @@
   align-items: inherit;
   margin: 0;
   text-transform: uppercase;
+}
+
+/* The script "On" across ON TRACK: the reference's `.otot-home-text-rive` slot,
+   15.94 x 12.125rem from the heading's top, hung a rem past its right edge and
+   laid over both words. home-ink.ts writes it in. */
+.otot__script {
+  position: absolute;
+  top: 0;
+  right: -1rem;
+  z-index: 10;
+  inline-size: 15.94rem;
+  block-size: 12.125rem;
+  color: var(--accent);
+  pointer-events: none;
 }
 
 /* "TRACK": Mona Sans at wdth 93, wght 750. */
@@ -3270,35 +3286,24 @@
   inline-size: 3.75rem;
   block-size: 3.75rem;
   border-radius: 0.54rem;
-  /* The same liquid fill the store and menu buttons carry, and deliberately
-     the same declaration rather than a lookalike — Giallo rises through Rosso
-     behind a meniscus as the level climbs. These buttons already sat at Rosso
-     at rest, so they take the treatment unchanged.
-
-     main.ts drives --liquid-level through mountLiquidFill, which is where the
-     curve and the fill/drain asymmetry live; nothing about the physics is
-     restated here. */
-  background: linear-gradient(
-    to top,
-    var(--giallo-modena) calc(var(--liquid-level) * 100%),
-    var(--rosso-corsa) calc((var(--liquid-level) + var(--liquid-gap)) * 100%)
-  );
-  /* Dark ink, not cream — the same call the store button makes. Cream reads on
-     Rosso but not on the Giallo that rises over it, so the arrow would fade out
-     at exactly the moment the hover completes. */
+  /* Flat, and it stays flat on hover: the reference's `.btn-w.icon-only`
+     keeps its ground and answers the pointer with the arrow instead, which
+     home-ink.ts lifts off and writes back. */
+  background: var(--rosso-corsa);
   color: var(--dark);
 }
 
+/* The reference's 16px glyph in its 60px button. */
 .otot__arrow {
-  inline-size: 1.2rem;
-  block-size: 1.2rem;
+  inline-size: 1rem;
+  block-size: 1rem;
 }
 
-/* On Track points back, Off Track points on — the two face away from each
-   other, mirroring the cutouts they sit under. One drawing, flipped, rather
-   than a second path to keep in sync with the first. */
+/* On Track points back, Off Track points on — the reference's two arrows are
+   one drawing turned half round, curl and all, so this is a rotation rather
+   than a mirror. One drawing, rather than a second to keep in sync. */
 .otot__col.is-on .otot__arrow {
-  scale: -1 1;
+  scale: -1 -1;
 }
 
 /* The default line reveal (.reveal-text), with the two things the reference's

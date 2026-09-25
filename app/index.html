@@ -455,6 +455,17 @@
               <h3 class="otot__head">
                 <span class="otot__head-line is-thin reveal-text">On</span>
                 <span class="otot__head-line reveal-text">Track</span>
+                <!-- The script "On" written across the heading, in the slot
+                     the reference gives its own (255 x 194, hung 1rem past the
+                     column). Original lettering: an O looped from its top
+                     right, then an n with a rising exit stroke. -->
+                <svg class="otot__script" viewBox="0 0 255 194" aria-hidden="true">
+                  <g fill="none" stroke="currentColor" stroke-width="14"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M128 30C104 8 56 22 34 80C14 132 24 186 66 186C110 186 142 128 146 78C150 34 122 12 92 26" />
+                    <path d="M152 182C158 150 164 120 174 98C184 78 206 70 216 86C224 100 214 136 210 160C207 178 216 188 228 176C240 162 247 120 249 40" />
+                  </g>
+                </svg>
               </h3>
               <p class="otot__blurb reveal-text" data-reveal-rich>
                 Most recent <strong>results</strong>, career stats and photos
@@ -462,9 +473,15 @@
               </p>
               <a class="otot__link" href="/on-track.html">
                 <span class="sr-only">Go to On Track</span>
-                <svg class="otot__arrow" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <!-- A return arrow, drawn in pen order (the curl, the shaft,
+                     then the head) because the hover writes it in that order.
+                     It points on; On Track turns it round in the stylesheet. -->
+                <svg class="otot__arrow" viewBox="0 0 16 16" aria-hidden="true">
+                  <g fill="none" stroke="currentColor" stroke-width="1.75"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 12.5H6a3 3 0 0 1 0-6h7" />
+                    <path d="M10 3.5l3 3-3 3" />
+                  </g>
                 </svg>
               </a>
             </div>
@@ -480,9 +497,15 @@
               </p>
               <a class="otot__link" href="/off-track.html">
                 <span class="sr-only">Go to Off Track</span>
-                <svg class="otot__arrow" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor"
-                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                <!-- A return arrow, drawn in pen order (the curl, the shaft,
+                     then the head) because the hover writes it in that order.
+                     It points on; On Track turns it round in the stylesheet. -->
+                <svg class="otot__arrow" viewBox="0 0 16 16" aria-hidden="true">
+                  <g fill="none" stroke="currentColor" stroke-width="1.75"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 12.5H6a3 3 0 0 1 0-6h7" />
+                    <path d="M10 3.5l3 3-3 3" />
+                  </g>
                 </svg>
               </a>
             </div>
