@@ -899,46 +899,10 @@ body[data-page='off-track'] {
   --top: 0;
 }
 
-/* The captions and callouts arrive as the reference's C_() runs them on this
- * section — a clip wiped open left to right over 0.6s with the accent bar
- * inside it, the bar retracting 0.3s later — the same keyframes On Track's
- * gallery uses. Held at opacity 0 until triggered, for the reason given
- * there: an element clipped away by its own clip-path never intersects. */
-[data-reveal-animated] .gallery--off-track .reveal-text:not([data-reveal-split]),
-[data-reveal-animated] .gallery--off-track .reveal-line {
-  opacity: 0;
-}
-
-.gallery--off-track .reveal-text.is-in:not([data-reveal-split]),
-.gallery--off-track .reveal-text.is-in .reveal-line {
-  opacity: 1;
-  animation: oft-line-open 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
-  animation-delay: var(--reveal-delay, 0ms);
-}
-
-.gallery--off-track .reveal-text.is-in::after,
-.gallery--off-track .reveal-text.is-in .reveal-line::after {
-  animation-duration: 0.6s;
-  animation-timing-function: cubic-bezier(0.455, 0.03, 0.515, 0.955);
-  animation-delay: calc(var(--reveal-delay, 0ms) + 300ms);
-}
-
-.gallery--off-track .reveal-text.is-done:not([data-reveal-split]),
-.gallery--off-track .reveal-text.is-done .reveal-line {
-  opacity: 1;
-  animation: none;
-  clip-path: none;
-}
-
-@keyframes oft-line-open {
-  from {
-    clip-path: inset(-0.2em 100% -0.2em -0.2em);
-  }
-
-  to {
-    clip-path: inset(-0.2em -0.2em -0.2em -0.2em);
-  }
-}
+/* The captions and callouts take the shared line reveal (.reveal-text in
+ * home.css) unchanged: the reference's C_() runs them on the same shape as AE()
+ * everywhere else. Only the trigger differs, which off-track.ts passes to
+ * mountReveals. */
 
 /* Narrow widths.
  *

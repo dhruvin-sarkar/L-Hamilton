@@ -849,11 +849,14 @@ mountChrome();
 
 mountReveals({
   immediate: '.oft-hero',
-  /* The gallery's captions and callouts arrive on the X axis: each as its item's
-     left edge passes 95% of the screen, the first ones as they rise past 90%
-     of its height -- one margin covers both, as on On Track. */
+  /* The gallery's captions and callouts arrive on the X axis, each as its
+     item's left edge passes 95% of the screen. The reference's C_() sends the
+     section's first two (the first project's descriptor and caption) through
+     a vertical "top 90%" trigger instead, as they rise into view before any
+     sideways travel starts. */
   sideways: '.gallery',
   sidewaysMargin: '0px -5% -10% 0px',
+  sidewaysFromBelow: 2,
   whenReady: (run) => void document.fonts.ready.then(() => gsap.delayedCall(HERO_CUE, run)),
 });
 
