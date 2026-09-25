@@ -229,3 +229,27 @@ body[data-page='calendar'] {
   display: inline-block;
   white-space: pre;
 }
+
+/* ================================================================ Panel
+ * The round panel is On Track's (on-track.css .ot-cal__*); what differs here
+ * is the 3D map in place of the flat outline, and the result columns. */
+
+/* The reference's `.calendar-track-gl-target`: the lower 80% of the panel,
+   5% in from each side, under the frame. It takes drags (spinning the map),
+   so unlike On Track's outline it is not pointer-transparent. */
+.cal-panel__gl {
+  position: absolute;
+  inset: 20% 5% 0;
+  z-index: 0;
+}
+
+.cal-panel__past[hidden] {
+  display: none;
+}
+
+@media (max-width: 991px) {
+  .cal-panel__gl {
+    inset: calc(var(--u) * 3) 0 auto;
+    block-size: calc(var(--u) * 23);
+  }
+}

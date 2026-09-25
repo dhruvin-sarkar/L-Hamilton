@@ -41,7 +41,7 @@ import type { CalendarRound, RoundResult } from '../content/live-stats';
 import { countryName, flagUrl } from '../content/countries';
 import { circuitFacts, formatKm } from '../content/circuit-facts';
 import { roundPhoto } from '../content/calendar-media';
-import { TrackScene } from './TrackScene';
+import { mountTrackMap } from '../lib/track3d';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -218,7 +218,9 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
 
   /* ------------------------------------------------ Track visualiser */
 
-  const scene = new TrackScene(glHost);
+  /* Every change of round turns the map forward, arrows or rows alike -- the
+     reference's calendar sets its circuit the one way. */
+  const map = mountTrackMap(glHost, roundAt(current).circuitId);
 
   /* ------------------------------------------------------ The values */
 
@@ -426,7 +428,7 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
   const show = (index: number, announce: boolean): void => {
     current = index;
     const round = roundAt(index);
-    scene.show(round.circuitId);
+    map.show(round.circuitId);
     markActive();
     if (announce) live.textContent = `Showing round ${round.round}, the ${round.raceName}.`;
 

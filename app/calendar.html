@@ -63,7 +63,7 @@
                columns 3-4;
              - a 4rem spacer, the target of the first button;
              - the round panel: the same component On Track shows, with the
-               circuit drawn large in 3D across it (TrackScene.ts);
+               circuit drawn large in 3D across it (lib/track3d.ts);
              - every round already run, with his finish and fastest lap;
              - every round still to come, with its laps and distance. The
                second button lands here.
@@ -215,7 +215,7 @@
               </svg>
 
               <!-- The track visualiser: the round's circuit as a lit 3D ribbon
-                   under a slowly turning camera (TrackScene.ts), where the
+                   under a slowly turning camera (lib/track3d.ts), where the
                    reference renders its own model in a site-wide WebGL scene.
                    Decorative: the round is named in the tab. -->
               <div class="cal-panel__gl" data-cal-gl aria-hidden="true"></div>
