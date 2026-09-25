@@ -932,9 +932,16 @@ if (statGrid) {
     figure.dataset.count = String(stat.value);
     figureWrap.appendChild(figure);
 
+    /* The decimals are a counter of their own beside a point that never moves,
+       as the reference sets them: `.` and `28` in two boxes. */
     if (stat.fraction) {
       figure.classList.add('ot-stats__value--whole');
-      figureWrap.appendChild(el('span', 'ot-stats__fraction', stat.fraction));
+      const decimals = stat.fraction.replace(/^\./, '');
+      const counter = el('span', 'ot-stats__decimals', decimals);
+      counter.dataset.count = String(Number(decimals));
+      const fraction = el('span', 'ot-stats__fraction', '.');
+      fraction.appendChild(counter);
+      figureWrap.appendChild(fraction);
     }
 
     if (stat.scribble) {
@@ -989,25 +996,50 @@ if (statGrid) {
   fitStats();
   remeasure(fitStats);
 
-  /* Count-ups, on the whole part only. The average finish's decimals are
-     static beside it: counting through fractional intermediates would spin a
-     decimal place that means nothing. */
-  if (!reducedMotion) {
-    for (const figure of figures) {
-      const target = Number(figure.dataset.count);
+  /* Count-ups, the reference's `[data-car-counter]` to the number. Each
+   * counter waits zero-padded to its own digit count ("000" under a
+   * three-digit figure, "0" under the "3"), and once its top crosses 90% of the
+   * screen counts up over 1s power1.out, keeping the padding as it goes. A
+   * figure that sets with a group separator counts in groups instead, as the
+   * reference's does. The average finish's decimals are the second counter,
+   * "00" up to their value, beside a point that stays put.
+   *
+   * The targets are the data layer's own (data-count, written above from
+   * `career`). The counters are aria-hidden; each item's sr-only twin states
+   * the settled value, so none of this is ever read out mid-count. Wide and
+   * animated only: elsewhere the settled figures are simply there. */
+  mm.add(WIDE_AND_ANIMATED, () => {
+    const counters = [...statGrid.querySelectorAll<HTMLElement>('[data-count]')];
+    const settled = counters.map((counter) => counter.textContent ?? '');
+
+    const tweens = counters.map((counter, i) => {
+      const final = settled[i] ?? '';
+      const target = Number(counter.dataset.count);
+      const digits = final.replace(/\D/g, '').length;
+      const grouped = /\D/.test(final);
+      const show = (n: number): string =>
+        grouped ? groups.format(n) : String(n).padStart(digits, '0');
+
       const state = { n: 0 };
-      figure.textContent = '0';
-      gsap.to(state, {
+      counter.textContent = '0'.repeat(Math.max(1, digits));
+      return gsap.to(state, {
         n: target,
-        duration: 1.6,
-        ease: 'expo.out',
-        scrollTrigger: { trigger: figure, start: 'top 90%' },
+        duration: 1,
+        ease: 'power1.out',
+        scrollTrigger: { trigger: counter, start: 'top 90%', once: true },
         onUpdate: () => {
-          figure.textContent = groups.format(Math.round(state.n));
+          counter.textContent = show(Math.round(state.n));
         },
       });
-    }
-  }
+    });
+
+    return () => {
+      for (const tween of tweens) tween.kill();
+      counters.forEach((counter, i) => {
+        counter.textContent = settled[i] ?? '';
+      });
+    };
+  });
 }
 
 /* ------------------------------------------------------------------ *
