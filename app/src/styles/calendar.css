@@ -247,6 +247,156 @@ body[data-page='calendar'] {
   display: none;
 }
 
+/* ================================================================ Lists
+ * The two lists under the panel -- rounds run, rounds to come -- on On
+ * Track's row grid (.ot-cal__row). The reference's `.f1-highlight-grid
+ * .is-previous` and `.is-schedule`. */
+
+.cal-list {
+  position: relative;
+}
+
+.cal-list[hidden] {
+  display: none;
+}
+
+.cal-list:focus {
+  outline: none;
+}
+
+.cal-list__collection {
+  position: relative;
+  margin-block-start: calc(var(--g) * 2);
+}
+
+/* Reference `.f1-highlight-item-round-w.cal-previous`: the number in the
+   page's grey, at least 3.4rem wide, the strike centred over it. */
+.cal-row__round-w {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-inline-size: calc(var(--u) * 3.4);
+  color: var(--grey-on-track);
+}
+
+/* Reference `.f1-highlight-round-svg`: 110% of the number's width, centred,
+   in the accent. */
+.cal-row__strike {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: 110%;
+  block-size: auto;
+  color: var(--accent);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* Reference `data-text-format="position"`: the figure and its raised
+   letters, 0.4rem down and 0.2rem right of it. */
+.cal-row__place {
+  display: flex;
+}
+
+.cal-row__suffix {
+  position: relative;
+  inset-block-start: calc(var(--u) * 0.4);
+  inset-inline-start: calc(var(--u) * 0.2);
+}
+
+/* Reference `.f1-highlight-trophy-w`: a square as tall as the row, hung 5.6rem
+   left of the finish, the drawing at 90% of its height -- lit for a win, grey
+   for second, bronze for third (the reference's filters over its lime come
+   out #e3e3e3 and #ffc296). The drawing is our own trophy, used as a mask so
+   each step takes a plain colour. */
+.cal-row__trophy {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: calc(var(--u) * -5.6);
+  block-size: 100%;
+  aspect-ratio: 1;
+  background: var(--accent);
+  mask: url('/assets/highlights/trophy.svg') right center / contain no-repeat;
+  mask-size: auto 90%;
+}
+
+.cal-row__trophy--p2 {
+  background: #e3e3e3;
+}
+
+.cal-row__trophy--p3 {
+  background: #ffc296;
+}
+
+/* Reference `.f1-highlight-mouse-over-w`: 20.6 x 24.6rem at the block's top
+   left, moved and opened by calendar/season.ts, the accent curtain lifting
+   off the picture after it. */
+.cal-card {
+  position: absolute;
+  inset: 0 auto auto 0;
+  z-index: 10;
+  inline-size: calc(var(--u) * 20.6);
+  block-size: calc(var(--u) * 24.6);
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.cal-card__reveal {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: var(--accent);
+}
+
+.cal-card__frame {
+  position: absolute;
+  inset: 0;
+  background: var(--dark);
+}
+
+.cal-card__img {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 991px) {
+  .cal-card,
+  .cal-list .ot-cal__card {
+    display: none;
+  }
+}
+
+/* Reference `.f1-highlight-grid.is-previous:hover`: a run round fills with the
+   accent and every ink on it turns black -- the number and its strike, the
+   ordinal's letters, the trophy (the reference inverts and greys its drawing
+   to near-black) -- and its rule steps aside. Instant, and wide-and-pointer
+   only: below 992 the reference switches it off. The rows to come keep On
+   Track's schedule hover. */
+@media (min-width: 992px) and (hover: hover) {
+  button.cal-row--past:hover {
+    background: var(--accent);
+    color: var(--black);
+  }
+
+  button.cal-row--past:hover .ot-cal__rule {
+    display: none;
+  }
+
+  button.cal-row--past:hover .cal-row__round-w,
+  button.cal-row--past:hover .cal-row__strike,
+  button.cal-row--past:hover .cal-row__suffix {
+    color: inherit;
+  }
+
+  button.cal-row--past:hover .cal-row__trophy {
+    background: var(--black);
+  }
+}
+
 @media (max-width: 991px) {
   .cal-panel__gl {
     inset: calc(var(--u) * 3) 0 auto;

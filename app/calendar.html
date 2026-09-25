@@ -251,7 +251,9 @@
              panel at its round; the reference's are clickable divs with no
              keyboard path. The card that follows the pointer shows the round's
              picture, as the reference's does. -->
-        <div class="cal-list" id="calendar-list" data-cal-previous-wrap>
+        <!-- The card's ground is the whole block, header included, where the
+             list below's is its rows only: as the reference sets them. -->
+        <div class="cal-list" id="calendar-list" data-cal-previous-wrap data-cal-area>
           <div class="ot-cal__row ot-cal__row--head cal-list__head" aria-hidden="true">
             <p class="ot-cal__eyebrow reveal-text">Round</p>
             <p class="ot-cal__eyebrow reveal-text">Location</p>
@@ -259,15 +261,15 @@
             <p class="ot-cal__eyebrow reveal-text">Finish</p>
             <p class="ot-cal__eyebrow reveal-text">Fastest lap</p>
           </div>
-          <div class="cal-list__collection" data-cal-area>
+          <div class="cal-list__collection">
             <h3 class="sr-only">Rounds run</h3>
             <ol class="ot-cal__list" data-cal-previous></ol>
-            <div class="cal-card cal-card--photo" data-cal-card aria-hidden="true">
-              <div class="cal-card__reveal" data-cal-card-reveal></div>
-              <!-- The round's picture is added by calendar.ts on the first
-                   hover, so no image is requested until one is shown. -->
-              <div class="cal-card__frame" data-cal-card-photo></div>
-            </div>
+          </div>
+          <div class="cal-card cal-card--photo" data-cal-card aria-hidden="true">
+            <div class="cal-card__reveal" data-cal-card-reveal></div>
+            <!-- The round's picture is added by calendar.ts on the first
+                 hover, so no image is requested until one is shown. -->
+            <div class="cal-card__frame" data-cal-card-photo></div>
           </div>
         </div>
 

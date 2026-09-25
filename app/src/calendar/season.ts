@@ -317,8 +317,10 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
 
     /* Round, struck through once it has been run. */
     const roundCell = cell('ot-cal__cell cal-row__round');
-    roundCell.appendChild(el('span', 'ot-cal__major cal-row__round-n', String(round.round).padStart(2, '0')));
-    if (past) roundCell.appendChild(strike());
+    const roundBox = el('span', 'cal-row__round-w');
+    roundBox.appendChild(el('span', 'ot-cal__major', String(round.round).padStart(2, '0')));
+    if (past) roundBox.appendChild(strike());
+    roundCell.appendChild(roundBox);
 
     const location = cell();
     location.appendChild(el('span', 'ot-cal__major ot-cal__nowrap', name));
@@ -342,17 +344,11 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
       const result = round.result;
       if (result?.position) {
         const [figure, letters] = place(result.position);
-        finish.append(el('span', 'ot-cal__major', figure), el('span', 'ot-cal__suffix cal-row__suffix', letters));
-        if (result.position <= 3) {
-          const cup = el('span', `cal-row__trophy cal-row__trophy--p${result.position}`);
-          const cupImg = el('img');
-          cupImg.src = '/assets/highlights/trophy.svg';
-          cupImg.alt = '';
-          cupImg.width = 64;
-          cupImg.height = 64;
-          cup.appendChild(cupImg);
-          finish.appendChild(cup);
-        }
+        const placed = el('span', 'cal-row__place');
+        placed.append(el('span', 'ot-cal__major', figure), el('span', 'ot-cal__suffix cal-row__suffix', letters));
+        finish.appendChild(placed);
+        /* A podium's trophy, tinted for the step (calendar.css). */
+        if (result.position <= 3) finish.appendChild(el('span', `cal-row__trophy cal-row__trophy--p${result.position}`));
       } else {
         finish.appendChild(el('span', 'ot-cal__major', result ? finishText(result.positionText) : 'TBC'));
       }
@@ -532,7 +528,7 @@ function mountCard(
   rounds: CalendarRound[],
   kind: 'photo' | 'circuit',
 ): () => void {
-  const area = wrap.querySelector<HTMLElement>('[data-cal-area]');
+  const area = wrap.matches('[data-cal-area]') ? wrap : wrap.querySelector<HTMLElement>('[data-cal-area]');
   const card = wrap.querySelector<HTMLElement>('[data-cal-card]');
   const reveal = wrap.querySelector<HTMLElement>('[data-cal-card-reveal]');
   if (!area || !card || !reveal) throw new Error('[calendar] a list has lost its hover card');
