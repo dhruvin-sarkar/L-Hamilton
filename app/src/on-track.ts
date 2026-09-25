@@ -734,25 +734,24 @@ function weekend(round: CalendarRound): { days: string; month: string } {
 
 const previous = lastRound();
 if (previous) {
-  /* What actually happened, in the sport's own terms: a finished race gives a
-     position, a retirement gives the status the timing screens print. */
-  const outcome = previous.result
-    ? previous.result.position
-      ? `P${previous.result.position}`
-      : previous.result.status
-    : '\u2014';
-
   // The markup carries the "GP" as a second word, as the reference does.
   slot('prev-race', previous.raceName.replace(/ Grand Prix$/, ''));
 
   /* Spoken, not drawn \u2014 the card shows the circuit and the race name, as the
-     reference's does. Phrased as a sentence rather than the "P3 / 15 pts" the
-     figures used to carry, because it is only ever read aloud. */
+     reference's does. Phrased as a sentence, in words a screen reader says
+     cleanly: "Finished 3rd", not "Finished P3" (read as "P 3"), and a car
+     that was not classified "did not finish", with the status the timing
+     screens print for it in brackets -- never "Finished Retired". */
+  const spokenOutcome = (result: NonNullable<CalendarRound['result']>): string => {
+    const pts = `${points(result.points)} points.`;
+    if (result.position) return `Finished ${ordinal(result.position)}, ${pts}`;
+    const status = result.status.trim();
+    if (/^did not/i.test(status)) return `${status}, ${pts}`;
+    return `Did not finish (${status.toLowerCase()}), ${pts}`;
+  };
   slot(
     'prev-outcome',
-    previous.result
-      ? `Finished ${outcome}, ${points(previous.result.points)} points.`
-      : 'Result not yet published.',
+    previous.result ? spokenOutcome(previous.result) : 'Result not yet published.',
   );
 
   /* The figure and its ordinal letters as two runs, the letters set small --
