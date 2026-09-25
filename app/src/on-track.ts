@@ -2582,9 +2582,13 @@ function mountCalendar(section: HTMLElement): void {
     const row = el('button', 'ot-cal__row');
     row.type = 'button';
     row.setAttribute('aria-controls', panel.id);
+    /* The visible fields first and in their on-screen order -- round, country,
+       dates, laps, distance -- so the name contains every label a speech-input
+       user can see (WCAG 2.5.3), with the race and the town it is in after the
+       country they belong to. */
     const label =
-      `Round ${round.round}, ${round.raceName}, ${round.locality}, ${span.days} ${span.month}, ` +
-      `${facts.laps} laps, ${distance} km. ${state}`;
+      `Round ${round.round}, ${round.country}, ${round.raceName}, ${round.locality}, ` +
+      `${span.days} ${span.month}, ${facts.laps} laps, ${distance} km. ${state}`;
     row.setAttribute('aria-label', label.trim());
 
     const cell = (className = 'ot-cal__cell'): HTMLSpanElement => {
