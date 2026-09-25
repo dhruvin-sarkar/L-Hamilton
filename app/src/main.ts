@@ -11,7 +11,14 @@ import { mountGalleryScroll } from './lib/gallery';
 import { mountFooterMarquee, mountMarquee } from './lib/marquee';
 import { mountHomeInk } from './lib/home-ink';
 import { mountReveals } from './lib/reveal';
-import { mountHelmets, mountHofDrift, mountRiser, mountSocials, mountStore } from './lib/showcase';
+import {
+  mountCalloutCrest,
+  mountHelmets,
+  mountHofDrift,
+  mountRiser,
+  mountSocials,
+  mountStore,
+} from './lib/showcase';
 import { BackgroundField } from './BackgroundField';
 import { HeadScene } from './HeadScene';
 import { Signature } from './Signature';
@@ -700,6 +707,7 @@ mm.add(WIDE_AND_ANIMATED, () => {
 
 mountRiser();
 mountHofDrift();
+mountCalloutCrest();
 mountStore({
   /* Home has a field to report into; the model in this file owns what the
      value means. See lib/showcase.ts for why it is reported rather than
