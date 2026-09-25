@@ -1,0 +1,1368 @@
+/* /off-track — page-scoped rules.
+ *
+ * The shared chrome, the reveal, the gallery and the socials block all come from
+ * home.css through main.css; this file holds only what the Off Track page does
+ * differently. Measured off the reference (public/off-track.html) at 1728x1080,
+ * where 1rem = 16px, so every rem below is the reference's own value.
+ *
+ * Palette: the reference's Off Track page is one cream ground from hero to
+ * socials, with dark-green ink, a grey-green accent face and lime highlights.
+ * Ours inverts light and dark the way every other page here does — one warm
+ * near-black ground, cream ink, the off-white grey for the accent face and
+ * rosso for the highlight bars. */
+
+body[data-page='off-track'] {
+  --bg: var(--black);
+}
+
+/* The hero and the statement: the reference's .s-group, which the picture
+   flies through. Positioned so the flight can be laid out in its coordinates. */
+.oft-group {
+  /* The reference's rem. Its root keeps shrinking under 992px, where ours
+     locks at 16px, so the header and the statement are sized against this
+     instead of against rem (see Mobile, below). The same as 1rem from 992
+     up. The tokens the two sections use are restated here against it. */
+  --r: 1rem;
+  --gap: calc(1.25 * var(--r));
+  --text--eyebrow: calc(0.625 * var(--r));
+  --text--impact: calc(7.9375 * var(--r));
+  position: relative;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ================================================================ Header */
+
+.oft-hero {
+  /* Reference .c.is-on-track-home: min(100vh, 1200px), flex column. */
+  block-size: min(100svh, 1200px);
+  /* Proportional figures, as the reference sets "26 y.o". */
+  font-variant-numeric: normal;
+  /* The title runs off both sides, and on a phone the identity row runs past
+     the right edge by its grid's three gaps, as the reference's does. Neither
+     may widen the page. Clip, not hidden: this must not become a scroller. */
+  overflow-x: clip;
+}
+
+.oft-hero__c {
+  block-size: 100%;
+  /* Reference: --on-t-nav-spacer (5.375rem) on top, the container's --gap at
+     the sides, and .off-t-hero-title-layout's --gap at the foot. */
+  padding: calc(5.375 * var(--r)) var(--gap) var(--gap);
+  display: flex;
+  flex-direction: column;
+}
+
+/* The reference's grid-main: four 23.55% columns with the gap on top, which
+   is why they stop 38px short of the container's right edge. */
+.oft-hero__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 23.55%);
+  column-gap: var(--gap);
+  inline-size: 100%;
+}
+
+/* ------------------------------------------------------------- The title */
+
+/* Reference .off-t-hero-title-w: the line centred in the container and
+   allowed to run past both edges — at 1728 it is 1848px across, 80px off
+   either side. The box is its measured 333px tall: the serif word's larger
+   size is what sets it, and the identity row hangs straight off its foot. */
+.oft-hero__title-w {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  block-size: calc(20.8125 * var(--r));
+  /* The column is a flex column that overflows on a phone; without this the
+     title's box would be squeezed below its line. */
+  flex-shrink: 0;
+}
+
+.oft-hero__title {
+  flex: none;
+  margin: 0;
+  display: flex;
+  /* On one baseline, as the reference's single line of two sizes sits. */
+  align-items: baseline;
+  /* Playfair's line box stands 6px taller over the baseline than Brier's, so
+     the line is lifted by that much to put TRACK's cap line at the
+     reference's y=103 (its baseline at 419, on the identity row). */
+  margin-block-start: calc(-0.375 * var(--r));
+  white-space: nowrap;
+  color: var(--text);
+  pointer-events: none;
+}
+
+/* Reference .text-on-t-hero-heading-mona.margin: Brier Bold at 23.2rem with
+   0.4rem to its right. Brier is commercial; the site's display serif stands
+   in for it, sized so its caps stand as tall as Brier's and OFF spans the
+   same 673px. */
+.oft-hero__off {
+  margin-inline-end: calc(0.4 * var(--r));
+  font-family: var(--font-serif);
+  font-size: calc(23.2 * var(--r));
+  font-weight: 700;
+  line-height: 0.886;
+  /* Playfair's capitals are wider than Brier's at the same height. Tracking
+     them in by 1.25rem at 23.2rem takes OFF from 735px to Brier's 673, so
+     TRACK lands on the reference's x=619 and runs off the right edge by the
+     same 60px. In em, because it corrects the face rather than restating a
+     reference value: it has to shrink with the word at the narrow sizes. */
+  letter-spacing: -0.0539em;
+  font-variant-numeric: lining-nums;
+  text-transform: uppercase;
+}
+
+/* Reference .text-on-t-hero-heading: Mona Sans at "wdth" 95 "wght" 700,
+   22.3rem, line-height 0.886, letter-spacing -0.1875rem — the same face, so
+   the same numbers. Kerning off because the reference sets it a letter to a
+   span, which drops the face's pairs. */
+.oft-hero__track {
+  font-family: var(--font-body);
+  font-stretch: 95%;
+  font-size: calc(22.3 * var(--r));
+  font-weight: 700;
+  line-height: 0.886;
+  letter-spacing: calc(-0.1875 * var(--r));
+  font-kerning: none;
+  text-transform: uppercase;
+}
+
+.oft-hero__char {
+  display: inline-block;
+}
+
+/* -------------------------------------------------------- Identity row */
+
+/* Reference .off-t-hero-sub-w: columns 1-2, itself two columns. */
+.oft-hero__sub {
+  grid-column: span 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+}
+
+/* Reference .on-t-hero-sub-col.is-grid: two columns, 16px apart, and TWO
+   rows — the second is empty, and its 16px gap is what makes the row 53px
+   tall rather than the icon's 37, which is where the lower half starts. */
+.oft-hero__sub-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 16px;
+  align-items: start;
+}
+
+/* Reference .text-quote: Brier 1.5rem on 0.95, -0.03125rem. */
+.oft-hero__quote {
+  margin: 0;
+  justify-self: start;
+  inline-size: fit-content;
+  font-family: var(--font-serif);
+  font-size: calc(1.5 * var(--r));
+  font-weight: 500;
+  line-height: 0.95;
+  letter-spacing: calc(-0.03125 * var(--r));
+  font-variant-numeric: lining-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* Reference .callout-icon.off-t-hero: 2.3125rem square. */
+.oft-hero__icon {
+  display: block;
+  inline-size: calc(2.3125 * var(--r));
+  block-size: calc(2.3125 * var(--r));
+  background: var(--off-white-2);
+  -webkit-mask: url('/assets/brand/dot-ball.svg') center / contain no-repeat;
+  mask: url('/assets/brand/dot-ball.svg') center / contain no-repeat;
+}
+
+/* ------------------------------------------------------- The lower half */
+
+/* Reference .off-t-hero-stats-grid.grid-main: takes the rest of the screen. */
+.oft-hero__stats {
+  flex: 1;
+  margin-block-start: auto;
+  position: relative;
+  row-gap: var(--gap);
+}
+
+/* Reference .off-t-hero-stats-w: columns 1-2, content packed to the foot. */
+.oft-hero__stats-w {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-start;
+  gap: 16px;
+  min-inline-size: 0;
+}
+
+.oft-hero__spacer {
+  flex: 1 1 0;
+  min-block-size: calc(4 * var(--r));
+  max-block-size: calc(8 * var(--r));
+}
+
+.oft-hero__stats-layout {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  /* Its width comes from the paragraph's 41rem, so without a cap it would
+     push past a column narrower than that. */
+  max-inline-size: 100%;
+}
+
+/* Reference .text-eyebrow in --color--grey-on-track. */
+.oft-hero__eyebrow {
+  margin: 0;
+  inline-size: fit-content;
+  font-family: var(--font-body);
+  font-size: var(--text--eyebrow);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--grey-on-track);
+}
+
+.oft-hero__para-w {
+  /* A fixed 41rem, as the reference's measures: its paragraph block is 656px
+     wide whatever its longest line happens to be. */
+  inline-size: calc(41 * var(--r));
+  max-inline-size: 100%;
+}
+
+/* Reference .text-body-lg-mona: "wght" 500, 2.25rem on 1.1, -0.0625rem. */
+.oft-hero__para {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: calc(2.25 * var(--r));
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: calc(-0.0625 * var(--r));
+  color: var(--text);
+}
+
+/* Reference .text-body-lg-brier.c-green-off-white-2: the closing clause in
+   the second face, lower case, in the page's grey rather than its accent. */
+.oft-hero__accent {
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-variant-numeric: lining-nums;
+  color: var(--off-white-2);
+}
+
+/* Reference .off-track-hero-signature-rive.scale: 133/72 at 4.5rem, scaled
+   1.3 from its centre and pushed to the left. Written on by off-track.ts; the
+   mask is what shows without it. */
+.oft-hero__sign {
+  inline-size: calc(8.3125 * var(--r));
+  block-size: calc(4.5 * var(--r));
+  margin-inline-end: auto;
+  scale: 1.3;
+  background-color: var(--grey-on-track);
+  mask-image: url('/assets/brand/signature.svg');
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+}
+
+.oft-hero__sign.is-writing {
+  display: flex;
+  justify-content: center;
+  background: none;
+  mask: none;
+}
+
+.oft-hero__sign.is-writing canvas {
+  display: block;
+  block-size: 100%;
+  aspect-ratio: 960 / 764;
+  min-inline-size: 0;
+}
+
+/* Reference .off-t-hero-sub-para-w.grid-main: two 47.1% columns, the note
+   in the second, 16.375rem wide. */
+.oft-hero__note-w {
+  inline-size: 100%;
+  display: grid;
+  grid-template-columns: 47.1% 47.1%;
+  column-gap: var(--gap);
+}
+
+/* Reference .text-body-sm-mona: 1rem, weight 500, on 1.3, -0.0125rem. */
+.oft-hero__note {
+  grid-column: 2;
+  max-inline-size: calc(16.375 * var(--r));
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: calc(1 * var(--r));
+  font-weight: 500;
+  line-height: 1.3;
+  letter-spacing: calc(-0.0125 * var(--r));
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------ The marquee */
+
+/* Reference .marquee-offest-w.z-20: the full viewport width, pulled out of
+   the container's left gap, 2rem under the note. */
+.oft-hero__marquee {
+  position: relative;
+  z-index: 20;
+  inline-size: 100vw;
+  margin-block-start: calc(2 * var(--r));
+  margin-inline-start: calc(var(--gap) * -1);
+  overflow: clip;
+}
+
+/* Reference .marquee-advanced__scroll: 10% wider than the screen each side,
+   so the scroll-scrubbed drift never shows an edge. */
+.oft-hero__marquee-scroll {
+  display: flex;
+  inline-size: 120%;
+  margin-inline-start: -10%;
+  will-change: transform;
+}
+
+.oft-hero__marquee-track {
+  display: flex;
+  flex: none;
+  will-change: transform;
+}
+
+/* One venture: set as type in the slot the reference fills with a 3.4375rem
+   logo, with its 7rem spacer after it. */
+.oft-hero__venture {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  block-size: calc(3.4375 * var(--r));
+  padding-inline-end: calc(7 * var(--r));
+  font-family: var(--font-body);
+  font-size: calc(2.1 * var(--r));
+  font-weight: 800;
+  font-stretch: 90%;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.oft-hero__venture.is-serif {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-stretch: normal;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  font-size: calc(2.35 * var(--r));
+}
+
+/* ------------------------------------------------------------ The picture */
+
+/* Reference .off-t-hero-img-slot: columns 3-4, nudged 1rem right. */
+.oft-hero__img-slot {
+  grid-column: span 2;
+  position: relative;
+  inset-inline-end: calc(-1 * var(--r));
+}
+
+/* Reference .off-t-hero-img-w: 52.125 x 60rem, hung 12rem above the slot. */
+.oft-hero__img-w {
+  position: absolute;
+  inset: calc(-12 * var(--r)) auto auto 0;
+  inline-size: calc(52.125 * var(--r));
+  block-size: calc(60 * var(--r));
+}
+
+/* The flying picture. At rest it fills its first stop; off-track.ts lifts it
+   into the group and drives it from there. */
+.oft-flight {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.oft-flight.is-flying {
+  inset: 0 auto auto 0;
+}
+
+.oft-flight__layer {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+
+.oft-flight__layer:first-child {
+  opacity: 1;
+}
+
+/* ============================================================ Statement
+ *
+ * Reference `.impact-content-w.off-track`, at 1728 where its root is 16px:
+ *
+ *   column        78rem, centred, padding 17rem top and 12rem bottom,
+ *                 flex column, align centre, gap 3 x --gap
+ *   icon          97 x 51 mark in laurels over the eyebrow, gap --gap
+ *   statement     7.9375rem / 90.6% / -0.0625rem, "wght" 660 "wdth" 93,
+ *                 its accented words Brier Bold 8.25rem / 83% / -0.1875rem
+ *                 in the page's grey
+ *   end           3rem down: the signature, 8rem wide at 6.0625:3.1875,
+ *                 scaled 1.3, over the picture's last stop
+ */
+
+.oft-defs {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+  overflow: hidden;
+}
+
+.oft-impact {
+  position: relative;
+  color: var(--text);
+  overflow-x: clip;
+}
+
+.oft-impact__inner {
+  max-inline-size: calc(78 * var(--r));
+  margin-inline: auto;
+  padding-block: calc(17 * var(--r)) calc(12 * var(--r));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(3 * var(--gap));
+  text-align: center;
+}
+
+.oft-impact__icon {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap);
+}
+
+/* Reference .base-helmet-rive: 6.0625 x 3.1875rem. */
+.oft-impact__reef {
+  position: relative;
+  inline-size: calc(6.0625 * var(--r));
+  block-size: calc(3.1875 * var(--r));
+}
+
+.oft-impact__reef-branches {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  color: var(--off-white-2);
+  overflow: visible;
+}
+
+.oft-impact__reef-ball {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: calc(2.5 * var(--r));
+  block-size: calc(2.5 * var(--r));
+  translate: -50% -50%;
+  background: var(--off-white-1);
+  -webkit-mask: url('/assets/brand/dot-ball.svg') center / contain no-repeat;
+  mask: url('/assets/brand/dot-ball.svg') center / contain no-repeat;
+}
+
+.oft-impact__eyebrow {
+  margin: 0;
+  inline-size: fit-content;
+  font-family: var(--font-body);
+  font-size: var(--text--eyebrow);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--grey-on-track);
+}
+
+/* Reference .impact-text-w: the statement centred, and the box the picture's
+   second stop is positioned in. */
+.oft-impact__text-w {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Reference .text-impact-lg-mona. */
+.oft-impact__text {
+  margin: 0;
+  font-family: var(--font-body);
+  font-stretch: 93%;
+  font-size: var(--text--impact);
+  font-weight: 660;
+  /* Declared as the reference declares it: Chrome truncates a fractional
+     percentage, so 90.6% renders 114.3px lines exactly as its does. */
+  line-height: 90.6%;
+  letter-spacing: calc(-0.0625 * var(--r));
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+/* The accented words: the reference's <strong>, Brier Bold one step larger
+   than the grotesque around them, in the page's grey. Line-height 0.8 rather
+   than Brier's 83%, for Playfair's taller ascent — the same correction the
+   On Track statement makes, so accented lines stay 114.3px. */
+.oft-impact__accent {
+  font-family: var(--font-serif);
+  font-size: calc(8.25 * var(--r));
+  font-weight: 700;
+  line-height: 0.8;
+  letter-spacing: calc(-0.1875 * var(--r));
+  font-variant-numeric: lining-nums;
+  color: var(--off-white-2);
+}
+
+/* One line of the statement, cut by off-track.ts for the oval reveal: a clip
+   box the width of its words, and the words inside it. */
+.oft-oval {
+  display: block;
+  inline-size: fit-content;
+  margin-inline: auto;
+  overflow: clip;
+  overflow-clip-margin: 0.2em;
+}
+
+.oft-oval__line {
+  display: block;
+  white-space: nowrap;
+}
+
+.oft-oval__char {
+  display: inline-block;
+}
+
+/* The picture's stops. Measured, never painted. */
+.oft-impact__stop {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+/* Reference .off-t-impact-img-pos: 22 x 25rem, centred, dropped 10rem. */
+.oft-impact__stop--text {
+  inline-size: calc(22 * var(--r));
+  block-size: calc(25 * var(--r));
+  inset-inline-start: 50%;
+  inset-block-start: 50%;
+  translate: -50% calc(-50% + calc(10 * var(--r)));
+}
+
+/* Reference .impact-icon-w.is-off-t: 3rem further down, above the picture. */
+.oft-impact__end {
+  position: relative;
+  z-index: 30;
+  margin-block-start: calc(3 * var(--r));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Reference .off-t-impact-img-pos2: 7rem across at 9:10, centred on the
+   signature. */
+.oft-impact__stop--end {
+  inline-size: calc(7 * var(--r));
+  aspect-ratio: 9 / 10;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  translate: -50% -50%;
+}
+
+/* Reference .base-helmet-rive.off-track-impact: 8rem wide at 6.0625:3.1875,
+   scaled 1.3. The mask shows until off-track.ts has a pen on it. */
+.oft-impact__sign {
+  inline-size: calc(8 * var(--r));
+  aspect-ratio: 6.0625 / 3.1875;
+  /* Without this the pen's canvas, sized in pixels, sets the automatic
+     minimum height and the box grows to it once writing starts. */
+  min-block-size: 0;
+  scale: 1.3;
+  background-color: var(--grey-on-track);
+  mask-image: url('/assets/brand/signature.svg');
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+}
+
+.oft-impact__sign.is-writing {
+  display: flex;
+  justify-content: center;
+  background: none;
+  mask: none;
+}
+
+.oft-impact__sign.is-writing canvas {
+  display: block;
+  block-size: 100%;
+  aspect-ratio: 960 / 764;
+  min-inline-size: 0;
+}
+
+/* ===================================================== Personal projects
+ *
+ * The shared gallery (home.css), laid out as the reference's Off Track track,
+ * measured at 1728x1080. Frames, spacers and vertical offsets are in vh, as
+ * the reference writes them (calc(var(--vh) * N)); type and gaps in --u, its
+ * rem at every width. Built by off-track.ts.
+ *
+ * Ground: the page's dark, flat, as the reference's is one flat cream here.
+ * Ink: the reference's dark-green-tint-2 greys become the page's grey. */
+
+.gallery--off-track {
+  --u: 1rem;
+  --grid-spacer: 31.51vh;
+  /* home.css crossfades the gallery's ink with Home's WebGL ground; pinned at
+     its dark end here, as On Track pins it. */
+  --gallery-ink: 1;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Reference .horizontal-track: 75vw of lead-in, 7vh over the columns and two
+   gaps under them, the full height of the sticky viewport, which the columns
+   stretch to so a picture can be pushed to the foot of its group. */
+.gallery--off-track .gallery__track {
+  block-size: 100dvh;
+  padding-block: 7vh calc(2.5 * var(--u));
+  padding-inline: 75vw calc(1.25 * var(--u));
+  align-items: stretch;
+}
+
+.gallery--off-track .gallery__spacer {
+  inline-size: var(--grid-spacer);
+}
+
+.gallery--off-track .gallery__spacer.is-half {
+  inline-size: calc(var(--grid-spacer) * 0.5);
+}
+
+.gallery--off-track .gallery__spacer.is-quarter {
+  flex: none;
+  inline-size: calc(var(--grid-spacer) * 0.25);
+}
+
+/* Reference .text-eyebrow in dark-green-tint-2: 0.625rem, wght 700, solid. */
+.gallery--off-track .gallery__cap {
+  margin-block-end: calc(1.25 * var(--u));
+  font-size: calc(0.625 * var(--u));
+  line-height: 1;
+  letter-spacing: 0;
+  color: var(--grey-on-track);
+}
+
+/* Reference .horizontal-item-img-w + .image.is-horizontal-scroll: the photo
+   4rem larger than its frame both ways, pinned to the right edge and centred
+   on the height, sliding 4rem right as the frame crosses the screen. */
+.gallery--off-track .gallery__frame {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-block-size: 0;
+}
+
+.gallery--off-track .gallery__frame img {
+  flex: none;
+  inline-size: calc(100% + 4 * var(--u));
+  block-size: calc(100% + 4 * var(--u));
+  transform: translate3d(calc(var(--pan, 0) * 4 * var(--u)), 0, 0);
+}
+
+/* The frame sizes, named after the reference's classes. */
+.oft-frame--offt1 {
+  --w: 36.44vh;
+  --ar: 36.44 / 40.91;
+}
+
+.oft-frame--large {
+  --w: 65.48vh;
+  --ar: 65.48 / 59.48;
+}
+
+.oft-frame--offt6 {
+  --w: 34.05vh;
+  --ar: 34.05 / 30.9;
+}
+
+.oft-frame--offt7 {
+  --w: 29.46vh;
+  --ar: 29.46 / 26.77;
+}
+
+.oft-frame--offt3 {
+  --w: 23.61vh;
+  --ar: 1;
+}
+
+.oft-frame--offt4 {
+  --w: 34.11vh;
+  --ar: 34.11 / 30.95;
+}
+
+/* ---- the opening column ---- */
+
+/* Reference .off-t-horiz-title-w: the 3.5rem mark over the heading, a gap
+   apart, and the picture 8.42vh further under a gap. */
+.oft-gal__head {
+  display: flex;
+  flex-direction: column;
+  gap: calc(1.25 * var(--u));
+  margin-block-end: calc(1.25 * var(--u));
+}
+
+.oft-gal__icon {
+  display: block;
+  inline-size: calc(3.5 * var(--u));
+  block-size: calc(3.5 * var(--u));
+  background: var(--off-white-1);
+  -webkit-mask: url('/assets/brand/dot-ball.svg') center / contain no-repeat;
+  mask: url('/assets/brand/dot-ball.svg') center / contain no-repeat;
+}
+
+/* Reference .text-title-lg-mona.split-flex: the two words stacked. */
+.oft-gal__heading {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.oft-gal__heading-plain {
+  font-family: var(--font-body);
+  font-stretch: 93%;
+  font-size: calc(4.5 * var(--u));
+  font-weight: 750;
+  line-height: 0.886;
+  letter-spacing: calc(-0.125 * var(--u));
+}
+
+/* Reference .text-title-lg-brier: Brier Bold 4.6875rem on 0.886. */
+.oft-gal__heading-serif {
+  font-family: var(--font-serif);
+  font-size: calc(4.6875 * var(--u));
+  font-weight: 700;
+  line-height: 0.886;
+  white-space: nowrap;
+}
+
+.oft-gal__lead .gallery__frame {
+  margin-block-start: 8.42vh;
+}
+
+/* ---- the title columns ---- */
+
+.oft-gal__title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(1.25 * var(--u));
+}
+
+/* Reference .horizontal-item-w.is-title-top: 1.67vh down. */
+.oft-gal__title--top {
+  margin-block-start: 1.67vh;
+}
+
+/* Reference .is-title-mid: pushed down, 50.5vh off the foot. */
+.oft-gal__title--mid {
+  margin-block: auto 50.5vh;
+}
+
+/* Reference .text-title-reg-brier: Brier Bold 2.75rem on 0.886, -0.125rem,
+   in capitals. */
+.oft-gal__name {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: calc(2.75 * var(--u));
+  font-weight: 700;
+  line-height: 0.886;
+  letter-spacing: calc(-0.125 * var(--u));
+  text-transform: uppercase;
+  font-variant-numeric: lining-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* Reference .text-eyebrow on one line: it sets the column's width. */
+.oft-gal__eyebrow {
+  margin: 0;
+  inline-size: fit-content;
+  font-family: var(--font-body);
+  font-size: calc(0.625 * var(--u));
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--grey-on-track);
+}
+
+/* Reference .text-descriptor: 1rem, "wght" 800 "wdth" 87.5, on 0.97. */
+.oft-gal__descriptor {
+  margin: 0;
+  font-family: var(--font-body);
+  font-stretch: 87.5%;
+  font-size: var(--u);
+  font-weight: 800;
+  line-height: 0.97;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--grey-on-track);
+}
+
+/* ---- the large picture and its callout ---- */
+
+.gallery__col--large-foot .oft-frame--large {
+  --top: auto;
+}
+
+/* Reference .is-text-callout.callout-2: 30rem, at the foot, 2.67vh up. */
+.oft-callout--foot {
+  --w: auto;
+  max-inline-size: calc(30 * var(--u));
+  margin-block: auto 2.67vh;
+}
+
+/* Reference .is-text-callout.callout-1: 17.375rem, 1.67vh down. */
+.oft-callout--head,
+.oft-callout--head-hidden {
+  --w: auto;
+  max-inline-size: calc(17.375 * var(--u));
+  margin-block-start: 1.67vh;
+}
+
+/* `.op-0`: the reference keeps this one in the flow but invisible on the
+   sideways track. */
+.oft-callout--head-hidden {
+  opacity: 0;
+}
+
+/* Reference .horizontal-item-text: Brier 1.5rem on 94.6%, +0.05rem. */
+.gallery--off-track .oft-callout__text {
+  margin: 0;
+  font-size: calc(1.5 * var(--u));
+  line-height: 0.946;
+  letter-spacing: calc(0.05 * var(--u));
+  color: var(--grey-on-track);
+}
+
+/* The reference's 66 x 30 signature slot, kept empty so the callout stands
+   as tall as its. */
+.oft-callout__mark {
+  display: block;
+  inline-size: calc(4.125 * var(--u));
+  block-size: calc(1.875 * var(--u));
+}
+
+/* ---- the pairs ---- */
+
+/* Reference .is-10 (14.92vh down) over .is-offt7, poking half a spacer back
+   and two gaps off the foot. */
+.oft-pair-a-1 {
+  --top: 14.92vh;
+}
+
+.oft-pair-a-2 {
+  --top: auto;
+  position: relative;
+  inset-inline-start: calc(var(--grid-spacer) * -0.5);
+  margin-block-end: calc(2.5 * var(--u));
+}
+
+/* Reference .is-offt3 / .is-offt4: both pushed down, 8.42vh off the foot and
+   14.42vh in. */
+.oft-pair-b-1,
+.oft-pair-b-2,
+.oft-pair-d-2 {
+  --top: auto;
+  position: relative;
+  inset-inline-start: 14.42vh;
+  margin-block-end: 8.42vh;
+}
+
+/* Reference .is-h7: at the top of the column, where it is. */
+.oft-pair-d-1 {
+  --top: 0;
+}
+
+/* The captions and callouts take the shared line reveal (.reveal-text in
+ * home.css) unchanged: the reference's C_() runs them on the same shape as AE()
+ * everywhere else. Only the trigger differs, which off-track.ts passes to
+ * mountReveals. */
+
+/* Narrow widths.
+ *
+ * Below 992px the reference stops translating and stacks the columns, 5rem
+ * apart, over the component's own column layout in home.css. Its rules there,
+ * against --u (its rem at every width):
+ *
+ *   under 992  the track a column with the gutter each side; spacers gone;
+ *              the frames keep their vh sizes and the side offsets drop;
+ *              the callout copy 1.9rem, its signature slot 9rem
+ *   under 480  no padding over and under the track; 3rem inside a column;
+ *              the large-picture columns two equal cells a gap apart; every
+ *              frame resized as below; titles and their descriptors side by
+ *              side; the opening picture over its heading, the mark beside it
+ *
+ * The captions are the reference's .text-eyebrow: 0.8rem under 992, 1rem
+ * under 768 and 0.8rem again under 480. */
+@media (max-width: 991px) {
+  .gallery--off-track {
+    --u: calc(100vw / 86.4);
+  }
+
+  .gallery--off-track .gallery__track {
+    block-size: auto;
+    gap: calc(5 * var(--u));
+    padding-block: 7vh calc(2.5 * var(--u));
+    padding-inline: calc(1.25 * var(--u));
+  }
+
+  .gallery--off-track .gallery__col {
+    gap: calc(5 * var(--u));
+  }
+
+  /* home.css pushes every fourth column to the right; this track places its
+     own pictures. */
+  .gallery--off-track .gallery__col:nth-child(4n + 3) .gallery__item,
+  .gallery--off-track .gallery__col:nth-child(4n + 3) .gallery__callout {
+    align-self: auto;
+  }
+
+  /* The frames keep the reference's sizes; home.css caps them at 86%. */
+  .gallery--off-track .gallery__item,
+  .gallery--off-track .gallery__callout {
+    inline-size: min(var(--w), 100%);
+  }
+
+  .gallery--off-track .gallery__cap {
+    font-size: calc(0.8 * var(--u));
+  }
+
+  .gallery--off-track .oft-callout__text {
+    font-size: calc(1.9 * var(--u));
+  }
+
+  /* .callout-1 widens to 31rem; .callout-2 keeps its 30. */
+  .oft-callout--head,
+  .oft-callout--head-hidden {
+    max-inline-size: calc(31 * var(--u));
+  }
+
+  .oft-callout__mark {
+    inline-size: calc(9 * var(--u));
+    block-size: auto;
+    aspect-ratio: 4.125 / 1.875;
+  }
+
+  .oft-gal__eyebrow,
+  .oft-gal__descriptor {
+    white-space: normal;
+  }
+
+  /* .is-10 and .is-offt3 / .is-offt4 go to the right; .is-offt7 comes back
+     to the left edge. .is-offt8 keeps its offsets. */
+  .oft-pair-a-1 {
+    --top: 0;
+    margin-inline-start: auto;
+  }
+
+  .oft-pair-a-2 {
+    inset-inline-start: 0;
+  }
+
+  .oft-pair-b-1,
+  .oft-pair-b-2 {
+    inset-inline-start: 0;
+    margin-block-end: 0;
+    margin-inline-start: auto;
+  }
+
+  .gallery--off-track .gallery__frame img {
+    transform: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .gallery--off-track .gallery__cap {
+    font-size: var(--u);
+  }
+}
+
+@media (max-width: 479px) {
+  .gallery--off-track {
+    --u: calc(100vw / 36);
+  }
+
+  .gallery--off-track .gallery__track {
+    padding-block: 0;
+  }
+
+  .gallery--off-track .gallery__col {
+    gap: calc(3 * var(--u));
+  }
+
+  .gallery--off-track .gallery__item,
+  .gallery--off-track .gallery__callout {
+    inline-size: 100%;
+  }
+
+  .gallery--off-track .gallery__cap {
+    font-size: calc(0.8 * var(--u));
+  }
+
+  .gallery--off-track .gallery__frame img {
+    inline-size: 100%;
+    block-size: 100%;
+  }
+
+  /* ---- the opening column: the picture, then the heading beside its mark ---- */
+
+  .oft-gal__lead {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: calc(1.25 * var(--u));
+  }
+
+  .oft-gal__lead .gallery__frame {
+    block-size: 40.91vh;
+    aspect-ratio: auto;
+    margin-block-start: 0;
+  }
+
+  .oft-gal__head {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: calc(1.25 * var(--u));
+    align-items: start;
+    margin-block-end: 0;
+  }
+
+  .oft-gal__heading {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  .oft-gal__icon {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .oft-gal__heading-plain {
+    font-size: calc(2.6 * var(--u));
+    letter-spacing: calc(-0.07 * var(--u));
+  }
+
+  .oft-gal__heading-serif {
+    font-size: calc(2.7 * var(--u));
+  }
+
+  /* ---- the titles: the name and its descriptor side by side ---- */
+
+  .oft-gal__title {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: calc(1.25 * var(--u));
+  }
+
+  .oft-gal__title--mid {
+    margin-block: 0;
+  }
+
+  .oft-gal__name {
+    white-space: normal;
+  }
+
+  /* ---- the large picture and its callout, two cells ---- */
+
+  .gallery--off-track .gallery__col--large {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: calc(1.25 * var(--u));
+  }
+
+  .oft-frame--large .gallery__frame {
+    aspect-ratio: 1;
+  }
+
+  .gallery--off-track .oft-callout__text {
+    font-size: calc(1.5 * var(--u));
+  }
+
+  .oft-callout__mark {
+    inline-size: calc(5 * var(--u));
+  }
+
+  /* .callout-2: 19rem, 1.9rem down. */
+  .oft-callout--foot {
+    max-inline-size: calc(19 * var(--u));
+    margin-block: calc(1.9 * var(--u)) 0;
+  }
+
+  /* .callout-1: 20rem. The hidden one keeps its .mob-offset, 2.1rem down,
+     and stays hidden here as the reference's does; the shown one is
+     .top-gap, 2rem down. */
+  .oft-callout--head,
+  .oft-callout--head-hidden {
+    max-inline-size: calc(20 * var(--u));
+  }
+
+  .oft-callout--head-hidden {
+    margin-block-start: calc(2.1 * var(--u));
+  }
+
+  .oft-callout--head {
+    margin-block-start: calc(2 * var(--u));
+  }
+
+  /* ---- the pairs ---- */
+
+  .oft-pair-a-1,
+  .oft-pair-b-2,
+  .oft-pair-d-2 {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+  }
+
+  .oft-pair-a-1 .gallery__frame {
+    inline-size: calc(11 * var(--u));
+    aspect-ratio: 1;
+  }
+
+  .oft-pair-a-2 {
+    --top: calc(-7 * var(--u));
+    margin-block-end: 0;
+  }
+
+  .oft-pair-a-2 .gallery__frame {
+    inline-size: 40%;
+    aspect-ratio: 1;
+  }
+
+  .oft-pair-b-1 {
+    margin-inline-start: 0;
+  }
+
+  .oft-pair-b-1 .gallery__frame {
+    inline-size: calc(10 * var(--u));
+    aspect-ratio: 1;
+  }
+
+  .oft-pair-b-2 {
+    --top: calc(-7 * var(--u));
+  }
+
+  .oft-pair-b-2 .gallery__frame {
+    inline-size: 40%;
+    aspect-ratio: 34 / 30;
+  }
+
+  .oft-pair-d-1 .gallery__frame {
+    inline-size: calc(13 * var(--u));
+    aspect-ratio: 1;
+  }
+
+  .oft-pair-d-2 {
+    --top: calc(-5 * var(--u));
+    inset-inline-start: 0;
+    margin-block-end: 0;
+  }
+
+  .oft-pair-d-2 .gallery__frame {
+    inline-size: 40%;
+    aspect-ratio: 1;
+  }
+}
+
+/* ============================================================== The tail
+ *
+ * The reference paints its Off Track page one ground from the header to the
+ * footer. Its socials section is the light-mode variant, which has no
+ * background of its own, and its footer sits on the same cream. There is no
+ * change of colour anywhere on the page.
+ *
+ * The socials and the footer here are Home's (home.css), and Home puts them on
+ * its light field. On this page they take the page's ground instead, the same
+ * way On Track puts them on its own. Qualified by page, so these rules do not
+ * depend on which stylesheet loads last. */
+
+[data-page='off-track'] .socials {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* The reference's ball is its grey, a step under the heading's ink. */
+[data-page='off-track'] .socials__ball {
+  color: var(--grey-on-track);
+}
+
+[data-page='off-track'] .socials__links a {
+  color: var(--text);
+}
+
+[data-page='off-track'] .footer {
+  background: var(--bg);
+}
+
+/* ================================================================ Mobile
+ *
+ * The reference's root keeps scaling under 992px: clamp(768, vw, 991) and
+ * clamp(480, vw, 767) over 1728 x 20, then clamp(320, vw, 479) over 1728 x 48.
+ * Ours locks at 16px, so the header and the statement are written against --r
+ * (set on .oft-group) and --r follows the reference's root here. What remains
+ * below is only what the reference's own narrow breakpoints change. The
+ * gallery does the same with its --u. */
+
+@media (max-width: 991px) {
+  .oft-group {
+    --r: calc(clamp(768px, 100vw, 991px) / 1728 * 20);
+    --text--eyebrow: calc(0.8 * var(--r));
+  }
+
+  /* The title's line box, at the narrower sizes: OFF sets it. */
+  .oft-hero__title-w {
+    block-size: calc(15.97 * var(--r));
+  }
+
+  .oft-hero__off {
+    font-size: calc(17.8 * var(--r));
+  }
+
+  .oft-hero__track {
+    font-size: calc(17 * var(--r));
+  }
+
+  .oft-hero__img-slot {
+    inset-inline-end: 0;
+  }
+
+  /* Reference .c around .impact-content-w: the page's gutter, then 3vw more. */
+  .oft-impact {
+    padding-inline: var(--gap);
+  }
+
+  .oft-impact__inner {
+    padding-inline: 3vw;
+  }
+
+  .oft-impact__text {
+    font-size: calc(7 * var(--r));
+  }
+}
+
+@media (max-width: 767px) {
+  .oft-group {
+    --r: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
+    --text--eyebrow: var(--r);
+  }
+
+  /* The reference's --padding--container drops to 1rem here and its
+     --on-t-nav-spacer grows to 6.375rem. */
+  .oft-hero__c {
+    padding: calc(6.375 * var(--r)) var(--r) var(--gap);
+  }
+}
+
+/* Reference [data-hide='m']: the ventures row is not shown on a phone. */
+@media (max-width: 497px) {
+  .oft-hero__marquee {
+    display: none;
+  }
+}
+
+@media (max-width: 479px) {
+  .oft-group {
+    --r: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
+    --text--eyebrow: calc(0.8 * var(--r));
+  }
+
+  .oft-hero__title-w {
+    block-size: calc(6.84 * var(--r));
+  }
+
+  .oft-hero__off {
+    font-size: calc(7.6 * var(--r));
+  }
+
+  .oft-hero__track {
+    font-size: calc(7.3 * var(--r));
+  }
+
+  .oft-hero__info {
+    margin-block-start: calc(0.2 * var(--r));
+  }
+
+  /* Reference .off-t-hero-sub-w: across all four columns, which run past the
+     container's right edge by the three gaps. */
+  .oft-hero__sub {
+    grid-column: span 4;
+  }
+
+  .oft-hero__stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .oft-hero__spacer {
+    min-block-size: calc(2 * var(--r));
+    max-block-size: none;
+  }
+
+  .oft-hero__img-slot {
+    margin-block-start: var(--gap);
+  }
+
+  .oft-hero__img-w {
+    position: relative;
+    inset: auto;
+    inline-size: 100%;
+    block-size: auto;
+    aspect-ratio: 52.125 / 60;
+  }
+
+  .oft-impact__inner {
+    padding-inline: 0;
+  }
+
+  .oft-impact__text {
+    font-size: calc(3.5 * var(--r));
+  }
+
+  .oft-impact__accent {
+    font-size: calc(3.6 * var(--r));
+  }
+
+  /* Reference .base-helmet-rive under 480: 4.7rem across, its height from
+     its ratio, and the ball in it scaled with it. */
+  .oft-impact__reef {
+    inline-size: calc(4.7 * var(--r));
+    block-size: calc(4.7 * var(--r) * 3.1875 / 6.0625);
+  }
+
+  .oft-impact__reef-ball {
+    inline-size: calc(2.5 * var(--r) * 4.7 / 6.0625);
+    block-size: calc(2.5 * var(--r) * 4.7 / 6.0625);
+  }
+
+  /* Reference .on-t-hero-stats-para-w under 480: 1rem under the paragraph. */
+  .oft-hero__para-w {
+    margin-block-end: var(--r);
+  }
+}
