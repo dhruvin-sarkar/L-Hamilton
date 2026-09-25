@@ -89,12 +89,15 @@ body[data-page='calendar'] {
    under reduced motion -- the mark is a mask in the accent; while the pen
    writes it the mask comes off and the canvas carries the ink. */
 .cal-hero__sign {
+  /* Reference `.calendar-hero-rive-w`: 36.1875rem at 579/387. */
+  --sign-w: calc(var(--u) * 36.1875);
+  --sign-h: calc(var(--sign-w) * 387 / 579);
   position: absolute;
   inset-block-start: 50%;
   inset-inline-start: 50%;
   z-index: 2;
-  inline-size: calc(var(--u) * 36.1875);
-  block-size: calc(var(--u) * 24.1875);
+  inline-size: var(--sign-w);
+  block-size: var(--sign-h);
   transform: translate(-50%, -50%);
   background-color: var(--accent);
   mask-image: url('/assets/brand/signature.svg');
@@ -115,7 +118,7 @@ body[data-page='calendar'] {
 .cal-hero__sign.is-writing canvas {
   flex: none;
   block-size: 100% !important;
-  inline-size: calc(var(--u) * 24.1875 * 960 / 764) !important;
+  inline-size: calc(var(--sign-h) * 960 / 764) !important;
 }
 
 /* ============================================================ The season
@@ -590,6 +593,12 @@ button.cal-results__trigger:hover {
   transform: none;
 }
 
+/* The accent focus ring would vanish into an open row's accent fill. */
+.cal-results__item.is-open .cal-results__trigger:focus-visible,
+button.cal-row--past:hover:focus-visible {
+  outline-color: var(--black);
+}
+
 /* Reference `.f1-highlight-grid.top.dropdown-item`: 1.5 --g above it. */
 .cal-results__subhead {
   padding-block-start: calc(var(--g) * 1.5);
@@ -623,6 +632,15 @@ button.cal-results__trigger:hover {
   .cal-results {
     --u: calc(clamp(768px, 100vw, 991px) / 1728 * 20);
   }
+
+  /* Reference `.text-impact-lg-mona` here: 7rem, the serif taking the same. */
+  .cal-hero__title {
+    font-size: calc(var(--u) * 7);
+  }
+
+  .cal-hero__serif {
+    font-size: 1em;
+  }
 }
 
 @media (max-width: 767px) {
@@ -646,6 +664,24 @@ button.cal-results__trigger:hover {
   .cal-hero,
   .cal-results {
     --u: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
+  }
+
+  /* Reference: the title at 3.5rem and its serif at 3.6rem, 5rem under it,
+     the mark 16rem wide. */
+  .cal-hero {
+    padding-block-end: calc(var(--u) * 5);
+  }
+
+  .cal-hero__title {
+    font-size: calc(var(--u) * 3.5);
+  }
+
+  .cal-hero__serif {
+    font-size: calc(var(--u) * 3.6);
+  }
+
+  .cal-hero__sign {
+    --sign-w: calc(var(--u) * 16);
   }
 
   /* The reference's `data-hide="m"`: a run round drops its date here and
