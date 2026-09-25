@@ -589,6 +589,411 @@ body[data-page='off-track'] {
   min-inline-size: 0;
 }
 
+/* ===================================================== Personal projects
+ *
+ * The shared gallery (home.css), laid out as the reference's Off Track track,
+ * measured at 1728x1080. Frames, spacers and vertical offsets are in vh, as
+ * the reference writes them (calc(var(--vh) * N)); type and gaps in --u, its
+ * rem at every width. Built by off-track.ts.
+ *
+ * Ground: the page's dark, flat, as the reference's is one flat cream here.
+ * Ink: the reference's dark-green-tint-2 greys become the page's grey. */
+
+.gallery--off-track {
+  --u: 1rem;
+  --grid-spacer: 31.51vh;
+  /* home.css crossfades the gallery's ink with Home's WebGL ground; pinned at
+     its dark end here, as On Track pins it. */
+  --gallery-ink: 1;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* Reference .horizontal-track: 75vw of lead-in, 7vh over the columns and two
+   gaps under them, the full height of the sticky viewport, which the columns
+   stretch to so a picture can be pushed to the foot of its group. */
+.gallery--off-track .gallery__track {
+  block-size: 100dvh;
+  padding-block: 7vh calc(2.5 * var(--u));
+  padding-inline: 75vw calc(1.25 * var(--u));
+  align-items: stretch;
+}
+
+.gallery--off-track .gallery__spacer {
+  inline-size: var(--grid-spacer);
+}
+
+.gallery--off-track .gallery__spacer.is-half {
+  inline-size: calc(var(--grid-spacer) * 0.5);
+}
+
+.gallery--off-track .gallery__spacer.is-quarter {
+  flex: none;
+  inline-size: calc(var(--grid-spacer) * 0.25);
+}
+
+/* Reference .text-eyebrow in dark-green-tint-2: 0.625rem, wght 700, solid. */
+.gallery--off-track .gallery__cap {
+  margin-block-end: calc(1.25 * var(--u));
+  font-size: calc(0.625 * var(--u));
+  line-height: 1;
+  letter-spacing: 0;
+  color: var(--grey-on-track);
+}
+
+/* Reference .horizontal-item-img-w + .image.is-horizontal-scroll: the photo
+   4rem larger than its frame both ways, pinned to the right edge and centred
+   on the height, sliding 4rem right as the frame crosses the screen. */
+.gallery--off-track .gallery__frame {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  min-block-size: 0;
+}
+
+.gallery--off-track .gallery__frame img {
+  flex: none;
+  inline-size: calc(100% + 4 * var(--u));
+  block-size: calc(100% + 4 * var(--u));
+  transform: translate3d(calc(var(--pan, 0) * 4 * var(--u)), 0, 0);
+}
+
+/* The frame sizes, named after the reference's classes. */
+.oft-frame--offt1 {
+  --w: 36.44vh;
+  --ar: 36.44 / 40.91;
+}
+
+.oft-frame--large {
+  --w: 65.48vh;
+  --ar: 65.48 / 59.48;
+}
+
+.oft-frame--offt6 {
+  --w: 34.05vh;
+  --ar: 34.05 / 30.9;
+}
+
+.oft-frame--offt7 {
+  --w: 29.46vh;
+  --ar: 29.46 / 26.77;
+}
+
+.oft-frame--offt3 {
+  --w: 23.61vh;
+  --ar: 1;
+}
+
+.oft-frame--offt4 {
+  --w: 34.11vh;
+  --ar: 34.11 / 30.95;
+}
+
+/* ---- the opening column ---- */
+
+/* Reference .off-t-horiz-title-w: the 3.5rem mark over the heading, a gap
+   apart, and the picture 8.42vh further under a gap. */
+.oft-gal__head {
+  display: flex;
+  flex-direction: column;
+  gap: calc(1.25 * var(--u));
+  margin-block-end: calc(1.25 * var(--u));
+}
+
+.oft-gal__icon {
+  display: block;
+  inline-size: calc(3.5 * var(--u));
+  block-size: calc(3.5 * var(--u));
+  background: var(--off-white-1);
+  -webkit-mask: url('/assets/brand/dot-ball.svg') center / contain no-repeat;
+  mask: url('/assets/brand/dot-ball.svg') center / contain no-repeat;
+}
+
+/* Reference .text-title-lg-mona.split-flex: the two words stacked. */
+.oft-gal__heading {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.oft-gal__heading-plain {
+  font-family: var(--font-body);
+  font-stretch: 93%;
+  font-size: calc(4.5 * var(--u));
+  font-weight: 750;
+  line-height: 0.886;
+  letter-spacing: calc(-0.125 * var(--u));
+}
+
+/* Reference .text-title-lg-brier: Brier Bold 4.6875rem on 0.886. */
+.oft-gal__heading-serif {
+  font-family: var(--font-serif);
+  font-size: calc(4.6875 * var(--u));
+  font-weight: 700;
+  line-height: 0.886;
+  white-space: nowrap;
+}
+
+.oft-gal__lead .gallery__frame {
+  margin-block-start: 8.42vh;
+}
+
+/* ---- the title columns ---- */
+
+.oft-gal__title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(1.25 * var(--u));
+}
+
+/* Reference .horizontal-item-w.is-title-top: 1.67vh down. */
+.oft-gal__title--top {
+  margin-block-start: 1.67vh;
+}
+
+/* Reference .is-title-mid: pushed down, 50.5vh off the foot. */
+.oft-gal__title--mid {
+  margin-block: auto 50.5vh;
+}
+
+/* Reference .text-title-reg-brier: Brier Bold 2.75rem on 0.886, -0.125rem,
+   in capitals. */
+.oft-gal__name {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: calc(2.75 * var(--u));
+  font-weight: 700;
+  line-height: 0.886;
+  letter-spacing: calc(-0.125 * var(--u));
+  text-transform: uppercase;
+  font-variant-numeric: lining-nums;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* Reference .text-eyebrow on one line: it sets the column's width. */
+.oft-gal__eyebrow {
+  margin: 0;
+  inline-size: fit-content;
+  font-family: var(--font-body);
+  font-size: calc(0.625 * var(--u));
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--grey-on-track);
+}
+
+/* Reference .text-descriptor: 1rem, "wght" 800 "wdth" 87.5, on 0.97. */
+.oft-gal__descriptor {
+  margin: 0;
+  font-family: var(--font-body);
+  font-stretch: 87.5%;
+  font-size: var(--u);
+  font-weight: 800;
+  line-height: 0.97;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--grey-on-track);
+}
+
+/* ---- the large picture and its callout ---- */
+
+.gallery__col--large-foot .oft-frame--large {
+  --top: auto;
+}
+
+/* Reference .is-text-callout.callout-2: 30rem, at the foot, 2.67vh up. */
+.oft-callout--foot {
+  --w: auto;
+  max-inline-size: calc(30 * var(--u));
+  margin-block: auto 2.67vh;
+}
+
+/* Reference .is-text-callout.callout-1: 17.375rem, 1.67vh down. */
+.oft-callout--head,
+.oft-callout--head-hidden {
+  --w: auto;
+  max-inline-size: calc(17.375 * var(--u));
+  margin-block-start: 1.67vh;
+}
+
+/* `.op-0`: the reference keeps this one in the flow but invisible on the
+   sideways track. */
+.oft-callout--head-hidden {
+  opacity: 0;
+}
+
+/* Reference .horizontal-item-text: Brier 1.5rem on 94.6%, +0.05rem. */
+.gallery--off-track .oft-callout__text {
+  margin: 0;
+  font-size: calc(1.5 * var(--u));
+  line-height: 0.946;
+  letter-spacing: calc(0.05 * var(--u));
+  color: var(--grey-on-track);
+}
+
+/* The reference's 66 x 30 signature slot, kept empty so the callout stands
+   as tall as its. */
+.oft-callout__mark {
+  display: block;
+  inline-size: calc(4.125 * var(--u));
+  block-size: calc(1.875 * var(--u));
+}
+
+/* ---- the pairs ---- */
+
+/* Reference .is-10 (14.92vh down) over .is-offt7, poking half a spacer back
+   and two gaps off the foot. */
+.oft-pair-a-1 {
+  --top: 14.92vh;
+}
+
+.oft-pair-a-2 {
+  --top: auto;
+  position: relative;
+  inset-inline-start: calc(var(--grid-spacer) * -0.5);
+  margin-block-end: calc(2.5 * var(--u));
+}
+
+/* Reference .is-offt3 / .is-offt4: both pushed down, 8.42vh off the foot and
+   14.42vh in. */
+.oft-pair-b-1,
+.oft-pair-b-2,
+.oft-pair-d-2 {
+  --top: auto;
+  position: relative;
+  inset-inline-start: 14.42vh;
+  margin-block-end: 8.42vh;
+}
+
+/* Reference .is-h7: at the top of the column, where it is. */
+.oft-pair-d-1 {
+  --top: 0;
+}
+
+/* The captions and callouts arrive as the reference's C_() runs them on this
+ * section — a clip wiped open left to right over 0.6s with the accent bar
+ * inside it, the bar retracting 0.3s later — the same keyframes On Track's
+ * gallery uses. Held at opacity 0 until triggered, for the reason given
+ * there: an element clipped away by its own clip-path never intersects. */
+[data-reveal-animated] .gallery--off-track .reveal-text:not([data-reveal-split]),
+[data-reveal-animated] .gallery--off-track .reveal-line {
+  opacity: 0;
+}
+
+.gallery--off-track .reveal-text.is-in:not([data-reveal-split]),
+.gallery--off-track .reveal-text.is-in .reveal-line {
+  opacity: 1;
+  animation: oft-line-open 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.gallery--off-track .reveal-text.is-in::after,
+.gallery--off-track .reveal-text.is-in .reveal-line::after {
+  animation-duration: 0.6s;
+  animation-timing-function: cubic-bezier(0.455, 0.03, 0.515, 0.955);
+  animation-delay: calc(var(--reveal-delay, 0ms) + 300ms);
+}
+
+.gallery--off-track .reveal-text.is-done:not([data-reveal-split]),
+.gallery--off-track .reveal-text.is-done .reveal-line {
+  opacity: 1;
+  animation: none;
+  clip-path: none;
+}
+
+@keyframes oft-line-open {
+  from {
+    clip-path: inset(-0.2em 100% -0.2em -0.2em);
+  }
+
+  to {
+    clip-path: inset(-0.2em -0.2em -0.2em -0.2em);
+  }
+}
+
+/* Below 992px the reference stops translating and stacks the groups, 5rem
+ * apart, its frames still in vh. Over the component's own column layout in
+ * home.css. */
+@media (max-width: 991px) {
+  .gallery--off-track {
+    --u: calc(100vw / 86.4);
+  }
+
+  .gallery--off-track .gallery__track {
+    block-size: auto;
+    gap: calc(5 * var(--u));
+    padding-block: 7vh calc(2.5 * var(--u));
+    padding-inline: var(--padding--container);
+  }
+
+  .gallery--off-track .gallery__col {
+    gap: calc(5 * var(--u));
+  }
+
+  .gallery--off-track .gallery__col:nth-child(4n + 3) .gallery__item,
+  .gallery--off-track .gallery__col:nth-child(4n + 3) .gallery__callout {
+    align-self: auto;
+  }
+
+  .oft-gal__title--top,
+  .oft-gal__title--mid {
+    margin-block: 0;
+  }
+
+  .oft-gal__eyebrow,
+  .oft-gal__descriptor,
+  .oft-gal__name {
+    white-space: normal;
+  }
+
+  .oft-callout--head-hidden {
+    opacity: 1;
+  }
+
+  .oft-callout--foot,
+  .oft-callout--head,
+  .oft-callout--head-hidden {
+    max-inline-size: calc(31 * var(--u));
+    margin-block: 0;
+  }
+
+  .oft-pair-a-1,
+  .oft-pair-a-2,
+  .oft-pair-b-1,
+  .oft-pair-b-2,
+  .oft-pair-d-1,
+  .oft-pair-d-2 {
+    inset-inline-start: 0;
+    margin-block-end: 0;
+    margin-inline-start: auto;
+  }
+
+  .gallery--off-track .gallery__frame img {
+    transform: none;
+  }
+}
+
+@media (max-width: 479px) {
+  .gallery--off-track {
+    --u: calc(100vw / 36);
+  }
+
+  .gallery--off-track .gallery__item {
+    inline-size: 100%;
+  }
+
+  .oft-gal__heading-plain,
+  .oft-gal__heading-serif {
+    font-size: calc(3 * var(--u));
+  }
+}
+
 /* ================================================================ Mobile */
 
 @media (max-width: 991px) {

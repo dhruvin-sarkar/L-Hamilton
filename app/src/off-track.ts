@@ -17,12 +17,14 @@ import Lenis from 'lenis';
 import { gsap, mm, reducedMotion, ScrollTrigger } from './lib/motion';
 import { mountChrome } from './lib/chrome';
 import { mountReveals } from './lib/reveal';
+import { mountGalleryScroll } from './lib/gallery';
 import { mountSocials } from './lib/showcase';
 import { Signature } from './Signature';
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
 import { age, driver, eras } from './content/hamilton';
 import { career } from './content/live-stats';
-import { hero } from './content/off-track';
+import { galleryIntro, hero, projects } from './content/off-track';
+import type { Photo } from './content/off-track';
 
 /* The flight follows a drawn path, as the reference's does (its motionPath). */
 gsap.registerPlugin(MotionPathPlugin);
@@ -700,6 +702,143 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
   };
 });
 
+/* ------------------------------------------------------------------ *
+ * Personal projects: the side-scrolling gallery
+ *
+ * The reference's Off Track track, measured at 1728x1080 (every size in vh,
+ * as it writes them): an opening column, then four projects, each a title
+ * column, a column with the large picture and a callout, and a column with a
+ * pair of pictures, the spacers between them alternating as its own do.
+ *
+ *   top   title 1.67vh down; large picture at the top, the callout at the
+ *         foot; the pair one at 14.92vh, the other poking half a spacer back
+ *         and sitting 2 gaps off the foot
+ *   mid   title 50.5vh off the foot; the callout at the top, the large
+ *         picture at the foot; the pair both pushed down, 8.42vh off the foot
+ *         and 14.42vh in (or only the second of them, in the last project)
+ *
+ * The frame sizes are the reference's own classes, named after them here.
+ * ------------------------------------------------------------------ */
+
+type Frame = 'offt1' | 'large' | 'offt6' | 'offt7' | 'offt3' | 'offt4';
+type Spacer = 'full' | 'half' | 'quarter';
+
+interface ProjectLayout {
+  title: 'top' | 'mid';
+  /** The reference sets one descriptor in its bolder descriptor face. */
+  descriptor: 'eyebrow' | 'descriptor';
+  /** The callout beside the large picture: at its foot, or above it. */
+  callout: 'foot' | 'head' | 'head-hidden';
+  pair: 'a' | 'b' | 'd';
+  /** Spacers after the large column and after the pair. */
+  after: [Spacer, Spacer];
+}
+
+/** One per project, in the reference's order. */
+const LAYOUT: readonly ProjectLayout[] = [
+  { title: 'top', descriptor: 'eyebrow', callout: 'foot', pair: 'a', after: ['full', 'half'] },
+  /* The reference hides this callout above 991px (`.op-0`) and shows it in the
+     stacked phone layout; the same here. */
+  { title: 'mid', descriptor: 'descriptor', callout: 'head-hidden', pair: 'b', after: ['half', 'full'] },
+  { title: 'top', descriptor: 'eyebrow', callout: 'foot', pair: 'a', after: ['full', 'half'] },
+  { title: 'mid', descriptor: 'eyebrow', callout: 'head', pair: 'd', after: ['half', 'full'] },
+];
+
+function buildGallery(): void {
+  const track = must('[data-gallery-track]');
+  if (projects.length !== LAYOUT.length) {
+    throw new Error(`[off-track] the gallery is laid out for ${LAYOUT.length} projects`);
+  }
+
+  const spacer = (size: Spacer): HTMLElement =>
+    el('div', size === 'full' ? 'gallery__spacer' : `gallery__spacer is-${size}`);
+
+  const col = (...mods: string[]): HTMLElement =>
+    el('div', ['gallery__col', ...mods.map((m) => `gallery__col--${m}`)].join(' '));
+
+  /** A captioned picture. The caption is the reveal target, as the reference's is. */
+  const figure = (photo: Photo, frame: Frame, ...mods: string[]): HTMLElement => {
+    const fig = el('figure', ['gallery__item', `oft-frame--${frame}`, ...mods].join(' '));
+    if (photo.caption) fig.append(el('figcaption', 'gallery__cap reveal-text', photo.caption));
+    const box = el('div', 'gallery__frame');
+    const img = el('img');
+    img.src = photo.src;
+    img.width = photo.width;
+    img.height = photo.height;
+    // The caption says where; the picture itself is not described in text.
+    img.alt = '';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+    box.append(img);
+    fig.append(box);
+    return fig;
+  };
+
+  /** A title set on the lines the content breaks it on. */
+  const title = (text: string, tag: 'h2' | 'h3', cls: string): HTMLElement => {
+    const h = el(tag, cls);
+    text.split('\n').forEach((line, i) => {
+      if (i) h.append(el('br'));
+      h.append(document.createTextNode(line));
+    });
+    return h;
+  };
+
+  /* ---- the opening column ---- */
+  const intro = col('intro');
+  const head = el('div', 'oft-gal__head');
+  head.append(el('span', 'oft-gal__icon'));
+  const h2 = el('h2', 'oft-gal__heading');
+  h2.id = 'oft-gallery-h';
+  h2.append(el('span', 'oft-gal__heading-plain', galleryIntro.plain), el('span', 'oft-gal__heading-serif', galleryIntro.serif));
+  head.append(h2);
+  const lead = figure(galleryIntro.lead, 'offt1', 'oft-gal__lead');
+  lead.prepend(head);
+  intro.append(lead);
+  track.append(intro, spacer('full'));
+
+  projects.forEach((project, i) => {
+    const layout = LAYOUT[i] as ProjectLayout;
+    const [large, first, second] = project.photos as [Photo, Photo, Photo];
+
+    /* ---- the title ---- */
+    const titleCol = col(`title-${layout.title}`);
+    const block = el('div', `oft-gal__title oft-gal__title--${layout.title}`);
+    block.append(title(project.title, 'h3', 'oft-gal__name'));
+    block.append(
+      el('p', layout.descriptor === 'descriptor' ? 'oft-gal__descriptor' : 'oft-gal__eyebrow reveal-text', project.descriptor),
+    );
+    titleCol.append(block);
+
+    /* ---- the large picture and its callout ---- */
+    const callout = el('div', `gallery__callout oft-callout oft-callout--${layout.callout}`);
+    callout.append(el('p', 'gallery__quote oft-callout__text reveal-text', project.callout.text));
+    // The reference's signature slot. Left empty: this is site copy, not his
+    // words, and a signature under it would say otherwise.
+    callout.append(el('span', 'oft-callout__mark'));
+
+    const largeCol = col('large', `large-${layout.callout === 'foot' ? 'top' : 'foot'}`);
+    const largeFig = figure(large, 'large');
+    if (layout.callout === 'foot') largeCol.append(largeFig, callout);
+    else largeCol.append(callout, largeFig);
+
+    /* ---- the pair ---- */
+    const pairCol = col(`pair-${layout.pair}`);
+    pairCol.append(
+      figure(first, layout.pair === 'a' ? 'offt6' : 'offt3', `oft-pair-${layout.pair}-1`),
+      figure(second, layout.pair === 'a' ? 'offt7' : 'offt4', `oft-pair-${layout.pair}-2`),
+    );
+
+    track.append(titleCol, spacer('quarter'), largeCol, spacer(layout.after[0]), pairCol, spacer(layout.after[1]));
+  });
+}
+
+buildGallery();
+
+/* The reference's own timing for this section, the same as On Track's: travel
+   from the moment the section enters, with a second of catch-up. */
+mountGalleryScroll({ start: 'rising', scrub: 1 });
+
 mountSocials();
 
 /* ------------------------------------------------------------------ *
@@ -710,6 +849,11 @@ mountChrome();
 
 mountReveals({
   immediate: '.oft-hero',
+  /* The gallery's captions and callouts arrive on the X axis: each as its item's
+     left edge passes 95% of the screen, the first ones as they rise past 90%
+     of its height -- one margin covers both, as on On Track. */
+  sideways: '.gallery',
+  sidewaysMargin: '0px -5% -10% 0px',
   whenReady: (run) => void document.fonts.ready.then(() => gsap.delayedCall(HERO_CUE, run)),
 });
 

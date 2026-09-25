@@ -192,8 +192,8 @@ export const projects: readonly Project[] = [
   },
   {
     id: 'film',
-    title: 'F1\nthe movie',
-    descriptor: 'Producer, with Apple Original Films',
+    title: 'F1:\nthe movie',
+    descriptor: 'with Dawn Apollo Films',
     callout: {
       text: 'Through his company Dawn Apollo Films, Lewis produced F1, directed by Joseph Kosinski and released in June 2025.',
       sources: [
@@ -209,7 +209,7 @@ export const projects: readonly Project[] = [
   },
   {
     id: 'almave',
-    title: 'Almave',
+    title: 'Almave:\nblue agave',
     descriptor: '2023–current',
     callout: {
       text: 'Created with master distiller Iván Saldaña, Almave is a distilled non-alcoholic blue agave spirit, launched in 2023.',
