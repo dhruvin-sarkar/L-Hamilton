@@ -10,6 +10,7 @@ import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountGalleryScroll } from './lib/gallery';
 import { mountFooterMarquee, mountMarquee } from './lib/marquee';
 import { mountHomeInk } from './lib/home-ink';
+import { cssRGB, hexRGB, legibleOn, mixRGB, toLinear, type RGB } from './lib/legible';
 import { mountReveals } from './lib/reveal';
 import {
   mountCalloutCrest,
@@ -548,6 +549,24 @@ mountGalleryScroll({ start: 'rising', scrub: 1 });
 mm.add(WIDE_AND_ANIMATED, () => {
   if (!gallery) return;
 
+  /* The ground as it actually lands on screen, for the gallery's text to be
+     measured against. The field is handed its two ends as sRGB and lerps
+     between them, but every channel it outputs comes out linearised once more
+     (the defect documented at --field-ground in tokens.css), so that is
+     applied here too: at t 0 this is exactly --field-ground. */
+  const css = getComputedStyle(document.documentElement);
+  const token = (name: string): RGB => hexRGB(css.getPropertyValue(name));
+  const groundFrom = token('--gl-rev-bg');
+  const groundTo = token('--gl-bg');
+  const groundAt = (t: number): RGB => {
+    const c = mixRGB(groundFrom, groundTo, t);
+    return [255 * toLinear(c[0]), 255 * toLinear(c[1]), 255 * toLinear(c[2])];
+  };
+  const inkDark = token('--dark-tint-2');
+  const inkLight = token('--off-white-2');
+  const accentDark = token('--dark');
+  const accentLight = token('--cream');
+
   /**
    * Put the ground, the section's ink and the nav at `progress` through the
    * darkening.
@@ -576,6 +595,15 @@ mm.add(WIDE_AND_ANIMATED, () => {
     const x = gsap.utils.clamp(0, 1, (t - 0.38) / 0.24);
     const ink = x * x * (3 - 2 * x);
     gallery.style.setProperty('--gallery-ink', String(ink));
+
+    /* Home's captions and callouts: the reference's fixed inks at either end,
+       held to 4.5:1 (4.6 before rounding) through the crossing. lib/legible. */
+    const ground = groundAt(t);
+    gallery.style.setProperty('--gallery-text', cssRGB(legibleOn(ground, inkDark, inkLight, 4.6)));
+    gallery.style.setProperty(
+      '--gallery-accent',
+      cssRGB(legibleOn(ground, accentDark, accentLight, 4.6)),
+    );
 
     /* On/Off Track sits on the same continuous field and inherits nothing from
        here — it is a sibling, not a child — so it is told directly. Without
@@ -626,6 +654,8 @@ mm.add(WIDE_AND_ANIMATED, () => {
   return () => {
     gallery.style.removeProperty('--gallery-dark');
     gallery.style.removeProperty('--gallery-ink');
+    gallery.style.removeProperty('--gallery-text');
+    gallery.style.removeProperty('--gallery-accent');
     otot?.style.removeProperty('--otot-ink');
     // Withdraw this section's contribution rather than clearing the value: the
     // store still has a say, and in the column layout there is no darkening

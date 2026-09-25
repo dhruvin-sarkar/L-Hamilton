@@ -2121,10 +2121,14 @@
   inline-size: calc(var(--grid-spacer) * 0.5);
 }
 
-/* Caption, frame and slot stacked on one gap, as .horizontal-item-layout. The
-   ink is fixed per picture, as the reference's is: the first five carry the
-   muted ink of the screen they arrive over, the rest the ink of the screen the
-   ground has crossed to by then. */
+/* Caption, frame and slot stacked on one gap, as .horizontal-item-layout.
+ *
+ * The ink follows the ground. The reference fixes it per picture (the first
+ * five in the muted dark of the light screen, the rest in the muted light of
+ * the dark one) and that is where ours rests too, but a fixed ink falls to
+ * ~2:1 while the ground crosses under it. main.ts writes --gallery-text from
+ * the ground each frame (lib/legible.ts); with no darkening running (below
+ * 992px, reduced motion) the ground stays light and so does the fallback. */
 .gallery--home .gallery__item,
 .gallery--home .gallery__callout {
   position: relative;
@@ -2134,11 +2138,7 @@
   gap: var(--gap);
   inline-size: auto;
   margin-block-start: 0;
-  color: var(--dark-tint-2);
-}
-
-.gallery--home .is-crossed {
-  color: var(--off-white-2);
+  color: var(--gallery-text, var(--dark-tint-2));
 }
 
 .gallery--home .gallery__cap {
@@ -2225,9 +2225,10 @@
   font-variant-numeric: normal;
 }
 
-/* The reference lifts two words of its first callout a step brighter. */
+/* The reference lifts two words of its first callout a step brighter. Held to
+   the ground the same way as the rest of the text. */
 .gallery--home .gallery__quote-accent {
-  color: var(--dark);
+  color: var(--gallery-accent, var(--dark));
 }
 
 /* Where the reference's signature and race-win pill sit. Kept empty — see the
@@ -2251,8 +2252,13 @@
 
 /* Below 992px the reference stacks the wall (its I_() never runs there): the
    track becomes a column with 5rem between pictures, the offsets drop, and
-   every other picture moves to the right-hand edge. */
-@media (max-width: 991px) {
+   every other picture moves to the right-hand edge.
+ *
+ * Reduced motion takes the same column at every width. Without the travel the
+ * wall would be a sideways scroller, and with scrollbars unpainted site-wide
+ * and nothing focusable inside it, half the pictures and the second callout
+ * could not be reached at all. */
+@media (max-width: 991px), (prefers-reduced-motion: reduce) {
   .gallery--home .gallery__track {
     block-size: auto;
     padding: var(--padding--xlarge) var(--padding--container);
@@ -2309,11 +2315,26 @@
   }
 }
 
-/* Motion off: an ordinary scrolling row from the container's edge rather
-   than from the 75vw lead-in the sideways travel needs. */
+/* Motion off on a wide screen: the column above, plus the parts of the phone
+   layout that the shared rules only apply below 992px — no clipped pin, one
+   column of columns, no horizontal spacers and no per-image pan. */
 @media (prefers-reduced-motion: reduce) and (min-width: 992px) {
+  .gallery--home .gallery__pin {
+    overflow: visible;
+    display: block;
+  }
+
   .gallery--home .gallery__track {
-    padding-inline-start: var(--padding--container);
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .gallery--home .gallery__col {
+    inline-size: 100%;
+  }
+
+  .gallery--home .gallery__spacer {
+    display: none;
   }
 
   .gallery--home .gallery__frame img {
