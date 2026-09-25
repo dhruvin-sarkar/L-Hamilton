@@ -1416,11 +1416,11 @@
   justify-content: space-between;
   gap: 1.25rem; /* 22.08px */
   block-size: 100%;
-  /* 44.16 top/bottom. The inline padding is deliberately asymmetric and
-     includes the reference's outer container inset: 22.08 + 39.75 on the left,
-     22.08 + 141.33 on the right, which is what pulls the link column well in
+  /* The reference's .nav-menu-inner.c and .nav-menu-grid added together:
+     2.5rem above and 2rem below, and inline 1.25rem + 2.25rem on the left and
+     1.25rem + 8rem on the right, which is what pulls the link column well in
      from the edge while the tiles sit close to it. */
-  padding: 2.5rem 9.25rem 2.5rem 3.5rem;
+  padding: 2.5rem 9.25rem 2rem 3.5rem;
 }
 
 /* ------------------------------------------------------- Image collage */
@@ -1561,21 +1561,29 @@
   );
 }
 
+/* The reference's .text-nav-link: Mona Sans at "wght" 660 and "wdth" 93, not
+   the condensed display cut, with its colour easing over 0.6s. */
 .menu__link-text {
   display: block;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 5.25rem; /* 92.75px */
-  line-height: 0.94; /* 87.19px */
+  font-family: var(--font-body);
+  font-weight: 660;
+  font-stretch: 93%;
+  font-size: 5.25rem;
+  line-height: 0.94;
   text-transform: uppercase;
-  letter-spacing: -0.02em;
   white-space: nowrap;
+  transition: color 0.6s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 /* The page you are already on is stated by being DIMMER, not brighter — it is
    the one item you cannot usefully click. */
 .menu__link.is-current .menu__link-text {
   color: var(--text-muted);
+}
+
+/* Nothing to go to, so it does not answer the pointer either. */
+.menu__link.is-current {
+  pointer-events: none;
 }
 
 .menu__link:hover .menu__link-text,
@@ -1614,6 +1622,8 @@
 
 .menu__eyebrow {
   font-size: var(--text--eyebrow);
+  /* .text-eyebrow sets "wght" 700 at full width. */
+  font-weight: 700;
   /* The reference sets this line at letter-spacing `normal` and line-height 1.
      Tracking it out, as eyebrows elsewhere on the site are, made it 60px wider
      and 6px taller than the measured original. */
@@ -1630,12 +1640,19 @@
    overshoot slightly past their end (-0.14% and -0.67px), which is a back ease.
    Wiping keeps the type at full weight the whole way in; a fade would have it
    arrive grey. */
+/* .nav-menu-social-w: the contact line over the socials, --padding--small
+   apart. Every link is the reference's plain .btn-text: 1rem Mona Sans at
+   800 and "wdth" 86, upper case, set solid. */
 .menu__footer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.9rem;
-  font-size: 0.79rem; /* 14px */
+  gap: var(--padding--small);
+  font-size: var(--text--btn-primary);
+  font-weight: 800;
+  font-stretch: 86%;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 /* The team line and the footer links wipe in from the left, each under a bar
@@ -1658,17 +1675,12 @@
 
 .menu__contact {
   color: var(--text);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
+/* .callout-socials-links-layout */
 .menu__socials {
   display: flex;
-  gap: 1.9rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 700;
+  gap: calc(var(--gap) * 1.5);
 }
 
 .menu__socials a {
@@ -1694,6 +1706,43 @@
   .menu__link,
   [data-menu-highlight] {
     clip-path: none;
+  }
+}
+
+/* The reference's smaller menus. Below 992px the collage goes and the link
+   column centres in the panel; below 480px the links come down to 3.7rem, the
+   crest to 4.7rem across, and the socials wrap onto centred rows. */
+@media (max-width: 991px) {
+  .menu__images {
+    display: none;
+  }
+
+  .menu__grid {
+    justify-content: center;
+    padding-inline: 1.25rem;
+  }
+
+  .menu__side {
+    inline-size: auto;
+  }
+}
+
+@media (max-width: 479px) {
+  .menu__link-text {
+    font-size: 3.7rem;
+  }
+
+  .menu__crest {
+    inline-size: 4.7rem;
+    block-size: auto;
+  }
+
+  .menu__socials {
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: calc(var(--gap) * 0.5) var(--gap);
+    max-inline-size: 20rem;
   }
 }
 
