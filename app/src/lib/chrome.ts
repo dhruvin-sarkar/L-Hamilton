@@ -186,23 +186,21 @@ function mountRollingText(): void {
 
     const roll = (active: boolean) => {
       gsap.killTweensOf([...outChars, ...inChars]);
+      /* The reference's own values, read off its `[data-anim="text-hover"]`
+       * handler (`QE()` in lando-gl.js) and confirmed live on three of its
+       * buttons -- a section button, the nav STORE and a footer link all roll
+       * identically: 0.6s power3.out (a quartic out), 20ms between letters,
+       * and the same values back on leave. Sampled at 120ms after the pointer
+       * arrives, the first letter of each had travelled 59-60% of the line and
+       * the fifth 24%, which is that curve and that stagger exactly.
+       *
+       * One set for every rolling label on the site, because the reference
+       * has one. The earlier expo.out 0.75s / 16ms was fitted to a sample of
+       * the STORE button alone and ran every label about 0.15s long. */
       const opts = {
-        duration: 0.75,
-        /* expo.out, NOT the site's cubic-bezier(0.65, 0.05, 0, 1).
-         *
-         * Passing that string to GSAP does nothing useful — parsing a raw
-         * cubic-bezier needs the CustomEase plugin, so it silently falls back
-         * to the default power1.out. That was measurable rather than
-         * theoretical: at 260ms our first char sat at 56.5% of travel and
-         * 1-(1-0.347)^2 is 57.4%, which is exactly power1.out. The reference
-         * was at 94% by the same moment. expo.out gives ~91% there, so it
-         * tracks the real curve closely without pulling in a plugin. */
-        ease: 'expo.out',
-        /* Solved for, not picked. Normalised against total travel, the
-         * reference's spread across five letters is 9.5%. 24ms gave 18.5% and
-         * 12ms gave 5.3%, so interpolating between the two measured points
-         * lands here. */
-        stagger: 0.016,
+        duration: 0.6,
+        ease: 'power3.out',
+        stagger: 0.02,
       };
       gsap.to(outChars, { ...opts, yPercent: active ? -100 : 0 });
       gsap.to(inChars, { ...opts, yPercent: active ? -100 : 0 });
