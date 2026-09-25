@@ -1,0 +1,231 @@
+/* ==================================================================== *
+ * /calendar
+ *
+ * Measured off the reference's calendar page at 1728x1080, where its rem is
+ * exactly 16px. The round panel, its lists' rows and the countdown are the
+ * components On Track shows, styled by on-track.css (the reference shares one
+ * stylesheet between its two pages in the same way); what is here is what this
+ * page has and On Track does not, and the few places its layout of those
+ * shared components differs.
+ *
+ * Sized in --u, the reference's own rem, as on-track.css sizes the shared
+ * components: equal to ours from 992px up, restated for narrower widths at the
+ * foot of this file.
+ * ==================================================================== */
+
+/* The whole page's ground: the reference paints its calendar #111112 top to
+   bottom, the slot --black carries, as it does On Track. */
+body[data-page='calendar'] {
+  --bg: var(--black);
+  background: var(--black);
+}
+
+/* ================================================================ Hero
+ *
+ *   .s.is-calendar-hero      12rem spacer, the layout, 12rem spacer: 615 tall
+ *   .calendar-hero-layout    flex, centred; the h1 927 wide at 1728
+ *   h1 .text-impact-lg-mona  7.9375rem / 90.6% / -0.0625rem, "wdth" 93
+ *                            "wght" 660, uppercase, in the page's white
+ *   its span                 Brier 8.25rem / 83% / -0.1875rem, grey
+ *   .calendar-hero-rive-w    the signature, 579 x 387, centred over the title
+ */
+
+.cal-hero {
+  --u: 1rem;
+  position: relative;
+  z-index: 2;
+  padding: calc(var(--u) * 12) var(--gap);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.cal-hero__layout {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.cal-hero__title {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-body);
+  font-stretch: 93%;
+  font-size: calc(var(--u) * 7.9375);
+  font-weight: 660;
+  /* The reference's percentage, kept as a percentage: Chrome truncates it the
+     same way on both sites (see .ot-impact__text). */
+  line-height: 90.6%;
+  letter-spacing: calc(var(--u) * -0.0625);
+  text-transform: uppercase;
+  font-variant-numeric: lining-nums;
+}
+
+.cal-hero__line {
+  display: block;
+  white-space: nowrap;
+}
+
+.cal-hero__line--serif {
+  font-family: var(--font-serif);
+  font-stretch: 100%;
+  font-size: calc(var(--u) * 8.25);
+  font-weight: 500;
+  line-height: 83%;
+  letter-spacing: calc(var(--u) * -0.1875);
+  color: var(--grey-on-track);
+}
+
+/* Over the title, centred on it, as the reference's canvas is. At rest -- and
+   under reduced motion -- the mark is a mask in the accent; while the pen
+   writes it the mask comes off and the canvas carries the ink. */
+.cal-hero__sign {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  z-index: 2;
+  inline-size: calc(var(--u) * 36.1875);
+  block-size: calc(var(--u) * 24.1875);
+  transform: translate(-50%, -50%);
+  background-color: var(--accent);
+  mask-image: url('/assets/brand/signature.svg');
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  pointer-events: none;
+}
+
+.cal-hero__sign.is-writing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  mask: none;
+}
+
+.cal-hero__sign.is-writing canvas {
+  flex: none;
+  block-size: 100% !important;
+  inline-size: calc(var(--u) * 24.1875 * 960 / 764) !important;
+}
+
+/* ============================================================ The season
+ *
+ * On its calendar page the reference reorders the shared section: the title
+ * row comes first, then a 4rem spacer, then the panel, then the two full
+ * lists where On Track has a five-round window.
+ *
+ *   title row      grid-main; the copy in 1-2 (max 38rem), then in 3-4 the
+ *                  standings and, 2 * --gap after, the two buttons
+ *   #track-vis     4rem
+ *   the panel      1688 x 918, as On Track's
+ *   the lists      2 * --gap after the panel, full bleed, no gap between
+ *   10rem          to the next section
+ */
+
+.cal-sched .ot-cal__c {
+  padding-block-start: 0;
+}
+
+.cal-sched__title-row {
+  display: grid;
+  grid-template-columns: repeat(4, 23.55%);
+  column-gap: var(--g);
+}
+
+/* Reference `.text-body-lg-mona`: 2.25rem / 1.1 / -0.0625rem at "wght" 500. */
+.cal-sched__lede {
+  grid-column: 1 / 3;
+  max-inline-size: calc(var(--u) * 38);
+  margin: 0;
+  font-family: var(--font-body);
+  font-stretch: 100%;
+  font-size: calc(var(--u) * 2.25);
+  font-weight: 500;
+  line-height: 1.1;
+  letter-spacing: calc(var(--u) * -0.0625);
+  text-transform: none;
+}
+
+.cal-sched__para-layout {
+  grid-column: 3 / 5;
+  display: flex;
+  align-items: flex-start;
+  gap: calc(var(--g) * 2);
+}
+
+/* The round's column is only as wide as its figure, as the reference's is. */
+.cal-sched__standing--round {
+  min-inline-size: 0;
+}
+
+.cal-sched__btns {
+  display: flex;
+  gap: var(--g);
+}
+
+/* Reference `.btn-w.tertiary`: 2.5rem tall, 1rem either side, a 1px rule in
+   the page's white round a transparent ground that fills on hover, the label
+   and arrow in the page's white. The fill is the shared liquid, driven by
+   chrome.ts like every other button. */
+.cal-btn-line {
+  block-size: calc(var(--u) * 2.5);
+  margin: 0;
+  padding-inline: calc(var(--u) * 1);
+  gap: calc(var(--u) * 0.625);
+  border: 1px solid var(--text);
+  border-radius: calc(var(--u) * 0.411875);
+  background: linear-gradient(
+    to top,
+    var(--accent) calc(var(--liquid-level) * 100%),
+    transparent calc((var(--liquid-level) + var(--liquid-gap)) * 100%)
+  );
+  color: var(--text);
+  font-size: calc(var(--u) * 1);
+}
+
+.cal-btn-line:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+
+.cal-btn-line .ot-cal__btn-icon {
+  inline-size: calc(var(--u) * 1.2);
+  block-size: calc(var(--u) * 1.2);
+}
+
+.cal-sched__spacer {
+  block-size: calc(var(--u) * 4);
+}
+
+.cal-sched__spacer:focus {
+  outline: none;
+}
+
+/* ================================================================ Oval
+ * The oval reveal's boxes (calendar/oval.ts). Each line is a block in its
+ * own clip; the whole set is clipped once more, as the reference's outer
+ * wrapper is, so a raised line never shows above the block. */
+
+.oval {
+  display: block;
+  overflow: clip;
+}
+
+.oval__clip {
+  display: block;
+}
+
+.oval__line {
+  display: block;
+  white-space: nowrap;
+}
+
+.oval__char {
+  display: inline-block;
+  white-space: pre;
+}

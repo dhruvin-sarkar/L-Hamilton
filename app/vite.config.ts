@@ -79,6 +79,7 @@ export default defineConfig({
       input: {
         home: path.resolve(here, 'index.html'),
         'on-track': path.resolve(here, 'on-track.html'),
+        calendar: path.resolve(here, 'calendar.html'),
       },
     },
   },

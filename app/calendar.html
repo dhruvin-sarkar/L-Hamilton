@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Lewis Hamilton's Formula 1 calendar — every round of the season, his results so far, the circuits still to come, and every Grand Prix of his career."
+    />
+    <title>Calendar — Lewis Hamilton</title>
+    <link rel="icon" href="/assets/brand/lh-monogram.svg" type="image/svg+xml" />
+
+    <!-- The same two faces as the other pages, preloaded for the same reason:
+         the hero sets both before anything is scrolled. See index.html for why
+         crossorigin is required on a same-origin font preload. -->
+    <link
+      rel="preload"
+      href="/assets/fonts/mona-sans-latin-standard-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/assets/fonts/playfair-display-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <!-- Render-blocking on purpose; see the note in index.html. -->
+    <link rel="stylesheet" href="/src/styles/main.css" />
+  </head>
+  <body data-page="calendar">
+    <!--#include "partials/circuit-filters.html"-->
+    <!--#include "partials/nav.html"-->
+
+    <main id="main">
+      <!-- ========================================================= Hero
+           Reference `.s.is-calendar-hero`, measured at 1728x1080: a 12rem
+           spacer, the two-line title centred -- UPCOMING in the grotesque at
+           the impact size, the season and "calendar" under it in the second
+           face, a step larger and in grey -- then another 12rem.
+
+           The reference writes its driver's signature across the title in its
+           accent, a Rive file. Ours is the site's own mark written by the same
+           pen every other page uses (Signature.ts). Decorative. -->
+      <header class="cal-hero">
+        <div class="cal-hero__layout">
+          <h1 class="cal-hero__title">
+            <span class="cal-hero__line">Upcoming</span>
+            <span class="cal-hero__line cal-hero__line--serif" data-cal-hero-year></span>
+          </h1>
+          <div class="cal-hero__sign" data-cal-hero-sign aria-hidden="true"></div>
+        </div>
+      </header>
+
+      <!-- ==================================================== The season
+           Reference `.s.is-on-t-calendar` on its calendar page, in its order:
+
+             - the title row: a line of copy in columns 1-2; his standing and
+               the round it stands after, then two buttons down the page, in
+               columns 3-4;
+             - a 4rem spacer, the target of the first button;
+             - the round panel: the same component On Track shows, with the
+               circuit drawn large in 3D across it (TrackScene.ts);
+             - every round already run, with his finish and fastest lap;
+             - every round still to come, with its laps and distance. The
+               second button lands here.
+
+           The panel reuses On Track's markup and styles (on-track.css), as the
+           reference's two pages share one component. Every value is written
+           by calendar.ts from the data layer; nothing below is typed. -->
+      <section class="ot-cal cal-sched" aria-labelledby="cal-sched-h">
+        <div class="ot-cal__c">
+          <div class="cal-sched__title-row">
+            <h2 class="cal-sched__lede" id="cal-sched-h" data-oval-scroll data-cal-lede></h2>
+
+            <div class="cal-sched__para-layout">
+              <div class="ot-cal__standings cal-sched__standings" data-cal-standings>
+                <div class="ot-cal__standing cal-sched__standing">
+                  <p class="ot-cal__descriptor reveal-text">Standing</p>
+                  <p class="ot-cal__standing-value">
+                    <span class="ot-cal__major" data-cal-standing></span>
+                    <span class="ot-cal__suffix" data-cal-standing-suffix></span>
+                  </p>
+                </div>
+                <div class="ot-cal__standing cal-sched__standing cal-sched__standing--round">
+                  <p class="ot-cal__descriptor reveal-text">Round</p>
+                  <p class="ot-cal__standing-value">
+                    <span class="ot-cal__major" data-cal-round></span>
+                  </p>
+                </div>
+              </div>
+
+              <div class="cal-sched__btns">
+                <a class="ot-btn cal-btn-line" href="#track-vis" data-cal-jump>
+                  <span class="sr-only">Track visualiser</span>
+                  <span class="btn-text" aria-hidden="true" data-split-chars>Track visualiser</span>
+                  <svg class="ot-cal__btn-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M15 4.5l4.5 4.5-4.5 4.5M19.5 9H10a5 5 0 0 0 0 10h3" />
+                  </svg>
+                </a>
+                <a class="ot-btn cal-btn-line" href="#calendar-upcoming" data-cal-jump>
+                  <span class="sr-only">Calendar list</span>
+                  <span class="btn-text" aria-hidden="true" data-split-chars>Calendar list</span>
+                  <svg class="ot-cal__btn-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M15 4.5l4.5 4.5-4.5 4.5M19.5 9H10a5 5 0 0 0 0 10h3" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="cal-sched__spacer" id="track-vis" tabindex="-1"></div>
+
+          <div
+            class="ot-cal__panel cal-panel"
+            id="cal-panel"
+            data-cal-panel
+            role="group"
+            aria-label="Round detail"
+            tabindex="-1"
+          >
+            <div class="ot-cal__mask">
+              <div class="ot-cal__info">
+                <div class="ot-cal__info-layout">
+                  <div class="ot-cal__info-left">
+                    <div class="ot-cal__item ot-cal__item--when">
+                      <p class="ot-cal__eyebrow reveal-text">When</p>
+                      <div class="ot-cal__when">
+                        <p class="ot-cal__major ot-cal__major--accent" data-cal-target data-cal-days></p>
+                        <p class="ot-cal__major ot-cal__major--soft" data-cal-target data-cal-month></p>
+                      </div>
+                    </div>
+                    <div class="ot-cal__spacer" aria-hidden="true"></div>
+                    <div class="ot-cal__group">
+                      <div class="ot-cal__item">
+                        <p class="ot-cal__eyebrow reveal-text">Length</p>
+                        <p class="ot-cal__stat" data-cal-target data-cal-length></p>
+                      </div>
+                      <div class="ot-cal__item">
+                        <p class="ot-cal__eyebrow reveal-text">First competed</p>
+                        <p class="ot-cal__stat" data-cal-target data-cal-first></p>
+                      </div>
+                    </div>
+                    <div class="ot-cal__group">
+                      <div class="ot-cal__item">
+                        <p class="ot-cal__eyebrow reveal-text">Distance</p>
+                        <p class="ot-cal__stat" data-cal-target data-cal-distance></p>
+                      </div>
+                      <div class="ot-cal__item">
+                        <p class="ot-cal__eyebrow reveal-text">Laps</p>
+                        <p class="ot-cal__stat" data-cal-target data-cal-laps></p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="ot-cal__info-right">
+                    <div class="ot-cal__about">
+                      <p class="ot-cal__eyebrow ot-cal__eyebrow--pair reveal-text">
+                        <span>Lewis at</span>
+                        <span data-cal-target data-cal-at></span>
+                      </p>
+                      <p class="ot-cal__story" data-cal-target data-cal-story></p>
+                    </div>
+
+                    <!-- Schedule for a round still to come: session, day, UK
+                         time. For a round already run the reference turns the
+                         last two columns into his result and his time or gap,
+                         and drops the time-zone note. -->
+                    <div class="ot-cal__sessions">
+                      <p class="ot-cal__session ot-cal__session--head">
+                        <span class="ot-cal__eyebrow">Schedule</span>
+                        <span class="ot-cal__eyebrow cal-panel__past" data-cal-past>Result</span>
+                        <span class="ot-cal__eyebrow cal-panel__past" data-cal-past>Time/Gap</span>
+                      </p>
+                      <div class="ot-cal__session-list" data-cal-sessions></div>
+                      <p class="ot-cal__session ot-cal__session--note" data-cal-note>
+                        <span class="ot-cal__eyebrow">*UK time</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <svg class="ot-cal__frame" viewBox="0 0 1688 918" aria-hidden="true" focusable="false">
+                <path
+                  d="M74 12V478Q74 492 61.4 498.5L13 523Q1 529.5 1 544V905.5Q1 916.5 12 916.5H1600.5Q1611.5 916.5 1611.5 905.5V790Q1611.5 777 1623 770.3L1676 739.5Q1686.5 733.4 1686.5 721.3V12Q1686.5 1 1675.5 1H85Q74 1 74 12Z"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                />
+              </svg>
+
+              <div class="ot-cal__mframe" aria-hidden="true">
+                <svg class="ot-cal__mframe-top" viewBox="0 0 335 120" focusable="false">
+                  <path
+                    d="M0.5 120V8.5Q0.5 0.5 8.5 0.5H283.2Q291.2 0.5 291.2 8.5V70Q291.2 74 295 76.5L330 99Q334.5 102 334.5 107V120"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1"
+                    vector-effect="non-scaling-stroke"
+                  />
+                </svg>
+                <div class="ot-cal__mframe-rest"></div>
+              </div>
+
+              <!-- Where the reference sets the Formula 1 logo, the LH monogram:
+                   the sport's mark is not ours to use. -->
+              <svg class="ot-cal__mark" viewBox="0 0 464 501" aria-hidden="true" focusable="false">
+                <path d="M84 0 L148 61 L87 350 L86 365 L89 369 L95 371 L254 370 L240 442 L38 442 L25 439 L16 434 L2 416 L0 390 L5 359 L53 132 L84 1 Z" />
+                <path d="M381 63 L453 63 L462 66 L463 74 L437 191 L379 498 L378 500 L374 497 L308 436 L336 291 L268 290 L283 213 L350 212 L352 210 L381 64 Z" />
+                <path d="M226 64 L295 64 L248 292 L176 292 L225 65 Z" />
+              </svg>
+
+              <!-- The track visualiser: the round's circuit as a lit 3D ribbon
+                   under a slowly turning camera (TrackScene.ts), where the
+                   reference renders its own model in a site-wide WebGL scene.
+                   Decorative: the round is named in the tab. -->
+              <div class="cal-panel__gl" data-cal-gl aria-hidden="true"></div>
+            </div>
+
+            <div class="ot-cal__title">
+              <div class="ot-cal__title-layout">
+                <p class="ot-cal__name" data-cal-target data-cal-name></p>
+                <span class="ot-cal__flag-w"><span class="ot-cal__flag" data-cal-target data-cal-flag></span></span>
+              </div>
+            </div>
+
+            <div class="ot-cal__controls">
+              <button class="ot-btn ot-cal__ctrl" type="button" data-cal-next aria-controls="cal-panel">
+                <span class="sr-only">Next round</span>
+                <svg class="ot-cal__ctrl-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M15 4.5l4.5 4.5-4.5 4.5M19.5 9H10a5 5 0 0 0 0 10h3" />
+                </svg>
+              </button>
+              <button class="ot-btn ot-cal__ctrl" type="button" data-cal-prev aria-controls="cal-panel">
+                <span class="sr-only">Previous round</span>
+                <svg class="ot-cal__ctrl-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M15 4.5l4.5 4.5-4.5 4.5M19.5 9H10a5 5 0 0 0 0 10h3" transform="rotate(180 12 12)" />
+                </svg>
+              </button>
+            </div>
+
+            <p class="sr-only" data-cal-live aria-live="polite"></p>
+          </div>
+        </div>
+
+        <!-- Every round already run. Each row is a button that points the
+             panel at its round; the reference's are clickable divs with no
+             keyboard path. The card that follows the pointer shows the round's
+             picture, as the reference's does. -->
+        <div class="cal-list" id="calendar-list" data-cal-previous-wrap>
+          <div class="ot-cal__row ot-cal__row--head cal-list__head" aria-hidden="true">
+            <p class="ot-cal__eyebrow reveal-text">Round</p>
+            <p class="ot-cal__eyebrow reveal-text">Location</p>
+            <p class="ot-cal__eyebrow reveal-text">When</p>
+            <p class="ot-cal__eyebrow reveal-text">Finish</p>
+            <p class="ot-cal__eyebrow reveal-text">Fastest lap</p>
+          </div>
+          <div class="cal-list__collection" data-cal-area>
+            <h3 class="sr-only">Rounds run</h3>
+            <ol class="ot-cal__list" data-cal-previous></ol>
+            <div class="cal-card cal-card--photo" data-cal-card aria-hidden="true">
+              <div class="cal-card__reveal" data-cal-card-reveal></div>
+              <!-- The round's picture is added by calendar.ts on the first
+                   hover, so no image is requested until one is shown. -->
+              <div class="cal-card__frame" data-cal-card-photo></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Every round still to come. -->
+        <div class="cal-list" id="calendar-upcoming" tabindex="-1" data-cal-upcoming-wrap>
+          <div class="ot-cal__row ot-cal__row--head cal-list__head" aria-hidden="true">
+            <p class="ot-cal__eyebrow reveal-text">Round</p>
+            <p class="ot-cal__eyebrow reveal-text">Location</p>
+            <p class="ot-cal__eyebrow reveal-text">When</p>
+            <p class="ot-cal__eyebrow reveal-text">Laps</p>
+            <p class="ot-cal__eyebrow reveal-text">Distance</p>
+          </div>
+          <div class="cal-list__collection" data-cal-area>
+            <h3 class="sr-only">Rounds to come</h3>
+            <ol class="ot-cal__list" data-cal-upcoming></ol>
+            <div class="ot-cal__card cal-card--circuit" data-cal-card aria-hidden="true">
+              <svg class="ot-cal__card-bg" viewBox="0 0 267 256" preserveAspectRatio="none" focusable="false">
+                <path d="M0 30Q0 20 10 20H42.8Q48.4 20 52 15.6L60.6 5Q64.8 0 70.8 0H257Q267 0 267 10V246Q267 256 257 256H10Q0 256 0 246Z" />
+              </svg>
+              <div class="ot-cal__card-reveal" data-cal-card-reveal></div>
+              <p class="ot-cal__eyebrow ot-cal__card-label">Circuit</p>
+              <div class="ot-cal__card-circuit"><div class="ot-cal__card-shape" data-cal-card-circuit></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================== All results
+           Reference: the calendar page's third section. A title row --
+           "Formula 1" over "All results" in the second face, a line of copy
+           in column 3 -- then one row per season, newest first: its year, his
+           championship place with a laurel for a title or a runner-up, and
+           his podiums. Each row opens to that season's Grands Prix: round,
+           location, date, finish and his fastest lap.
+
+           Twenty seasons where the reference has seven -- the same rows, more
+           of them. Built by calendar.ts from the race-by-race record. -->
+      <section class="cal-results" aria-labelledby="cal-results-h">
+        <div class="cal-results__title-row">
+          <h2 class="cal-results__h" id="cal-results-h" data-oval-scroll data-oval-chars>
+            <span class="cal-results__h-line" data-oval-line>Formula 1</span>
+            <span class="cal-results__h-line cal-results__h-line--serif" data-oval-line>All results</span>
+          </h2>
+          <p class="cal-results__para reveal-text" data-cal-results-para></p>
+        </div>
+
+        <div class="cal-results__table">
+          <div class="ot-cal__row ot-cal__row--head cal-results__head" aria-hidden="true">
+            <p class="ot-cal__eyebrow reveal-text">Round</p>
+            <p class="ot-cal__eyebrow reveal-text cal-results__head-loc">Location</p>
+            <p class="ot-cal__eyebrow reveal-text">Finish</p>
+            <p class="ot-cal__eyebrow reveal-text">Podiums</p>
+          </div>
+          <ol class="cal-results__list" data-cal-seasons></ol>
+        </div>
+      </section>
+
+      <!-- ==================================================== Countdown
+           The same section On Track closes its race coverage with, as the
+           reference's calendar carries the same one: the next round's circuit
+           over "next race begins in...", four digit pairs and our own "Race
+           Day" lettering written across them once as they arrive. The target
+           is the next round by the clock (live-stats nextRound). -->
+      <section class="ot-count cal-count" data-countdown aria-labelledby="cal-count-h">
+        <div class="ot-count__inner">
+          <div class="ot-count__head">
+            <div class="ot-count__circuit" data-countdown-circuit aria-hidden="true"></div>
+            <h2 class="ot-count__eyebrow reveal-text" id="cal-count-h">Next race begins in...</h2>
+          </div>
+
+          <p class="sr-only" data-countdown-sr></p>
+
+          <div class="ot-count__digits" data-countdown-digits aria-hidden="true">
+            <div class="ot-count__phrase" data-countdown-phrase>
+              <svg class="ot-count__script" viewBox="0 0 912 562" focusable="false">
+                <g
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="26"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path data-stroke d="M15 324C24 360 22 400 16 462" />
+                  <path data-stroke d="M28 312C20 302 24 294 36 288C55 280 80 268 102 264C122 261 122 290 114 306C104 324 74 342 54 356C44 366 44 382 62 392C90 404 140 406 180 401" />
+                  <path data-stroke d="M172 272C174 252 196 238 222 232C244 226 262 236 258 258C252 292 230 330 202 354C184 370 152 372 146 354C150 332 184 304 214 288" />
+                  <path data-stroke d="M338 258C316 257 292 280 282 305C272 332 292 346 316 338C330 336 346 328 356 320" />
+                  <path data-stroke d="M386 258C408 256 428 252 440 244C454 232 462 210 446 204C428 198 404 222 390 244C376 266 368 296 384 306C402 316 440 300 466 266" />
+                  <path data-stroke d="M566 136C564 190 565 250 564 306" />
+                  <path data-stroke d="M518 166C540 150 576 128 620 124C656 121 680 128 668 148C641 196 588 262 526 318" />
+                  <path data-stroke d="M680 126C696 114 728 110 746 116C758 130 752 170 734 200C720 222 696 228 690 210C686 190 712 160 744 138" />
+                  <path data-stroke d="M783 92C772 118 768 148 786 160C804 170 814 150 820 128C824 112 828 100 832 90" />
+                  <path data-stroke d="M890 114C866 138 836 170 818 200C806 222 800 246 794 266C786 292 770 312 750 318C732 322 726 302 740 284C756 262 780 236 804 212" />
+                  <path data-stroke d="M236 424C290 398 350 370 414 347" />
+                  <path data-stroke d="M300 416C298 406 312 400 350 390" />
+                </g>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!--#include "partials/menu.html"-->
+    <!--#include "partials/footer.html"-->
+
+    <script type="module" src="/src/calendar.ts"></script>
+  </body>
+</html>
