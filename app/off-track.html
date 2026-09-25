@@ -117,6 +117,60 @@
             </div>
           </div>
         </header>
+
+        <!-- ================================================== The statement
+             Reference `.impact-content-w.off-track`: a 78rem column with 17rem
+             of air above and 12rem below; a small mark in laurels over the
+             team eyebrow, the six-line statement, and a signature under it.
+             The flying picture crosses the statement and comes to rest on the
+             signature — its second and third stops are measured off the two
+             empty boxes below. -->
+        <section class="oft-impact">
+          <svg class="oft-defs" aria-hidden="true" focusable="false">
+            <!-- The laurel branch the homepage and On Track crests are drawn
+                 with, shared rather than redrawn. -->
+            <defs><!--#include "partials/crest.html"--></defs>
+          </svg>
+
+          <div class="oft-impact__inner">
+            <div class="oft-impact__icon">
+              <!-- The reference's Rive "off-icons-reef": its ball in a pair of
+                   laurels. Ours sets the site's dot sphere between the same
+                   branches the crests use. Decorative. -->
+              <div class="oft-impact__reef" aria-hidden="true">
+                <svg viewBox="0 0 64 44" class="oft-impact__reef-branches">
+                  <use href="#nr-branch" />
+                  <use href="#nr-branch" transform="matrix(-1 0 0 1 64 0)" />
+                </svg>
+                <span class="oft-impact__reef-ball"></span>
+              </div>
+              <p class="oft-impact__eyebrow reveal-text" data-bind="team-since">&mdash;</p>
+            </div>
+
+            <div class="oft-impact__text-w">
+              <!-- Third-person narration, the same statement the On Track page
+                   carries in the same slot, as the reference repeats its own.
+                   Every claim in it is a matter of record; the title he is
+                   chasing is counted from the data, not typed. -->
+              <h2 class="oft-impact__text">
+                Rewriting<br />
+                the <span class="oft-impact__accent">records</span>,
+                <span class="oft-impact__accent">chasing</span>
+                <span data-bind="next-title-word">eight</span>. Bringing
+                <span class="oft-impact__accent">it all</span> each and every weekend.
+              </h2>
+              <!-- The picture's second stop: 22 x 25rem, centred on the
+                   statement and dropped 10rem. -->
+              <span class="oft-impact__stop oft-impact__stop--text" data-flight-stop="2"></span>
+            </div>
+
+            <div class="oft-impact__end">
+              <!-- The third stop: 7rem across at 9:10, on the signature. -->
+              <span class="oft-impact__stop oft-impact__stop--end" data-flight-stop="3"></span>
+              <div class="oft-impact__sign" aria-hidden="true"></div>
+            </div>
+          </div>
+        </section>
       </div>
 
       <!--#include "partials/socials.html"-->

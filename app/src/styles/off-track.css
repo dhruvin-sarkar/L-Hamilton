@@ -367,6 +367,10 @@ body[data-page='off-track'] {
   z-index: 10;
 }
 
+.oft-flight.is-flying {
+  inset: 0 auto auto 0;
+}
+
 .oft-flight__layer {
   position: absolute;
   inset: 0;
@@ -378,6 +382,211 @@ body[data-page='off-track'] {
 
 .oft-flight__layer:first-child {
   opacity: 1;
+}
+
+/* ============================================================ Statement
+ *
+ * Reference `.impact-content-w.off-track`, at 1728 where its root is 16px:
+ *
+ *   column        78rem, centred, padding 17rem top and 12rem bottom,
+ *                 flex column, align centre, gap 3 x --gap
+ *   icon          97 x 51 mark in laurels over the eyebrow, gap --gap
+ *   statement     7.9375rem / 90.6% / -0.0625rem, "wght" 660 "wdth" 93,
+ *                 its accented words Brier Bold 8.25rem / 83% / -0.1875rem
+ *                 in the page's grey
+ *   end           3rem down: the signature, 8rem wide at 6.0625:3.1875,
+ *                 scaled 1.3, over the picture's last stop
+ */
+
+.oft-defs {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+  overflow: hidden;
+}
+
+.oft-impact {
+  position: relative;
+  color: var(--text);
+  overflow-x: clip;
+}
+
+.oft-impact__inner {
+  max-inline-size: 78rem;
+  margin-inline: auto;
+  padding-block: 17rem 12rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(3 * var(--gap));
+  text-align: center;
+}
+
+.oft-impact__icon {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap);
+}
+
+/* Reference .base-helmet-rive: 6.0625 x 3.1875rem. */
+.oft-impact__reef {
+  position: relative;
+  inline-size: 6.0625rem;
+  block-size: 3.1875rem;
+}
+
+.oft-impact__reef-branches {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  color: var(--off-white-2);
+  overflow: visible;
+}
+
+.oft-impact__reef-ball {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  inline-size: 2.5rem;
+  block-size: 2.5rem;
+  translate: -50% -50%;
+  background: var(--off-white-1);
+  -webkit-mask: url('/assets/brand/dot-ball.svg') center / contain no-repeat;
+  mask: url('/assets/brand/dot-ball.svg') center / contain no-repeat;
+}
+
+.oft-impact__eyebrow {
+  margin: 0;
+  inline-size: fit-content;
+  font-family: var(--font-body);
+  font-size: var(--text--eyebrow);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--grey-on-track);
+}
+
+/* Reference .impact-text-w: the statement centred, and the box the picture's
+   second stop is positioned in. */
+.oft-impact__text-w {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Reference .text-impact-lg-mona. */
+.oft-impact__text {
+  margin: 0;
+  font-family: var(--font-body);
+  font-stretch: 93%;
+  font-size: var(--text--impact);
+  font-weight: 660;
+  /* Declared as the reference declares it: Chrome truncates a fractional
+     percentage, so 90.6% renders 114.3px lines exactly as its does. */
+  line-height: 90.6%;
+  letter-spacing: -0.0625rem;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+/* The accented words: the reference's <strong>, Brier Bold one step larger
+   than the grotesque around them, in the page's grey. Line-height 0.8 rather
+   than Brier's 83%, for Playfair's taller ascent — the same correction the
+   On Track statement makes, so accented lines stay 114.3px. */
+.oft-impact__accent {
+  font-family: var(--font-serif);
+  font-size: 8.25rem;
+  font-weight: 700;
+  line-height: 0.8;
+  letter-spacing: -0.1875rem;
+  font-variant-numeric: lining-nums;
+  color: var(--off-white-2);
+}
+
+/* One line of the statement, cut by off-track.ts for the oval reveal: a clip
+   box the width of its words, and the words inside it. */
+.oft-oval {
+  display: block;
+  inline-size: fit-content;
+  margin-inline: auto;
+  overflow: clip;
+  overflow-clip-margin: 0.2em;
+}
+
+.oft-oval__line {
+  display: block;
+  white-space: nowrap;
+}
+
+.oft-oval__char {
+  display: inline-block;
+}
+
+/* The picture's stops. Measured, never painted. */
+.oft-impact__stop {
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+/* Reference .off-t-impact-img-pos: 22 x 25rem, centred, dropped 10rem. */
+.oft-impact__stop--text {
+  inline-size: 22rem;
+  block-size: 25rem;
+  inset-inline-start: 50%;
+  inset-block-start: 50%;
+  translate: -50% calc(-50% + 10rem);
+}
+
+/* Reference .impact-icon-w.is-off-t: 3rem further down, above the picture. */
+.oft-impact__end {
+  position: relative;
+  z-index: 30;
+  margin-block-start: 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Reference .off-t-impact-img-pos2: 7rem across at 9:10, centred on the
+   signature. */
+.oft-impact__stop--end {
+  inline-size: 7rem;
+  aspect-ratio: 9 / 10;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  translate: -50% -50%;
+}
+
+/* Reference .base-helmet-rive.off-track-impact: 8rem wide at 6.0625:3.1875,
+   scaled 1.3. The mask shows until off-track.ts has a pen on it. */
+.oft-impact__sign {
+  inline-size: 8rem;
+  aspect-ratio: 6.0625 / 3.1875;
+  scale: 1.3;
+  background-color: var(--grey-on-track);
+  mask-image: url('/assets/brand/signature.svg');
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+}
+
+.oft-impact__sign.is-writing {
+  display: flex;
+  justify-content: center;
+  background: none;
+  mask: none;
+}
+
+.oft-impact__sign.is-writing canvas {
+  display: block;
+  block-size: 100%;
+  aspect-ratio: 960 / 764;
+  min-inline-size: 0;
 }
 
 /* ================================================================ Mobile */

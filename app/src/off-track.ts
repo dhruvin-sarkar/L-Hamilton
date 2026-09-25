@@ -19,8 +19,13 @@ import { mountChrome } from './lib/chrome';
 import { mountReveals } from './lib/reveal';
 import { mountSocials } from './lib/showcase';
 import { Signature } from './Signature';
+import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
 import { age, driver, eras } from './content/hamilton';
+import { career } from './content/live-stats';
 import { hero } from './content/off-track';
+
+/* The flight follows a drawn path, as the reference's does (its motionPath). */
+gsap.registerPlugin(MotionPathPlugin);
 
 /* ------------------------------------------------------------------ *
  * Smooth scroll
@@ -80,9 +85,25 @@ const currentEra = (() => {
  * Text bindings
  * ------------------------------------------------------------------ */
 
+const SMALL_NUMBERS = [
+  'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+  'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen',
+  'nineteen',
+];
+
+/** A small count spelled out, for a figure that sits inside a sentence. */
+function spell(n: number): string {
+  const word = SMALL_NUMBERS[n];
+  if (word === undefined) throw new Error(`[off-track] cannot spell ${n}`);
+  return word;
+}
+
 const bindings: Record<string, string> = {
   'driver-age': String(age()),
   'team-since': `${currentEra.team} F1 since ${currentEra.from}`,
+  /* The statement's "chasing eight": the title after the ones he has, counted
+     from the same record the On Track page reads. */
+  'next-title-word': spell(career.championships + 1),
 };
 
 for (const [key, value] of Object.entries(bindings)) {
@@ -305,6 +326,379 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
     }),
   );
 }
+
+/* ------------------------------------------------------------------ *
+ * The statement's oval reveal
+ *
+ * The reference's data-oval-scroll="top" (e0 in lando-gl.js), which is how its
+ * Off Track statement arrives — not the accent bar the smaller copy uses:
+ *
+ *   - the block is cut into its visual lines, each in a box clipped to an
+ *     ellipse that opens from the TOP centre: ellipse(20% 0% at 50% 0%) to
+ *     ellipse(100% 120% at 50% 0%), 1.5s power2.inOut, 0.15s apart
+ *   - each line drops from -40% of its height, 0.1s after the one above
+ *   - and inside it every letter drops from -40% too, 0.015s apart out from
+ *     the centre of the line
+ *   - fired once, as the block's top passes 95% of the screen
+ *
+ * Lines are measured, not authored: every word gets its own box, the boxes
+ * are grouped by the line they landed on, and the block is rebuilt one clip
+ * box per line. The accent face is carried through the cut.
+ * ------------------------------------------------------------------ */
+
+interface Run {
+  text: string;
+  cls: string;
+  br?: boolean;
+}
+
+/** The block's authored content as formatted runs, so a re-cut starts clean. */
+function runsOf(block: HTMLElement): Run[] {
+  const runs: Run[] = [];
+  const walk = (node: Node, cls: string): void => {
+    for (const child of node.childNodes) {
+      if (child.nodeType === Node.TEXT_NODE) runs.push({ text: child.nodeValue ?? '', cls });
+      else if (child instanceof HTMLElement) {
+        if (child.tagName === 'BR') runs.push({ text: '', cls: '', br: true });
+        else walk(child, child.className);
+      }
+    }
+  };
+  walk(block, '');
+  return runs;
+}
+
+interface OvalCut {
+  boxes: HTMLElement[];
+  lines: HTMLElement[];
+  chars: HTMLElement[][];
+}
+
+/** Rebuild `block` one clip box per visual line. */
+function cutLines(block: HTMLElement, runs: Run[]): OvalCut {
+  interface Word {
+    span: HTMLElement;
+    text: string;
+    cls: string;
+    /** Whether real whitespace followed it — "eight" then "." must stay joined. */
+    spaceAfter: boolean;
+  }
+
+  // Measuring pass: one span per word, the authored breaks kept in the flow.
+  block.textContent = '';
+  const words: Word[] = [];
+  for (const run of runs) {
+    if (run.br) {
+      block.append(document.createElement('br'));
+      continue;
+    }
+    for (const token of run.text.split(/(\s+)/)) {
+      if (!token) continue;
+      if (/^\s+$/.test(token)) {
+        block.append(document.createTextNode(' '));
+        const last = words[words.length - 1];
+        if (last) last.spaceAfter = true;
+        continue;
+      }
+      const span = el('span', run.cls, token);
+      block.append(span);
+      words.push({ span, text: token, cls: run.cls, spaceAfter: false });
+    }
+  }
+
+  // Grouped by vertical midpoint against half a line: the serif accent sits a
+  // few pixels off the grotesque's box on the same line, never a line away.
+  const leading = Number.parseFloat(getComputedStyle(block).lineHeight) || 100;
+  const rows: Word[][] = [];
+  let anchor: number | null = null;
+  for (const word of words) {
+    const middle = word.span.offsetTop + word.span.offsetHeight / 2;
+    if (anchor === null || Math.abs(middle - anchor) > leading / 2) {
+      rows.push([]);
+      anchor = middle;
+    }
+    rows[rows.length - 1]?.push(word);
+  }
+
+  block.textContent = '';
+  const cut: OvalCut = { boxes: [], lines: [], chars: [] };
+  for (const row of rows) {
+    const box = el('span', 'oft-oval');
+    const line = el('span', 'oft-oval__line');
+    const chars: HTMLElement[] = [];
+    row.forEach((word, i) => {
+      const host = word.cls ? el('span', word.cls) : line;
+      for (const c of word.text) {
+        const ch = el('span', 'oft-oval__char', c);
+        chars.push(ch);
+        host.append(ch);
+      }
+      if (host !== line) line.append(host);
+      // The space stays in the text, so the block still reads as words.
+      if (word.spaceAfter && i < row.length - 1) line.append(document.createTextNode(' '));
+    });
+    box.append(line);
+    block.append(box);
+    cut.boxes.push(box);
+    cut.lines.push(line);
+    cut.chars.push(chars);
+  }
+  return cut;
+}
+
+function mountOval(block: HTMLElement): void {
+  const runs = runsOf(block);
+  const plain = runs.map((r) => (r.br ? ' ' : r.text)).join('').replace(/\s+/g, ' ').trim();
+  // Read as one heading, whatever the cut does to its text nodes.
+  block.setAttribute('aria-label', plain);
+
+  mm.add('(prefers-reduced-motion: no-preference)', () => {
+    let played = false;
+    let cut = cutLines(block, runs);
+
+    const hide = (c: OvalCut): void => {
+      gsap.set(c.boxes, { clipPath: 'ellipse(20% 0% at 50% 0%)' });
+      gsap.set(c.lines, { yPercent: -40 });
+      c.chars.forEach((chars) => gsap.set(chars, { yPercent: -40 }));
+    };
+
+    const play = (c: OvalCut): void => {
+      const STEP = 0.15;
+      gsap.to(c.boxes, {
+        clipPath: 'ellipse(100% 120% at 50% 0%)',
+        duration: 1.5,
+        ease: 'power2.inOut',
+        stagger: STEP,
+      });
+      c.lines.forEach((line, q) => {
+        gsap.to(line, { yPercent: 0, duration: 1.5, ease: 'power2.inOut', delay: STEP + 0.1 * q });
+        const chars = c.chars[q] ?? [];
+        gsap.to(chars, {
+          yPercent: 0,
+          duration: 1.5,
+          ease: 'power2.inOut',
+          delay: STEP * q,
+          stagger: { amount: 0.015 * chars.length, from: 'center' },
+        });
+      });
+    };
+
+    hide(cut);
+    const trigger = ScrollTrigger.create({
+      trigger: block,
+      start: 'top 95%',
+      once: true,
+      onEnter: () => {
+        played = true;
+        play(cut);
+      },
+    });
+
+    // Line breaks move with the width below 992px, where the root stops
+    // scaling. Re-cut from the authored runs; a block already read stays read.
+    let wait = 0;
+    const recut = (): void => {
+      window.clearTimeout(wait);
+      wait = window.setTimeout(() => {
+        gsap.killTweensOf([...cut.boxes, ...cut.lines, ...cut.chars.flat()]);
+        cut = cutLines(block, runs);
+        if (!played) hide(cut);
+      }, 200);
+    };
+    window.addEventListener('resize', recut);
+
+    return () => {
+      window.removeEventListener('resize', recut);
+      window.clearTimeout(wait);
+      trigger.kill();
+      gsap.killTweensOf([...cut.boxes, ...cut.lines, ...cut.chars.flat()]);
+      block.textContent = '';
+      for (const run of runs) {
+        if (run.br) block.append(document.createElement('br'));
+        else if (run.cls) block.append(el('span', run.cls, run.text));
+        else block.append(document.createTextNode(run.text));
+      }
+    };
+  });
+}
+
+/* After the bindings, so the counted word is what gets cut; after the fonts,
+   so lines are measured in the real faces. */
+void document.fonts.ready.then(() => {
+  mountOval(must('.oft-impact__text'));
+  ScrollTrigger.refresh();
+});
+
+/* ------------------------------------------------------------------ *
+ * The statement's signature
+ *
+ * The reference's signature_scroll artboard: written as the mark crosses the
+ * screen, scrubbed from its top at 50% of the viewport to its top at 10%.
+ * ------------------------------------------------------------------ */
+
+{
+  const host = must('.oft-impact__sign');
+  mm.add('(prefers-reduced-motion: no-preference)', () => {
+    let signature: Signature | null = null;
+    let live = true;
+    const pen = { p: 0 };
+    host.classList.add('is-writing');
+    fetch('/assets/brand/signature.svg')
+      .then((res) => {
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        return res.text();
+      })
+      .then((markup) => {
+        if (!live) return;
+        const ink = getComputedStyle(host).getPropertyValue('--grey-on-track').trim();
+        signature = new Signature(host, markup, ink);
+        signature.progress = pen.p;
+      })
+      .catch((err: unknown) => {
+        console.error('[off-track] signature failed to load', err);
+        host.classList.remove('is-writing');
+      });
+    const sized = new ResizeObserver(() => signature?.resize());
+    sized.observe(host);
+
+    const trigger = ScrollTrigger.create({
+      trigger: host,
+      start: 'top 50%',
+      end: 'top 10%',
+      scrub: true,
+      onUpdate: (self) => {
+        pen.p = self.progress;
+        if (signature) signature.progress = pen.p;
+      },
+    });
+
+    return () => {
+      live = false;
+      trigger.kill();
+      sized.disconnect();
+      signature?.dispose();
+      host.classList.remove('is-writing');
+    };
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ * The flight
+ *
+ * The reference's heroflip (z_ in lando-gl.js), measured rather than eyeballed:
+ *
+ *   - the picture is lifted out of the header into the group and centred on
+ *     each stop in turn: the header slot, the statement, the signature
+ *   - it travels a two-segment cubic through the three centres, with the
+ *     control points below, scrubbed 1:1 from the group's top at the top of
+ *     the screen to its bottom at the centre ("20% top" to "bottom 80%" on a
+ *     narrow screen)
+ *   - its size runs stop 1 -> stop 2 over the first half and stop 2 -> stop 3
+ *     over the second
+ *   - and it flicks through the ten photographs by progress, one at a time
+ *
+ * Under reduced motion none of this runs: the picture stays in the header.
+ * ------------------------------------------------------------------ */
+
+mm.add('(prefers-reduced-motion: no-preference)', () => {
+  const track = must('[data-flight-track]');
+  const flight = must('[data-flight]');
+  const home = flight.parentElement;
+  const stops = [1, 2, 3].map((n) => must(`[data-flight-stop="${n}"]`));
+  const layers = [...flight.children] as HTMLElement[];
+  if (!home || layers.length === 0) throw new Error('[off-track] flight has nothing to fly');
+
+  track.append(flight);
+  flight.classList.add('is-flying');
+
+  let shown = 0;
+  const show = (i: number): void => {
+    if (i === shown) return;
+    const was = layers[shown];
+    const now = layers[i];
+    if (was) was.style.opacity = '0';
+    if (now) now.style.opacity = '1';
+    shown = i;
+  };
+
+  let tween: gsap.core.Tween | null = null;
+
+  const build = (): void => {
+    tween?.scrollTrigger?.kill();
+    tween?.kill();
+
+    const origin = track.getBoundingClientRect();
+    const [a, b, c] = stops.map((stop) => {
+      const r = stop.getBoundingClientRect();
+      return {
+        x: r.left - origin.left + r.width / 2,
+        y: r.top - origin.top + r.height / 2,
+        w: r.width,
+        h: r.height,
+      };
+    }) as [Box, Box, Box];
+
+    gsap.set(flight, { xPercent: -50, yPercent: -50, x: a.x, y: a.y, width: a.w, height: a.h });
+
+    // The reference's control points, verbatim.
+    const p1 = { x: a.x, y: a.y + (b.y - a.y) * 0.8 };
+    const p2 = { x: b.x, y: b.y - Math.min(800, (b.y - a.y) * 0.3) };
+    const p3 = { x: b.x, y: b.y + Math.min(80, (c.y - b.y) * 0.3) };
+    const p4 = { x: b.x + (c.x - b.x) * 0.6, y: c.y - (c.y - b.y) * 0.2 };
+    const path =
+      `M${a.x},${a.y} C${p1.x},${p1.y} ${p2.x},${p2.y} ${b.x},${b.y} ` +
+      `C${p3.x},${p3.y} ${p4.x},${p4.y} ${c.x},${c.y}`;
+
+    const narrow = window.innerWidth <= 991;
+    tween = gsap.to(flight, {
+      duration: 1.5,
+      ease: 'none',
+      motionPath: { path, autoRotate: false },
+      onUpdate: function (this: gsap.core.Tween) {
+        const p = this.progress();
+        show(Math.min(Math.floor(p * layers.length), layers.length - 1));
+        const [from, to, t] = p <= 0.5 ? [a, b, p * 2] : [b, c, (p - 0.5) * 2];
+        flight.style.width = `${from.w + (to.w - from.w) * t}px`;
+        flight.style.height = `${from.h + (to.h - from.h) * t}px`;
+      },
+      scrollTrigger: {
+        trigger: track,
+        start: narrow ? '20% top' : 'top top',
+        end: narrow ? 'bottom 80%' : 'bottom center',
+        scrub: true,
+      },
+    });
+  };
+
+  interface Box {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  }
+
+  let wait = 0;
+  const rebuild = (): void => {
+    window.clearTimeout(wait);
+    wait = window.setTimeout(build, 200);
+  };
+
+  build();
+  // Positions settle with the real faces and the statement's cut.
+  void document.fonts.ready.then(() => requestAnimationFrame(build));
+  window.addEventListener('resize', rebuild);
+
+  return () => {
+    window.removeEventListener('resize', rebuild);
+    window.clearTimeout(wait);
+    tween?.scrollTrigger?.kill();
+    tween?.kill();
+    flight.classList.remove('is-flying');
+    gsap.set(flight, { clearProps: 'all' });
+    layers.forEach((layer) => layer.style.removeProperty('opacity'));
+    home.append(flight);
+  };
+});
 
 mountSocials();
 
