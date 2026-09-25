@@ -233,6 +233,50 @@ export function mountHofDrift(): void {
 }
 
 /* ------------------------------------------------------------------ *
+ * The callout's crest, drawn in by scroll.
+ *
+ * The reference's callout mark is a Rive file (artboard "helmet-reef", state
+ * machine "helmet-reef_scroll") keyed to the callout's scroll position. Read
+ * off its canvas at 1728x1080: nothing until the section top reaches 67% of
+ * the viewport, then the two branches grow up from their stems until the top
+ * is at 16%, then the helmet comes up between them, complete once the section
+ * top has passed about 10% above the fold.
+ *
+ * Ours is the site's own crest — the same drawing the next-race card and the
+ * menu carry — through the two hooks it already exposes for the On Track
+ * header's entrance: --crest-branch-hide clips the branches from the top, so
+ * running it from 100% to 0% grows them upward, and --crest-helmet is the
+ * helmet's opacity. Set on the <svg>, they reach the <use> clone by
+ * inheritance.
+ *
+ * Reduced motion leaves both unset, and the crest is simply whole.
+ * ------------------------------------------------------------------ */
+
+export function mountCalloutCrest(): void {
+  mm.add('(prefers-reduced-motion: no-preference)', () => {
+    for (const icon of document.querySelectorAll<SVGSVGElement>('.callout__icon')) {
+      const section = icon.closest<HTMLElement>('.callout');
+      if (!section) throw new Error('callout crest: .callout__icon outside a .callout');
+
+      gsap.set(icon, { '--crest-branch-hide': '100%', '--crest-helmet': 0 });
+      gsap
+        .timeline({
+          scrollTrigger: {
+            trigger: section,
+            start: 'top 67%',
+            end: 'top -10%',
+            scrub: true,
+            invalidateOnRefresh: true,
+          },
+        })
+        // 550 of the 832px range is the branches, the rest the helmet.
+        .to(icon, { '--crest-branch-hide': '0%', duration: 0.66, ease: 'none' })
+        .to(icon, { '--crest-helmet': 1, duration: 0.34, ease: 'none' });
+    }
+  });
+}
+
+/* ------------------------------------------------------------------ *
  * Store callout — the visor bending open, and the ground coming back.
  *
  * Two curves, both measured off the reference at 1908x884:
