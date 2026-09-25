@@ -3698,16 +3698,17 @@
    capitals like the line above it. lime-off maps to --accent-off, as it does
    everywhere else.
 
-   0.904 rather than Brier's 0.886: the reference's line box is 67.8px, not
+   0.9037 rather than Brier's 0.886: the reference's line box is 67.78px, not
    66.45, because the serif sits inside a sans line and the two baselines pull
-   it taller. Matching the box keeps the grid under it at the reference's 312. */
+   it taller — the same value the On Track headings use. Matching the box keeps
+   the grid under it at the reference's 312. */
 .hof__title-line.is-serif {
   font-family: var(--font-serif);
   font-style: normal;
   font-weight: 500;
   font-size: 4.6875rem;
   font-variant-numeric: lining-nums;
-  line-height: 0.904;
+  line-height: 0.9037;
   color: var(--accent-off);
 }
 
@@ -3750,24 +3751,19 @@
      `clip` rather than `hidden`: hidden would make all 26 cards scroll
      containers. Measured at a 1728 viewport: scrollWidth 1735 -> 1713. */
   overflow: clip;
+  /* The label is sized off the card rather than the root, so it stays inside
+     the notch at every card width — see .hof__label. */
+  container-type: inline-size;
   /* Columns 1 and 3 — the leaders. */
   transform: translate3d(0, var(--hof-lead, 0px), 0);
   will-change: transform;
 }
 
-/* Columns 2 and 4. Three times the travel of their neighbours, which is what
+/* Columns 2 and 4. Five times the travel of their neighbours, which is what
    makes the wall breathe as it passes rather than arriving as one block. */
 .hof__item:nth-child(4n + 2),
 .hof__item:nth-child(4n + 4) {
   transform: translate3d(0, var(--hof-lag, 0px), 0);
-}
-
-/* Focusable because the wearing shot is content, and hover is the only other
-   way to reach it. Without this a sighted keyboard-only visitor gets 26 cards
-   whose second photograph simply does not exist for them. */
-.hof__item:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 4px;
 }
 
 /* Clipped to the card shape — the same outline the frame strokes, so the
@@ -3835,8 +3831,7 @@
     transform var(--animation-default);
 }
 
-.hof__item:hover .hof__reveal-w,
-.hof__item:focus-visible .hof__reveal-w {
+.hof__item:hover .hof__reveal-w {
   /* 120%, not 100%: the ellipse has to overshoot the bottom edge, or its curve
      is still readable as a dome across the foot of the card at the end. */
   clip-path: ellipse(100% 120% at 50% 0);
@@ -3869,8 +3864,7 @@
   object-fit: contain;
 }
 
-.hof__item:hover .hof__helmet,
-.hof__item:focus-visible .hof__helmet {
+.hof__item:hover .hof__helmet {
   transform: scale(1.1);
 }
 
@@ -3919,13 +3913,21 @@
   transition: opacity var(--animation-default);
 }
 
-.hof__item:hover .hof__frame--on,
-.hof__item:focus-visible .hof__frame--on {
+.hof__item:hover .hof__frame--on {
   opacity: 1;
 }
 
 /* ---- the label, in the notch ---- */
 
+/* `.helmet-grid-item-text-w`: a 2rem box on the card's bottom-right corner,
+   name at .9rem 600 and the date at .9rem 700 in the accent, .8rem apart.
+
+   Written in container units of the card, which at every desktop width are
+   those same values (a 407px card at a 16px root: 2rem is 7.86cqi, .9rem is
+   3.54cqi) — and below that they keep the label inside the notch, where rem
+   would not: our phone root holds at 16px while the card drops to 165px, and
+   a .9rem "Silverstone 2021" ran twice the notch's width across the frame. The
+   floor is the reference's own phone size, .9rem of its 10.8px root. */
 .hof__label {
   position: absolute;
   inset: auto 0 0 auto;
@@ -3933,9 +3935,11 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  block-size: 2rem;
-  font-size: 0.9rem;
-  line-height: 1;
+  block-size: 7.86cqi;
+  margin: 0;
+  font-size: max(0.6rem, 3.54cqi);
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .hof__name {
@@ -3944,9 +3948,12 @@
 }
 
 .hof__year {
-  margin-inline-start: 0.8rem;
   font-weight: 700;
   color: var(--accent);
+}
+
+.hof__name + .hof__year {
+  margin-inline-start: max(0.27rem, 3.15cqi);
 }
 
 /* ==================================================================== *
@@ -4162,8 +4169,7 @@
     transform: none;
   }
 
-  .hof__item:hover .hof__helmet,
-  .hof__item:focus-visible .hof__helmet {
+  .hof__item:hover .hof__helmet {
     transform: none;
   }
 }

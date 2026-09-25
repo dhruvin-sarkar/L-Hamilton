@@ -17,7 +17,8 @@
  */
 
 import { gsap, mm, ScrollTrigger, reducedMotion, WIDE_AND_ANIMATED } from './motion';
-import { helmets, helmetSrc, helmetAlt, revealSrc, revealAlt, pendingHelmets } from '../content/helmets';
+import { helmets, helmetSrc, helmetAlt, revealSrc, pendingHelmets } from '../content/helmets';
+import type { Helmet } from '../content/helmets';
 
 /* ------------------------------------------------------------------ *
  * The riser — one screen of photograph handing on to the wall.
@@ -123,26 +124,40 @@ export function mountHelmets(): void {
 
 
 
+  /* Not focusable, as the reference's cards are not: a card has no action, so a
+     tab stop on each was 26 stops that did nothing. The wearing shot is a hover
+     flourish over the helmet shot rather than content of its own, so it is
+     decorative, and the helmet's alt and the label carry what there is to say.
+
+     The label only writes the parts that exist. An empty year span still took
+     its 0.8rem margin and pushed a name-only label off the notch's right edge;
+     a card with neither renders no label at all, as the reference would with
+     an empty CMS field. */
+  function hofLabel(helmet: Helmet): string {
+    const parts = [
+      helmet.name ? `<span class="hof__name">${attr(helmet.name)}</span>` : '',
+      helmet.year !== null ? `<span class="hof__year">${helmet.year}</span>` : '',
+    ].join('');
+    return parts ? `<p class="hof__label">${parts}</p>` : '';
+  }
+
   if (hofGrid) {
     hofGrid.innerHTML = helmets
       .map(
         (helmet) => `
-        <li class="hof__item" tabindex="0">
+        <li class="hof__item">
           <div class="hof__media">
             <img class="hof__helmet" src="${helmetSrc(helmet)}"
               alt="${attr(helmetAlt(helmet))}" loading="lazy" decoding="async" />
-            <span class="hof__reveal-w">
-              <img class="hof__reveal-bg" src="${revealSrc(helmet)}" alt="" aria-hidden="true"
+            <span class="hof__reveal-w" aria-hidden="true">
+              <img class="hof__reveal-bg" src="${revealSrc(helmet)}" alt=""
                 loading="lazy" decoding="async" />
-              <img class="hof__reveal" src="${revealSrc(helmet)}"
-                alt="${attr(revealAlt(helmet))}" loading="lazy" decoding="async" />
+              <img class="hof__reveal" src="${revealSrc(helmet)}" alt=""
+                loading="lazy" decoding="async" />
             </span>
           </div>
           <div class="hof__frame-w">${hofFrame('base')}${hofFrame('on')}</div>
-          <p class="hof__label">
-            <span class="hof__name">${helmet.name ? attr(helmet.name) : ''}</span>
-            <span class="hof__year">${helmet.year ?? ''}</span>
-          </p>
+          ${hofLabel(helmet)}
         </li>`,
       )
       .join('');
