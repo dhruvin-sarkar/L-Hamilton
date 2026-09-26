@@ -107,6 +107,16 @@ export function mountHelmets(): void {
   const HOF_CARD_PATH_ON =
     'M8 1h390.89a7 7 0 0 1 7 7v356.983a7 7 0 0 1-7 7H263.329a23.999 23.999 0 0 0-18.766 9.038' +
     'l-16.499 20.694A21.999 21.999 0 0 1 210.862 410H8a7 7 0 0 1-7-7V8a7 7 0 0 1 7-7Z';
+  /* The phone outline, drawn under 480px in place of the two above: the
+     reference's `.helmet-grid-frame-w.mobile`, one 187x188 path for both the
+     resting and the hover line. Its step sits at the LEFT, so the notch runs
+     three quarters of the card and "Silverstone 2021" fits where the wide
+     card's half-width notch would have it across the diagonal. The
+     #hof-card-narrow clipPath in partials/helmets.html is this normalised. */
+  const HOF_CARD_PATH_NARROW =
+    'M8 .5h170.12a7.5 7.5 0 0 1 7.5 7.5v154.61a7.5 7.5 0 0 1-7.5 7.5H60.681' +
+    'a10.5 10.5 0 0 0-8.21 3.954l-7.86 9.858a9.5 9.5 0 0 1-7.427 3.578H8' +
+    'A7.5 7.5 0 0 1 .5 180V8A7.5 7.5 0 0 1 8 .5Z';
 
   /** Attribute-safe text. The data is ours, but a name carrying a quote would
       otherwise close the attribute it sits in and swallow the rest of the tag. */
@@ -114,11 +124,15 @@ export function mountHelmets(): void {
     return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
   }
 
+  /** Both outlines for one variant; home.css shows the wide one or the narrow
+      one by viewport, as the reference toggles its two frame wrappers. */
   function hofFrame(variant: 'base' | 'on'): string {
+    const svg = (shape: 'wide' | 'narrow', viewBox: string, d: string) =>
+      `<svg class="hof__frame hof__frame--${variant} hof__frame--${shape}" viewBox="${viewBox}" ` +
+      `preserveAspectRatio="none" aria-hidden="true"><path d="${d}" /></svg>`;
     return (
-      `<svg class="hof__frame hof__frame--${variant}" viewBox="0 0 407 411" ` +
-      `preserveAspectRatio="none" aria-hidden="true">` +
-      `<path d="${variant === 'on' ? HOF_CARD_PATH_ON : HOF_CARD_PATH}" /></svg>`
+      svg('wide', '0 0 407 411', variant === 'on' ? HOF_CARD_PATH_ON : HOF_CARD_PATH) +
+      svg('narrow', '0 0 187 188', HOF_CARD_PATH_NARROW)
     );
   }
 

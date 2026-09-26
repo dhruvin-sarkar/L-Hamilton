@@ -3941,6 +3941,11 @@
   block-size: 100%;
 }
 
+/* The phone outline, swapped in under 480px — see the end of this section. */
+.hof__frame--narrow {
+  display: none;
+}
+
 .hof__frame path {
   fill: none;
   stroke: currentColor;
@@ -4198,6 +4203,77 @@
   .hof__item:nth-child(4n + 2),
   .hof__item:nth-child(4n + 4) {
     transform: none;
+  }
+
+  /* The card, below 992px, as the reference sets it — measured off its cards at
+     768, 480, 390 and 360 and written as shares of the card, because its root
+     keeps shrinking here where ours holds at 16px.
+
+     The helmet: its `.helmet-grid-item-img-helmet` caps at 20rem, a centred
+     square 48.4% of the card at both 768 and 480, where the wide layout lets
+     it fill the card. The box below is the wide one (65% of the square, 17.5%
+     in, 15.65% down) carried into that smaller square.
+
+     The label: 1.2rem type on a 2rem box, 2.9% and 4.85% of the card; the name
+     and year 3.46% apart. The 0.6rem floor stays: at 480 the reference's type
+     falls to 7.2px, which is below anything that reads. The box grows with the
+     type rather than clipping it at the card's edge. */
+  .hof__helmet {
+    inset-inline-start: 34.27%;
+    inset-block-start: 33.54%;
+    inline-size: 31.46%;
+    block-size: 31.15%;
+  }
+
+  .hof__label {
+    block-size: max(4.85cqi, 1.25em);
+    font-size: max(0.6rem, 2.9cqi);
+  }
+
+  .hof__name + .hof__year {
+    margin-inline-start: 3.46cqi;
+  }
+}
+
+/* Under 480px the reference changes the card itself. Its `.helmet-grid-frame-w
+   .mobile` outline steps up near the LEFT edge instead of past the middle, so
+   the notch spans three quarters of the width and the label reads in it; the
+   wide outline's half-width notch put "Silverstone 2021" across the diagonal.
+   The photograph's clip follows the line, as it does on the wide card.
+
+   Measured at 390 and at 360, as shares of the card: the helmet square is
+   74.4% (its 12rem cap), the type 5.58% (.9rem), name and year 4.4% apart, and
+   the label drops to the card's foot — `align-items: flex-end` on a line
+   height of 1 — rather than centring in its 2rem box. */
+@media (max-width: 479px) {
+  .hof__media {
+    clip-path: url(#hof-card-narrow);
+  }
+
+  .hof__frame--wide {
+    display: none;
+  }
+
+  .hof__frame--narrow {
+    display: block;
+  }
+
+  .hof__helmet {
+    inset-inline-start: 25.82%;
+    inset-block-start: 24.7%;
+    inline-size: 48.36%;
+    block-size: 47.88%;
+  }
+
+  .hof__label {
+    align-items: flex-end;
+    block-size: 12.4cqi;
+    font-size: max(0.6rem, 5.58cqi);
+    line-height: 1;
+  }
+
+  .hof__name + .hof__year {
+    margin-inline-start: 4.4cqi;
   }
 }
 
