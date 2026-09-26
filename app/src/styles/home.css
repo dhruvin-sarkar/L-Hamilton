@@ -1914,6 +1914,9 @@
   /* The crest's visor is a knockout, so it has to match the ground it is on
      rather than the page's. See the <use> target in index.html. */
   --crest-ground: var(--field-ground);
+  /* And its metal is the deep ramp: the standard one's highlight is near-white,
+     which on this cream would cut the crest in two across its middle. */
+  --crest-paint: url(#crest-metal-deep);
 }
 
 .impact__inner {
