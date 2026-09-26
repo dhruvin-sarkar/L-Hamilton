@@ -13,16 +13,20 @@
          the only error left in the console. -->
     <link rel="icon" href="/assets/brand/lh-monogram.svg" type="image/svg+xml" />
 
-    <!-- Only the two faces that paint before anything is scrolled: the display
-         grotesque, which sets the wordmark's surname and every large heading,
-         and the Didone italic that sets the given name beside it.
+    <!-- Only the faces that paint before anything is scrolled: the display
+         grotesque, which sets the wordmark's surname, every large heading and
+         the hero's lower band; the Didone italic that sets the given name
+         beside it; and the Didone upright that sets the hero's upper band.
 
          Without these the first paint is Arial and the swap reflows the lockup
          and the whole impact wall — Archivo Narrow is far narrower than Arial,
-         so it is not a subtle shift. Playfair upright and Inter are not
-         preloaded on purpose: they set the wall's accents and body copy, both
-         below the fold, and preloading everything just makes the four files
-         compete for the same first-paint bandwidth.
+         so it is not a subtle shift. The upper band is here because it is in
+         the served page and is the first screen's largest text: left to be
+         discovered at first layout, its face arrived after the band's loop had
+         started, and the swap re-laid the text in the same frame as the loop's
+         first step — a layout shift of that whole step. Nothing else is
+         preloaded, because every file here competes for the same first-paint
+         bandwidth.
 
          crossorigin is required even though these are same-origin. Fonts are
          fetched in CORS mode, and a preload without it is a different request
@@ -42,6 +46,13 @@
       type="font/woff2"
       crossorigin
     />
+    <link
+      rel="preload"
+      href="/assets/fonts/playfair-display-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
 
     <!-- The stylesheet is linked HERE rather than imported from main.ts.
          Imported from JS it is not a stylesheet as far as the parser is
@@ -54,6 +65,22 @@
          what is wanted here; Vite serves it directly in dev and rewrites it to
          the hashed extracted file on build. -->
     <link rel="stylesheet" href="/src/styles/main.css" />
+
+    <!-- The hero entrance's backstop. main.ts releases the entrance on the
+         loader's cue, just before the panel opens onto the page. If the page's
+         script never claims the panel -- it failed to load, or threw first --
+         the panel steps aside on its own at 10s (chrome.css
+         `transition-failsafe`), and the furniture has to come in with it
+         rather than stay at opacity 0 for good. Inline in the head so it is
+         armed as the document is parsed: nothing in the module graph can
+         delay it. Keep the delay in step with the panel's. -->
+    <script>
+      setTimeout(function () {
+        var panel = document.querySelector('[data-transition]');
+        if (panel && panel.hasAttribute('data-state')) return;
+        document.body.classList.add('is-ready');
+      }, 10000);
+    </script>
   </head>
   <body>
     <!--#include "partials/transition.html"-->
@@ -88,15 +115,18 @@
 
              Two counter-scrolling bands: a serif in the muted accent over a
              bold grotesque in the page's ink, the reference's carousel. The
-             words come from the content model in main.ts; the sr-only copy
-             below carries them for screen readers, since the visible rows
-             repeat themselves several times to close the loop. -->
+             words come from src/content/home.ts, set into each track at build
+             time (vite.config.ts) so they paint with the document; main.ts
+             adds the repeats the loop needs. The sr-only copy below carries
+             them for screen readers, since the visible rows repeat themselves
+             several times to close the loop. No whitespace inside a track:
+             it is `white-space: pre`. -->
         <div class="hero-back" aria-hidden="true">
           <div class="marquee__row" data-marquee="left">
-            <div class="marquee__track" data-marquee-track></div>
+            <div class="marquee__track" data-marquee-track><!--#marquee "left"--></div>
           </div>
           <div class="marquee__row" data-marquee="right">
-            <div class="marquee__track" data-marquee-track></div>
+            <div class="marquee__track" data-marquee-track><!--#marquee "right"--></div>
           </div>
         </div>
 
@@ -219,7 +249,7 @@
              several times over to close the loop, which a screen reader would
              otherwise read out in full. This carries the real content. -->
         <h2 class="sr-only" id="marquee-h">The story of Lewis</h2>
-        <p class="sr-only" id="marquee-text"></p>
+        <p class="sr-only" id="marquee-text"><!--#marquee-spoken--></p>
       </div>
       <!-- /.hero-track -->
 

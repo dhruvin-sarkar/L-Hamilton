@@ -1123,8 +1123,9 @@
  * order so the sequence follows the eye: wordmark, nav, then the corners.
  *
  * Gated on body.is-ready rather than running on load, so nothing animates
- * until the scene has actually painted — otherwise the sequence plays out
- * against an empty canvas and is over before the hero appears.
+ * under the loader: main.ts sets it on the loader's cue, just before the panel
+ * opens, and the sequence plays in view. Not on the WebGL scene — the page is
+ * shown composed and the canvas comes in when it is ready.
  * ------------------------------------------------------------------ */
 
 .hero-in {

@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from 'vite';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { bandCopy, bandsSpoken, isHeroBand } from './src/content/home';
 
 // `import.meta.url` rather than `__dirname`: this package is ESM ("type":
 // "module"), where __dirname does not exist and would be undefined at runtime.
@@ -67,10 +68,50 @@ function htmlPartials(): Plugin {
   };
 }
 
+/** Text for an HTML text node. */
+const escapeHtml = (text: string): string =>
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/**
+ * `<!--#marquee "left"-->` and `<!--#marquee-spoken-->` in an HTML entry, set
+ * from src/content/home.ts.
+ *
+ * The hero's bands are the largest text on Home's first screen, so they are its
+ * LCP element. Built by main.ts they could not paint until the whole module
+ * graph had downloaded and run -- 6.3s on a throttled phone, against a 2.5s
+ * budget. Set here they are in the served document and paint with it; the page
+ * script only adds the repeat copies the loop needs, which it has to measure.
+ *
+ * The copy stays in the content module rather than in the markup, so there is
+ * one source for the bands and for what a screen reader is told they say. An
+ * unknown band name stops the build.
+ */
+function heroMarquee(): Plugin {
+  const BAND = /<!--#marquee\s+"([^"]+)"\s*-->/g;
+  const SPOKEN = /<!--#marquee-spoken\s*-->/g;
+
+  return {
+    name: 'hero-marquee',
+    transformIndexHtml: {
+      order: 'pre',
+      handler(html, ctx) {
+        return html
+          .replace(BAND, (_match, band: string) => {
+            if (!isHeroBand(band)) {
+              throw new Error(`${ctx.filename}: no marquee band called "${band}" in src/content/home.ts`);
+            }
+            return `<span class="marquee__item">${escapeHtml(bandCopy(band))}</span>`;
+          })
+          .replace(SPOKEN, () => escapeHtml(bandsSpoken()));
+      },
+    },
+  };
+}
+
 export default defineConfig({
   root: here,
   publicDir: fileURLToPath(new URL('./public', import.meta.url)),
-  plugins: [htmlPartials()],
+  plugins: [htmlPartials(), heroMarquee()],
   server: { port: 5173, open: false },
   /* The dependency cache lives beside this config, not in node_modules. Every
      worktree links app/node_modules to one shared install, so the default
