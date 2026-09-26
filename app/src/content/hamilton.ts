@@ -14,7 +14,12 @@
  * See docs/CONTENT-DATA.md. Do not hardcode a number anywhere else in the app.
  */
 
-import { career, provenance, wins } from './live-stats';
+import {
+  career,
+  championshipYears as championshipYearsFromResults,
+  provenance,
+  wins,
+} from './live-stats';
 import type { Win } from './live-stats';
 
 export type TeamId = 'mclaren' | 'mercedes' | 'ferrari';
@@ -24,7 +29,6 @@ export interface Era {
   team: string;
   from: number;
   to: number | null; // null = ongoing
-  blurb: string;
 }
 
 export interface Season {
@@ -82,26 +86,34 @@ export const eras: Era[] = [
     team: 'McLaren',
     from: 2007,
     to: 2012,
-    blurb: 'Rookie season to championship contender. A title in his second year.',
   },
   {
     id: 'mercedes',
     team: 'Mercedes',
     from: 2013,
     to: 2024,
-    blurb: 'Twelve seasons, six championships, and the most decorated run in the sport.',
   },
   {
     id: 'ferrari',
     team: 'Ferrari',
     from: 2025,
     to: null,
-    blurb: 'The move that reshaped the grid. Still being written.',
   },
 ];
 
 /** The seven title years — stable, and the spine of the career narrative. */
 export const championshipYears = [2008, 2014, 2015, 2017, 2018, 2019, 2020] as const;
+
+/* The stable list above and the fetched record are two statements of the same
+   fact, so they are held to each other: the seasons the standings put him
+   first in must be exactly these years. A new title, or a record that has lost
+   one, stops the page until this list is brought into line by hand. */
+if (championshipYears.join() !== championshipYearsFromResults.join()) {
+  throw new Error(
+    `[content] championshipYears declares ${championshipYears.join(', ')} but the fetched ` +
+      `standings put him first in ${championshipYearsFromResults.join(', ')}`,
+  );
+}
 
 /**
  * The pre-Formula 1 championship record — 1995 to 2006.
@@ -286,12 +298,13 @@ export const preF1Span: { from: number; to: number } = {
  * projection of it onto the shape the rest of the app already consumed.
  *
  * `verified: true` here means *traceable to a live structured source and
- * internally cross-checked* — not that a human has signed it off. Two checks
- * earn it: the generator counts wins and fastest laps by two independent routes
- * and refuses to write on a mismatch, and `live-stats.ts` asserts that the
- * seasons finishing P1 are exactly the years `championshipYears` declares
- * above. CONTENT-DATA.md still asks for human re-verification before launch and
- * after every race weekend.
+ * internally cross-checked* — not that a human has signed it off. The checks
+ * that earn it: the generator counts wins, fastest laps and poles by two
+ * independent routes and refuses to write on a mismatch; `live-stats.ts`
+ * asserts every total is the sum of its seasons and of its circuits; and the
+ * seasons finishing P1 are asserted above to be exactly `championshipYears`.
+ * CONTENT-DATA.md still asks for human re-verification before launch and after
+ * every race weekend.
  */
 export const careerTotals: CareerTotals = {
   starts: career.starts,
