@@ -1,7 +1,7 @@
 /* Helmet Hall of Fame — the data behind the grid.
  *
  * One entry per helmet, in the order they are displayed. Both images for an
- * entry are keyed off `id` alone:
+ * entry are keyed off `id` alone, with one exception (see HELMET_FILE):
  *
  *   /assets/helmets-hof/helmet-NN.webp   the helmet, studio side-on
  *   /assets/helmets-hof/reveal-NN.webp   Hamilton wearing it, shown on hover
@@ -44,8 +44,18 @@ function stem(id: number): string {
   return String(id).padStart(2, '0');
 }
 
+/* Helmets 1 and 2 swap files. The helmet shots as first supplied (kept in
+   asset-sources/helmets-hof-originals, where the doubled number is the helmet
+   for that reveal) pair 11.webp, the roulette-crowned lid, with reveal 1 and
+   22.webp, a yellow lid with diamonds along the crown, with reveal 2. The
+   transparent cut-outs that replaced them came numbered the other way round,
+   and were copied in by position. Every other id still matches its original.
+   The files stay where they are, because the filenames are the record; the
+   entries point at the right one instead. */
+const HELMET_FILE: Readonly<Record<number, number>> = { 1: 2, 2: 1 };
+
 export function helmetSrc(helmet: Helmet): string {
-  return `/assets/helmets-hof/helmet-${stem(helmet.id)}.webp`;
+  return `/assets/helmets-hof/helmet-${stem(HELMET_FILE[helmet.id] ?? helmet.id)}.webp`;
 }
 
 export function revealSrc(helmet: Helmet): string {
@@ -92,19 +102,25 @@ const F1_FERRARI_FIRST_LOOK =
 
 /* OLDEST FIRST, one record per asset id, in asset order except where noted.
 
-   Ids 1-3 stay null because the two photographs of each entry disagree, not
-   for want of a source. formula1.com prints all three reveals: 01 is the 2010
-   Monaco "casino" lid, 02 the 2009 British GP one, 03 his practice debut at
-   the 2007 Australian GP. But helmet 02 is that same roulette-topped 2010
-   Monaco lid, the partner of reveal 01, not of its own; helmet 01 is a
-   Steinmetz-branded yellow lid with a plain crown, which no source better than
-   a replica maker's catalogue dates; and helmet 03 carries the "LH" stripe logo
-   the 2007 lid lacks. Any label would be wrong for one picture of its pair, so
-   none is given. The pairing of the files is what needs fixing. */
+   formula1.com prints all three McLaren reveals: 01 is the 2010 Monaco
+   "casino" lid (its caption: parc fermé, round 6, qualifying day), 02 the
+   2009 British GP one, 03 his practice debut at the 2007 Australian GP. So 3,
+   2, 1 is their order on the calendar, and the order they run in here. */
 const byId: readonly Helmet[] = [
-  { id: 1, name: null, year: null },
-  { id: 2, name: null, year: null },
+  /* Null: not yet matched. The helmet is a drawing, not a photograph, of a
+     yellow lid with his "LH" mark on the blue band and no Steinmetz; nothing
+     found so far dates that drawing to the 2007 lid the reveal shows. */
   { id: 3, name: null, year: null },
+  /* Null: the two pictures are different lids. The reveal's crown is the Union
+     flag tearing through the yellow; the helmet's crown is plain yellow with a
+     line of diamonds along it, the mark of a Monaco lid. */
+  { id: 2, name: null, year: null },
+  /* Roulette wheel across the crown, in both pictures: the helmet shot is the
+     file HELMET_FILE points 1 at. formula1.com names the race. The painter,
+     JLF Designs, posted the lid that week (13 May 2010) as "a special Casino
+     theme. The top features a roulette wheel with a pair of dice on the back":
+     http://jlfdesigns.blogspot.com/2010/05/lewis-hamilton-monaco-2010-helmet.html */
+  { id: 1, name: 'Monaco', year: 2010, source: F1_HELMETS },
   // Bob Marley on the crown, "One Love"; worn at the Marley family's request.
   { id: 4, name: 'India', year: 2011, source: F1_HELMETS },
   // Singapore's lion on the crown, the flag's crescent and stars on the side.
