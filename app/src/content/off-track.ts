@@ -15,9 +15,11 @@
  *   - Off-track ventures go stale faster than race stats. Re-check each source
  *     before launch; the `checked` date says when they were last read.
  *
- * Images: every photo slot points at a named file under /assets/off-track/.
- * The files there now are stand-ins copied from photography already supplied
- * for this site; each slot's `subject` says what the real photo should show.
+ * Images: every slot points at photography this site already ships for Home,
+ * at its original path, rather than at a copy of it. None of it is from the
+ * reference. The captions say what each picture shows, as Home's gallery
+ * captions do. The reference captions a place and a year, which these
+ * pictures cannot honestly be given, so they are not.
  */
 
 /** When the sources below were last read. */
@@ -31,14 +33,15 @@ export interface Fact {
 }
 
 export interface Photo {
-  /** Absolute public path. Always under /assets/off-track/. */
+  /** Absolute public path of one of the site's own images under /assets/. */
   src: string;
   /** Intrinsic size of the file, so the layout reserves the right box. */
   width: number;
   height: number;
-  /** The caption the reference prints above each picture ("Miami, 2024"). */
+  /** The caption printed above the picture, in the reference's slot. Says
+      what the picture shows; empty where the reference prints none. */
   caption: string;
-  /** What the photo in this slot should show. For whoever replaces the file. */
+  /** What the picture shows, in a few words. */
   subject: string;
 }
 
@@ -113,16 +116,16 @@ export const hero = {
    * flicks through on the way. Reference: .off-t-hero-scroll-meda, ten images.
    */
   flight: [
-    { src: '/assets/off-track/hero-01.webp', width: 1115, height: 1600, caption: '', subject: 'Portrait, off duty' },
-    { src: '/assets/off-track/hero-02.webp', width: 1080, height: 1440, caption: '', subject: 'Fashion' },
-    { src: '/assets/off-track/hero-03.webp', width: 1121, height: 1400, caption: '', subject: 'Mission 44' },
-    { src: '/assets/off-track/hero-04.webp', width: 1120, height: 1400, caption: '', subject: 'Fashion, editorial' },
-    { src: '/assets/off-track/hero-05.webp', width: 1050, height: 1400, caption: '', subject: 'Travel' },
-    { src: '/assets/off-track/gallery-10.webp', width: 1050, height: 1400, caption: '', subject: 'Film' },
-    { src: '/assets/off-track/hero-06.webp', width: 1400, height: 1820, caption: '', subject: 'Portrait' },
-    { src: '/assets/off-track/gallery-12.webp', width: 1115, height: 1600, caption: '', subject: 'Almave' },
-    { src: '/assets/off-track/gallery-08.webp', width: 1050, height: 1400, caption: '', subject: 'Film' },
-    { src: '/assets/off-track/hero-07.webp', width: 1050, height: 1400, caption: '', subject: 'Art' },
+    { src: '/assets/otot/off-track.webp', width: 1115, height: 1600, caption: '', subject: 'Looking up, in a cap' },
+    { src: '/assets/menu/off-track.webp', width: 1080, height: 1440, caption: '', subject: 'In lilac by the water' },
+    { src: '/assets/gallery/gallery-01.webp', width: 1121, height: 1400, caption: '', subject: 'On the mic at a Mission 44 event' },
+    { src: '/assets/gallery/gallery-02.webp', width: 1120, height: 1400, caption: '', subject: 'Beside a lowrider' },
+    { src: '/assets/gallery/gallery-05.webp', width: 1050, height: 1400, caption: '', subject: 'Lakeside, mountains behind' },
+    { src: '/assets/gallery/gallery-10.webp', width: 1050, height: 1400, caption: '', subject: 'Among coloured paper' },
+    { src: '/assets/store/store-hero.webp', width: 1400, height: 1820, caption: '', subject: 'Crouched, in denim' },
+    { src: '/assets/gallery/gallery-08.webp', width: 1050, height: 1400, caption: '', subject: 'In a dojo, with swords' },
+    { src: '/assets/gallery/gallery-09.webp', width: 1055, height: 1400, caption: '', subject: 'Beside a Ferrari F40' },
+    { src: '/assets/socials/social-02.webp', width: 760, height: 1013, caption: '', subject: 'In a black coat' },
   ] satisfies readonly Photo[],
 };
 
@@ -149,9 +152,9 @@ export const galleryIntro = {
   plain: 'Personal',
   serif: 'Projects',
   lead: {
-    src: '/assets/off-track/gallery-01.webp', width: 1050, height: 1400,
+    src: '/assets/gallery/gallery-06.webp', width: 1050, height: 1400,
     caption: '',
-    subject: 'Opening picture of the section',
+    subject: 'Alone on a golf green',
   } satisfies Photo,
 };
 
@@ -168,9 +171,9 @@ export const projects: readonly Project[] = [
       ],
     },
     photos: [
-      { src: '/assets/off-track/gallery-02.webp', width: 1121, height: 1400, caption: 'Mission 44, 2021', subject: 'Mission 44 event' },
-      { src: '/assets/off-track/gallery-03.webp', width: 760, height: 1013, caption: 'Mission 44', subject: 'Mission 44 programme' },
-      { src: '/assets/off-track/gallery-04.webp', width: 760, height: 1013, caption: 'Mission 44', subject: 'Mission 44 programme' },
+      { src: '/assets/gallery/gallery-01.webp', width: 1121, height: 1400, caption: 'On the mic', subject: 'On the mic at a Mission 44 event' },
+      { src: '/assets/socials/social-05.webp', width: 760, height: 1013, caption: 'All in white', subject: 'Walking, all in white' },
+      { src: '/assets/socials/social-06.webp', width: 760, height: 1013, caption: 'Silhouette', subject: 'In silhouette' },
     ],
   },
   {
@@ -185,9 +188,9 @@ export const projects: readonly Project[] = [
       ],
     },
     photos: [
-      { src: '/assets/off-track/gallery-05.webp', width: 1080, height: 1440, caption: 'New York, 2025', subject: 'Met Gala' },
-      { src: '/assets/off-track/gallery-06.webp', width: 1120, height: 1400, caption: 'Tommy Hilfiger, 2018', subject: 'TommyXLewis' },
-      { src: '/assets/off-track/gallery-07.webp', width: 1055, height: 1400, caption: '+44', subject: 'His +44 label' },
+      { src: '/assets/menu/off-track.webp', width: 1080, height: 1440, caption: 'In lilac', subject: 'In lilac by the water' },
+      { src: '/assets/gallery/gallery-02.webp', width: 1120, height: 1400, caption: 'Lowrider', subject: 'Beside a lowrider' },
+      { src: '/assets/gallery/gallery-09.webp', width: 1055, height: 1400, caption: 'F40', subject: 'Beside a Ferrari F40' },
     ],
   },
   {
@@ -202,9 +205,9 @@ export const projects: readonly Project[] = [
       ],
     },
     photos: [
-      { src: '/assets/off-track/gallery-08.webp', width: 1050, height: 1400, caption: 'F1, 2025', subject: 'F1 the movie' },
-      { src: '/assets/off-track/gallery-09.webp', width: 760, height: 1013, caption: 'F1, 2025', subject: 'F1 the movie, premiere' },
-      { src: '/assets/off-track/gallery-10.webp', width: 1050, height: 1400, caption: 'Dawn Apollo Films', subject: 'On set' },
+      { src: '/assets/gallery/gallery-08.webp', width: 1050, height: 1400, caption: 'In the dojo', subject: 'In a dojo, with swords' },
+      { src: '/assets/socials/social-02.webp', width: 760, height: 1013, caption: 'Black coat', subject: 'In a black coat' },
+      { src: '/assets/gallery/gallery-10.webp', width: 1050, height: 1400, caption: 'Colour study', subject: 'Among coloured paper' },
     ],
   },
   {
@@ -218,9 +221,9 @@ export const projects: readonly Project[] = [
       ],
     },
     photos: [
-      { src: '/assets/off-track/gallery-11.webp', width: 1050, height: 1400, caption: 'Almave, 2023', subject: 'Almave launch' },
-      { src: '/assets/off-track/gallery-12.webp', width: 1115, height: 1600, caption: 'Almave', subject: 'Almave' },
-      { src: '/assets/off-track/gallery-13.webp', width: 760, height: 949, caption: 'Almave', subject: 'Almave' },
+      { src: '/assets/gallery/gallery-05.webp', width: 1050, height: 1400, caption: 'Lakeside', subject: 'Lakeside, mountains behind' },
+      { src: '/assets/otot/off-track.webp', width: 1115, height: 1600, caption: 'Looking up', subject: 'Looking up, in a cap' },
+      { src: '/assets/socials/social-01.webp', width: 760, height: 949, caption: 'Red room', subject: 'Seated on red, in a white room' },
     ],
   },
 ];
@@ -229,7 +232,7 @@ export const projects: readonly Project[] = [
  * Validation
  *
  * Fail fast (CLAUDE.md): a slot with no source, no copy or an image outside
- * the off-track folder is a build error in dev, never a quietly empty box.
+ * the site's own images is a build error in dev, never a quietly empty box.
  * ------------------------------------------------------------------ */
 
 function fail(where: string, what: string): never {
@@ -244,7 +247,7 @@ function checkSources(where: string, sources: readonly string[]): void {
 }
 
 function checkPhoto(where: string, photo: Photo): void {
-  if (!photo.src.startsWith('/assets/off-track/')) fail(where, `image "${photo.src}" is outside /assets/off-track/`);
+  if (!/^\/assets\/[\w/-]+\.webp$/.test(photo.src)) fail(where, `image "${photo.src}" is not one of the site's own /assets/ images`);
   if (!(photo.width > 0 && photo.height > 0)) fail(where, `image "${photo.src}" has no size`);
   if (!photo.subject.trim()) fail(where, `image "${photo.src}" does not say what it shows`);
 }
@@ -259,6 +262,9 @@ function validate(): void {
   for (const v of hero.ventures) checkSources(`hero.ventures "${v.name}"`, v.sources);
   if (hero.flight.length < 2) fail('hero.flight', 'the flight needs at least two pictures');
   hero.flight.forEach((p, i) => checkPhoto(`hero.flight[${i}]`, p));
+  if (new Set(hero.flight.map((p) => p.src)).size !== hero.flight.length) {
+    fail('hero.flight', 'the same picture twice: the flight flicks through different ones');
+  }
   checkPhoto('galleryIntro.lead', galleryIntro.lead);
   if (projects.length !== 4) fail('projects', `the gallery is laid out for 4 projects, got ${projects.length}`);
   for (const p of projects) {
