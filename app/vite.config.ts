@@ -3,6 +3,15 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
+/* The data layer, imported for its side effect: it validates career.json and
+   the stable content against it the moment it loads, and throws on anything
+   missing or malformed. Loaded only by the pages, that check ran in the
+   browser — a record with a required field deleted built cleanly and failed at
+   runtime. Loaded here too, it runs when this config does, so `vite build`
+   stops and the dev server refuses to start (or restart, when the file
+   changes) on a bad record. CLAUDE.md: validation that fails the build. */
+import './src/content/hamilton';
+
 // `import.meta.url` rather than `__dirname`: this package is ESM ("type":
 // "module"), where __dirname does not exist and would be undefined at runtime.
 //
