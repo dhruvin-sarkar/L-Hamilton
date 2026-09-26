@@ -255,6 +255,31 @@ export interface RoundResult {
   points: number;
   grid: number;
   status: string;
+  /** The winner's race time for a win, his gap to the winner otherwise. Null
+      for a retirement or a lapped finish. */
+  time: string | null;
+  /** His own fastest lap of the race, whatever its rank in the field. */
+  fastestLap: string | null;
+  /** His qualifying place and best lap of the session. */
+  qualifying: { position: number | null; time: string | null } | null;
+  /** His sprint result, on a sprint weekend. */
+  sprint: { position: number | null; positionText: string; time: string | null } | null;
+}
+
+/** One Grand Prix he started: the calendar page's season-by-season results. */
+export interface RaceEntry {
+  season: number;
+  round: number;
+  raceName: string;
+  /** ISO date, YYYY-MM-DD. */
+  date: string;
+  circuitId: string;
+  country: string;
+  locality: string;
+  position: number | null;
+  positionText: string;
+  status: string;
+  fastestLap: string | null;
 }
 
 export interface CalendarRound {
@@ -313,9 +338,30 @@ export const calendar: CalendarRound[] = list<CalendarRound>(raw.calendar, 'cale
     number(r.round, `calendar[${i}].round`);
     text(r.date, `calendar[${i}].date`);
     text(r.raceName, `calendar[${i}].raceName`);
+    if (r.result) {
+      text(r.result.positionText, `calendar[${i}].result.positionText`);
+      /* The fields the calendar page reads off a run round. Absent (not null)
+         means a career.json written before the generator emitted them. */
+      for (const key of ['time', 'fastestLap', 'qualifying', 'sprint'] as const) {
+        if (!(key in r.result)) fail(`calendar[${i}].result.${key} is missing`);
+      }
+    }
     return r;
   },
 );
+
+export const races: RaceEntry[] = list<RaceEntry>(raw.races, 'races').map((r, i) => {
+  number(r.season, `races[${i}].season`);
+  number(r.round, `races[${i}].round`);
+  text(r.date, `races[${i}].date`);
+  text(r.country, `races[${i}].country`);
+  text(r.positionText, `races[${i}].positionText`);
+  return r;
+});
+
+if (races.length !== career.starts) {
+  fail(`totals.starts is ${career.starts} but the races list has ${races.length} entries`);
+}
 
 /**
  * When a round actually starts, as a real instant.

@@ -1,0 +1,99 @@
+/*
+ * The 3D circuit map (src/lib/track3d.ts): its canvas and the HTML markers
+ * laid over the projected corners. Loaded by the module itself, so any page
+ * that mounts a map gets these with it.
+ *
+ * Markers as the reference draws them: a hairline 4rem tall standing on the
+ * wall's top, a 0.4rem dot at its foot, the corner's number at its head --
+ * number dim, dot and line dim, in the circuit's ink.
+ */
+
+.track3d {
+  --track3d-ground: var(--black, #111012);
+  --track3d-mark: #c9be3a;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.track3d:active {
+  cursor: grabbing;
+}
+
+.track3d__canvas {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.track3d__points {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.track3d__point {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-start: 50%;
+  z-index: 9;
+  will-change: transform;
+}
+
+.track3d__mark {
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  block-size: 4rem;
+}
+
+.track3d__point--start .track3d__mark {
+  block-size: 3rem;
+}
+
+.track3d__mark p {
+  margin: 0 0 0 0.8rem;
+  font-family: var(--font-body);
+  font-size: 0.57rem;
+  line-height: 1.2;
+  color: var(--track3d-mark);
+  text-transform: uppercase;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.track3d__mark::before {
+  content: '';
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  inline-size: 0.4rem;
+  block-size: 0.4rem;
+  border-radius: 50%;
+  background: var(--track3d-mark);
+  transform: translate(-50%, 50%);
+}
+
+.track3d__mark::after {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 1px;
+  block-size: 100%;
+  background: var(--track3d-mark);
+  transform: translateX(-50%);
+}
+
+.track3d__flag {
+  display: block;
+  inline-size: 1.5rem;
+  block-size: auto;
+  margin-inline-start: 0.75rem;
+}
+
+@media (max-width: 991px) {
+  .track3d__mark {
+    inset-block-end: 0.3rem;
+    block-size: 3rem;
+  }
+}
