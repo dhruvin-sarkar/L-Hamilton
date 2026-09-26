@@ -711,6 +711,20 @@ button.cal-row--past:hover:focus-visible {
     --sign-w: calc(var(--u) * 16);
   }
 
+  /* Reference `.grid-main` and `.title-para-layout` here: the sentence across
+     the page, then -- 2 --gap down -- the standing and round with the two
+     buttons beside them, wrapped one over the other; 2 --gap under the row. */
+  .cal-sched__title-row {
+    display: flex;
+    flex-direction: column;
+    row-gap: calc(var(--g) * 2);
+    margin-block-end: calc(var(--g) * 2);
+  }
+
+  .cal-sched__btns {
+    flex-wrap: wrap;
+  }
+
   /* The reference's `data-hide="m"`: a run round drops its date here and
      keeps its fastest lap, where a round to come drops its distance. */
   .cal-row--past > :nth-child(3),
