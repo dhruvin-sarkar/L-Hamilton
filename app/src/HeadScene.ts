@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { FluidCursor } from './FluidCursor';
 import { ContourField } from './ContourField';
 import { createStudioEnvironment, HELMET_UPRIGHT, loadHelmetModel } from './HelmetModel';
@@ -776,7 +775,10 @@ export class HeadScene {
    * does.
    */
   async loadHelmet(): Promise<void> {
-    const model = await loadHelmetModel(this.renderer);
+    const [model, { mergeGeometries }] = await Promise.all([
+      loadHelmetModel(this.renderer),
+      import('three/examples/jsm/utils/BufferGeometryUtils.js'),
+    ]);
     const { merged, size } = model;
     const longest = Math.max(size.x, size.y, size.z) || 1;
 
@@ -905,7 +907,7 @@ export class HeadScene {
     const litStack = stack(merged);
     const wireStack = stack(wireMesh);
 
-    const environment = createStudioEnvironment(this.renderer);
+    const environment = await createStudioEnvironment(this.renderer);
     this.scene.environment = environment;
 
     /* Both drawings' programs compiled as they will be drawn -- in this scene,

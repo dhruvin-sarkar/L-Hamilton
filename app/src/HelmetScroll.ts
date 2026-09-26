@@ -112,8 +112,8 @@ export function mountHelmetScroll(opts: HelmetScrollOptions): () => void {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
+  // Lit once the helmet arrives -- see below. Nothing else here needs light.
   const scene = new THREE.Scene();
-  scene.environment = createStudioEnvironment(renderer);
 
   const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 100);
   camera.position.z = CAMERA_Z;
@@ -262,28 +262,33 @@ export function mountHelmetScroll(opts: HelmetScrollOptions): () => void {
 
   let disposed = false;
   let model: HelmetModel | null = null;
-  void loadHelmetModel(renderer).then(
-    async (loadedModel) => {
-      if (disposed) {
-        loadedModel.dispose();
-        return;
-      }
-      model = loadedModel;
-      const helmet = placeHelmet(loadedModel);
-      // Its programs linked before it joins the scene, so the first frame it is
-      // drawn in does not wait on the driver to compile them.
-      await renderer.compileAsync(helmet, camera, scene);
-      if (disposed) return;
-      nod.add(helmet);
-      loaded = true;
-      ScrollTrigger.refresh();
-    },
-    (error: unknown) => {
-      // Decoration: the page is complete without it, so say so and stand down.
-      console.warn('[helmet-scroll] the helmet did not load', error);
-      canvas.remove();
-    },
-  );
+  const arrive = async (): Promise<void> => {
+    const loadedModel = await loadHelmetModel(renderer);
+    if (disposed) {
+      loadedModel.dispose();
+      return;
+    }
+    model = loadedModel;
+    const environment = await createStudioEnvironment(renderer);
+    if (disposed) {
+      environment.dispose();
+      return;
+    }
+    scene.environment = environment;
+    const helmet = placeHelmet(loadedModel);
+    // Its programs linked before it joins the scene, so the first frame it is
+    // drawn in does not wait on the driver to compile them.
+    await renderer.compileAsync(helmet, camera, scene);
+    if (disposed) return;
+    nod.add(helmet);
+    loaded = true;
+    ScrollTrigger.refresh();
+  };
+  arrive().catch((error: unknown) => {
+    // Decoration: the page is complete without it, so say so and stand down.
+    console.warn('[helmet-scroll] the helmet did not load', error);
+    canvas.remove();
+  });
 
   return () => {
     disposed = true;
