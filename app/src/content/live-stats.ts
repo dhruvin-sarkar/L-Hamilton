@@ -31,7 +31,10 @@ export interface CareerSeason {
   qualifyingWins: number;
   fastestLaps: number;
   sprintWins: number;
+  /** Not classified and not disqualified: retirements. */
   dnfs: number;
+  /** Struck from the result, whatever position he crossed the line in. */
+  disqualifications: number;
   /** Races classified, and the sum of those finishing positions. */
   finishes: number;
   finishPositionSum: number;
@@ -49,6 +52,7 @@ export interface CareerRecord {
   points: number;
   sprintWins: number;
   dnfs: number;
+  disqualifications: number;
   /** Mean finishing position over classified Grands Prix, to two places. */
   averageFinish: number;
   championships: number;
@@ -65,12 +69,14 @@ export interface StatsProvenance {
 
 const REQUIRED_TOTALS = [
   'starts', 'wins', 'podiums', 'poles', 'qualifyingWins', 'fastestLaps',
-  'points', 'sprintWins', 'dnfs', 'averageFinish', 'championships', 'seasonsContested',
+  'points', 'sprintWins', 'dnfs', 'disqualifications', 'averageFinish', 'championships',
+  'seasonsContested',
 ] as const;
 
 const REQUIRED_SEASON = [
   'year', 'position', 'points', 'entries', 'wins', 'podiums', 'poles',
-  'qualifyingWins', 'fastestLaps', 'sprintWins', 'dnfs', 'finishes', 'finishPositionSum',
+  'qualifyingWins', 'fastestLaps', 'sprintWins', 'dnfs', 'disqualifications', 'finishes',
+  'finishPositionSum',
 ] as const;
 
 function fail(what: string): never {
@@ -138,6 +144,7 @@ export const seasons: CareerSeason[] = raw.seasons.map((s, i) => {
     fastestLaps: row.fastestLaps as number,
     sprintWins: row.sprintWins as number,
     dnfs: row.dnfs as number,
+    disqualifications: row.disqualifications as number,
     finishes: row.finishes as number,
     finishPositionSum: row.finishPositionSum as number,
     isChampion: position === 1,
@@ -160,6 +167,42 @@ if (championSeasons.length !== career.championships) {
 
 if (seasons.length !== career.seasonsContested) {
   fail(`totals.seasonsContested is ${career.seasonsContested} but ${seasons.length} seasons exist`);
+}
+
+/* Every career total is the sum of its seasons. The generator derives them
+   that way; checking it here catches a hand-edit or a partial write that
+   changed one side and not the other. Points are compared to two places,
+   because half-points seasons (2009, 2021) make the sum a float. */
+{
+  const total = (key: keyof CareerSeason): number =>
+    seasons.reduce((n, s) => n + (s[key] as number), 0);
+  const pairs: [keyof CareerRecord, number][] = [
+    ['starts', total('entries')],
+    ['wins', total('wins')],
+    ['podiums', total('podiums')],
+    ['poles', total('poles')],
+    ['qualifyingWins', total('qualifyingWins')],
+    ['fastestLaps', total('fastestLaps')],
+    ['sprintWins', total('sprintWins')],
+    ['dnfs', total('dnfs')],
+    ['disqualifications', total('disqualifications')],
+    ['points', Number(total('points').toFixed(2))],
+  ];
+  for (const [key, summed] of pairs) {
+    if (career[key] !== summed) fail(`totals.${key} is ${career[key]} but the seasons sum to ${summed}`);
+  }
+}
+
+/* Every race he entered is exactly one of classified, retired or
+   disqualified. A season where they do not add up has lost or double-counted
+   a result. */
+for (const s of seasons) {
+  if (s.finishes + s.dnfs + s.disqualifications !== s.entries) {
+    fail(
+      `${s.year}: ${s.finishes} classified + ${s.dnfs} DNF + ${s.disqualifications} DSQ ` +
+        `does not make ${s.entries} entries`,
+    );
+  }
 }
 
 {
@@ -297,6 +340,8 @@ export interface CalendarRound {
     practice1: RaceSession | null;
     practice2: RaceSession | null;
     practice3: RaceSession | null;
+    /** Sprint weekends only. */
+    sprintQualifying: RaceSession | null;
     qualifying: RaceSession | null;
     sprint: RaceSession | null;
   };
@@ -304,59 +349,197 @@ export interface CalendarRound {
   result: RoundResult | null;
 }
 
-function list<T>(value: unknown, where: string): T[] {
+/* Every field of every record is read through a check, so the objects that
+   leave this module are built here, field by field, rather than passed through
+   from the JSON with a cast. A renamed or dropped field upstream throws at load
+   instead of reaching a component as undefined. */
+
+type Fields = Record<string, unknown>;
+
+function list(value: unknown, where: string): Fields[] {
   if (!Array.isArray(value) || value.length === 0) fail(`${where} is empty or not an array`);
-  return value as T[];
+  return value.map((item, i) => {
+    if (!item || typeof item !== 'object') fail(`${where}[${i}] is not an object`);
+    return item as Fields;
+  });
 }
 
-export const wins: Win[] = list<Win>(raw.wins, 'wins').map((w, i) => {
-  number(w.season, `wins[${i}].season`);
-  number(w.grid, `wins[${i}].grid`);
-  text(w.raceName, `wins[${i}].raceName`);
-  text(w.date, `wins[${i}].date`);
-  return w;
+function textOrNull(value: unknown, where: string): string | null {
+  return value === null ? null : text(value, where);
+}
+
+function numberOrNull(value: unknown, where: string): number | null {
+  return value === null ? null : number(value, where);
+}
+
+function flag(value: unknown, where: string): boolean {
+  if (typeof value !== 'boolean') fail(`${where} is ${JSON.stringify(value)}, expected a boolean`);
+  return value;
+}
+
+/** YYYY-MM-DD, as the source writes every date. */
+function isoDate(value: unknown, where: string): string {
+  const date = text(value, where);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) fail(`${where} is "${date}", expected YYYY-MM-DD`);
+  return date;
+}
+
+function raceSession(value: unknown, where: string): RaceSession | null {
+  if (value === null) return null;
+  if (!value || typeof value !== 'object') fail(`${where} is not a session or null`);
+  const s = value as Fields;
+  return { date: isoDate(s.date, `${where}.date`), time: textOrNull(s.time, `${where}.time`) };
+}
+
+function qualifyingOrNull(value: unknown, where: string): RoundResult['qualifying'] {
+  if (value === null) return null;
+  if (!value || typeof value !== 'object') fail(`${where} is not a qualifying result or null`);
+  const q = value as Fields;
+  return {
+    position: numberOrNull(q.position, `${where}.position`),
+    time: textOrNull(q.time, `${where}.time`),
+  };
+}
+
+function sprintOrNull(value: unknown, where: string): RoundResult['sprint'] {
+  if (value === null) return null;
+  if (!value || typeof value !== 'object') fail(`${where} is not a sprint result or null`);
+  const s = value as Fields;
+  return {
+    position: numberOrNull(s.position, `${where}.position`),
+    positionText: text(s.positionText, `${where}.positionText`),
+    time: textOrNull(s.time, `${where}.time`),
+  };
+}
+
+export const wins: Win[] = list(raw.wins, 'wins').map((w, i) => {
+  const at = `wins[${i}]`;
+  return {
+    season: number(w.season, `${at}.season`),
+    round: number(w.round, `${at}.round`),
+    raceName: text(w.raceName, `${at}.raceName`),
+    date: isoDate(w.date, `${at}.date`),
+    circuitId: text(w.circuitId, `${at}.circuitId`),
+    circuitName: text(w.circuitName, `${at}.circuitName`),
+    country: text(w.country, `${at}.country`),
+    locality: text(w.locality, `${at}.locality`),
+    team: text(w.team, `${at}.team`),
+    teamId: text(w.teamId, `${at}.teamId`),
+    grid: number(w.grid, `${at}.grid`),
+    laps: number(w.laps, `${at}.laps`),
+    raceTime: textOrNull(w.raceTime, `${at}.raceTime`),
+    fastestLap: textOrNull(w.fastestLap, `${at}.fastestLap`),
+    fromPole: flag(w.fromPole, `${at}.fromPole`),
+  };
 });
 
 if (wins.length !== career.wins) {
   fail(`totals.wins is ${career.wins} but the wins list has ${wins.length} entries`);
 }
 
-export const circuits: CircuitRecord[] = list<CircuitRecord>(raw.circuits, 'circuits').map(
-  (c, i) => {
-    text(c.id, `circuits[${i}].id`);
-    number(c.starts, `circuits[${i}].starts`);
-    return c;
-  },
-);
+export const circuits: CircuitRecord[] = list(raw.circuits, 'circuits').map((c, i) => {
+  const at = `circuits[${i}]`;
+  return {
+    id: text(c.id, `${at}.id`),
+    name: text(c.name, `${at}.name`),
+    country: text(c.country, `${at}.country`),
+    locality: text(c.locality, `${at}.locality`),
+    starts: number(c.starts, `${at}.starts`),
+    wins: number(c.wins, `${at}.wins`),
+    podiums: number(c.podiums, `${at}.podiums`),
+    poles: number(c.poles, `${at}.poles`),
+    bestFinish: numberOrNull(c.bestFinish, `${at}.bestFinish`),
+    firstRaced: number(c.firstRaced, `${at}.firstRaced`),
+    lastRaced: number(c.lastRaced, `${at}.lastRaced`),
+    laps: number(c.laps, `${at}.laps`),
+  };
+});
+
+/* The circuit record is a second fold of the same results, so it must add up
+   to the career: every start, win, podium and pole happened somewhere. */
+for (const key of ['starts', 'wins', 'podiums', 'poles'] as const) {
+  const summed = circuits.reduce((n, c) => n + c[key], 0);
+  if (summed !== career[key]) {
+    fail(`the circuit records sum to ${summed} ${key}, but totals.${key} is ${career[key]}`);
+  }
+}
 
 export const circuitById: ReadonlyMap<string, CircuitRecord> = new Map(
   circuits.map((c) => [c.id, c]),
 );
 
-export const calendar: CalendarRound[] = list<CalendarRound>(raw.calendar, 'calendar').map(
-  (r, i) => {
-    number(r.round, `calendar[${i}].round`);
-    text(r.date, `calendar[${i}].date`);
-    text(r.raceName, `calendar[${i}].raceName`);
-    if (r.result) {
-      text(r.result.positionText, `calendar[${i}].result.positionText`);
-      /* The fields the calendar page reads off a run round. Absent (not null)
-         means a career.json written before the generator emitted them. */
-      for (const key of ['time', 'fastestLap', 'qualifying', 'sprint'] as const) {
-        if (!(key in r.result)) fail(`calendar[${i}].result.${key} is missing`);
-      }
-    }
-    return r;
-  },
-);
+export const calendar: CalendarRound[] = list(raw.calendar, 'calendar').map((r, i) => {
+  const at = `calendar[${i}]`;
+  if (!r.sessions || typeof r.sessions !== 'object') fail(`${at}.sessions is missing`);
+  const s = r.sessions as Fields;
+  let result: RoundResult | null = null;
+  if (r.result !== null) {
+    if (!r.result || typeof r.result !== 'object') fail(`${at}.result is not a result or null`);
+    const x = r.result as Fields;
+    result = {
+      position: numberOrNull(x.position, `${at}.result.position`),
+      positionText: text(x.positionText, `${at}.result.positionText`),
+      points: number(x.points, `${at}.result.points`),
+      grid: number(x.grid, `${at}.result.grid`),
+      status: text(x.status, `${at}.result.status`),
+      /* The fields the calendar page reads off a run round. Absent (rather
+         than null) means a career.json written before the generator emitted
+         them, and fails here like any other missing field. */
+      time: textOrNull(x.time, `${at}.result.time`),
+      fastestLap: textOrNull(x.fastestLap, `${at}.result.fastestLap`),
+      qualifying: qualifyingOrNull(x.qualifying, `${at}.result.qualifying`),
+      sprint: sprintOrNull(x.sprint, `${at}.result.sprint`),
+    };
+  }
+  return {
+    season: number(r.season, `${at}.season`),
+    round: number(r.round, `${at}.round`),
+    raceName: text(r.raceName, `${at}.raceName`),
+    circuitId: text(r.circuitId, `${at}.circuitId`),
+    circuitName: text(r.circuitName, `${at}.circuitName`),
+    country: text(r.country, `${at}.country`),
+    locality: text(r.locality, `${at}.locality`),
+    date: isoDate(r.date, `${at}.date`),
+    time: textOrNull(r.time, `${at}.time`),
+    sessions: {
+      practice1: raceSession(s.practice1, `${at}.sessions.practice1`),
+      practice2: raceSession(s.practice2, `${at}.sessions.practice2`),
+      practice3: raceSession(s.practice3, `${at}.sessions.practice3`),
+      sprintQualifying: raceSession(s.sprintQualifying, `${at}.sessions.sprintQualifying`),
+      qualifying: raceSession(s.qualifying, `${at}.sessions.qualifying`),
+      sprint: raceSession(s.sprint, `${at}.sessions.sprint`),
+    },
+    result,
+  };
+});
 
-export const races: RaceEntry[] = list<RaceEntry>(raw.races, 'races').map((r, i) => {
-  number(r.season, `races[${i}].season`);
-  number(r.round, `races[${i}].round`);
-  text(r.date, `races[${i}].date`);
-  text(r.country, `races[${i}].country`);
-  text(r.positionText, `races[${i}].positionText`);
-  return r;
+/* One season, in round order. The countdown and "next round" take the first
+   round whose start is still ahead, which is only right if they are sorted. */
+calendar.forEach((r, i) => {
+  if (String(r.season) !== provenance.latestRace.season) {
+    fail(`calendar[${i}] is ${r.season}, but the record is current through ${provenance.latestRace.season}`);
+  }
+  const previous = calendar[i - 1];
+  if (previous && r.round !== previous.round + 1) {
+    fail(`calendar[${i}] is round ${r.round}, expected ${previous.round + 1}`);
+  }
+});
+
+export const races: RaceEntry[] = list(raw.races, 'races').map((r, i) => {
+  const at = `races[${i}]`;
+  return {
+    season: number(r.season, `${at}.season`),
+    round: number(r.round, `${at}.round`),
+    raceName: text(r.raceName, `${at}.raceName`),
+    date: isoDate(r.date, `${at}.date`),
+    circuitId: text(r.circuitId, `${at}.circuitId`),
+    country: text(r.country, `${at}.country`),
+    locality: text(r.locality, `${at}.locality`),
+    position: numberOrNull(r.position, `${at}.position`),
+    positionText: text(r.positionText, `${at}.positionText`),
+    status: text(r.status, `${at}.status`),
+    fastestLap: textOrNull(r.fastestLap, `${at}.fastestLap`),
+  };
 });
 
 if (races.length !== career.starts) {
