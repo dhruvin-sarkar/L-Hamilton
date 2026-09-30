@@ -814,7 +814,18 @@ export function mountChrome(): void {
       },
     });
 
-    if (!reducedMotion) {
+    /* The reveal's tweens are written on the first opening, not at startup.
+       Every fromTo below renders its start state as it is added, which reads
+       computed styles off the hidden panel, and the backdrop's resting opacity
+       and the mark's length are read here too: built with the page, that was a
+       forced style recalculation per group, 280ms of every page's startup on a
+       4x-throttled phone, for a panel most readers never open. Built in the
+       click that opens it, before it plays, it is the same timeline from the
+       same state. */
+    let revealBuilt = false;
+    const buildReveal = (): void => {
+      if (revealBuilt || reducedMotion) return;
+      revealBuilt = true;
       /* Each highlighted line wipes in under a bar of the brand colour, which
          then retracts to the right and leaves the type behind it. The bars
          only exist when there is a timeline to run them. */
@@ -898,10 +909,13 @@ export function mountChrome(): void {
         const slot = bySlot(MENU_REVEAL.mark.slot)(currentLink ? links.indexOf(currentLink) : 0);
         reveal.to(mark, { strokeDashoffset: 0, ...MENU_REVEAL.mark.tween }, MENU_REVEAL.mark.at + slot);
       }
-    }
+    };
 
     const setOpen = (open: boolean) => {
-      if (open) menu.hidden = false;
+      if (open) {
+        menu.hidden = false;
+        buildReveal();
+      }
       menuBtn.setAttribute('aria-expanded', String(open));
       menuIcon?.setOpen(open);
       // The monogram fades out with the button's state (home.css) and back in
