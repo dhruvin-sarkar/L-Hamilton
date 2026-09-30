@@ -451,6 +451,7 @@ export function mountSocials(): void {
         // string rather than to the var() fallback the transform names.
         card.style.setProperty('--push', '0rem');
         card.style.setProperty('--lean', '0deg');
+        card.style.setProperty('--lift', '0rem');
       }
 
       /* Timed off the reference frame by frame, from a fresh load, at 1728:
@@ -464,13 +465,15 @@ export function mountSocials(): void {
        *            they were never visible. LAST card first, 83ms apart: the
        *            right-hand card starts at 0ms, the centre at 252, the
        *            left-hand at 501.
-       *   spread   the centre's slot at 910ms, before the last card is home, then
-       *            65ms per step outwards. It overshoots and rings — the outer
-       *            card reaches 110% of its offset about 370ms in, dips to 99.4%
-       *            and settles — which is an elastic, not a back: a back never
-       *            comes up short on the way down. Fitted against 40 samples
-       *            across three cards, elastic.out(1, 0.78) over 1.12s lands
-       *            within 0.01 of every one.
+       *   spread   the centre's slot at 900ms, before the last card is home, then
+       *            outwards 200ms across the fan. It overshoots and rings — the
+       *            outer card reaches 110% of its offset about 370ms in, dips to
+       *            99.4% and settles — which is an elastic, not a back: a back
+       *            never comes up short on the way down. A fit against 40 samples
+       *            had put it at elastic.out(1, 0.78) over 1.12s; the reference's
+       *            own timeline (lando-gl.js, the socials callout) says
+       *            elastic.out(1, 0.75) over 1.2s, placed 0.4s before the rise
+       *            ends, and that is what runs here.
        *
        * `amount` rather than `each` in both staggers, because from a centre or an
        * end GSAP spreads `each * (count - 1)` over the largest distance, which
@@ -496,91 +499,98 @@ export function mountSocials(): void {
               cards,
               {
                 '--spread': 1,
-                duration: 1.12,
-                ease: 'elastic.out(1, 0.78)',
-                stagger: { amount: 0.195, from: 'center' },
+                duration: 1.2,
+                ease: 'elastic.out(1, 0.75)',
+                stagger: { amount: 0.2, from: 'center' },
               },
-              0.91,
+              '-=0.4',
             );
         },
       });
 
       /* ---- hover: the card pops, the fan opens around it ----
        *
-       * Measured off the reference rather than invented. Hovering its middle card
-       * moves the neighbours out by 131.9px, the pair beyond them by 56.5px and
-       * the outermost pair by NOTHING — and hovering an off-centre card leaves the
-       * outermost card on that side equally still. So the fan does not get wider
-       * on hover; it redistributes inside a fixed span.
+       * The reference's own model, read out of lando-gl.js and checked against
+       * its card transforms at 1728 with each card hovered in turn. A card's
+       * move depends on its distance T from the hovered card and on how far in
+       * from the ends of the fan it sits:
        *
-       * That is the whole model: the gap beside the hovered card opens by OPEN,
-       * and every gap further out compresses proportionally to pay for it, which
-       * pins the outer edge and makes the displacement taper to zero there. Fitted
-       * against the reference it predicts 7.47 / 3.13 / 0 rem where the reference
-       * measures 7.47 / 3.20 / 0 — inside 2%.
+       *   hovered    up 2.5rem and 8% larger, in place.
+       *   the rest   out, away from it, by 8rem * reach * near, where reach is
+       *              1 at the centre card and 0 at either end (so the end cards
+       *              never move sideways) and near is 1.4 / 1.2 / 1 at T = 1..3.
+       *              Each also leans away by 3 / (T + 1) degrees.
+       *   last card  up 1rem whenever it is right of the hovered card. The first
+       *              card has no such rule: the asymmetry is the reference's,
+       *              reproduced rather than tidied away.
        *
-       * The old version pushed on a 1/distance curve topping out at 2.6rem, barely
-       * a third of this, so the hovered card grew into neighbours that had hardly
-       * moved. It hid that by jumping the card 20 above its own z-index, which
-       * fixed the overlap by breaking the fan's depth order instead. The reference
-       * never restacks — its z stays 1,2,3,10,3,2,1 through every hover — because
-       * once the neighbours actually move there is nothing left to cover.
+       * Measured, hovering the card left of centre moves the centre card 179.2px
+       * right at a 16px root. The "fixed span" model this replaced was fitted to
+       * a hover on the centre card alone, and on every other hover it left the
+       * centre card 60px short and threw the far-left pair 60px too far.
        *
-       * back.out overshoots once and settles. elastic rings several times, which
-       * on seven cards at once reads as a wobble rather than as give. */
-      const SPRING = 'back.out(2.2)';
-      /** The rest offsets, in rem, indexed to match `cards` — the same numbers as
-       *  the --fan-x steps in home.css, which are the reference's own. */
-      const FAN_X = [-30, -22, -11, 0, 11, 22, 30];
-      /** How far the gap beside the hovered card opens. 131.9px at a 17.667 root. */
-      const OPEN = 7.47;
-      /** Neighbours also rotate a touch further out — 1.5deg at the nearest. */
-      const LEAN = 1.5;
-
-      /* The markup and this table have to describe the same fan. If they ever
-         disagree the geometry below is meaningless, so say so rather than
-         quietly treating a missing card as sitting at the centre. */
-      const restX = (i: number): number => {
-        const x = FAN_X[i];
-        if (x === undefined) throw new Error(`socials fan: no rest offset for card ${i}`);
-        return x;
-      };
-
-      const displace = (hovered: number, i: number): number => {
-        if (i === hovered) return 0;
-        const dir = Math.sign(i - hovered);
-        const edge = dir > 0 ? cards.length - 1 : 0;
-        const near = hovered + dir;
-        // The neighbour IS the pinned edge, so there is no gap left to compress
-        // into and that side simply holds still.
-        if (near === edge) return 0;
-        const span = restX(edge) - restX(near);
-        return dir * OPEN * (1 - (restX(i) - restX(near)) / span);
-      };
+       * Every tween is elastic.out(1, 0.75) over 0.5s, each 20ms per step of T
+       * behind the last, and the release is the same with T counted from the
+       * centre. The fan never restacks: its z stays 1,2,3,10,3,2,1. */
+      const SPRING = 'elastic.out(1, 0.75)';
+      const STAGGER = 0.02;
+      const CENTRE = Math.floor(cards.length / 2);
+      const LAST = cards.length - 1;
 
       const settle = (hovered: number | null): void => {
         cards.forEach((card, i) => {
-          const isHovered = hovered === i;
-          const distance = hovered === null ? 0 : Math.abs(i - hovered);
-          const push = hovered === null ? 0 : displace(hovered, i);
-          const lean = distance === 0 ? 0 : (Math.sign(i - hovered!) * LEAN) / distance;
+          const distance = Math.abs(i - (hovered ?? CENTRE));
+          let push = 0;
+          let lean = 0;
+          let lift = 0;
+          if (hovered !== null && i !== hovered) {
+            const dir = Math.sign(i - hovered);
+            const reach = 1 - Math.abs((i - CENTRE) / CENTRE);
+            const near = 1 + 0.2 * Math.max(0, 3 - distance);
+            const pinned = dir > 0 && i === LAST;
+            push = pinned ? 0 : dir * 8 * reach * near;
+            lean = (dir * 3) / (distance + 1);
+            lift = pinned ? -1 : 0;
+          }
           gsap.to(card, {
-            '--pop': isHovered ? 1 : 0,
+            '--pop': hovered === i ? 1 : 0,
             '--push': `${push}rem`,
             '--lean': `${lean}deg`,
-            duration: isHovered || hovered === null ? 0.55 : 0.7,
+            '--lift': `${lift}rem`,
+            duration: 0.5,
             ease: SPRING,
+            delay: distance * STAGGER,
             overwrite: 'auto',
           });
         });
       };
 
+      /* The reference's bookkeeping: entering a card claims the hover, and
+         leaving it releases the fan 50ms later unless another card was entered
+         in between. Crossing from card to card never flinches, and coming off
+         the cards into the empty span beside them settles the fan — where it
+         used to hold open until the pointer left the whole 80rem box. */
+      let current: number | null = null;
+      let release = 0;
+      const reset = (): void => {
+        window.clearTimeout(release);
+        current = null;
+        settle(null);
+      };
       cards.forEach((card, i) => {
-        card.addEventListener('pointerenter', () => settle(i));
+        card.addEventListener('pointerenter', () => {
+          window.clearTimeout(release);
+          current = i;
+          settle(i);
+        });
+        card.addEventListener('pointerleave', () => {
+          if (current !== i) return;
+          release = window.setTimeout(() => {
+            if (current === i) reset();
+          }, 50);
+        });
       });
-      // On the FAN, not on each card: leaving one card for the next fires a leave
-      // before the enter, and resetting in between makes the row flinch.
-      fan.addEventListener('pointerleave', () => settle(null));
+      fan.addEventListener('pointerleave', reset);
     }
   }
 }

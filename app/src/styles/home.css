@@ -4963,6 +4963,7 @@
  *             lean away to give it room, nearer ones further than far ones, so
  *             the row behaves like one connected object rather than seven
  *             independent tiles.
+ *   --lift    the last card's 1rem rise while a card to its left is hovered.
  *   --fan-*   the measured rest position, untouched by any of them.
  *
  * Written as one transform rather than as competing rules, because two rules
@@ -4983,8 +4984,8 @@
     translate(
       calc(var(--fan-x, 0rem) * var(--spread, 1) + var(--push, 0rem)),
       calc(
-        var(--fan-y, 0rem) * var(--spread, 1) - var(--pop, 0) * 2.5rem + var(--rise, 0) *
-          10rem
+        var(--fan-y, 0rem) * var(--spread, 1) - var(--pop, 0) * 2.5rem + var(--lift, 0rem) +
+          var(--rise, 0) * 10rem
       )
     )
     rotate(calc(var(--fan-rot, 0deg) * var(--spread, 1) + var(--lean, 0deg)))
