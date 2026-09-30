@@ -3,14 +3,19 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
-/* The data layer, imported for its side effect: it validates career.json and
-   the stable content against it the moment it loads, and throws on anything
-   missing or malformed. Loaded only by the pages, that check ran in the
-   browser — a record with a required field deleted built cleanly and failed at
-   runtime. Loaded here too, it runs when this config does, so `vite build`
-   stops and the dev server refuses to start (or restart, when the file
-   changes) on a bad record. CLAUDE.md: validation that fails the build. */
-import './src/content/hamilton';
+/* The data layer, imported for two reasons. First its side effect: it
+   validates career.json and the stable content against it the moment it loads,
+   and throws on anything missing or malformed. Loaded only by the pages, that
+   check ran in the browser — a record with a required field deleted built
+   cleanly and failed at runtime. Loaded here too, it runs when this config
+   does, so `vite build` stops and the dev server refuses to start (or restart,
+   when the file changes) on a bad record. CLAUDE.md: validation that fails the
+   build. Second, its values: the facts each page's <head> states are filled in
+   from it below (see HEAD_TOKENS), because a title and a meta description are
+   read by crawlers and link previews that never run the page's script. */
+import { driver } from './src/content/hamilton';
+import { calendar, career } from './src/content/live-stats';
+import { spell } from './src/lib/schedule';
 
 // `import.meta.url` rather than `__dirname`: this package is ESM ("type":
 // "module"), where __dirname does not exist and would be undefined at runtime.
@@ -22,6 +27,44 @@ import './src/content/hamilton';
 // copyrighted material, silently served in dev and passing for ours. Gone, so
 // a missing asset 404s loudly instead.
 const here = fileURLToPath(new URL('.', import.meta.url));
+
+/* The season the site is about: the calendar's, which is how the Calendar and
+   On Track pages read it. The data layer already refuses an empty calendar;
+   this only narrows the type. */
+const currentSeason = calendar[0]?.season;
+if (currentSeason === undefined) throw new Error('[head] the season calendar is empty');
+
+/**
+ * `%%name%%` in any HTML entry: a fact from the data layer, written into the
+ * served document.
+ *
+ * For the <head>. A title and a meta description state the season, his team,
+ * his title count and how many seasons he has raced, and they are read by
+ * crawlers and link previews that run no script — a data-bind there would reach
+ * them empty, and a typed number goes stale on a championship Sunday. So they
+ * are filled here, at build time and on every dev request, from the same
+ * values the pages bind in their bodies (main.ts, on-track.ts). Figures inside
+ * a sentence are spelled, as the pages spell them.
+ *
+ * Every token must be one of these; anything else stops the build.
+ */
+const HEAD_TOKENS: ReadonlyMap<string, string> = new Map([
+  ['season', String(currentSeason)],
+  ['team', driver.currentTeam],
+  ['titles-word', spell(career.championships)],
+  ['seasons-word', spell(career.seasonsContested)],
+]);
+
+function fillTokens(html: string, filename: string): string {
+  const filled = html.replace(/%%(.*?)%%/g, (_match, name: string) => {
+    const value = HEAD_TOKENS.get(name);
+    if (value === undefined) throw new Error(`${filename}: unknown token %%${name}%%`);
+    if (value.trim() === '') throw new Error(`${filename}: token %%${name}%% is empty`);
+    return value;
+  });
+  if (filled.includes('%%')) throw new Error(`${filename}: an unclosed %% token is left in the page`);
+  return filled;
+}
 
 /**
  * `<!--#include "partials/nav.html"-->` in any HTML entry, resolved before Vite
@@ -37,6 +80,9 @@ const here = fileURLToPath(new URL('.', import.meta.url));
  * Runs at `order: 'pre'` so the injected markup is indistinguishable from
  * literal document content to every later transform — asset URLs inside a
  * partial are rewritten and hashed exactly as if they had been typed inline.
+ *
+ * The same pass then fills the `%%name%%` tokens (HEAD_TOKENS above), after
+ * the includes so a partial could carry one too.
  */
 function htmlPartials(): Plugin {
   const DIRECTIVE = /<!--#include\s+"([^"]+)"\s*-->/g;
@@ -46,7 +92,7 @@ function htmlPartials(): Plugin {
     transformIndexHtml: {
       order: 'pre',
       handler(html, ctx) {
-        return html.replace(DIRECTIVE, (_match, relative: string) => {
+        const included = html.replace(DIRECTIVE, (_match, relative: string) => {
           const file = path.resolve(here, relative);
           // Confine includes to the project. A path escaping `here` is either a
           // mistake or a traversal, and both should stop the build.
@@ -59,6 +105,7 @@ function htmlPartials(): Plugin {
             throw new Error(`${ctx.filename}: cannot read included partial "${relative}"`);
           }
         });
+        return fillTokens(included, ctx.filename);
       },
     },
     /**
