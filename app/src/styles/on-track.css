@@ -360,6 +360,25 @@ body[data-page='on-track'] {
   flex-direction: column;
 }
 
+/* All three cards start `hidden` and on-track.ts reveals the ones it has a
+   race for. Until then each holds its room, unseen, rather than leaving the
+   layout: the page paints before the script runs, and under 480, where the
+   cards stack, a card arriving then pushed everything under it down -- the
+   next card moved the round card 262px (CLS 0.01-0.03), and taking all three
+   out of the flow moved the section below the hero instead (0.25).
+   `visibility` keeps them out of the accessibility tree as `hidden` did. The
+   next card is re-given its block display, which the attribute takes away;
+   the other two set their own. */
+.ot-hero__prev[hidden],
+.ot-hero__next[hidden],
+.ot-hero__round[hidden] {
+  visibility: hidden;
+}
+
+.ot-hero__next[hidden] {
+  display: block;
+}
+
 .ot-hero__prev-frame,
 .ot-hero__next-frame {
   position: absolute;
