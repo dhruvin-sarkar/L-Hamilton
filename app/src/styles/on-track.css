@@ -1215,6 +1215,15 @@ body[data-page='on-track'] {
   padding-inline: 1.25rem;
 }
 
+/* The number's page carries the reference's rem (--ref-rem, restated under 992
+   below) so its gutter is the reference's 1.25 of it at every width -- 11px at
+   768 and 12.5px at 360, not our 20 -- and the number starts, and so bleeds
+   off the right edge, exactly where the reference's does. */
+.ot-band__page--podium {
+  --ref-rem: 1rem;
+  padding-inline: calc(1.25 * var(--ref-rem));
+}
+
 /* Reference `.on-t-podium-text-layout`, measured at 1728:
  *
  *   the number    114rem, "wdth" 75 "wght" 700, line-height 0.85, NO tracking,
@@ -1240,9 +1249,9 @@ body[data-page='on-track'] {
 }
 
 .ot-podium {
-  /* The reference's sizes, in the reference's rem (see the narrow-width rules
-     at the end of this block for why that is not always ours). */
-  --ref-rem: 1rem;
+  /* The reference's sizes, in the reference's rem -- --ref-rem, set on the page
+     above (see the narrow-width rules at the end of this block for why that is
+     not always ours). */
   --podium-ref: calc(114 * var(--ref-rem));
   --podium-rise: calc(17.5 * var(--ref-rem));
   --podium-label-from: calc(17.5 * var(--ref-rem));
@@ -1354,8 +1363,11 @@ body[data-page='on-track'] {
  * word's start, then 38.8rem, 5.6rem and a 6rem rise under 480. The photo is
  * a pointer effect and goes, as the reference's does. */
 @media (max-width: 991px) {
-  .ot-podium {
+  .ot-band__page--podium {
     --ref-rem: calc(clamp(768px, 100vw, 991px) / 1728 * 20);
+  }
+
+  .ot-podium {
     --podium-ref: calc(96 * var(--ref-rem));
     --podium-label-from: calc(4 * var(--ref-rem));
   }
@@ -1370,14 +1382,17 @@ body[data-page='on-track'] {
 }
 
 @media (max-width: 767px) {
-  .ot-podium {
+  .ot-band__page--podium {
     --ref-rem: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
   }
 }
 
 @media (max-width: 479px) {
-  .ot-podium {
+  .ot-band__page--podium {
     --ref-rem: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
+  }
+
+  .ot-podium {
     --podium-ref: calc(38.8 * var(--ref-rem));
     --podium-rise: calc(6 * var(--ref-rem));
   }
