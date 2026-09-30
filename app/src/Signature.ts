@@ -26,12 +26,12 @@ const TRACE_URL = '/assets/brand/signature.svg';
 let traceText: Promise<string> | null = null;
 
 /**
- * The trace, once `host` is within a screen of the viewport.
+ * The trace, once `host`'s section is within a screen of the viewport.
  *
  * Fetched once per page however many pens ask for it, and handed over only as
- * the host approaches, so a pen further down the page is built -- and its ink
- * rendered -- then, rather than in the page's first seconds. A host already on
- * screen gets it as soon as it has arrived.
+ * the section approaches, so a pen further down the page is built -- and its
+ * ink rendered -- then, rather than in the page's first seconds. A host already
+ * on screen gets it as soon as it has arrived.
  */
 export function signatureTrace(host: HTMLElement): Promise<string> {
   traceText ??= fetch(TRACE_URL).then((res) => {
