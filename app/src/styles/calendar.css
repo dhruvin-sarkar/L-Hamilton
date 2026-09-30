@@ -88,6 +88,22 @@ body[data-page='calendar'] {
   white-space: nowrap;
 }
 
+/* The year is written by calendar.ts, after the first paint. Until then a
+   no-break space in the serif holds its line box open, and the title spans
+   the row with its lines centred in it, so neither the title's height nor its
+   left edge moves when the year arrives -- measured, that arrival was a 0.18
+   layout shift, the page's largest. Its lines span it too, the text centred
+   by text-align, so the year's line does not grow out from the middle
+   either. Nothing on screen changes. */
+.cal-hero__title {
+  inline-size: 100%;
+  align-items: stretch;
+}
+
+.cal-hero__serif:empty::before {
+  content: '\a0';
+}
+
 /* The reference's serif is 8.25rem on an 83% line; that line box, unioned
    with the title face's strut, comes to 116.3px at 1728 -- the title 230.6px
    tall. Playfair's taller ascent would make it 118.3, so its own line is
