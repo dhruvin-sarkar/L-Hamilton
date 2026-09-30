@@ -449,7 +449,9 @@ body[data-page='calendar'] {
   }
 }
 
-@media (max-width: 991px) {
+/* The phone box: 3rem down, the panel's full width, 23rem tall. The reference
+   keeps the box above down to 480px and switches at 479, measured. */
+@media (max-width: 479px) {
   .cal-panel__gl {
     inset: calc(var(--u) * 3) 0 auto;
     block-size: calc(var(--u) * 23);

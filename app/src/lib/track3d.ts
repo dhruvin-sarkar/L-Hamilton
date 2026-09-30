@@ -14,7 +14,8 @@
  *   - each circuit a low translucent wall along the track, doubled a hair
  *     inside itself, its top edge a bright line with light running along it
  *     in the racing direction, its foot a faint line;
- *   - a bloom over the render (strength 1.5, radius 0.5, threshold 0.25);
+ *   - a bloom over the render (strength 1.5, radius 0.5, threshold 0.25),
+ *     worked out at the window's size and laid over the box;
  *   - a camera 1 degree wide across the panel, orbiting at a fixed tilt
  *     (polar angle PI/2.5), turning on its own at 0.2 with damping, and
  *     draggable to spin -- no zoom;
@@ -444,6 +445,15 @@ export function mountTrackMap(host: HTMLElement, circuitId: string): TrackMap {
     if (!width || !height) return;
     renderer.setSize(width, height, false);
     composer.setSize(width, height);
+    /* The glow is worked out at the window's size, as the reference's is: it
+       draws the scene into a window-sized target, blooms that, and squeezes
+       it onto the box -- so its glow, fixed in the window's pixels, lands on
+       screen narrower by the box's share of the window each way (0.88 across,
+       0.68 down at 1440x900). Worked out at the box's own size, the same bloom
+       spread about half again as far and lifted the box's edge. Only the
+       bloom needs the window's size; the scene is still drawn at the box's. */
+    const ratio = renderer.getPixelRatio();
+    bloom.setSize(window.innerWidth * ratio, window.innerHeight * ratio);
     camera.aspect = width / height;
     /* One degree across whatever the panel's proportion. */
     camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(FOV_ACROSS) / 2) / camera.aspect));
@@ -452,6 +462,8 @@ export function mountTrackMap(host: HTMLElement, circuitId: string): TrackMap {
   };
   const resizer = new ResizeObserver(resize);
   resizer.observe(host);
+  // The window can change height without the box changing size.
+  window.addEventListener('resize', resize);
   resize();
 
   const watcher = new IntersectionObserver(
@@ -561,6 +573,7 @@ export function mountTrackMap(host: HTMLElement, circuitId: string): TrackMap {
       cancelAnimationFrame(frame);
       watcher.disconnect();
       resizer.disconnect();
+      window.removeEventListener('resize', resize);
       document.removeEventListener('visibilitychange', onVisibility);
       controls.dispose();
       for (const circuit of built.values()) {
