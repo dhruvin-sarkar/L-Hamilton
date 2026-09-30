@@ -5044,8 +5044,8 @@
     translate(
       calc(var(--fan-x, 0rem) * var(--spread, 1) + var(--push, 0rem)),
       calc(
-        var(--fan-y, 0rem) * var(--spread, 1) - var(--pop, 0) * 2.5rem + var(--lift, 0rem) +
-          var(--rise, 0) * 10rem
+        var(--fan-y, 0rem) * var(--spread, 1) - var(--pop, 0) * 2.5 * var(--fan-u, 1rem) +
+          var(--lift, 0rem) + var(--rise, 0) * 10 * var(--fan-u, 1rem)
       )
     )
     rotate(calc(var(--fan-rot, 0deg) * var(--spread, 1) + var(--lean, 0deg)))
@@ -5267,49 +5267,134 @@ body:not([data-page='on-track']) .otot :focus-visible {
     margin-block-start: 4rem;
   }
 
+  /* The reference keeps its fan below 992 -- measured at 360 and 768, the same
+     seven cards at the same scales and angles, only smaller and closer -- so
+     this does too, in its rem (--u, as the page sections restate it): 17 wide
+     here, 15 under 768, 14 under 480, at the desktop 20:35, in the same 36-unit
+     layout, stepped 6 / 11 / 15 across and 1.3 / 4 / 7.3 down. The section
+     comes out at the reference's height: 687px at 360, 643 at 768. */
   .socials {
-    padding-block-start: 6rem;
+    --u: calc(clamp(768px, 100vw, 991px) / 1728 * 20);
+    --fan-u: var(--u);
+    --card-w: calc(var(--u) * 17);
+    padding-block-start: calc(var(--u) * 8);
+  }
+
+  .socials__ball {
+    inline-size: calc(var(--u) * 3.5);
+    block-size: calc(var(--u) * 3.5);
+    margin-block-end: calc(var(--u) * 2.5);
   }
 
   .socials__title,
   .socials__title-line.is-serif {
-    font-size: clamp(2.6rem, 12vw, 4.5rem);
+    font-size: calc(var(--u) * 4.5);
+  }
+
+  .socials__title {
+    letter-spacing: calc(var(--u) * -0.125);
   }
 
   .socials__fan {
-    display: flex;
-    gap: 1rem;
-    inline-size: auto;
-    block-size: auto;
-    margin-block-start: 3rem;
-    padding-inline: 1.25rem;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
+    inline-size: calc(var(--u) * 80);
+    block-size: calc(var(--u) * 36);
+    margin-block-start: calc(var(--u) * 2.5);
   }
 
+  /* Centred in the layout, as the reference's flex centring puts it. */
   .socials__card {
-    position: relative;
-    inset: auto;
-    flex: none;
-    inline-size: 62vw;
+    inset-block-start: calc((var(--u) * 36 - var(--card-w) * 35 / 20) / 2);
+    inline-size: var(--card-w);
     block-size: auto;
     aspect-ratio: 20 / 35;
-    /* Flat: the fan is a wide-screen composition, and a rotated card in a
-       swipe row reads as a broken layout rather than as a stack. */
-    transform: none;
-    /* With no transform to carry the entrance, the rise shows as a fade. */
-    opacity: calc(1 - var(--rise, 0));
-    scroll-snap-align: center;
+    border-radius: calc(var(--u) * 3.31625);
+  }
+
+  .socials__card[data-step='-1'],
+  .socials__card[data-step='1'] {
+    --fan-y: calc(var(--u) * 1.3);
+  }
+
+  .socials__card[data-step='-2'],
+  .socials__card[data-step='2'] {
+    --fan-y: calc(var(--u) * 4);
+  }
+
+  .socials__card[data-step='-3'],
+  .socials__card[data-step='3'] {
+    --fan-y: calc(var(--u) * 7.3);
+  }
+
+  .socials__card[data-step='-1'] {
+    --fan-x: calc(var(--u) * -6);
+  }
+
+  .socials__card[data-step='1'] {
+    --fan-x: calc(var(--u) * 6);
+  }
+
+  .socials__card[data-step='-2'] {
+    --fan-x: calc(var(--u) * -11);
+  }
+
+  .socials__card[data-step='2'] {
+    --fan-x: calc(var(--u) * 11);
+  }
+
+  .socials__card[data-step='-3'] {
+    --fan-x: calc(var(--u) * -15);
+  }
+
+  .socials__card[data-step='3'] {
+    --fan-x: calc(var(--u) * 15);
   }
 
   .socials__follow {
-    margin-block-start: 3.5rem;
-    font-size: 1.5rem;
+    margin-block-start: calc(var(--u) * 6.25);
+    font-size: calc(var(--u) * 2);
+  }
+
+  /* The list's own size too, or its line box stays 16px under 10px links. */
+  .socials__links,
+  .socials__links a {
+    font-size: var(--u);
+  }
+
+  .socials__links {
+    gap: calc(var(--u) * 1.875);
+    margin-block-start: calc(var(--u) * 2.5);
+  }
+}
+
+@media (max-width: 767px) {
+  .socials {
+    --u: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
+    --card-w: calc(var(--u) * 15);
+  }
+}
+
+/* Under 480 the heading drops to 2.6, the follow line to 1.7, and the links
+   wrap onto centred rows no wider than 20 units, as the reference's do. */
+@media (max-width: 479px) {
+  .socials {
+    --u: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
+    --card-w: calc(var(--u) * 14);
+  }
+
+  .socials__title,
+  .socials__title-line.is-serif {
+    font-size: calc(var(--u) * 2.6);
+  }
+
+  .socials__follow {
+    font-size: calc(var(--u) * 1.7);
   }
 
   .socials__links {
     flex-wrap: wrap;
-    gap: 1.2rem;
+    gap: calc(var(--u) * 0.625) calc(var(--u) * 1.25);
+    max-inline-size: calc(var(--u) * 20);
+    margin-inline: auto;
   }
 }
 
