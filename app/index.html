@@ -308,6 +308,22 @@
            reference's race-win pill under the fifth picture: a "1" there would
            claim a result for a photograph that has none, so only its space is
            kept. -->
+      <!-- Responsive images, here and on every photograph below.
+
+           srcset lists the narrower copies made by tools/gen-image-variants.sh
+           and the original as the widest. sizes is the width the picture is
+           drawn at, taken from its CSS: here the frame's --w plus the 4rem of
+           pan slack (4rem is 3.71vw between the 992px and 1920px clamps), and
+           --w alone on a phone. With object-fit: cover, that is the drawn
+           width of the photograph and not of its box.
+
+           Past 1.1dppx every size is stated 1.25x large, on purpose. Chrome
+           takes the candidate just under the screen's density whenever that is
+           nearer, geometrically, than the one above. With these steps that let
+           a 2x screen get a 1.6x picture. A 1.25x margin is about the square
+           root of the widest step, so the pick lands at the screen's density
+           or above it, to within a few percent. At 1x there is no such
+           rounding, so the size is stated exactly. -->
       <section class="gallery gallery--home" data-gallery aria-labelledby="gallery-h">
         <h2 class="sr-only" id="gallery-h">Gallery</h2>
 
@@ -318,6 +334,9 @@
                 <figcaption class="gallery__cap reveal-text">On the mic</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-01.webp" alt="" width="1121" height="1400"
+                    srcset="/assets/gallery/gallery-01-480.webp 480w, /assets/gallery/gallery-01-768.webp 768w, /assets/gallery/gallery-01.webp 1121w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (27vh + 3.71vw)),
+                      (min-width: 992px) calc(27vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 27vh), 27vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -325,6 +344,9 @@
                 <figcaption class="gallery__cap reveal-text">Lowrider</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-02.webp" alt="" width="1120" height="1400"
+                    srcset="/assets/gallery/gallery-02-480.webp 480w, /assets/gallery/gallery-02-768.webp 768w, /assets/gallery/gallery-02.webp 1120w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (29.3vh + 3.71vw)),
+                      (min-width: 992px) calc(29.3vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 29.3vh), 29.3vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -345,6 +367,9 @@
                 <figcaption class="gallery__cap reveal-text">Head in hands</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-03.webp" alt="" width="1050" height="1400"
+                    srcset="/assets/gallery/gallery-03-480.webp 480w, /assets/gallery/gallery-03-768.webp 768w, /assets/gallery/gallery-03.webp 1050w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (65.48vh + 3.71vw)),
+                      (min-width: 992px) calc(65.48vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 65.48vh), 65.48vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -357,6 +382,9 @@
                 <figcaption class="gallery__cap reveal-text">Trophy</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-04.webp" alt="" width="1050" height="1400"
+                    srcset="/assets/gallery/gallery-04-480.webp 480w, /assets/gallery/gallery-04-768.webp 768w, /assets/gallery/gallery-04.webp 1050w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (21.98vh + 3.71vw)),
+                      (min-width: 992px) calc(21.98vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 21.98vh), 21.98vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -364,6 +392,9 @@
                 <figcaption class="gallery__cap reveal-text">Lakeside</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-05.webp" alt="" width="1050" height="1400"
+                    srcset="/assets/gallery/gallery-05-480.webp 480w, /assets/gallery/gallery-05-768.webp 768w, /assets/gallery/gallery-05.webp 1050w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (31.75vh + 3.71vw)),
+                      (min-width: 992px) calc(31.75vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 31.75vh), 31.75vh"
                     loading="lazy" decoding="async" />
                 </div>
                 <span class="gallery__pill-slot" aria-hidden="true"></span>
@@ -377,6 +408,9 @@
                 <figcaption class="gallery__cap reveal-text">On the green</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-06.webp" alt="" width="1050" height="1400"
+                    srcset="/assets/gallery/gallery-06-480.webp 480w, /assets/gallery/gallery-06-768.webp 768w, /assets/gallery/gallery-06.webp 1050w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (21.38vh + 3.71vw)),
+                      (min-width: 992px) calc(21.38vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 21.38vh), 21.38vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -386,6 +420,9 @@
                 <figcaption class="gallery__cap reveal-text">The home crowd</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-07.webp" alt="" width="1050" height="1400"
+                    srcset="/assets/gallery/gallery-07-480.webp 480w, /assets/gallery/gallery-07-768.webp 768w, /assets/gallery/gallery-07.webp 1050w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (20.74vh + 3.71vw)),
+                      (min-width: 992px) calc(20.74vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 20.74vh), 20.74vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -398,6 +435,9 @@
                 <figcaption class="gallery__cap reveal-text">In the dojo</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-08.webp" alt="" width="1050" height="1400"
+                    srcset="/assets/gallery/gallery-08-480.webp 480w, /assets/gallery/gallery-08-768.webp 768w, /assets/gallery/gallery-08.webp 1050w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (60.95vh + 3.71vw)),
+                      (min-width: 992px) calc(60.95vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 60.95vh), 60.95vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -417,6 +457,9 @@
                 <figcaption class="gallery__cap reveal-text">F40</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-09.webp" alt="" width="1055" height="1400"
+                    srcset="/assets/gallery/gallery-09-480.webp 480w, /assets/gallery/gallery-09-768.webp 768w, /assets/gallery/gallery-09.webp 1055w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (31.69vh + 3.71vw)),
+                      (min-width: 992px) calc(31.69vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 31.69vh), 31.69vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -424,6 +467,9 @@
                 <figcaption class="gallery__cap reveal-text">Colour study</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-10.webp" alt="" width="1050" height="1400"
+                    srcset="/assets/gallery/gallery-10-480.webp 480w, /assets/gallery/gallery-10-768.webp 768w, /assets/gallery/gallery-10.webp 1050w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (27.42vh + 3.71vw)),
+                      (min-width: 992px) calc(27.42vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 27.42vh), 27.42vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -445,13 +491,24 @@
 
         <div class="otot__pin">
           <!-- Behind the type, bleeding off the outer edges. Decorative: the
-               links below carry the meaning, so alt is empty. -->
+               links below carry the meaning, so alt is empty.
+
+               Drawn at the frame's 90.67vh height by the file's own ratio. On
+               a phone that height is the section's, which its text decides,
+               and at a phone's density it wants more than the original has.
+               So there the size is the original's width, which picks it. -->
           <div class="otot__cut is-on">
             <img src="/assets/otot/on-track.webp" alt="" width="1450" height="1600"
+              srcset="/assets/otot/on-track-768.webp 768w, /assets/otot/on-track-1024.webp 1024w, /assets/otot/on-track.webp 1450w"
+              sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * 82.2vh),
+                (min-width: 992px) 82.2vh, 1450px"
               loading="lazy" decoding="async" />
           </div>
           <div class="otot__cut is-off">
             <img src="/assets/otot/off-track.webp" alt="" width="1115" height="1600"
+              srcset="/assets/otot/off-track-640.webp 640w, /assets/otot/off-track-800.webp 800w, /assets/otot/off-track.webp 1115w"
+              sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * 63.2vh),
+                (min-width: 992px) 63.2vh, 1115px"
               loading="lazy" decoding="async" />
           </div>
 
