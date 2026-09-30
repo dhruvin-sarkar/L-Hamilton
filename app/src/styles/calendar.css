@@ -746,6 +746,12 @@ button.cal-row--past:hover:focus-visible {
     display: flex;
   }
 
+  /* Reference `.f1-highlight-trophy-w` here: 2.6rem left of the finish, not
+     5.6 -- hung that far out on four columns it sat over the circuit's name. */
+  .cal-row__trophy {
+    inset-inline-start: calc(var(--u) * -2.6);
+  }
+
   /* Reference `.f1-highlight-grid.row-head` and `.is-history` here. */
   .cal-results__trigger,
   .cal-results__head {
