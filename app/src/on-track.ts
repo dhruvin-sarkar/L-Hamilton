@@ -16,6 +16,7 @@ import './styles/on-track.css';
 import Lenis from 'lenis';
 import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './lib/motion';
 import { mountChrome } from './lib/chrome';
+import { glintCrest, glintCrestOnHover } from './lib/crest-glint';
 import { whenEntranceCued } from './lib/transition';
 import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountGalleryScroll } from './lib/gallery';
@@ -1361,6 +1362,10 @@ if (trackWord && scriptWord && crest && signHost) {
     const sized = new ResizeObserver(() => signature?.resize());
     sized.observe(signHost);
 
+    const crestCard = crest.closest('.ot-hero__next');
+    if (!crestCard) throw new Error('[hero] .ot-hero__crest outside .ot-hero__next');
+    let stopGlintOnHover: (() => void) | undefined;
+
     const entrance = gsap
       .timeline({ paused: true })
       .to(letters, {
@@ -1385,7 +1390,17 @@ if (trackWord && scriptWord && crest && signHost) {
         },
       }, HERO_CUE)
       .to(crest, { '--crest-branch-hide': '0%', duration: 0.55, ease: 'none' }, HERO_CUE + 0.42)
-      .to(crest, { '--crest-helmet': 1, duration: 0.5, ease: 'none' }, HERO_CUE + 0.9);
+      .to(crest, {
+        '--crest-helmet': 1,
+        duration: 0.5,
+        ease: 'none',
+        // Grown, its metal catches the light once, and again each time the
+        // pointer comes onto the card (lib/crest-glint.ts).
+        onComplete: () => {
+          glintCrest(crest);
+          stopGlintOnHover = glintCrestOnHover(crest, crestCard);
+        },
+      }, HERO_CUE + 0.9);
 
     // Held for the loader too: the entrance plays as it opens onto the page.
     void Promise.all([document.fonts.ready, whenEntranceCued()]).then(() => entrance.play());
@@ -1393,6 +1408,7 @@ if (trackWord && scriptWord && crest && signHost) {
     return () => {
       live = false;
       entrance.kill();
+      stopGlintOnHover?.();
       sized.disconnect();
       signature?.dispose();
       signHost.classList.remove('is-writing');
