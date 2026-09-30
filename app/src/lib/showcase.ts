@@ -17,7 +17,16 @@
  */
 
 import { gsap, mm, ScrollTrigger, reducedMotion, WIDE_AND_ANIMATED } from './motion';
-import { helmets, helmetSrc, helmetAlt, revealSrc, pendingHelmets } from '../content/helmets';
+import {
+  helmets,
+  helmetSrc,
+  helmetSrcset,
+  helmetAlt,
+  revealSrc,
+  revealSrcset,
+  revealSize,
+  pendingHelmets,
+} from '../content/helmets';
 import type { Helmet } from '../content/helmets';
 
 /* ------------------------------------------------------------------ *
@@ -155,6 +164,21 @@ export function mountHelmets(): void {
     return parts ? `<p class="hof__label">${parts}</p>` : '';
   }
 
+  /* Drawn widths for the srcsets. A card is a quarter of the grid from 992px
+     (just under 24vw), half of it on a phone (50vw less the gutters). The
+     helmet is 65% of the card and scales 1.1 on hover, so 18vw. The wearing
+     shots are landscape and `contain`ed, so they are drawn card-wide. See the
+     note over the Home gallery in index.html. */
+  const HELMET_SIZES = '(min-width: 992px) 18vw, calc(35.75vw - 21px)';
+  const REVEAL_SIZES = '(min-width: 992px) 24vw, calc(50vw - 30px)';
+
+  function revealImg(helmet: Helmet, className: string): string {
+    const [width, height] = revealSize(helmet);
+    return `<img class="${className}" src="${revealSrc(helmet)}" alt=""
+                srcset="${revealSrcset(helmet)}" sizes="${REVEAL_SIZES}"
+                width="${width}" height="${height}" loading="lazy" decoding="async" />`;
+  }
+
   if (hofGrid) {
     hofGrid.innerHTML = helmets
       .map(
@@ -162,12 +186,11 @@ export function mountHelmets(): void {
         <li class="hof__item">
           <div class="hof__media">
             <img class="hof__helmet" src="${helmetSrc(helmet)}"
+              srcset="${helmetSrcset(helmet)}" sizes="${HELMET_SIZES}" width="800" height="800"
               alt="${attr(helmetAlt(helmet))}" loading="lazy" decoding="async" />
             <span class="hof__reveal-w" aria-hidden="true">
-              <img class="hof__reveal-bg" src="${revealSrc(helmet)}" alt=""
-                loading="lazy" decoding="async" />
-              <img class="hof__reveal" src="${revealSrc(helmet)}" alt=""
-                loading="lazy" decoding="async" />
+              ${revealImg(helmet, 'hof__reveal-bg')}
+              ${revealImg(helmet, 'hof__reveal')}
             </span>
           </div>
           <div class="hof__frame-w">${hofFrame('base')}${hofFrame('on')}</div>

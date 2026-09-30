@@ -8,8 +8,8 @@
 # and 1920 and checked against Chrome's candidate pick. So change a list here
 # and the srcset that names those files has to change with it.
 #
-# Where the sizes attributes come from, and why they carry a 1.25 factor from
-# 1.1dppx up: see the comment over the Home gallery in index.html.
+# What each sizes attribute states, and why: see the comment over the Home
+# gallery in index.html.
 #
 # sharp-cli is fetched by npx for the run, so it is not a dependency. Lanczos3
 # downscale, WebP q82. The alpha plane is lossless, so a cut-out's edge is the
