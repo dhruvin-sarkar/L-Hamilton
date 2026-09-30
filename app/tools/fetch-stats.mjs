@@ -438,6 +438,20 @@ async function main() {
    * One request. Carries the practice and qualifying session times — the same
    * payload the reference hangs off each schedule row — and the race datetime
    * the countdown targets.
+   *
+   * The round count is whatever the season actually is, never the reference's.
+   * 2026 has 23, not the 24 first announced: the Bahrain (10-12 Apr) and Saudi
+   * Arabian (17-19 Apr) Grands Prix were called off on 14 March 2026 "due to
+   * the ongoing situation in the Middle East region", and Bahrain's round was
+   * later restaged at Sepang on 2-4 October as the "Bahrain Grand Prix in
+   * Malaysia". Checked 2026-09-30, all 23 rounds and dates, against
+   *   formula1.com/en/racing/2026 (the official calendar: 23 rounds)
+   *   formula1.com/en/latest/article/bahrain-and-saudi-arabian-grands-prix-will-not-take-place-in-april.1hnqllVG85RSt8pbFc5Ivx
+   *   formula1.com/en/racing/2026/bahrain ("Formula 1 Gulf Air Bahrain Grand
+   *   Prix in Malaysia 2026", Sepang International Circuit)
+   * Dates here are UTC instants; the pages print them in UK time, so Las
+   * Vegas (race Sat 21 Nov local) reads 20-22 Nov where formula1.com's
+   * local-time listing reads 19-21 Nov. Same instants, different clock.
    * ------------------------------------------------------------------ */
 
   const calendarData = await get(`${latestSeason}/races`, { limit: 100 });
