@@ -1,7 +1,7 @@
 /**
- * How a race weekend is written on the page: its dates in UK time, its
- * sessions in running order, places as figures and letters, small numbers in
- * words.
+ * How a race weekend is written on the page: its sessions in UK time and in
+ * running order, the weekend's span in the days it runs where it is held,
+ * places as figures and letters, small numbers in words.
  *
  * One module for both pages' schedules -- On Track's panel, its rows and its
  * hero card, and the calendar's panel, lists and season-by-season results --
@@ -11,6 +11,7 @@
  * reference -- like every timing screen -- reads SEP.
  */
 
+import { circuitFacts } from '../content/circuit-facts';
 import type { CalendarRound, RaceSession } from '../content/live-stats';
 
 /** Three-letter months, as the reference prints them. */
@@ -131,15 +132,39 @@ export function weekendSessions(round: CalendarRound): WeekendSession[] {
   ];
 }
 
+const localClocks = new Map<string, Intl.DateTimeFormat>();
+
+/** The calendar day a session falls on at the circuit. Without a published
+    start, the source's own calendar day. */
+function localDay(session: RaceSession, timeZone: string): { day: number; month: number } {
+  if (!session.time) return sessionWhen(session);
+  let clock = localClocks.get(timeZone);
+  if (!clock) {
+    clock = new Intl.DateTimeFormat('en-GB', { timeZone, month: 'numeric', day: 'numeric' });
+    localClocks.set(timeZone, clock);
+  }
+  const instant = new Date(`${session.date}T${session.time}`);
+  const parts = new Map(clock.formatToParts(instant).map((p) => [p.type, p.value]));
+  const day = Number(parts.get('day'));
+  const month = Number(parts.get('month'));
+  if (!day || !month) throw new Error(`[calendar] no local day for ${instant.toISOString()} in ${timeZone}`);
+  return { day, month };
+}
+
 /**
  * "24-26" and "Sep" -- the weekend as the panel and the upcoming list print it.
  * A weekend across a month's end names the race's month alone, as the
  * reference prints it: "30-01 Nov".
+ *
+ * The days it runs where it is held, not in UK time: the reference prints Las
+ * Vegas 19-21 Nov, as formula1.com does, though its first practice and its
+ * race fall on 20 and 22 Nov in the UK. The sessions under it stay in UK time.
  */
 export function weekendSpan(round: CalendarRound): { days: string; month: string } {
+  const { timeZone } = circuitFacts(round);
   const sessions = weekendSessions(round);
-  const first = sessionWhen((sessions[0] as WeekendSession).session);
-  const race = sessionWhen((sessions[sessions.length - 1] as WeekendSession).session);
+  const first = localDay((sessions[0] as WeekendSession).session, timeZone);
+  const race = localDay((sessions[sessions.length - 1] as WeekendSession).session, timeZone);
   return { days: `${pad2(first.day)}-${pad2(race.day)}`, month: monthAbbr(race.month) };
 }
 
