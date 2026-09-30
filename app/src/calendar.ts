@@ -21,6 +21,7 @@ import { mountChrome } from './lib/chrome';
 import { whenEntranceCued } from './lib/transition';
 import { mountCountdown } from './lib/countdown';
 import { mountFooterMarquee } from './lib/marquee';
+import { mountArrowCycles } from './lib/arrow-cycle';
 import { mountReveals } from './lib/reveal';
 import { place } from './lib/schedule';
 import { Signature } from './Signature';
@@ -163,6 +164,11 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-cal-jump]
 mountSeason(need('.cal-sched'), smoothScroller);
 mountResults(need('.cal-results'), smoothScroller);
 mountCountdown(need('[data-countdown]'));
+
+/* The hooked arrows -- the two jump links and the panel's next and previous --
+   cycle while hovered or focused, as the reference's Rive arrow does
+   (lib/arrow-cycle.ts). */
+mountArrowCycles();
 
 /* ------------------------------------------------------------------ *
  * Chrome, reveals, and the entrance
