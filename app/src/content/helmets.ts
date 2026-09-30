@@ -168,7 +168,13 @@ const byId: readonly Helmet[] = [
   { id: 15, name: 'Pride', year: 2021, source: F1_HELMETS },
   /* Year only. The helmet is the fluorescent-yellow 2022 season lid; the reveal
      is the flag-covered one he wore in São Paulo that November. Both are 2022,
-     but no one name fits both pictures. */
+     but no one name fits both pictures, and no other file in the set pairs
+     better (every helmet but 1 and 2 still sits on its original reveal).
+     The helmet's year checks out on its own: it carries Akkodis, a team
+     partner from 2022, and lacks the G42 mark that his 2023 and 2024 lids (18,
+     19, 20) wear by the visor pivot. G42 joined on 15 February 2023 with its
+     logo "on the helmets of race drivers Lewis Hamilton and George Russell":
+     https://www.g42.ai/resources/news/mercedes-amg-petronas-f1-team-announces-g42-official-partner */
   { id: 17, name: null, year: 2022, source: MERCEDES_BRAZIL },
   // Hajime Sorayama's chrome lid with the illuminated visor.
   { id: 18, name: 'Japan', year: 2023, source: F1_HELMETS },
