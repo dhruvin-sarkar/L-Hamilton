@@ -224,7 +224,6 @@ export default defineConfig({
       'three',
       'three/examples/jsm/loaders/GLTFLoader.js',
       'three/examples/jsm/loaders/DRACOLoader.js',
-      'three/examples/jsm/environments/RoomEnvironment.js',
       'three/examples/jsm/utils/BufferGeometryUtils.js',
       'three/examples/jsm/controls/OrbitControls.js',
       'three/examples/jsm/postprocessing/EffectComposer.js',

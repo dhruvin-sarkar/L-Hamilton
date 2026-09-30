@@ -62,6 +62,48 @@ export function revealSrc(helmet: Helmet): string {
   return `/assets/helmets-hof/reveal-${stem(helmet.id)}.webp`;
 }
 
+/* The narrower copies tools/gen-image-variants.sh writes beside each file, as
+   `<stem>-<width>.webp`. Its lists and these have to agree. */
+const HELMET_WIDTH = 800; // every helmet shot is an 800px square
+const HELMET_RENDITIONS = [320, 480, 640];
+const REVEAL_RENDITION = 480; // made only for the reveals at least 600px wide
+
+/* The wearing shots were cut to different frames, so each one's pixel size is
+   recorded rather than assumed: the width is the srcset's widest candidate,
+   and width and height go on the image element for its ratio. */
+const REVEAL_SIZE: Readonly<Record<number, readonly [number, number]>> = {
+  1: [632, 506], 2: [632, 506], 3: [562, 450], 4: [632, 506], 5: [632, 506],
+  6: [632, 506], 7: [632, 506], 8: [632, 506], 9: [632, 506], 10: [632, 506],
+  11: [632, 506], 12: [632, 506], 13: [811, 648], 14: [900, 720], 15: [724, 579],
+  16: [437, 350], 17: [720, 576], 18: [720, 576], 19: [720, 576], 20: [706, 565],
+  21: [720, 576], 23: [387, 309], 24: [721, 576], 25: [675, 540], 26: [603, 482],
+  27: [532, 426],
+};
+
+function rendition(src: string, width: number): string {
+  return src.replace(/\.webp$/, `-${width}.webp`);
+}
+
+export function helmetSrcset(helmet: Helmet): string {
+  const src = helmetSrc(helmet);
+  return [...HELMET_RENDITIONS.map((w) => `${rendition(src, w)} ${w}w`), `${src} ${HELMET_WIDTH}w`].join(', ');
+}
+
+/** The wearing shot's pixel size. Throws for an id with no recorded size. */
+export function revealSize(helmet: Helmet): readonly [number, number] {
+  const size = REVEAL_SIZE[helmet.id];
+  if (!size) throw new Error(`helmets: no reveal size recorded for id ${helmet.id}`);
+  return size;
+}
+
+export function revealSrcset(helmet: Helmet): string {
+  const src = revealSrc(helmet);
+  const [width] = revealSize(helmet);
+  return width >= 600
+    ? `${rendition(src, REVEAL_RENDITION)} ${REVEAL_RENDITION}w, ${src} ${width}w`
+    : `${src} ${width}w`;
+}
+
 /**
  * Alt text for the helmet shot.
  *

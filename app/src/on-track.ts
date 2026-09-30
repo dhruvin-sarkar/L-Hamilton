@@ -1252,11 +1252,15 @@ if (trackWord && scriptWord && crest && signHost) {
  * Decoration: hidden from assistive tech, and built only from 992px up with a
  * fine pointer and motion allowed. Placeholder photographs until the real
  * podium set is supplied.
+ *
+ * The 768px renditions, not the originals: the photo is 20.6rem wide, at most
+ * 366px, so 768 covers a 2x screen, and the ten of them weigh 786 KB against
+ * the originals' 1.68 MB.
  * ------------------------------------------------------------------ */
 
 const PODIUM_PHOTOS = Array.from(
   { length: 10 },
-  (_, i) => `/assets/gallery/gallery-${String(i + 1).padStart(2, '0')}.webp`,
+  (_, i) => `/assets/gallery/gallery-${String(i + 1).padStart(2, '0')}-768.webp`,
 );
 
 const podiumPhoto = document.querySelector<HTMLElement>('[data-podium-photo]');
@@ -1373,7 +1377,8 @@ mm.add(WIDE_AND_ANIMATED, () => {
   for (const box of revealedImages) {
     gsap.set(box, { clipPath: 'ellipse(120% 0% at 50% 0%)', '--img-veil': 1 });
     gsap
-      .timeline({ scrollTrigger: { trigger: box, start: 'top 80%', once: true } })
+      // Played once by its toggleActions; no `once` on a timeline (lib/motion.ts).
+      .timeline({ scrollTrigger: { trigger: box, start: 'top 80%' } })
       .to(box, { clipPath: 'ellipse(120% 120% at 50% 0%)', duration: 0.8, ease: 'power2.out' })
       .to(box, { '--img-veil': 0, duration: 0.6, ease: 'power2.out' }, '-=0.4');
   }
@@ -1502,8 +1507,9 @@ if (seasonsBody) {
     placeCells();
     seasonsBody.dataset.rowsAnimated = '';
     gsap.set(rows, { '--row-open': 0, '--row-bar': 1 });
+    // Played once by its toggleActions; no `once` on a timeline (lib/motion.ts).
     const entry = gsap.timeline({
-      scrollTrigger: { trigger: seasonsBody, start: 'top 90%', once: true },
+      scrollTrigger: { trigger: seasonsBody, start: 'top 90%' },
       onStart: placeCells,
     });
     rows.forEach((row, i) => {
@@ -1631,8 +1637,9 @@ if (hlRows) {
   mm.add('(prefers-reduced-motion: no-preference)', () => {
     const rows = [...hlRows.querySelectorAll<HTMLElement>('.ot-hl__row')];
     gsap.set(rows, { clipPath: 'inset(0 100% 0 0)', '--hl-bar': 1 });
+    // Played once by its toggleActions; no `once` on a timeline (lib/motion.ts).
     const entry = gsap.timeline({
-      scrollTrigger: { trigger: hlRows, start: 'top 90%', once: true },
+      scrollTrigger: { trigger: hlRows, start: 'top 90%' },
     });
     rows.forEach((row, i) => {
       const at = i * 0.05;
@@ -2472,9 +2479,10 @@ function mountCalendar(section: HTMLElement): void {
     const rowBars = buttons.map((row) => row.querySelector('.ot-cal__row-bar'));
     gsap.set(buttons, { clipPath: 'inset(0 100% 0 0)' });
     gsap.set(rowBars, { scaleX: 1 });
+    // Played once by its toggleActions; no `once` on a timeline (lib/motion.ts).
     const enter = gsap.timeline({
       paused: true,
-      scrollTrigger: { trigger: rowsArea, start: 'top 90%', once: true },
+      scrollTrigger: { trigger: rowsArea, start: 'top 90%' },
     });
     buttons.forEach((row, i) => {
       enter.to(row, { clipPath: 'inset(0 0% 0 0)', duration: 0.6, ease: 'power2.out' }, i * 0.05);

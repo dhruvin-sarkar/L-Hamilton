@@ -44,15 +44,28 @@
         <!-- The art: the reference's four frames and one sticker, in its slots
              and its paint order. The two photographs are clips with the picture
              travelling inside them; the print and the patch are cut-outs and
-             travel whole. See the art block in home.css. -->
+             travel whole. See the art block in home.css.
+
+             The two photographs carry a srcset. The hero is drawn 43.12rem
+             wide (its frame plus the 4rem of travel, under `cover`), the side
+             25rem, which is 39.93vw and 23.15vw between the root clamps; on a
+             phone the hero spans the strip and the side takes half of it.
+             The three cut-outs are 620-640px originals of 25-32 KB drawn at
+             about 200px: already the 2x file, with nothing to gain. -->
         <div class="shop__art" aria-hidden="true">
           <div class="shop__frame shop__frame--photo shop__frame--hero">
             <img class="shop__img" src="/assets/store/store-hero.webp" width="1400"
-              height="1820" alt="" loading="lazy" decoding="async" />
+              height="1820" alt=""
+              srcset="/assets/store/store-hero-768.webp 768w, /assets/store/store-hero.webp 1400w"
+              sizes="(min-width: 992px) 39.93vw, calc(100vw - 40px)"
+              loading="lazy" decoding="async" />
           </div>
           <div class="shop__frame shop__frame--photo shop__frame--side">
             <img class="shop__img" src="/assets/store/store-side.webp" width="900"
-              height="1170" alt="" loading="lazy" decoding="async" />
+              height="1170" alt=""
+              srcset="/assets/store/store-side-480.webp 480w, /assets/store/store-side.webp 900w"
+              sizes="(min-width: 992px) 23.15vw, calc(50vw - 28px)"
+              loading="lazy" decoding="async" />
           </div>
           <div class="shop__frame shop__frame--cutout shop__frame--print">
             <img class="shop__img" src="/assets/store/store-print.webp" width="620"

@@ -411,6 +411,27 @@ function mountInertLinks(): void {
 }
 
 /* ------------------------------------------------------------------ *
+ * Target size
+ *
+ * The small links that chrome.css gives a 24px hit box are also line-reveal
+ * targets, and the reveal's resting clip, inset(-0.25em 0), is on the link
+ * itself, so it trims the hit box back to the link's own width. Once a link's
+ * reveal has finished — its bar is the last thing to move — it takes the
+ * reveal's settled state, `.is-done`, which drops the clip and looks exactly
+ * like the end of the reveal. One delegated listener for all of them.
+ * ------------------------------------------------------------------ */
+
+const TARGET_SIZE_LINKS = '.socials__links a, .footer__link, .footer__store';
+
+function mountTargetSize(): void {
+  document.addEventListener('animationend', (event) => {
+    if (event.animationName !== 'bar-retract' || event.pseudoElement !== '::after') return;
+    const link = event.target as Element;
+    if (link.matches(TARGET_SIZE_LINKS)) link.classList.add('is-done');
+  });
+}
+
+/* ------------------------------------------------------------------ *
  * Nav settle
  *
  * The reference sets its brand and its button pair to scale 1.2 at the top of
@@ -627,6 +648,7 @@ export function mountChrome(): void {
   // Inert links first: the transition skips any click already prevented, so
   // the placeholder links' listener has to be registered before its own.
   mountInertLinks();
+  mountTargetSize();
   markCurrentPage();
   mountTransition({ closeMenu: () => closeMenu() });
   mountScrollIndicator();

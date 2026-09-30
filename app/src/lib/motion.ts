@@ -35,4 +35,18 @@ export const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)
 export const mm = gsap.matchMedia();
 export const WIDE_AND_ANIMATED = '(min-width: 992px) and (prefers-reduced-motion: no-preference)';
 
+/*
+ * A timeline's ScrollTrigger never takes `once: true`.
+ *
+ * A trigger attached to a timeline puts off its first refresh by a tick, and
+ * any trigger created before that tick refreshes it early, from inside its own
+ * refresh. With the page already scrolled past (a reload restores the scroll,
+ * as the reference's does; a resize across 992px re-runs `mm` mid-page), that
+ * early refresh plays it and `once` kills it there -- and when several go in
+ * one pass, ScrollTrigger reads past the end of its trigger list and throws
+ * ("reading 'end'"), stopping the page script. The default toggleActions,
+ * "play none none none", already play it the once; nothing else is needed.
+ * Tweens and bare triggers refresh at once and may keep `once`.
+ */
+
 export { gsap, ScrollTrigger, MorphSVGPlugin };
