@@ -378,9 +378,11 @@ function p1Scribble(): SVGSVGElement {
 
 
 /**
- * The hooked arrow on the schedule buttons, and its hover: the reference's
- * `btn-ui` Rive (artboard `arrow`, animation `arrows`, 90 frames at 60fps),
- * timed off its own file frame by frame.
+ * The hooked arrow on the schedule buttons and the round panel's next and
+ * previous arrows, and its hover: the reference's `btn-ui` Rive (artboard
+ * `arrow`, animation `arrows`, 90 frames at 60fps), timed off its own file
+ * frame by frame. The reference plays the one file on all of them, the
+ * previous arrow turned half round.
  *
  * One cycle is 1.5s. The body -- tail, turn and shaft -- rubs out from the
  * tail forward (frames 4-38); the head's two arms draw back into their point
@@ -410,7 +412,17 @@ function mountArrowCycle(button: HTMLElement, icon: SVGSVGElement): void {
   const bodyOut = part(BODY);
   const bodyIn = part(BODY);
   const arms = [part('M19.5 9L15 4.5'), part('M19.5 9L15 13.5')];
-  icon.replaceChildren(bodyOut, bodyIn, ...arms);
+  /* An arrow turned in the markup (the panel's previous) keeps its turn: the
+     parts go in a group that carries it. */
+  const turn = icon.querySelector('path')?.getAttribute('transform');
+  if (turn) {
+    const group = document.createElementNS(SVG_NS, 'g');
+    group.setAttribute('transform', turn);
+    group.append(bodyOut, bodyIn, ...arms);
+    icon.replaceChildren(group);
+  } else {
+    icon.replaceChildren(bodyOut, bodyIn, ...arms);
+  }
 
   const bodyLength = bodyOut.getTotalLength();
   const armLength = arms[0]?.getTotalLength() ?? 0;
@@ -2048,12 +2060,13 @@ function mountCountdown(section: HTMLElement): void {
   }
 }
 
-/* The schedule buttons' hooked arrow cycles while hovered or focused, as the
-   reference's Rive arrow does -- see mountArrowCycle. It is aria-hidden
-   decoration; under reduced motion it stays still. */
+/* The hooked arrow on the schedule buttons and the panel's next and previous
+   arrows cycles while hovered or focused, as the reference's Rive arrow does
+   -- see mountArrowCycle. It is aria-hidden decoration; under reduced motion
+   it stays still. */
 if (!reducedMotion) {
-  for (const button of document.querySelectorAll<HTMLElement>('.ot-cal__btn')) {
-    const icon = button.querySelector<SVGSVGElement>('.ot-cal__btn-icon');
+  for (const button of document.querySelectorAll<HTMLElement>('.ot-cal__btn, .ot-cal__ctrl')) {
+    const icon = button.querySelector<SVGSVGElement>('.ot-cal__btn-icon, .ot-cal__ctrl-icon');
     if (icon) mountArrowCycle(button, icon);
   }
 }
