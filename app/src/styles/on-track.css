@@ -2412,8 +2412,8 @@ body[data-page='on-track'] {
   --g: calc(var(--u) * 1.25);
   position: relative;
   z-index: 1;
-  /* The tilted circuit is wider than the panel, as the reference's full-bleed
-     scene is; the screen's edge is where it stops. */
+  /* The card that follows the pointer over the rows runs past the screen's
+     right edge from the last columns; the edge is where it stops. */
   overflow-x: clip;
   background: var(--bg);
   color: var(--text);
@@ -2719,32 +2719,18 @@ body[data-page='on-track'] {
 
 /* --------------------------------------------------- Circuit and marks */
 
+/* The 3D map (lib/track3d.ts, track3d.css) in the reference's
+   `.calendar-track-gl-target` box: the lower 80% of the panel, 5% in from
+   each side, under the frame. It takes drags, which spin it, so unlike the
+   flat outlines elsewhere on the page it is not pointer-transparent. */
 .ot-cal__track {
   position: absolute;
   inset: 20% 5% 0;
   z-index: 0;
-  pointer-events: none;
-  perspective: calc(var(--u) * 90);
-}
-
-/* The reference lays a 3D model of the circuit under a tilted camera, turning
-   slowly, with a bloom. Ours is the outline file's drawing, which turns on its
-   own, laid back to the same tilt and footprint (about two-thirds of the
-   panel's width) and given the glow as a filter after the ink matrix. */
-.ot-cal__track .circuit-canvas {
-  display: block;
-  inline-size: 100%;
-  block-size: 100%;
-  transform: translateY(-9%) rotateX(60deg) scale(1.1);
-  transform-origin: 50% 55%;
-  filter: url('#circuit-on-dark')
-    drop-shadow(0 0 calc(var(--u) * 0.375) color-mix(in srgb, var(--giallo-modena) 70%, transparent))
-    drop-shadow(0 0 calc(var(--u) * 1.5) color-mix(in srgb, var(--giallo-modena) 30%, transparent));
 }
 
 /* A round the circuit file has no shape for shows no shape, rather than the
    last round's. */
-.ot-cal__track.is-empty .circuit-canvas,
 .ot-cal__card-shape.is-empty .circuit-canvas {
   opacity: 0;
 }
