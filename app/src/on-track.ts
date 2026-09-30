@@ -1254,8 +1254,8 @@ if (trackWord && scriptWord && crest && signHost) {
  * podium set is supplied.
  *
  * The 768px renditions, not the originals: the photo is 20.6rem wide, at most
- * 366px, so 768 covers a 2x screen, and the ten of them cost a third of what
- * the originals did.
+ * 366px, so 768 covers a 2x screen, and the ten of them weigh 786 KB against
+ * the originals' 1.68 MB.
  * ------------------------------------------------------------------ */
 
 const PODIUM_PHOTOS = Array.from(
