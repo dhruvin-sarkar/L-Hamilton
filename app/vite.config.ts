@@ -45,7 +45,9 @@ if (currentSeason === undefined) throw new Error('[head] the season calendar is 
  * them empty, and a typed number goes stale on a championship Sunday. So they
  * are filled here, at build time and on every dev request, from the same
  * values the pages bind in their bodies (main.ts, on-track.ts). Figures inside
- * a sentence are spelled, as the pages spell them.
+ * a sentence are spelled, as the pages spell them. The Calendar's hidden
+ * schedule heading reads `season` too, so its outline names the year before
+ * any script runs.
  *
  * Every token must be one of these; anything else stops the build.
  */
