@@ -91,8 +91,10 @@
                   <div class="oft-hero__para-w">
                     <!-- Third-person site copy, never a quote. Filled from
                          src/content/off-track.ts, where each claim carries its
-                         source. -->
-                    <h2 class="oft-hero__para reveal-text" data-reveal-rich data-hero-lead>&mdash;</h2>
+                         source. A paragraph, not a heading: a 30-word sentence
+                         in a screen reader's list of headings names nothing,
+                         and On Track's matching paragraph is a <p> too. -->
+                    <p class="oft-hero__para reveal-text" data-reveal-rich data-hero-lead>&mdash;</p>
                   </div>
                   <div class="oft-hero__sign" aria-hidden="true"></div>
                 </div>
@@ -117,7 +119,15 @@
                    lifts it out into the group for the flight. -->
               <div class="oft-hero__img-slot">
                 <div class="oft-hero__img-w" data-flight-stop="1">
-                  <div class="oft-flight" data-flight aria-hidden="true"></div>
+                  <!-- The first picture is in the served HTML, not built by
+                       off-track.ts, because it is the page's largest paint:
+                       written by script it was not requested until the
+                       module had run, seconds in on a phone. It must be
+                       hero.flight[0] in src/content/off-track.ts, and
+                       off-track.ts throws if the two drift apart. -->
+                  <div class="oft-flight" data-flight aria-hidden="true"><img
+                      class="oft-flight__layer" src="/assets/otot/off-track.webp" width="1115"
+                      height="1600" alt="" decoding="async" fetchpriority="high" /></div>
                 </div>
               </div>
             </div>

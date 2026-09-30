@@ -41,7 +41,7 @@ import type { CalendarRound, RoundResult } from '../content/live-stats';
 import { countryName, flagUrl } from '../content/countries';
 import { circuitFacts, formatKm } from '../content/circuit-facts';
 import { roundPhoto } from '../content/calendar-media';
-import { mountTrackMap } from '../lib/track3d';
+import type { TrackMap } from '../lib/track3d';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -223,19 +223,28 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
 
   /* ------------------------------------------------------ Swap targets */
 
-  /** Wraps a value in its clip and bar. Closed until the panel arrives. */
-  const wrap = (target: Element): void => {
-    const clip = el('div', 'ot-cal__t');
-    const bar = el('div', 'ot-cal__t-bar');
-    target.before(clip);
-    clip.append(target, bar);
-    if (!reducedMotion) {
-      gsap.set(clip, { clipPath: 'inset(0 100% 0 0)' });
-      gsap.set(bar, { scaleX: 1 });
+  /** Wraps each value in its clip and bar, closed until the panel arrives.
+      All the wrapping first, then one set over the clips and one over the
+      bars: a set per value, between insertions, made gsap read styles the
+      insertion had just invalidated -- a forced style recalculation per
+      value, 312ms of the page's start on a 4x-throttled phone. */
+  const wrap = (targets: Iterable<Element>): void => {
+    const made: { clips: HTMLElement[]; bars: HTMLElement[] } = { clips: [], bars: [] };
+    for (const target of targets) {
+      const clip = el('div', 'ot-cal__t');
+      const bar = el('div', 'ot-cal__t-bar');
+      target.before(clip);
+      clip.append(target, bar);
+      made.clips.push(clip);
+      made.bars.push(bar);
+    }
+    if (!reducedMotion && made.clips.length) {
+      gsap.set(made.clips, { clipPath: 'inset(0 100% 0 0)' });
+      gsap.set(made.bars, { scaleX: 1 });
     }
   };
 
-  for (const target of panel.querySelectorAll('[data-cal-target]')) wrap(target);
+  wrap(panel.querySelectorAll('[data-cal-target]'));
 
   const clips = (): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('.ot-cal__t')];
   const bars = (): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('.ot-cal__t-bar')];
@@ -243,8 +252,40 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
   /* ------------------------------------------------ Track visualiser */
 
   /* Every change of round turns the map forward, arrows or rows alike -- the
-     reference's calendar sets its circuit the one way. */
-  const map = mountTrackMap(glHost, roundAt(current).circuitId);
+     reference's calendar sets its circuit the one way.
+
+     The map is the page's one WebGL scene, and three.js is most of the page's
+     script. Both wait: the module is fetched and the map mounted once the
+     document has loaded (the loader panel covers the page until then, so the
+     map is up before the page is shown) and the panel is within a screen of
+     the viewport. Neither stands between the reader and the first paint, and
+     a phone that never scrolls to the panel never builds a context. Until it
+     mounts, a change of round only records the circuit; the map opens on it. */
+  let map: TrackMap | null = null;
+  let mapCircuit = roundAt(current).circuitId;
+  const showOnMap = (circuitId: string): void => {
+    mapCircuit = circuitId;
+    map?.show(circuitId);
+  };
+
+  const loaded = new Promise<void>((resolve) => {
+    if (document.readyState === 'complete') resolve();
+    else window.addEventListener('load', () => resolve(), { once: true });
+  });
+  const approach = new IntersectionObserver(
+    ([entry]) => {
+      if (!entry?.isIntersecting) return;
+      approach.disconnect();
+      void loaded
+        .then(() => import('../lib/track3d'))
+        .then(({ mountTrackMap }) => {
+          map = mountTrackMap(glHost, mapCircuit);
+        })
+        .catch((error: unknown) => console.error('[calendar] the track map did not load', error));
+    },
+    { rootMargin: '100% 0px' },
+  );
+  approach.observe(glHost);
 
   /* ------------------------------------------------------ The values */
 
@@ -303,6 +344,7 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
     note.hidden = Boolean(result);
 
     sessionsHost.replaceChildren();
+    const rows: HTMLElement[] = [];
     for (const { kind, label, session } of weekendSessions(round)) {
       const race = kind === 'race';
       const row = el('p', race ? 'ot-cal__session ot-cal__session--race' : 'ot-cal__session');
@@ -318,8 +360,9 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
         );
       }
       sessionsHost.appendChild(row);
-      wrap(row);
+      rows.push(row);
     }
+    wrap(rows);
   };
 
   /* ----------------------------------------------------------- Rows */
@@ -353,6 +396,10 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
     flag.alt = '';
     flag.width = 34;
     flag.height = 23;
+    /* The lists sit below the panel: their flags are not the first screen's,
+       and fetched eagerly they held the load event -- and so the loader's
+       reveal -- behind two dozen requests. */
+    flag.loading = 'lazy';
     location.appendChild(flag);
 
     let label: string;
@@ -448,7 +495,7 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
   const show = (index: number, announce: boolean): void => {
     current = index;
     const round = roundAt(index);
-    map.show(round.circuitId);
+    showOnMap(round.circuitId);
     markActive();
     if (announce) live.textContent = `Showing round ${round.round}, the ${round.raceName}.`;
 
