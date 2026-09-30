@@ -73,18 +73,32 @@ export function mountGalleryScroll(opts: GalleryScrollOptions = {}): void {
   const scrub = opts.scrub ?? true;
 
   mm.add(WIDE_AND_ANIMATED, () => {
-    /** Every photo, with the frame it slides inside. Resolved once. */
+    /**
+     * Every photo, with the frame it slides inside. Resolved once.
+     *
+     * `left` and `width` are the frame's box with the track at rest (no
+     * --gallery-x), measured in `measure`. Nothing moves a frame sideways between
+     * two refreshes except the track's own translation — the frames carry no
+     * transform, their widths are set in CSS, and the section's vertical travel
+     * does not touch x — so a frame's left edge on screen is always
+     * `left + shift`, and `pan` can compute it rather than ask for it.
+     */
     const panes = [...track.querySelectorAll<HTMLElement>('.gallery__frame')].map(
-      (frame) => ({ frame, img: frame.querySelector('img') }),
+      (frame) => ({ frame, img: frame.querySelector('img'), left: 0, width: 0 }),
     );
 
     /** How far the track has to travel: everything past one screenful. */
     let travel = 0;
+    /** The viewport width the panes were measured against. */
+    let vw = window.innerWidth;
+    /** The track's translation, in px, as `draw` last wrote it to --gallery-x. */
+    let shift = 0;
 
     /* Run on refreshInit, BEFORE ScrollTrigger measures its start and end: the
        height written here is what those are measured against. */
     const measure = (): void => {
-      travel = Math.max(0, track.scrollWidth - window.innerWidth);
+      vw = window.innerWidth;
+      travel = Math.max(0, track.scrollWidth - vw);
       /* `pinned`: travel PLUS one screen, and the screenful is the load-bearing
        * part. .gallery__pin is `sticky; top: 0`, so it only begins to hold once
        * the section's top edge reaches y=0 — and it lets go once the section's
@@ -98,6 +112,15 @@ export function mountGalleryScroll(opts: GalleryScrollOptions = {}): void {
        * a screen earlier than the pin does. */
       const height = start === 'pinned' ? travel + window.innerHeight : travel;
       gallery.style.height = `${height}px`;
+
+      /* Read AFTER the height write, so the boxes are the layout ScrollTrigger
+         is about to measure too. The boxes include the track's current
+         translation, which is taken back out. */
+      for (const pane of panes) {
+        const box = pane.frame.getBoundingClientRect();
+        pane.left = box.left - shift;
+        pane.width = box.width;
+      }
     };
 
     /**
@@ -108,13 +131,16 @@ export function mountGalleryScroll(opts: GalleryScrollOptions = {}): void {
      * frames of different widths travel the same 4rem at different rates. The
      * reference's formula, on its containerAnimation trigger: "left right" to
      * "right left" of the item. Which WAY the photo moves is the stylesheet's.
+     *
+     * Arithmetic only, from the boxes `measure` cached. Asking each frame for
+     * its box here, as this used to, forced a style and layout pass per photo
+     * per frame: the --gallery-x write just before invalidated the track, and
+     * every --pan write invalidated it again for the next read.
      */
     const pan = (): void => {
-      const vw = window.innerWidth;
-      for (const { frame, img } of panes) {
+      for (const { img, left, width } of panes) {
         if (!img) continue;
-        const box = frame.getBoundingClientRect();
-        const t = (vw - box.left) / (vw + box.width);
+        const t = (vw - (left + shift)) / (vw + width);
         img.style.setProperty('--pan', String(gsap.utils.clamp(0, 1, t)));
       }
     };
@@ -124,7 +150,8 @@ export function mountGalleryScroll(opts: GalleryScrollOptions = {}): void {
        value is what the track should show. */
     const progress = { value: 0 };
     const draw = (): void => {
-      track.style.setProperty('--gallery-x', `${-travel * progress.value}px`);
+      shift = -travel * progress.value;
+      track.style.setProperty('--gallery-x', `${shift}px`);
       pan();
     };
 
