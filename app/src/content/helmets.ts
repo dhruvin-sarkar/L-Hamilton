@@ -111,9 +111,16 @@ const byId: readonly Helmet[] = [
      yellow lid with his "LH" mark on the blue band and no Steinmetz; nothing
      found so far dates that drawing to the 2007 lid the reveal shows. */
   { id: 3, name: null, year: null },
-  /* Null: the two pictures are different lids. The reveal's crown is the Union
-     flag tearing through the yellow; the helmet's crown is plain yellow with a
-     line of diamonds along it, the mark of a Monaco lid. */
+  /* Null, and no remapping fixes it: the two pictures are different lids, and
+     no helmet shot in the set shows the reveal's. The reveal is the 2009
+     British GP lid, which its painter posted as "a Union Jack flag on the top,
+     showing through a 'torn' section in the yellow" (JLF Designs, 24 June 2009,
+     http://jlfdesigns.blogspot.com/2009/06/for-british-gp-we-added-patriotic-touch.html).
+     The helmet's crown is plain yellow with a line of diamonds along it, which
+     makes it one of the Steinmetz diamond lids McLaren ran at Monaco. Its white
+     Vodafone halo rules out 2009, whose halo the painter made "a prismatic
+     silver ... to match the Steinmetz diamonds"; between 2007 and 2008 nothing
+     better than a replica maker's catalogue decides, so it is not dated. */
   { id: 2, name: null, year: null },
   /* Roulette wheel across the crown, in both pictures: the helmet shot is the
      file HELMET_FILE points 1 at. formula1.com names the race. The painter,
