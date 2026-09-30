@@ -1,8 +1,5 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { uploadAcrossFrames } from './lib/upload';
 
 /**
  * The helmet, as one object shared by every scene that draws it: the flight
@@ -11,6 +8,9 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
  * One loader, one set of materials, one light. The two scenes differ only in
  * where they put the helmet and what they do with it, so everything that makes
  * it look like this helmet lives here and nowhere else.
+ *
+ * The loaders are imported on demand, not up front: neither page needs them
+ * until the helmet is asked for, which is after its first paint.
  */
 
 /**
@@ -21,28 +21,15 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
  * empty 204 and GLTFLoader fails with "Failed to load buffer", while curl and a
  * cache-busted URL both succeed. A .glb is one request served as
  * model/gltf-binary, which those tools leave alone.
+ *
+ * Baked by tools/bake-helmet.mjs: the supplied model's purple decal layer is
+ * already gone, and what is left arrives as one mesh per material -- the shell
+ * and the fins, UV-mapped to the black-and-gold sheets below, and the parts
+ * both liveries share (visor, seals, vents, visor pivots) in flat colour.
  */
 const HELMET_URL = '/assets/helmet/helmet.glb';
 const DRACO_PATH = '/assets/draco/';
 const MAPS = '/assets/helmet/textures/';
-
-/**
- * The file carries two liveries. Its own 300-odd flat-coloured decal meshes
- * make a purple one; underneath them, the bare shell (`__DEFAULT`) is UV-mapped
- * to the black-and-gold sheet supplied with it, and the fins to its wing sheet.
- * The black and gold is the one drawn -- the nearest thing this helmet has to
- * the reference's gold-and-black chrome -- so only the shell, the fins and the
- * parts both liveries share are kept: visor, seals, vents and the visor pivots.
- * Everything else is the purple decal layer, left out.
- */
-const SHARED_PARTS = new Set([
-  'Nuovo materiale 001', // the visor
-  'NERO GUARNIZ', // visor and neck seals
-  'NERO PLATIC', // vents
-  'ORO', // visor pivot hardware
-  'GRIG METALLO',
-  'VIOLA METALLO',
-]);
 
 /**
  * Authored Z-up with the face on -y. -90 degrees about X is the single rotation
@@ -53,9 +40,9 @@ export const HELMET_UPRIGHT = new THREE.Euler(-Math.PI / 2, 0, 0);
 
 export interface HelmetModel {
   /**
-   * Every kept part, merged by material into a handful of meshes and centred
-   * on the centre of its bounds. Still in AUTHORED axes (z up, face on -y):
-   * orient it with HELMET_UPRIGHT on a parent.
+   * The helmet, one mesh per distinct material, centred on the centre of its
+   * bounds. Still in AUTHORED axes (z up, face on -y): orient it with
+   * HELMET_UPRIGHT on a parent.
    */
   readonly merged: THREE.Group;
   /** Size of the bounds, in authored axes. */
@@ -71,7 +58,8 @@ export interface HelmetModel {
  * The reference lights its helmet with an HDRI of its own; that file is its
  * artwork and not ours to ship, so this is three's procedural room instead.
  */
-export function createStudioEnvironment(renderer: THREE.WebGLRenderer): THREE.Texture {
+export async function createStudioEnvironment(renderer: THREE.WebGLRenderer): Promise<THREE.Texture> {
+  const { RoomEnvironment } = await import('three/examples/jsm/environments/RoomEnvironment.js');
   const pmrem = new THREE.PMREMGenerator(renderer);
   const room = new RoomEnvironment();
   const texture = pmrem.fromScene(room, 0.04).texture;
@@ -80,97 +68,71 @@ export function createStudioEnvironment(renderer: THREE.WebGLRenderer): THREE.Te
   return texture;
 }
 
-/**
- * Load the helmet and build its materials.
- *
- * 470 meshes arrive and are merged by material into one mesh per distinct
- * look, because 470 draw calls cost more than the rest of either scene put
- * together. Each part's world transform is baked into its vertices first --
- * merging throws the scene graph away, and a part that does not carry its own
- * placement collapses onto the origin.
- */
+/** Load the helmet and give it its materials. */
 export async function loadHelmetModel(renderer: THREE.WebGLRenderer): Promise<HelmetModel> {
+  const [{ GLTFLoader }, { DRACOLoader }] = await Promise.all([
+    import('three/examples/jsm/loaders/GLTFLoader.js'),
+    import('three/examples/jsm/loaders/DRACOLoader.js'),
+  ]);
   const loader = new GLTFLoader();
   const draco = new DRACOLoader();
   draco.setDecoderPath(DRACO_PATH);
   loader.setDRACOLoader(draco);
-  const gltf = await loader.loadAsync(HELMET_URL);
-  // The decoder holds a worker pool, and nothing else on either page is Draco.
-  draco.dispose();
 
   const textures = new THREE.TextureLoader();
-  const sheet = (file: string): THREE.Texture => {
-    const tex = textures.load(`${MAPS}${file}`);
-    tex.flipY = false; // glTF UVs start top-left
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-    return tex;
-  };
+  const sheet = (file: string): Promise<THREE.Texture> =>
+    textures.loadAsync(`${MAPS}${file}`).then((tex) => {
+      tex.flipY = false; // glTF UVs start top-left
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+      return tex;
+    });
+
+  // Model and sheets download together; the sheets then go up a frame apiece.
+  const [gltf, helmetSheet, wingSheet] = await Promise.all([
+    loader.loadAsync(HELMET_URL),
+    sheet('helmet_d.webp'),
+    sheet('wing_d.webp'),
+  ]);
+  // The decoder holds a worker pool, and nothing else on either page is Draco.
+  draco.dispose();
+  await uploadAcrossFrames(renderer, [helmetSheet, wingSheet]);
+
   const sheets: Readonly<Record<string, THREE.Texture>> = {
-    __DEFAULT: sheet('helmet_d.webp'),
-    ALETTE: sheet('wing_d.webp'),
+    __DEFAULT: helmetSheet,
+    ALETTE: wingSheet,
   };
-
-  const source = gltf.scene;
-  source.updateMatrixWorld(true);
-  const buckets = new Map<string, { material: THREE.Material; parts: THREE.BufferGeometry[] }>();
-
-  source.traverse((child) => {
-    const mesh = child as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    const from = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as
-      | THREE.MeshStandardMaterial
-      | undefined;
-    const name = from?.name ?? '';
-    const map = sheets[name] ?? null;
-    if (!map && !SHARED_PARTS.has(name)) return; // the purple decal layer
-
-    const colour = from?.color?.clone() ?? new THREE.Color(0x8a8a8a);
-    // A painted sheet is paint: opaque, whatever alpha its flat colour had.
-    const opacity = map ? 1 : (from?.opacity ?? 1);
-    const key = `${colour.getHexString()}|${opacity}|${map ? map.uuid : '-'}`;
-
-    let bucket = buckets.get(key);
-    if (!bucket) {
-      /* Lacquered paint: gold ink that catches the light as metal does, over a
-         black that only the clearcoat reflects -- so the environment slides
-         across the helmet as it moves, which is what makes the shape legible. */
-      const material = new THREE.MeshPhysicalMaterial({
-        color: map ? 0xffffff : colour,
-        map,
-        metalness: map ? 0.5 : 0.4,
-        roughness: map ? 0.18 : 0.2,
-        clearcoat: 1,
-        clearcoatRoughness: 0.04,
-        envMapIntensity: 1.5,
-        transparent: opacity < 1,
-        opacity,
-        side: THREE.DoubleSide,
-      });
-      bucket = { material, parts: [] };
-      buckets.set(key, bucket);
-    }
-    bucket.parts.push(mesh.geometry.clone().applyMatrix4(mesh.matrixWorld));
-  });
-  // The loader's own copies, decal layer included, are finished with.
-  source.traverse((child) => {
-    const mesh = child as THREE.Mesh;
-    if (!mesh.isMesh) return;
-    mesh.geometry.dispose();
-    (mesh.material as THREE.Material).dispose();
-  });
 
   const merged = new THREE.Group();
-  for (const { material, parts } of buckets.values()) {
-    const geometry = mergeGeometries(parts, false);
-    for (const g of parts) g.dispose();
-    // Fail loudly: a silent skip would drop part of the shell and read as a
-    // modelling fault rather than a merge fault.
-    if (!geometry) throw new Error('[helmet] merge failed -- mismatched vertex attributes');
-    const mesh = new THREE.Mesh(geometry, material);
+  const meshes: THREE.Mesh[] = [];
+  gltf.scene.traverse((child) => {
+    if ((child as THREE.Mesh).isMesh) meshes.push(child as THREE.Mesh);
+  });
+  for (const mesh of meshes) {
+    const from = mesh.material as THREE.MeshStandardMaterial;
+    const map = sheets[from.name] ?? null;
+    // A painted sheet is paint: opaque, whatever alpha its flat colour had.
+    const opacity = map ? 1 : from.opacity;
+    /* Lacquered paint: gold ink that catches the light as metal does, over a
+       black that only the clearcoat reflects -- so the environment slides
+       across the helmet as it moves, which is what makes the shape legible. */
+    const material = new THREE.MeshPhysicalMaterial({
+      color: map ? 0xffffff : from.color,
+      map,
+      metalness: map ? 0.5 : 0.4,
+      roughness: map ? 0.18 : 0.2,
+      clearcoat: 1,
+      clearcoatRoughness: 0.04,
+      envMapIntensity: 1.5,
+      transparent: opacity < 1,
+      opacity,
+      side: THREE.DoubleSide,
+    });
+    from.dispose();
+    const part = new THREE.Mesh(mesh.geometry, material);
     // See-through parts after the opaque shell, or the fins hide what is behind them.
-    mesh.renderOrder = material.transparent ? 1 : 0;
-    merged.add(mesh);
+    part.renderOrder = material.transparent ? 1 : 0;
+    merged.add(part);
   }
 
   const box = new THREE.Box3().setFromObject(merged);

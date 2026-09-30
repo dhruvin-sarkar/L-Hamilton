@@ -14,6 +14,7 @@
  * or vice versa, is fine.
  */
 
+import { glintCrest } from './crest-glint';
 import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './motion';
 import { mountTransition } from './transition';
 
@@ -876,7 +877,14 @@ export function mountChrome(): void {
         paint();
         reveal.to(
           draw,
-          { input: 1000, ...MENU_REVEAL.crest.tween, onUpdate: paint },
+          {
+            input: 1000,
+            ...MENU_REVEAL.crest.tween,
+            onUpdate: paint,
+            // Drawn, its metal catches the light once (lib/crest-glint.ts).
+            // Forward only: closing runs this backwards and never completes it.
+            onComplete: () => glintCrest(crest),
+          },
           MENU_REVEAL.crest.at,
         );
       }

@@ -13,6 +13,7 @@ import { mountFooterMarquee, mountMarquee } from './lib/marquee';
 import { mountHomeInk } from './lib/home-ink';
 import { cssRGB, hexRGB, legibleOn, mixRGB, toLinear, type RGB } from './lib/legible';
 import { mountReveals } from './lib/reveal';
+import { GLLayer } from './lib/gl-layers';
 import {
   mountCalloutCrest,
   mountHelmets,
@@ -23,9 +24,10 @@ import {
 } from './lib/showcase';
 import { BackgroundField } from './BackgroundField';
 import { HeadScene } from './HeadScene';
-import { Signature } from './Signature';
+import { Signature, signatureTrace } from './Signature';
 import { age, driver, eras, seasonsRacing } from './content/hamilton';
 import { nextRound } from './content/live-stats';
+import { isHeroBand } from './content/home';
 import { PARTNERS } from './content/partners';
 
 /** The era he is in now — the one with no end date. */
@@ -43,7 +45,6 @@ declare global {
       head: HeadScene;
       renderer: THREE.WebGLRenderer;
       background: BackgroundField | null;
-      bgRenderer: THREE.WebGLRenderer | null;
       ScrollTrigger: typeof ScrollTrigger;
       lenis: Lenis | null;
     };
@@ -336,9 +337,10 @@ function el<K extends keyof HTMLElementTagNameMap>(
 /* ------------------------------------------------------------------ *
  * Marquee
  *
- * Two counter-scrolling bands behind the plate. The copy is placeholder and
- * defined below rather than in the markup, so the visible text and the
- * screen-reader line cannot drift apart.
+ * Two counter-scrolling bands behind the plate. The copy is in
+ * content/home.ts, and the build sets one copy of each band — and the line a
+ * screen reader gets — into the served HTML, so the bands paint with the
+ * document instead of waiting on this script. What is left here is the loop.
  * ------------------------------------------------------------------ */
 
 /** Copies per track when the track cannot be measured. See the build below. */
@@ -346,23 +348,6 @@ const MARQUEE_FALLBACK_COPIES = 4;
 
 const marquee = document.querySelector<HTMLElement>('.hero-back');
 if (marquee) {
-  /* The band labels the narrative that follows, which is what the reference's
-     own band does — it reads "MESSAGE FROM LANDO" over the same moment.
-     Third person on purpose: CLAUDE.md forbids putting words in Hamilton's
-     mouth, so this is site copy introducing him, never something he said.
-     No figures here either — every number on this page comes from the data
-     layer, and a championship count baked into a graphic surface would be the
-     one place it could silently go stale.
-     "From Stevenage to Maranello" is the only concrete claim and both ends of
-     it are matters of record. The loop measures itself, so length is free. */
-  const BANDS = {
-    left: ['The story so far', 'On and off the track'],
-    right: ['From Stevenage to Maranello', 'Still writing it'],
-  } as const;
-
-  type BandName = keyof typeof BANDS;
-  const isBandName = (v: string | undefined): v is BandName => v === 'left' || v === 'right';
-
   /* Built here, animated further down once the reduced-motion branch is known.
      Carrying the copy count in a local rather than round-tripping it through a
      data attribute: a missing attribute would silently fall back to a different
@@ -372,29 +357,22 @@ if (marquee) {
   for (const row of marquee.querySelectorAll<HTMLElement>('[data-marquee]')) {
     const name = row.dataset.marquee;
     /* Skip rather than guess. A row whose data-marquee does not name a band is
-       markup drifting away from this file, and quietly falling back to the left
-       band would render the wrong copy in the right colour. */
-    if (!isBandName(name)) continue;
-    const words = BANDS[name];
+       markup drifting away from the content module; the build has already
+       refused to set copy for one. */
+    if (!isHeroBand(name)) continue;
     const track = row.querySelector<HTMLElement>('[data-marquee-track]');
     if (!track) continue;
+    const first = track.querySelector<HTMLElement>('.marquee__item');
+    if (!first) throw new Error(`[hero] the "${name}" marquee band is missing from the served page`);
 
     /* Identical copies side by side. The loop shifts by exactly one of them, so
        copy 2 lands where copy 1 was and the seam is invisible — one copy is the
        pattern's period and the only distance that keeps its phase.
      *
-     * Build one, measure it, then take only as many as the shift needs:
-     * copyWidth * (copies - 1) >= viewport. A fixed count overshoots badly —
-     * four copies of this text made a 14,535px composited layer.
-     *
-     * One run of words per copy with a trailing space, no glyph between the
-     * phrases: the reference's band is a single string (TEXT + " ") and its
-     * copies are parted only by that space and the seam gap in CSS. */
-    const addCopy = () => {
-      track.append(el('span', 'marquee__item', `${words.join(' ')} `));
-    };
-
-    addCopy();
+     * The served copy is measured, then only as many more are added as the
+     * shift needs: copyWidth * (copies - 1) >= viewport. A fixed count
+     * overshoots badly — four copies of this text made a 14,535px composited
+     * layer. */
     const copyWidth = track.scrollWidth;
     /* +1 for the copy that gets shifted out, and never fewer than two — with a
        single copy there is no second one to hand over to at the seam. */
@@ -402,21 +380,9 @@ if (marquee) {
       copyWidth > 0
         ? Math.max(2, Math.ceil(row.clientWidth / copyWidth) + 1)
         : MARQUEE_FALLBACK_COPIES;
-    for (let i = 1; i < copies; i++) addCopy();
+    for (let i = 1; i < copies; i++) track.append(first.cloneNode(true));
 
     bands.push({ track, copies, rightward: name === 'right' });
-  }
-
-  /* The visible rows are aria-hidden because they repeat themselves several
-     times over; this is the copy a screen reader actually gets.
-   *
-     It reads the bands back as they are. It used to announce them as "World
-     championships in ..." and "Teams: ...", which was left over from when they
-     carried real data — so a screen reader was being told placeholder strings
-     were career facts while sighted readers saw obvious placeholders. */
-  const marqueeText = document.querySelector<HTMLElement>('#marquee-text');
-  if (marqueeText) {
-    marqueeText.textContent = [...BANDS.left, ...BANDS.right].join('. ') + '.';
   }
 
   if (!reducedMotion) {
@@ -943,25 +909,25 @@ function onReady(fn: () => void): void {
   else readyCallbacks.push(fn);
 }
 
-let sceneReported = false;
-
-/** Release the entrance. Called once the scene has painted, or on a timeout —
- *  and then held until the loader is about to open onto the page, as the
- *  reference's hero cues are, so the entrance plays in view, not under it. */
-function markReady(): void {
-  if (sceneReported) return;
-  sceneReported = true;
-  void whenEntranceCued().then(() => {
-    readyFired = true;
-    document.body.classList.add('is-ready');
-    for (const fn of readyCallbacks) fn();
-    readyCallbacks.length = 0;
-  });
-}
-
-// Backstop: if the WebGL scene never reports in — no GL context, a failed
-// texture — the hero must still appear. Content is never gated on an effect.
-setTimeout(markReady, 1200);
+/* The entrance is released on the loader's cue, just before the panel opens
+   onto the page, as the reference's hero cues are — so it plays in view, not
+   under the panel.
+ *
+ * NOT on the WebGL scene. Waiting for the portrait to paint put the whole
+ * composed page behind the 3D: the furniture, and every line that reveals with
+ * it, held for a texture download and a shader compile. The page is shown
+ * composed and the canvas comes in when it is ready. In practice it is ready
+ * first anyway: its textures load as images, which the load event waits for,
+ * and the loader holds a second past that.
+ *
+ * If this script never runs at all, the inline backstop in index.html's head
+ * lets the furniture in when the panel steps aside by itself. */
+void whenEntranceCued().then(() => {
+  readyFired = true;
+  document.body.classList.add('is-ready');
+  for (const fn of readyCallbacks) fn();
+  readyCallbacks.length = 0;
+});
 
 /* ------------------------------------------------------------------ *
  * Text reveals — the accent bar sweeping across a line.
@@ -1051,11 +1017,16 @@ mountChrome();
 const stage = document.querySelector<HTMLDivElement>('#stage');
 
 if (stage) {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  /* ONE renderer for both GL layers, drawing off-screen and handing each frame
+     to its layer's canvas — see GLLayer. The settings are the hero's, which
+     the field needs nothing different from: its one full-screen quad has no
+     edge for antialiasing to touch, and it writes opaque alpha everywhere. */
+  const offscreen = new OffscreenCanvas(1, 1);
+  const renderer = new THREE.WebGLRenderer({ canvas: offscreen, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.setClearColor(0x000000, 0);
-  stage.appendChild(renderer.domElement);
+  const heroLayer = new GLLayer(stage, false);
 
   /* 1.012, which is 0.88 raised by 15%.
    *
@@ -1067,41 +1038,30 @@ if (stage) {
   const head = new HeadScene(renderer, { subjectScale: 0.88 * 1.15 });
 
   /* The revealed screen behind the plate: the SAME two-pass contour field, in
-     the inverse palette. Its own renderer because the marquee bands sit between
-     the two layers and are DOM text — see BackgroundField for the full note.
+     the inverse palette, drawn by the same renderer onto its own layer because
+     the marquee bands sit between the two and are DOM text — see
+     BackgroundField for the full note.
 
      Skipped entirely under reduced motion. In that mode the hero never shrinks,
-     so the screen behind it is never uncovered, and a second continuously
-     rendering context would burn a frame budget on something no one can see. */
+     so the screen behind it is never uncovered, and drawing it every frame
+     would burn a frame budget on something no one can see. */
   const bgStage = document.querySelector<HTMLDivElement>('#bg-stage');
-  let bgRenderer: THREE.WebGLRenderer | null = null;
+  /* Opaque: this is the bottom layer and paints every pixel, so letting the
+     compositor blend it would only add work. */
+  const bgLayer = bgStage && !reducedMotion ? new GLLayer(bgStage, true) : null;
+  if (bgLayer) background = new BackgroundField(renderer);
 
-  if (bgStage && !reducedMotion) {
-    /* No alpha: this is the bottom layer and paints every pixel, so an alpha
-       buffer only adds a blend the compositor then has to resolve. No antialias
-       either — the scene is one fullscreen quad, and there is no geometry edge
-       for MSAA to find. Neither is a downgrade from the hero; both are settings
-       the hero needs and this does not. */
-    bgRenderer = new THREE.WebGLRenderer({ antialias: false, alpha: false });
-    /* The SAME cap as the hero. This was 1.5, on the reasoning that a field of
-       flat colour needs fewer pixels than a portrait — but the field is thin
-       contour lines, which is exactly what undersampling shows up on, and on a
-       HiDPI display it put softer lines behind a crisply drawn plate. The whole
-       layer costs 0.015ms a frame; there was nothing to save. */
-    bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    // The ELEMENT's box, not the window's. They differ by the scrollbar, and
-    // sizing a canvas to the window inside a narrower element stretches every
-    // pixel horizontally — which on a field of thin contour lines shows up as
-    // the background's topography not quite lining up with the hero's.
-    bgRenderer.setSize(bgStage.clientWidth, bgStage.clientHeight);
-    bgStage.appendChild(bgRenderer.domElement);
-    background = new BackgroundField(bgRenderer);
-  }
-
+  /* Both layers are the same box — 100% by 100dvh, the field fixed and the
+     plate pinned — so one drawing buffer size serves both. The ELEMENT's box,
+     not the window's: they differ by the scrollbar, and a canvas sized to the
+     window inside a narrower element stretches every pixel horizontally, which
+     on thin contour lines shows up as the two fields not lining up. */
   const resize = () => {
-    renderer.setSize(stage.clientWidth, stage.clientHeight);
+    renderer.setSize(stage.clientWidth, stage.clientHeight, false);
+    const { width, height } = offscreen;
+    heroLayer.setSize(width, height);
+    bgLayer?.setSize(width, height);
     head.resize();
-    if (bgStage) bgRenderer?.setSize(bgStage.clientWidth, bgStage.clientHeight);
     background?.resize();
     // Its canvas is sized off the host box, which is sized in vw — so a resize
     // changes it, and the cached ink has to be re-rendered at the new scale.
@@ -1290,11 +1250,7 @@ if (stage) {
   let signature: Signature | null = null;
 
   if (signatureHost && !reducedMotion) {
-    fetch('/assets/brand/signature.svg')
-      .then((res) => {
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        return res.text();
-      })
+    signatureTrace(signatureHost)
       .then((markup) => {
         // The ink colour comes from the cascade rather than from a constant, so
         // the signature stays tied to the palette the rest of the page uses.
@@ -1482,7 +1438,7 @@ if (stage) {
   // lenis too: without it there is no way to put the page at an exact scroll
   // position from the console. window.scrollTo fights the smoothing and the
   // page drifts somewhere else entirely, which makes every measurement a lie.
-  window.hamiltonGL = { head, renderer, background, bgRenderer, ScrollTrigger, lenis };
+  window.hamiltonGL = { head, renderer, background, ScrollTrigger, lenis };
 
   /* Every frame of this scene is a fluid simulation with 20 pressure
      iterations, a two-pass contour field and a Three.js draw. None of it is
@@ -1517,21 +1473,22 @@ if (stage) {
            on values like 1e-7.
          - a backgrounded tab. rAF already throttles hard there, but not always
            to zero, and this is the one pass that now runs the whole page. */
-    if (shrunk > 0.001 && !document.hidden) {
-      background?.update();
-      background?.render();
+    if (background && bgLayer && shrunk > 0.001 && !document.hidden) {
+      background.update();
+      background.render();
+      bgLayer.present(offscreen);
     }
 
     // The portrait is the opposite case: it is a fixed-size plate that leaves
     // the viewport for good, so it stops as soon as it is gone.
     if (!heroVisible) return;
 
-    /* It keeps drawing after it goes inert, though. No preserveDrawingBuffer, so
-       skipping the draw can blank the plate. The saving is inside update(),
-       which returns before the fluid and contour passes; what is left is one
-       textured quad. */
-    head.update();
+    /* Once it has gone inert it is a still picture, drawn again only when
+       something feeding it changes — the layer keeps showing the last frame it
+       was handed. update() says which. */
+    if (!head.update()) return;
     renderer.render(head.scene, head.camera);
+    heroLayer.present(offscreen);
   };
 
   head
@@ -1539,8 +1496,6 @@ if (stage) {
     .then(() => {
       resize();
       frame();
-      // The scene has painted, so the furniture can settle in around it.
-      markReady();
       // Helmet is ~11 MB, so it loads after the hero is already interactive
       // and never blocks it. If it fails the scene is still complete enough to
       // ship — log it, don't take the page down with it.

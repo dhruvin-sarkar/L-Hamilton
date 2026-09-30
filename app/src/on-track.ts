@@ -16,6 +16,7 @@ import './styles/on-track.css';
 import Lenis from 'lenis';
 import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './lib/motion';
 import { mountChrome } from './lib/chrome';
+import { glintCrest, glintCrestOnHover } from './lib/crest-glint';
 import { whenEntranceCued } from './lib/transition';
 import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountGalleryScroll } from './lib/gallery';
@@ -26,7 +27,7 @@ import type { TrackMap } from './lib/track3d';
 import { closedReef, drawClosedReef } from './lib/closed-reef';
 import type { ReefBranch as ClosedReefBranch } from './lib/closed-reef';
 import { MONTHS, monthAbbr, sessionWhen, ukWhen, weekendSessions, weekendSpan } from './lib/schedule';
-import { Signature } from './Signature';
+import { Signature, signatureTrace } from './Signature';
 import { mountReveals } from './lib/reveal';
 import {
   mountCalloutCrest,
@@ -1043,11 +1044,7 @@ if (wreath) {
 const impactSign = document.querySelector<HTMLElement>('[data-impact-sign]');
 
 if (impactSign && !reducedMotion) {
-  fetch('/assets/brand/signature.svg')
-    .then((res) => {
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      return res.text();
-    })
+  signatureTrace(impactSign)
     .then((markup) => {
       const colour = getComputedStyle(document.documentElement)
         .getPropertyValue('--grey-on-track')
@@ -1158,11 +1155,7 @@ if (trackWord && scriptWord && crest && signHost) {
     let signature: Signature | null = null;
     let live = true;
     signHost.classList.add('is-writing');
-    fetch('/assets/brand/signature.svg')
-      .then((res) => {
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        return res.text();
-      })
+    signatureTrace(signHost)
       .then((markup) => {
         if (!live) return;
         const ink = getComputedStyle(signHost).getPropertyValue('--grey-on-track').trim();
@@ -1177,6 +1170,10 @@ if (trackWord && scriptWord && crest && signHost) {
     // Its canvas follows the fluid root, and the cached ink has to follow it.
     const sized = new ResizeObserver(() => signature?.resize());
     sized.observe(signHost);
+
+    const crestCard = crest.closest('.ot-hero__next');
+    if (!crestCard) throw new Error('[hero] .ot-hero__crest outside .ot-hero__next');
+    let stopGlintOnHover: (() => void) | undefined;
 
     const entrance = gsap
       .timeline({ paused: true })
@@ -1202,7 +1199,17 @@ if (trackWord && scriptWord && crest && signHost) {
         },
       }, HERO_CUE)
       .to(crest, { '--crest-branch-hide': '0%', duration: 0.55, ease: 'none' }, HERO_CUE + 0.42)
-      .to(crest, { '--crest-helmet': 1, duration: 0.5, ease: 'none' }, HERO_CUE + 0.9);
+      .to(crest, {
+        '--crest-helmet': 1,
+        duration: 0.5,
+        ease: 'none',
+        // Grown, its metal catches the light once, and again each time the
+        // pointer comes onto the card (lib/crest-glint.ts).
+        onComplete: () => {
+          glintCrest(crest);
+          stopGlintOnHover = glintCrestOnHover(crest, crestCard);
+        },
+      }, HERO_CUE + 0.9);
 
     // Held for the loader too: the entrance plays as it opens onto the page.
     void Promise.all([document.fonts.ready, whenEntranceCued()]).then(() => entrance.play());
@@ -1210,6 +1217,7 @@ if (trackWord && scriptWord && crest && signHost) {
     return () => {
       live = false;
       entrance.kill();
+      stopGlintOnHover?.();
       sized.disconnect();
       signature?.dispose();
       signHost.classList.remove('is-writing');

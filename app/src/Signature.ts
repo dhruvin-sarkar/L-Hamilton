@@ -13,7 +13,33 @@
  * nothing. Instead of reconstructing a centreline the trace does not contain,
  * calibrate() measures how much ink each part of the path actually uncovers and
  * inverts that curve, so scroll drives coverage rather than path length.
+ *
+ * Both the parse and the calibration depend on nothing but the trace, so they
+ * are done once per trace and shared: On Track and Off Track each put two pens
+ * on the page, and the second no longer strokes the calibration all over again.
  */
+
+import { nearViewport } from './lib/near';
+
+const TRACE_URL = '/assets/brand/signature.svg';
+
+let traceText: Promise<string> | null = null;
+
+/**
+ * The trace, once `host` is within a screen of the viewport.
+ *
+ * Fetched once per page however many pens ask for it, and handed over only as
+ * the host approaches, so a pen further down the page is built -- and its ink
+ * rendered -- then, rather than in the page's first seconds. A host already on
+ * screen gets it as soon as it has arrived.
+ */
+export function signatureTrace(host: HTMLElement): Promise<string> {
+  traceText ??= fetch(TRACE_URL).then((res) => {
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return res.text();
+  });
+  return Promise.all([traceText, nearViewport(host)]).then(([text]) => text);
+}
 
 /** Nib width, in path units. Matches the asset's generator. */
 const NIB = 520;
@@ -104,6 +130,9 @@ function parse(svgText: string): Trace {
   };
 }
 
+/** A trace's parse and coverage curve, by its source text. See the file note. */
+const learned = new Map<string, { trace: Trace; coverage: number[] }>();
+
 export class Signature {
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
@@ -118,7 +147,8 @@ export class Signature {
   private lastDrawn = -1;
 
   constructor(host: HTMLElement, svgText: string, private readonly colour: string) {
-    this.trace = parse(svgText);
+    const known = learned.get(svgText);
+    this.trace = known?.trace ?? parse(svgText);
 
     this.canvas = document.createElement('canvas');
     this.canvas.setAttribute('aria-hidden', 'true');
@@ -127,7 +157,12 @@ export class Signature {
     this.ctx = ctx;
     host.appendChild(this.canvas);
 
-    this.calibrate();
+    if (known) {
+      this.coverage = known.coverage;
+    } else {
+      this.calibrate();
+      learned.set(svgText, { trace: this.trace, coverage: this.coverage });
+    }
     this.resize();
   }
 

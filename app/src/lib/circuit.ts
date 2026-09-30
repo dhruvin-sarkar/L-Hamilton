@@ -27,20 +27,29 @@
  * lib/circuit-outline.ts from path data, with the file's own strokes, turntable
  * and transition, onto a canvas with these same classes -- so to a caller, and
  * on the page, a circuit is a circuit whichever of the two draws it.
+ *
+ * Nothing is drawn until the drawing's box is within a screen of the viewport
+ * (lib/near.ts), and the Rive runtime is imported with the first drawing that
+ * needs it rather than with the page: it is ~96 KB of script, plus a 541 KB
+ * wasm boot, that no first paint needs. A circuit in the hero still starts one
+ * frame after the page's own script has run; one further down waits until its
+ * section approaches.
  */
 
 import { hasOutline, mountOutline } from './circuit-outline';
-import {
-  Alignment,
-  Fit,
-  Layout,
-  Rive,
-  RuntimeLoader,
-  StateMachineInputType,
-} from '@rive-app/canvas-lite';
+import { nearViewport } from './near';
 import wasmUrl from '@rive-app/canvas-lite/rive.wasm?url';
 
-RuntimeLoader.setWasmUrl(wasmUrl);
+type RiveRuntime = typeof import('@rive-app/canvas-lite');
+
+let runtime: Promise<RiveRuntime> | null = null;
+
+/** The runtime, imported once and shared by every canvas on the page. */
+const riveRuntime = (): Promise<RiveRuntime> =>
+  (runtime ??= import('@rive-app/canvas-lite').then((rive) => {
+    rive.RuntimeLoader.setWasmUrl(wasmUrl);
+    return rive;
+  }));
 
 const FILE = '/assets/rive/circuits.riv';
 const ARTBOARD = 'circuits';
@@ -183,6 +192,10 @@ export async function mountCircuit(host: HTMLElement, opts: CircuitOptions): Pro
     for (const [renderer, handle] of drawn) handle.canvas.style.display = renderer === showing ? '' : 'none';
   };
 
+  /* Watched through its container, not itself: a host can be `display: none`
+     until its drawing lands -- Home's next-race card swaps it in for the
+     fallback loop only then -- and a box-less element never intersects. */
+  await nearViewport(host.parentElement ?? host);
   const firstHandle = await drawing(first, opts.circuitId);
   show();
 
@@ -216,7 +229,10 @@ export async function mountCircuit(host: HTMLElement, opts: CircuitOptions): Pro
 
 /** The file's drawing of one of its tracks. */
 async function mountRive(host: HTMLElement, opts: CircuitOptions): Promise<CircuitHandle> {
-  const buffer = await file();
+  const [{ Alignment, Fit, Layout, Rive, StateMachineInputType }, buffer] = await Promise.all([
+    riveRuntime(),
+    file(),
+  ]);
 
   const ground = opts.ground ?? 'dark';
   const canvas = document.createElement('canvas');

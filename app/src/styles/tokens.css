@@ -59,6 +59,23 @@ html {
   --accent-off: #da252f;
   --accent-zero: #ff280000; /* gradient stop */
 
+  /* The crest's metal: polished gold, a deliberate departure from the
+     reference's flat crest. partials/crest.html paints the helmet and laurels
+     with a ramp of these — lo at the top and bottom, hi across the middle —
+     and sweeps --metal-shine over them as a glint. They are the whole look:
+     silver is these four values and nothing else.
+
+     Contrast is set by the ends of the ramp. On the dark grounds (--gl-bg,
+     --black) the darkest stop, lo, holds 3.1:1; on the cream ground the
+     crest takes the deep ramp instead (crest-metal-deep), whose brightest stop
+     is mid, so no part of it washes into the cream. */
+  --metal-lo: #8a6220; /* bronze */
+  --metal-mid: #c8962f; /* gold */
+  --metal-hi: #fbe9b4; /* highlight */
+  --metal-shine: #fffaf0; /* the glint */
+  /* The deep ramp's extra rung below lo, derived so it follows a retune. */
+  --metal-shade: color-mix(in oklab, var(--metal-lo), #000 45%);
+
   --white: #f7f3f1;
   --cream: #f0ebe9;
   --grey-1: #ede7e5;
