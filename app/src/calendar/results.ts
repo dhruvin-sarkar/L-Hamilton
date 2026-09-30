@@ -108,6 +108,8 @@ interface Season {
   item: HTMLLIElement;
   trigger: HTMLButtonElement;
   content: HTMLElement;
+  /** Writes the season's rows into `content`; run once, on its first opening. */
+  build: () => void;
 }
 
 export function mountResults(section: HTMLElement, scroller: Lenis | null): void {
@@ -184,23 +186,35 @@ export function mountResults(section: HTMLElement, scroller: Lenis | null): void
     content.setAttribute('aria-label', `${season.year} results`);
     trigger.setAttribute('aria-controls', content.id);
 
-    const head = el('div', 'ot-cal__row ot-cal__row--head cal-results__subhead');
-    head.setAttribute('aria-hidden', 'true');
-    for (const label of ['Round', 'Location', 'Finish', 'Fastest lap']) {
-      head.appendChild(el('p', 'ot-cal__eyebrow', label));
-    }
-    const racesList = el('ol', 'ot-cal__list cal-results__races');
-    for (const race of entries) racesList.appendChild(raceRow(race, entries));
-    content.append(head, racesList);
+    /* A season's Grands Prix are written the first time it opens. Closed,
+       they are hidden and read by nothing; built up front, the nineteen
+       seasons' ~380 rows were the largest single cost of the page's start
+       (570ms of a 2.4s task on a 4x-throttled phone). Opening is instant
+       either way: one season's rows take a few milliseconds. */
+    const build = (): void => {
+      const head = el('div', 'ot-cal__row ot-cal__row--head cal-results__subhead');
+      head.setAttribute('aria-hidden', 'true');
+      for (const label of ['Round', 'Location', 'Finish', 'Fastest lap']) {
+        head.appendChild(el('p', 'ot-cal__eyebrow', label));
+      }
+      const racesList = el('ol', 'ot-cal__list cal-results__races');
+      for (const race of entries) racesList.appendChild(raceRow(race, entries));
+      content.append(head, racesList);
+    };
 
     item.append(heading, content);
     list.appendChild(item);
-    return { item, trigger, content };
+    return { item, trigger, content, build };
   });
 
   /* ------------------------------------------------------------ Opening */
 
+  const built = new Set<Season>();
   const setOpen = (season: Season, open: boolean): void => {
+    if (open && !built.has(season)) {
+      season.build();
+      built.add(season);
+    }
     season.item.classList.toggle('is-open', open);
     season.trigger.setAttribute('aria-expanded', String(open));
     season.content.hidden = !open;

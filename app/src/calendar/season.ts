@@ -223,19 +223,28 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
 
   /* ------------------------------------------------------ Swap targets */
 
-  /** Wraps a value in its clip and bar. Closed until the panel arrives. */
-  const wrap = (target: Element): void => {
-    const clip = el('div', 'ot-cal__t');
-    const bar = el('div', 'ot-cal__t-bar');
-    target.before(clip);
-    clip.append(target, bar);
-    if (!reducedMotion) {
-      gsap.set(clip, { clipPath: 'inset(0 100% 0 0)' });
-      gsap.set(bar, { scaleX: 1 });
+  /** Wraps each value in its clip and bar, closed until the panel arrives.
+      All the wrapping first, then one set over the clips and one over the
+      bars: a set per value, between insertions, made gsap read styles the
+      insertion had just invalidated -- a forced style recalculation per
+      value, 312ms of the page's start on a 4x-throttled phone. */
+  const wrap = (targets: Iterable<Element>): void => {
+    const made: { clips: HTMLElement[]; bars: HTMLElement[] } = { clips: [], bars: [] };
+    for (const target of targets) {
+      const clip = el('div', 'ot-cal__t');
+      const bar = el('div', 'ot-cal__t-bar');
+      target.before(clip);
+      clip.append(target, bar);
+      made.clips.push(clip);
+      made.bars.push(bar);
+    }
+    if (!reducedMotion && made.clips.length) {
+      gsap.set(made.clips, { clipPath: 'inset(0 100% 0 0)' });
+      gsap.set(made.bars, { scaleX: 1 });
     }
   };
 
-  for (const target of panel.querySelectorAll('[data-cal-target]')) wrap(target);
+  wrap(panel.querySelectorAll('[data-cal-target]'));
 
   const clips = (): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('.ot-cal__t')];
   const bars = (): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('.ot-cal__t-bar')];
@@ -335,6 +344,7 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
     note.hidden = Boolean(result);
 
     sessionsHost.replaceChildren();
+    const rows: HTMLElement[] = [];
     for (const { kind, label, session } of weekendSessions(round)) {
       const race = kind === 'race';
       const row = el('p', race ? 'ot-cal__session ot-cal__session--race' : 'ot-cal__session');
@@ -350,8 +360,9 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
         );
       }
       sessionsHost.appendChild(row);
-      wrap(row);
+      rows.push(row);
     }
+    wrap(rows);
   };
 
   /* ----------------------------------------------------------- Rows */
