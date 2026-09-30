@@ -27,20 +27,63 @@
  * lib/circuit-outline.ts from path data, with the file's own strokes, turntable
  * and transition, onto a canvas with these same classes -- so to a caller, and
  * on the page, a circuit is a circuit whichever of the two draws it.
+ *
+ * Nothing is drawn until the drawing's box is within a screen of the viewport
+ * (lib/near.ts), and the Rive runtime is imported with the first drawing that
+ * needs it rather than with the page: it is ~96 KB of script, plus a 541 KB
+ * wasm boot, that no first paint needs. A circuit in the hero still starts one
+ * frame after the page's own script has run; one further down waits until its
+ * section approaches.
  */
 
 import { hasOutline, mountOutline } from './circuit-outline';
-import {
-  Alignment,
-  Fit,
-  Layout,
-  Rive,
-  RuntimeLoader,
-  StateMachineInputType,
-} from '@rive-app/canvas-lite';
+import { nearViewport } from './near';
 import wasmUrl from '@rive-app/canvas-lite/rive.wasm?url';
 
-RuntimeLoader.setWasmUrl(wasmUrl);
+type RiveRuntime = typeof import('@rive-app/canvas-lite');
+
+let runtime: Promise<RiveRuntime> | null = null;
+
+/**
+ * The runtime, imported once and shared by every canvas on the page, with its
+ * wasm already loaded.
+ *
+ * Left to itself the runtime asks for the wasm only when the first Rive is
+ * constructed, which is after this module AND the .riv have both arrived -- a
+ * third round trip in series, and the wasm is the largest of the three. Asked
+ * for here, it downloads alongside the file.
+ */
+const riveRuntime = (): Promise<RiveRuntime> =>
+  (runtime ??= import('@rive-app/canvas-lite').then(async (rive) => {
+    rive.RuntimeLoader.setWasmUrl(wasmUrl);
+    await rive.RuntimeLoader.awaitInstance();
+    return rive;
+  }));
+
+let prefetched = false;
+
+/**
+ * Starts all three of Rive's downloads at once: the runtime, the file, and the
+ * wasm. The runtime would ask for the wasm itself, but only once it has
+ * arrived and run, and the wasm is the largest of the three (541KB, most of
+ * four seconds on a slow 4G line). The preload is what its request then finds:
+ * it fetches with credentials 'same-origin', which is what `crossorigin`
+ * (anonymous) matches.
+ *
+ * A failed download is not lost by the catch: mountRive awaits the same two
+ * promises, and its caller reports the failure there.
+ */
+function prefetchRive(): void {
+  if (prefetched) return;
+  prefetched = true;
+  const wasm = document.createElement('link');
+  wasm.rel = 'preload';
+  wasm.as = 'fetch';
+  wasm.crossOrigin = 'anonymous';
+  wasm.href = wasmUrl;
+  document.head.append(wasm);
+  void Promise.all([riveRuntime(), file()]).catch(() => undefined);
+}
 
 const FILE = '/assets/rive/circuits.riv';
 const ARTBOARD = 'circuits';
@@ -183,6 +226,16 @@ export async function mountCircuit(host: HTMLElement, opts: CircuitOptions): Pro
     for (const [renderer, handle] of drawn) handle.canvas.style.display = renderer === showing ? '' : 'none';
   };
 
+  /* The files are asked for now; only building the drawing waits for the
+     section. Home's and On Track's heroes both carry a circuit, and nothing
+     can say a section is on screen until the page's first script run has
+     finished and a frame has been drawn -- on a throttled phone that is
+     seconds, and the downloads should overlap it rather than follow it. */
+  if (first === 'rive') prefetchRive();
+
+  /* Through its section, not itself: a host can be `display: none` until its
+     drawing lands, or clipped shut inside a card that opens on hover. */
+  await nearViewport(host);
   const firstHandle = await drawing(first, opts.circuitId);
   show();
 
@@ -216,7 +269,10 @@ export async function mountCircuit(host: HTMLElement, opts: CircuitOptions): Pro
 
 /** The file's drawing of one of its tracks. */
 async function mountRive(host: HTMLElement, opts: CircuitOptions): Promise<CircuitHandle> {
-  const buffer = await file();
+  const [{ Alignment, Fit, Layout, Rive, StateMachineInputType }, buffer] = await Promise.all([
+    riveRuntime(),
+    file(),
+  ]);
 
   const ground = opts.ground ?? 'dark';
   const canvas = document.createElement('canvas');

@@ -456,6 +456,34 @@ export class FluidCursor {
     this.renderer.setRenderTarget(previousTarget);
   }
 
+  /**
+   * Compile all six passes' programs without blocking the main thread, and
+   * resolve once they are linked -- so the first step does not stall on them.
+   *
+   * Compiled with a target bound, because every pass draws into one and three
+   * keys a program on that (a target drops tone mapping and the output
+   * colour-space encode). Compiled against the screen, the first real pass
+   * would build a second program anyway.
+   */
+  compile(): Promise<unknown> {
+    const passes = new THREE.Scene();
+    for (const material of [
+      this.advect,
+      this.divergenceMat,
+      this.pressureMat,
+      this.projectMat,
+      this.force,
+      this.outputMat,
+    ]) {
+      passes.add(new THREE.Mesh(this.quad.geometry, material));
+    }
+    const previous = this.renderer.getRenderTarget();
+    this.renderer.setRenderTarget(this.output);
+    const linked = this.renderer.compileAsync(passes, this.camera);
+    this.renderer.setRenderTarget(previous);
+    return linked;
+  }
+
   private pass(material: THREE.ShaderMaterial, target: THREE.WebGLRenderTarget): void {
     this.quad.material = material;
     this.renderer.setRenderTarget(target);

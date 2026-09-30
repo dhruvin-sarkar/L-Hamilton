@@ -11,8 +11,8 @@
  * grows its own: the stem drawn on while the leaves open one after another
  * from the base.
  *
- * The same drawing as on-track.ts's closedReef(), which predates this module
- * and sits in a file this page may not edit; On Track can import this one.
+ * One drawing for both pages: On Track's pre-F1 list and the calendar's
+ * results import it from here.
  */
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

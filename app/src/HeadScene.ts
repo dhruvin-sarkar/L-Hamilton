@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { FluidCursor } from './FluidCursor';
 import { ContourField } from './ContourField';
 import { createStudioEnvironment, HELMET_UPRIGHT, loadHelmetModel } from './HelmetModel';
 import type { HelmetModel } from './HelmetModel';
 import { gsap, reducedMotion } from './lib/motion';
+import { uploadAcrossFrames } from './lib/upload';
 
 /**
  * The hero scene: a contour-line field, the portrait on top of it, the helmet
@@ -605,6 +605,13 @@ export class HeadScene {
   private still = false;
   /** Wants to be still; `still` follows once the reveal has faded out. */
   private goingStill = false;
+  /**
+   * A still plate is the same picture frame after frame, so it is drawn only
+   * when something that feeds it changes: the scroll-out filter, a resize, the
+   * handover itself. Everything that can is a setter below, and each one marks
+   * this. See update().
+   */
+  private dirty = true;
 
   /**
    * How much the helmet follows the pointer, 1 at rest. The reference's
@@ -716,25 +723,49 @@ export class HeadScene {
   }
 
   async load(): Promise<void> {
+    /* Every program the portrait draws with, compiled while the maps download
+       and upload (in parallel, where the driver has KHR_parallel_shader_compile)
+       and awaited before the first frame -- rather than compiled, and waited
+       on, inside that frame. */
+    const linked = Promise.all([
+      this.renderer.compileAsync(this.scene, this.camera),
+      this.fluid.compile(),
+      this.contour.compile(),
+    ]);
+
     const loader = new THREE.TextureLoader();
     // NoColorSpace on every map, diffuse included. Tagging the diffuse sRGB
     // makes the GPU decode it to linear on sample, and nothing converts back on
     // output — see tokenColor. Passthrough shows the photo exactly as authored.
-    const get = (name: string) =>
+    const get = (name: string, mipmaps: boolean) =>
       loader.loadAsync(`${HERO_BASE}/${name}`).then((t) => {
         t.colorSpace = THREE.NoColorSpace;
         // Never wrap: a sampled offset running past the edge must clamp, not
         // reappear on the opposite side of the face.
         t.wrapS = THREE.ClampToEdgeWrapping;
         t.wrapT = THREE.ClampToEdgeWrapping;
+        if (!mipmaps) {
+          t.generateMipmaps = false;
+          t.minFilter = THREE.LinearFilter;
+        }
         return t;
       });
 
+    /* The reference's sizes: colour and alpha at 2048, depth at 512. The
+       photo's own 3780px file stays for the footer portrait; this is a copy
+       made for the GL, without the alpha channel the shader never reads.
+
+       Depth and alpha skip mipmaps. The canvas always renders at full
+       viewport size -- the plate shrinks by CSS transform, not in GL -- so
+       both are sampled at about the scale they are drawn, where a mip chain is
+       a third more memory and a generateMipmap pass for nothing. */
     const [diffuse, depth, alpha] = await Promise.all([
-      get('lewis-hero.webp'),
-      get('depth-map.webp'),
-      get('alpha-map.webp'),
+      get('lewis-hero-gl.webp', true),
+      get('depth-map.webp', false),
+      get('alpha-map.webp', false),
     ]);
+    await uploadAcrossFrames(this.renderer, [diffuse, depth, alpha]);
+    await linked;
 
     this.headU.uDiffuse.value = diffuse;
     this.headU.uDepth.value = depth;
@@ -751,7 +782,10 @@ export class HeadScene {
    * does.
    */
   async loadHelmet(): Promise<void> {
-    const model = await loadHelmetModel(this.renderer);
+    const [model, { mergeGeometries }] = await Promise.all([
+      loadHelmetModel(this.renderer),
+      import('three/examples/jsm/utils/BufferGeometryUtils.js'),
+    ]);
     const { merged, size } = model;
     const longest = Math.max(size.x, size.y, size.z) || 1;
 
@@ -875,14 +909,21 @@ export class HeadScene {
       pose.add(upright);
       const root = new THREE.Group();
       root.add(pose);
-      this.scene.add(root);
       return { root, pose };
     };
     const litStack = stack(merged);
     const wireStack = stack(wireMesh);
 
-    const environment = createStudioEnvironment(this.renderer);
+    const environment = await createStudioEnvironment(this.renderer);
     this.scene.environment = environment;
+
+    /* Both drawings' programs compiled as they will be drawn -- in this scene,
+       under its environment -- and linked before either joins it, so the
+       frame the helmet first appears in does not wait on the driver. */
+    const rig = new THREE.Group();
+    rig.add(litStack.root, wireStack.root);
+    await this.renderer.compileAsync(rig, this.camera, this.scene);
+    this.scene.add(litStack.root, wireStack.root);
 
     this.helmet = {
       model,
@@ -923,6 +964,7 @@ export class HeadScene {
     /* Where the helmet's lower rim lands on the portrait, for the neck shadow.
        Measured off the fitted helmet itself rather than derived, so it holds
        whatever the fit. */
+    this.dirty = true;
     rig.lit.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(rig.lit);
     const planeW = S * this.aspect;
@@ -1027,6 +1069,7 @@ export class HeadScene {
 
   set parallax(v: number) {
     this.headU.uParallax.value = v;
+    this.dirty = true;
   }
 
   /**
@@ -1035,6 +1078,7 @@ export class HeadScene {
    */
   set fieldVisible(v: boolean) {
     this.fieldMesh.visible = v;
+    this.dirty = true;
   }
 
   /**
@@ -1064,6 +1108,7 @@ export class HeadScene {
   /** Bring the scene in line with `goingStill` — see `set inert`. */
   private applyStill(): void {
     this.still = this.goingStill;
+    this.dirty = true;
     /* Flat rather than hidden: the ground is still drawn, so it keeps the
        field's own colour instead of stepping to the canvas's CSS backing, and
        it takes the transition with everything else. */
@@ -1081,7 +1126,9 @@ export class HeadScene {
    * scroll. See filterChunk.
    */
   set filter(v: number) {
+    if (this.filterU.uFilter.value === v) return;
     this.filterU.uFilter.value = v;
+    this.dirty = true;
   }
 
   /**
@@ -1120,9 +1167,14 @@ export class HeadScene {
 
     this.layout();
     this.fitHelmet();
+    this.dirty = true;
   }
 
-  update(): void {
+  /**
+   * Step the scene. Returns whether it needs drawing: always while it is
+   * simulating, and only after a change once it has gone still.
+   */
+  update(): boolean {
     /* CLAMPED. rAF does not fire in a background tab, so the first frame back
      * would otherwise integrate the whole gap: the intro would be over and the
      * idle sweep would teleport. A 15fps frame is the ceiling; longer is a gap,
@@ -1133,7 +1185,9 @@ export class HeadScene {
     /* A still picture is one that is not being simulated. getDelta() above
        still runs, so the clock does not bank the gap for when the plate
        reopens. */
-    if (this.still) return;
+    const changed = this.dirty;
+    this.dirty = false;
+    if (this.still) return changed;
 
     // The idle path is fed in before the step that consumes it.
     this.runIdle(dt);
@@ -1179,6 +1233,7 @@ export class HeadScene {
       rig.wireU.uIsWireframeAnimating.value = this.params.IS_WIREFRAME_ANIMATING;
       this.maskU.uShowHelmet.value = this.params.SHOW_HELMET_PERMANENTLY ? 1 : 0;
     }
+    return true;
   }
 
   /**

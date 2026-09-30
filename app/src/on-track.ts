@@ -16,12 +16,18 @@ import './styles/on-track.css';
 import Lenis from 'lenis';
 import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './lib/motion';
 import { mountChrome } from './lib/chrome';
+import { glintCrest, glintCrestOnHover } from './lib/crest-glint';
 import { whenEntranceCued } from './lib/transition';
 import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountGalleryScroll } from './lib/gallery';
 import { mountHelmetScroll } from './HelmetScroll';
 import { mountFooterMarquee } from './lib/marquee';
-import { Signature } from './Signature';
+import { mountTrackMap } from './lib/track3d';
+import type { TrackMap } from './lib/track3d';
+import { closedReef, drawClosedReef } from './lib/closed-reef';
+import type { ReefBranch as ClosedReefBranch } from './lib/closed-reef';
+import { MONTHS, monthAbbr, sessionWhen, ukWhen, weekendSessions, weekendSpan } from './lib/schedule';
+import { Signature, signatureTrace } from './Signature';
 import { mountReveals } from './lib/reveal';
 import {
   mountCalloutCrest,
@@ -52,7 +58,7 @@ import {
   seasonsNewestFirst,
   wins,
 } from './content/live-stats';
-import type { CalendarRound, RaceSession } from './content/live-stats';
+import type { CalendarRound } from './content/live-stats';
 import { countryName, flagUrl } from './content/countries';
 import { circuitFacts, formatKm } from './content/circuit-facts';
 
@@ -150,15 +156,11 @@ function spell(n: number): string {
 }
 
 /**
- * Three-letter months, as the reference prints them. `toLocaleDateString`
- * cannot be trusted with this: en-GB's short September is "Sept".
- */
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-/**
- * "2008-07-06" -> "6 Jul". Read in UTC, because the record's dates are
- * calendar days rather than instants, and a local zone west of Greenwich would
- * otherwise print every one of them a day early.
+ * "2008-07-06" -> "6 Jul", its month from the site's one table of three-letter
+ * months (lib/schedule.ts: en-GB's short September is "Sept"). Read in UTC,
+ * because the record's dates are calendar days rather than instants, and a
+ * local zone west of Greenwich would otherwise print every one of them a day
+ * early.
  */
 function shortDate(iso: string): string {
   const day = new Date(`${iso}T00:00:00Z`);
@@ -185,182 +187,6 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
  * draws the scribble, and a `const` declared down beside the pre-F1 list would
  * put both callers inside its temporal dead zone.
  * ------------------------------------------------------------------ */
-
-/* ------------------------------------------------------------------ *
- * The closed reef
- *
- * The small closed wreath the reference hangs beside each pre-F1 result (its
- * Rive "reef" artboard, played once as the result scrolls into view): two
- * laurel branches rising from a bare stem at the bottom centre, curling up the
- * sides almost into a circle and leaving a gap at the top. Redrawn here as an
- * original -- a curved stem with leaves at a regular step, the outer row
- * leaning out and up, the inner row in, and a fan of four at the tip -- and
- * grown the way the statement's reef is: the stem drawn on while the leaves
- * open one after another from the base.
- * ------------------------------------------------------------------ */
-
-/** The left branch in the 60x60 box: a bare tail running in from the bottom
-    centre (start, control), then the leafy stem (base, two controls, tip). */
-const CLOSED_REEF_TAIL = [
-  [27.2, 51.6],
-  [24, 51.2],
-] as const;
-const CLOSED_REEF_STEM = [
-  [21, 50.3],
-  [7, 45.5],
-  [6, 20],
-  [20, 14],
-] as const;
-
-/**
- * The left branch's leaves, painted in this order: where each joins the stem
- * (0 base to 1 tip), its turn off the stem in degrees (negative is outward),
- * its length, and how far it then leans toward upright (0 none, 1 fully).
- */
-const CLOSED_REEF_LEAVES: readonly (readonly [at: number, turn: number, length: number, lean: number])[] = [
-  // Outer row: the lowest lies along the ground, the top ones stand up.
-  [0.02, -15, 8, 0],
-  [0.12, -38, 8.4, 0.2],
-  [0.22, -42, 8.6, 0.1],
-  [0.32, -42, 8.4, 0.1],
-  [0.42, -40, 8.2, 0.1],
-  [0.52, -36, 8.4, 0.2],
-  [0.62, -30, 9.6, 0.3],
-  [0.72, -28, 10, 0.3],
-  [0.82, -28, 10, 0.3],
-  // Inner row.
-  [0.07, 52, 8.8, 0],
-  [0.2, 48, 9.2, 0],
-  [0.33, 45, 8, 0],
-  [0.46, 45, 7.8, 0],
-  [0.59, 45, 8, 0],
-  [0.72, 45, 7.6, 0],
-  [0.85, 45, 7, 0],
-  // The fan at the tip.
-  [0.96, -50, 8.4, 0],
-  [0.97, 38, 6, 0],
-  [1, -25, 8.8, 0],
-  [1, 8, 7, 0],
-];
-
-/** A leaf's width over its length: a slim pointed lens. */
-const CLOSED_REEF_LEAF_WIDTH = 0.2;
-
-function closedReefPoint(t: number): [number, number] {
-  const [p0, p1, p2, p3] = CLOSED_REEF_STEM;
-  const u = 1 - t;
-  const a = u * u * u;
-  const b = 3 * u * u * t;
-  const c = 3 * u * t * t;
-  const d = t * t * t;
-  return [
-    a * p0[0] + b * p1[0] + c * p2[0] + d * p3[0],
-    a * p0[1] + b * p1[1] + c * p2[1] + d * p3[1],
-  ];
-}
-
-/** The stem's direction at `t`, in degrees clockwise from +x. */
-function closedReefHeading(t: number): number {
-  const [p0, p1, p2, p3] = CLOSED_REEF_STEM;
-  const u = 1 - t;
-  const dx = 3 * u * u * (p1[0] - p0[0]) + 6 * u * t * (p2[0] - p1[0]) + 3 * t * t * (p3[0] - p2[0]);
-  const dy = 3 * u * u * (p1[1] - p0[1]) + 6 * u * t * (p2[1] - p1[1]) + 3 * t * t * (p3[1] - p2[1]);
-  return (Math.atan2(dy, dx) * 180) / Math.PI;
-}
-
-/** Length of a polyline through `points`, for the stem's dash. */
-function polylineLength(points: readonly (readonly [number, number])[]): number {
-  let length = 0;
-  let previous = points[0];
-  for (const point of points) {
-    if (previous) length += Math.hypot(point[0] - previous[0], point[1] - previous[1]);
-    previous = point;
-  }
-  return length;
-}
-
-function closedReefBranch(mirror: string): ReefBranch {
-  const group = document.createElementNS(SVG_NS, 'g');
-  if (mirror) group.setAttribute('transform', mirror);
-
-  const [tailStart, tailControl] = CLOSED_REEF_TAIL;
-  const [base, c1, c2, tip] = CLOSED_REEF_STEM;
-  const stem = document.createElementNS(SVG_NS, 'path');
-  const xy = (p: readonly [number, number]): string => p.join(' ');
-  stem.setAttribute('d', `M${xy(tailStart)}Q${xy(tailControl)} ${xy(base)}C${xy(c1)} ${xy(c2)} ${xy(tip)}`);
-  stem.setAttribute('fill', 'none');
-  stem.setAttribute('stroke', 'currentColor');
-  stem.setAttribute('stroke-width', '0.9');
-  stem.setAttribute('stroke-linecap', 'round');
-  group.appendChild(stem);
-
-  /* Measured once by sampling, so the dash covers the path and each leaf
-     knows how far along the drawn line it sits. */
-  const samples = Array.from({ length: 49 }, (_, i) => i / 48);
-  const tailLength = polylineLength(
-    samples.map((t): [number, number] => {
-      const u = 1 - t;
-      return [
-        u * u * tailStart[0] + 2 * u * t * tailControl[0] + t * t * base[0],
-        u * u * tailStart[1] + 2 * u * t * tailControl[1] + t * t * base[1],
-      ];
-    }),
-  );
-  const leafyLength = polylineLength(samples.map(closedReefPoint));
-  const stemLength = tailLength + leafyLength;
-
-  /* A leaf is a pointed lens drawn along +x from its own base, so a rotation
-     aims it and a scale grows it out of the stem. */
-  const leaves: ReefLeaf[] = CLOSED_REEF_LEAVES.map(([t, turn, length, lean]) => {
-    const [x, y] = closedReefPoint(t);
-    let angle = closedReefHeading(t) + turn;
-    const toUpright = ((-90 - angle + 540) % 360) - 180;
-    angle += lean * toUpright;
-    const half = length * CLOSED_REEF_LEAF_WIDTH;
-    const leaf = document.createElementNS(SVG_NS, 'path');
-    leaf.setAttribute(
-      'd',
-      `M0 0C${length * 0.25} ${-half} ${length * 0.62} ${-half} ${length} 0` +
-        `C${length * 0.62} ${half} ${length * 0.25} ${half} 0 0Z`,
-    );
-    leaf.setAttribute('fill', 'currentColor');
-    group.appendChild(leaf);
-    /* Opens as the drawn stem reaches it: `at` is its share of the whole line. */
-    const at = (tailLength + t * leafyLength) / stemLength;
-    return { el: leaf, x, y, angle, at };
-  });
-
-  return { group, stem, stemLength, leaves, mirror };
-}
-
-/** Both branches at growth `g`, 0 unseen to 1 full: the stem draws on just
-    ahead of the leaves, which open in turn from the base. */
-function drawClosedReef(branches: readonly ReefBranch[], g: number): void {
-  const drawn = clamp01(g / 0.85);
-  for (const branch of branches) {
-    branch.stem.setAttribute('stroke-dasharray', String(branch.stemLength));
-    branch.stem.setAttribute('stroke-dashoffset', String(branch.stemLength * (1 - drawn)));
-    for (const leaf of branch.leaves) {
-      /* Exactly 1 once grown: (1 - 0.8) / 0.2 is 0.9999999999999998 in floats. */
-      const open = g >= 1 ? 1 : clamp01((g - leaf.at * 0.8) / 0.2);
-      leaf.el.setAttribute(
-        'transform',
-        `translate(${leaf.x} ${leaf.y}) rotate(${leaf.angle}) scale(${open})`,
-      );
-    }
-  }
-}
-
-/** The wreath's SVG and its two branches, for growing. Drawn by the caller. */
-function closedReef(): { svg: SVGSVGElement; branches: ReefBranch[] } {
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('viewBox', '0 0 60 60');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('focusable', 'false');
-  const branches = [closedReefBranch(''), closedReefBranch('translate(60 0) scale(-1 1)')];
-  for (const branch of branches) svg.appendChild(branch.group);
-  return { svg, branches };
-}
 
 /* ------------------------------------------------------------------ *
  * The reef
@@ -555,9 +381,11 @@ function p1Scribble(): SVGSVGElement {
 
 
 /**
- * The hooked arrow on the schedule buttons, and its hover: the reference's
- * `btn-ui` Rive (artboard `arrow`, animation `arrows`, 90 frames at 60fps),
- * timed off its own file frame by frame.
+ * The hooked arrow on the schedule buttons and the round panel's next and
+ * previous arrows, and its hover: the reference's `btn-ui` Rive (artboard
+ * `arrow`, animation `arrows`, 90 frames at 60fps), timed off its own file
+ * frame by frame. The reference plays the one file on all of them, the
+ * previous arrow turned half round.
  *
  * One cycle is 1.5s. The body -- tail, turn and shaft -- rubs out from the
  * tail forward (frames 4-38); the head's two arms draw back into their point
@@ -587,7 +415,17 @@ function mountArrowCycle(button: HTMLElement, icon: SVGSVGElement): void {
   const bodyOut = part(BODY);
   const bodyIn = part(BODY);
   const arms = [part('M19.5 9L15 4.5'), part('M19.5 9L15 13.5')];
-  icon.replaceChildren(bodyOut, bodyIn, ...arms);
+  /* An arrow turned in the markup (the panel's previous) keeps its turn: the
+     parts go in a group that carries it. */
+  const turn = icon.querySelector('path')?.getAttribute('transform');
+  if (turn) {
+    const group = document.createElementNS(SVG_NS, 'g');
+    group.setAttribute('transform', turn);
+    group.append(bodyOut, bodyIn, ...arms);
+    icon.replaceChildren(group);
+  } else {
+    icon.replaceChildren(bodyOut, bodyIn, ...arms);
+  }
 
   const bodyLength = bodyOut.getTotalLength();
   const armLength = arms[0]?.getTotalLength() ?? 0;
@@ -711,28 +549,6 @@ function reveal(selector: string): void {
   if (panel) panel.hidden = false;
 }
 
-/**
- * The weekend as the reference's hero card prints it: two words, the days
- * zero-padded and hyphenated ("04-06") and the race day's month in three
- * letters ("Sep" -- not the "Sept" en-GB formatting now returns).
- */
-function weekend(round: CalendarRound): { days: string; month: string } {
-  const dates = [
-    round.sessions.practice1?.date,
-    round.sessions.practice2?.date,
-    round.sessions.qualifying?.date,
-    round.sessions.sprint?.date,
-    round.date,
-  ].filter((d): d is string => typeof d === 'string');
-
-  const first = dates.reduce((a, b) => (a < b ? a : b));
-  const day = (iso: string): string =>
-    String(new Date(`${iso}T00:00:00Z`).getUTCDate()).padStart(2, '0');
-  const month = MONTHS[new Date(`${round.date}T00:00:00Z`).getUTCMonth()];
-  if (!month) throw new Error(`[hero] unreadable race date "${round.date}"`);
-  return { days: `${day(first)}-${day(round.date)}`, month };
-}
-
 const previous = lastRound();
 if (previous) {
   // The markup carries the "GP" as a second word, as the reference does.
@@ -812,7 +628,9 @@ if (next) {
 
   slot('round-circuit', next.circuitName);
   slot('round-country', next.country);
-  const dates = weekend(next);
+  /* "04-06" and "Sep": the weekend as the schedule panel prints it, the race's
+     month alone across a month's end (lib/schedule.ts). */
+  const dates = weekendSpan(next);
   slot('round-days', dates.days);
   slot('round-month', dates.month);
 
@@ -1226,11 +1044,7 @@ if (wreath) {
 const impactSign = document.querySelector<HTMLElement>('[data-impact-sign]');
 
 if (impactSign && !reducedMotion) {
-  fetch('/assets/brand/signature.svg')
-    .then((res) => {
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      return res.text();
-    })
+  signatureTrace(impactSign)
     .then((markup) => {
       const colour = getComputedStyle(document.documentElement)
         .getPropertyValue('--grey-on-track')
@@ -1341,11 +1155,7 @@ if (trackWord && scriptWord && crest && signHost) {
     let signature: Signature | null = null;
     let live = true;
     signHost.classList.add('is-writing');
-    fetch('/assets/brand/signature.svg')
-      .then((res) => {
-        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-        return res.text();
-      })
+    signatureTrace(signHost)
       .then((markup) => {
         if (!live) return;
         const ink = getComputedStyle(signHost).getPropertyValue('--grey-on-track').trim();
@@ -1360,6 +1170,10 @@ if (trackWord && scriptWord && crest && signHost) {
     // Its canvas follows the fluid root, and the cached ink has to follow it.
     const sized = new ResizeObserver(() => signature?.resize());
     sized.observe(signHost);
+
+    const crestCard = crest.closest('.ot-hero__next');
+    if (!crestCard) throw new Error('[hero] .ot-hero__crest outside .ot-hero__next');
+    let stopGlintOnHover: (() => void) | undefined;
 
     const entrance = gsap
       .timeline({ paused: true })
@@ -1385,7 +1199,17 @@ if (trackWord && scriptWord && crest && signHost) {
         },
       }, HERO_CUE)
       .to(crest, { '--crest-branch-hide': '0%', duration: 0.55, ease: 'none' }, HERO_CUE + 0.42)
-      .to(crest, { '--crest-helmet': 1, duration: 0.5, ease: 'none' }, HERO_CUE + 0.9);
+      .to(crest, {
+        '--crest-helmet': 1,
+        duration: 0.5,
+        ease: 'none',
+        // Grown, its metal catches the light once, and again each time the
+        // pointer comes onto the card (lib/crest-glint.ts).
+        onComplete: () => {
+          glintCrest(crest);
+          stopGlintOnHover = glintCrestOnHover(crest, crestCard);
+        },
+      }, HERO_CUE + 0.9);
 
     // Held for the loader too: the entrance plays as it opens onto the page.
     void Promise.all([document.fonts.ready, whenEntranceCued()]).then(() => entrance.play());
@@ -1393,6 +1217,7 @@ if (trackWord && scriptWord && crest && signHost) {
     return () => {
       live = false;
       entrance.kill();
+      stopGlintOnHover?.();
       sized.disconnect();
       signature?.dispose();
       signHost.classList.remove('is-writing');
@@ -2004,8 +1829,8 @@ for (const figure of document.querySelectorAll<HTMLElement>('[data-gallery-race]
  * Reference section 5. Its achievements each carry a closed laurel whose
  * colour says whether the result was a title -- lime for a championship, grey
  * for a placing -- and whose Rive plays once as it scrolls into view. Both are
- * kept: the laurel is drawn above rather than lifted, and grows once, at the
- * reference's trigger. The label says "champion" or "2nd place" in words, so
+ * kept: the laurel is drawn rather than lifted (lib/closed-reef.ts, which the
+ * calendar's results share), and grows once, at the reference's trigger. The label says "champion" or "2nd place" in words, so
  * the colour is never the only signal.
  *
  * Newest first, as the reference orders its own: the senior titles lead.
@@ -2014,14 +1839,13 @@ for (const figure of document.querySelectorAll<HTMLElement>('[data-gallery-race]
 const juniorGrid = document.querySelector<HTMLElement>('[data-junior-grid]');
 
 if (juniorGrid) {
-  const wreaths: { mark: HTMLElement; branches: ReefBranch[] }[] = [];
+  const wreaths: { mark: HTMLElement; branches: ClosedReefBranch[] }[] = [];
 
   for (const entry of [...preF1Championships].reverse()) {
     const item = el('li', 'ot-pref1__item');
     item.dataset.place = String(entry.position);
 
     const { svg, branches } = closedReef();
-    drawClosedReef(branches, 1);
     const mark = el('span', 'ot-pref1__mark');
     mark.appendChild(svg);
     wreaths.push({ mark, branches });
@@ -2084,106 +1908,6 @@ if (juniorGrid) {
       `career in karting and junior formulae, winning ${spell(preF1Titles)} ` +
       'championships on his way to the pinnacle of motorsport.';
   }
-}
-
-/* ------------------------------------------------------------------ *
- * Dates, as the countdown and the calendar print them
- *
- * In UK time, which is what the reference prints and footnotes (*UK TIME), and
- * with three-letter months from a fixed table: en-GB's own short September is
- * "Sept", where the reference -- like every timing screen -- reads SEP. The
- * table is MONTHS, declared once above for every date on the page.
- * ------------------------------------------------------------------ */
-
-function monthAbbr(month: number): string {
-  const name = MONTHS[month - 1];
-  if (!name) throw new Error(`[calendar] no month ${month}`);
-  return name;
-}
-
-const pad2 = (n: number): string => String(n).padStart(2, '0');
-
-const ukClock = new Intl.DateTimeFormat('en-GB', {
-  timeZone: 'Europe/London',
-  year: 'numeric',
-  month: 'numeric',
-  day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-  hourCycle: 'h23',
-});
-
-interface UkWhen {
-  day: number;
-  month: number;
-  /** "9:30", "13:00" -- the reference's own format, no leading zero. */
-  time: string;
-}
-
-function ukWhen(instant: Date): UkWhen {
-  const parts = new Map(ukClock.formatToParts(instant).map((p) => [p.type, p.value]));
-  const read = (type: Intl.DateTimeFormatPartTypes): string => {
-    const value = parts.get(type);
-    if (value === undefined) throw new Error(`[calendar] no ${type} in ${instant.toISOString()}`);
-    return value;
-  };
-  return {
-    day: Number(read('day')),
-    month: Number(read('month')),
-    time: `${Number(read('hour'))}:${read('minute')}`,
-  };
-}
-
-/** A session in UK time. Without a published start, its calendar day and TBC. */
-function sessionWhen(session: RaceSession): UkWhen {
-  if (session.time) return ukWhen(new Date(`${session.date}T${session.time}`));
-  const [, month, day] = session.date.split('-').map(Number);
-  if (!month || !day) throw new Error(`[calendar] unreadable session date "${session.date}"`);
-  return { day, month, time: 'TBC' };
-}
-
-interface WeekendSession {
-  label: string;
-  session: RaceSession;
-  race: boolean;
-}
-
-/**
- * A weekend's sessions in running order, the race last. A sprint weekend has
- * no second or third practice, and sprint qualifying and a sprint instead.
- */
-function weekendSessions(round: CalendarRound): WeekendSession[] {
-  const s = round.sessions;
-  const listed: [string, RaceSession | null][] = [
-    ['Practice 1', s.practice1],
-    ['Practice 2', s.practice2],
-    ['Practice 3', s.practice3],
-    ['Sprint Qualifying', s.sprintQualifying],
-    ['Sprint', s.sprint],
-    ['Qualifying', s.qualifying],
-  ];
-  const at = (x: RaceSession): string => `${x.date}T${x.time ?? '00:00:00Z'}`;
-  return [
-    ...listed
-      .filter((entry): entry is [string, RaceSession] => entry[1] !== null)
-      .sort((a, b) => at(a[1]).localeCompare(at(b[1])))
-      .map(([label, session]) => ({ label, session, race: false })),
-    { label: 'Race', session: { date: round.date, time: round.time }, race: true },
-  ];
-}
-
-/** "24-26" and "Sep" -- the weekend as both the panel and the table print it. */
-function weekendSpan(round: CalendarRound): { days: string; month: string } {
-  const sessions = weekendSessions(round);
-  const first = sessionWhen((sessions[0] as WeekendSession).session);
-  const race = sessionWhen((sessions[sessions.length - 1] as WeekendSession).session);
-  return {
-    days: `${pad2(first.day)}-${pad2(race.day)}`,
-    month:
-      first.month === race.month
-        ? monthAbbr(race.month)
-        : `${monthAbbr(first.month)}/${monthAbbr(race.month)}`,
-  };
 }
 
 /* ------------------------------------------------------------------ *
@@ -2350,12 +2074,13 @@ function mountCountdown(section: HTMLElement): void {
   }
 }
 
-/* The schedule buttons' hooked arrow cycles while hovered or focused, as the
-   reference's Rive arrow does -- see mountArrowCycle. It is aria-hidden
-   decoration; under reduced motion it stays still. */
+/* The hooked arrow on the schedule buttons and the panel's next and previous
+   arrows cycles while hovered or focused, as the reference's Rive arrow does
+   -- see mountArrowCycle. It is aria-hidden decoration; under reduced motion
+   it stays still. */
 if (!reducedMotion) {
-  for (const button of document.querySelectorAll<HTMLElement>('.ot-cal__btn')) {
-    const icon = button.querySelector<SVGSVGElement>('.ot-cal__btn-icon');
+  for (const button of document.querySelectorAll<HTMLElement>('.ot-cal__btn, .ot-cal__ctrl')) {
+    const icon = button.querySelector<SVGSVGElement>('.ot-cal__btn-icon, .ot-cal__ctrl-icon');
     if (icon) mountArrowCycle(button, icon);
   }
 }
@@ -2512,25 +2237,30 @@ function mountCalendar(section: HTMLElement): void {
   const clips = (): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('.ot-cal__t')];
   const bars = (): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('.ot-cal__t-bar')];
 
-  /* ------------------------------------------------------ The circuit */
+  /* ------------------------------------------------------ The circuit
+   *
+   * The reference sets this slot's circuit in its site-wide 3D scene (the
+   * panel's `[data-gl="tracks"]` target), where the hero, the countdown and the
+   * pointer's card draw the flat outline: so this is the calendar page's map,
+   * lib/track3d.ts, with the reference's camera, bloom and two-second swap.
+   *
+   * Mounted once the panel is within a screen of the viewport -- the page's
+   * one WebGL context for it, retargeted from then on rather than rebuilt --
+   * and kept for the life of the page: the map itself stops drawing when it
+   * is off screen or the tab is hidden, and the next page is a new document.
+   * Every change turns it forward, arrows and rows alike, as the reference's
+   * does (its scene only ever swaps "forward"). */
 
-  type Circuit = Awaited<ReturnType<typeof mountCircuit>>;
-  let track: Promise<Circuit> | null = null;
-
-  /** Points the large drawing at a round, or empties it for one without a shape. */
-  const drawTrack = (round: CalendarRound): void => {
-    const drawable = hasTrack(round.circuitId);
-    trackHost.classList.toggle('is-empty', !drawable);
-    if (!drawable) return;
-    track ??= mountCircuit(trackHost, { circuitId: round.circuitId, lit: true, weight: 'thin' });
-    void track.then(
-      (handle) => trackHost.classList.toggle('is-empty', !handle.select(round.circuitId)),
-      (error: unknown) => {
-        console.warn('[on-track] calendar circuit did not load', error);
-        track = null; // so a later round retries
-      },
-    );
-  };
+  let map: TrackMap | null = null;
+  const mapWatch = new IntersectionObserver(
+    ([entry]) => {
+      if (!entry?.isIntersecting) return;
+      mapWatch.disconnect();
+      map = mountTrackMap(trackHost, roundAt(current).circuitId);
+    },
+    { rootMargin: '100% 0px' },
+  );
+  mapWatch.observe(trackHost);
 
   /* ------------------------------------------------------ The values */
 
@@ -2588,9 +2318,9 @@ function mountCalendar(section: HTMLElement): void {
     flag.replaceChildren(image);
 
     sessionsHost.replaceChildren();
-    for (const { label, session, race } of weekendSessions(round)) {
+    for (const { kind, label, session } of weekendSessions(round)) {
       const when = sessionWhen(session);
-      const row = el('p', race ? 'ot-cal__session ot-cal__session--race' : 'ot-cal__session');
+      const row = el('p', kind === 'race' ? 'ot-cal__session ot-cal__session--race' : 'ot-cal__session');
       row.append(
         el('span', undefined, label),
         /* Unpadded here, where the weekend's span pads: "4 SEP", "04-06". */
@@ -2686,7 +2416,7 @@ function mountCalendar(section: HTMLElement): void {
   const show = (index: number, announce: boolean): void => {
     current = index;
     const round = roundAt(index);
-    drawTrack(round);
+    map?.show(round.circuitId);
     markActive();
     if (announce) live.textContent = `Showing round ${round.round}, the ${round.raceName}.`;
 
@@ -2784,6 +2514,7 @@ function mountCalendar(section: HTMLElement): void {
 
     /* One canvas, retargeted per row -- the reference's own gesture. Black on
        the accent card: the light ground's ink. */
+    type Circuit = Awaited<ReturnType<typeof mountCircuit>>;
     const firstDrawable = rounds.find((r) => hasTrack(r.circuitId));
     let shape: Promise<Circuit> | null = firstDrawable
       ? mountCircuit(shapeHost, { circuitId: firstDrawable.circuitId, ground: 'light' })
