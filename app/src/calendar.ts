@@ -23,7 +23,7 @@ import { mountCountdown } from './lib/countdown';
 import { mountFooterMarquee } from './lib/marquee';
 import { mountReveals } from './lib/reveal';
 import { place } from './lib/schedule';
-import { Signature } from './Signature';
+import { Signature, signatureTrace } from './Signature';
 import { calendar, nextRound, provenance, seasons } from './content/live-stats';
 import { mountSeason } from './calendar/season';
 import { mountResults } from './calendar/results';
@@ -86,11 +86,7 @@ const entranceReady = Promise.all([document.fonts.ready, whenEntranceCued()]);
 const heroSign = need('[data-cal-hero-sign]');
 if (!reducedMotion) {
   heroSign.classList.add('is-writing');
-  fetch('/assets/brand/signature.svg')
-    .then((res) => {
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      return res.text();
-    })
+  signatureTrace(heroSign)
     .then((markup) => {
       const ink = getComputedStyle(heroSign).getPropertyValue('--accent').trim();
       const pen = new Signature(heroSign, markup, ink);
