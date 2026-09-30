@@ -565,7 +565,8 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
       const rowBars = rows.map((row) => row.querySelector('.ot-cal__row-bar'));
       gsap.set(rows, { clipPath: 'inset(0 100% 0 0)' });
       gsap.set(rowBars, { scaleX: 1 });
-      const enter = gsap.timeline({ scrollTrigger: { trigger: ground, start: 'top 90%', once: true } });
+      // Played once by its toggleActions; no `once` on a timeline (lib/motion.ts).
+      const enter = gsap.timeline({ scrollTrigger: { trigger: ground, start: 'top 90%' } });
       rows.forEach((row, i) => {
         enter.to(row, { clipPath: 'inset(0 0% 0 0)', duration: 0.6, ease: 'power2.out' }, i * 0.05);
         enter.to(rowBars[i] ?? [], { scaleX: 0, duration: 0.6, ease: 'power2.inOut' }, i * 0.05 + 0.3);
