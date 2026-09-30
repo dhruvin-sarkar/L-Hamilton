@@ -3443,6 +3443,13 @@ button.ot-cal__row:focus-visible {
     flex: none;
   }
 
+  /* Reference `.text-on-t-stat-label-reg` under 480: 1.6rem. At the desktop
+     2.0625 a lap time ("1:22.423 s") ran 25px past a 360 screen, its unit cut
+     off at the edge. */
+  .ot-cal__reg {
+    font-size: calc(var(--u) * 1.6);
+  }
+
   .ot-cal__row-flag {
     inset-block-start: calc(var(--u) * 0.2);
     inline-size: calc(var(--u) * 1.4);
