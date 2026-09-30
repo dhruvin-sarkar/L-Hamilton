@@ -2162,8 +2162,7 @@ interface WeekendSession {
 
 /**
  * A weekend's sessions in running order, the race last. A sprint weekend has
- * no second or third practice and a sprint instead; the calendar does not
- * carry sprint qualifying, so it is not invented here.
+ * no second or third practice, and sprint qualifying and a sprint instead.
  */
 function weekendSessions(round: CalendarRound): WeekendSession[] {
   const s = round.sessions;
@@ -2171,6 +2170,7 @@ function weekendSessions(round: CalendarRound): WeekendSession[] {
     ['Practice 1', s.practice1],
     ['Practice 2', s.practice2],
     ['Practice 3', s.practice3],
+    ['Sprint Qualifying', s.sprintQualifying],
     ['Sprint', s.sprint],
     ['Qualifying', s.qualifying],
   ];
