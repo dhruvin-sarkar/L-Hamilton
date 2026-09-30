@@ -1,8 +1,83 @@
+              <!-- The crest's metal. Its colours are the --metal-* tokens
+                   (tokens.css): the ramp is the whole look, and gold becomes
+                   silver by changing those tokens alone.
+
+                   userSpaceOnUse, in the drawing's own 64x44 units, so the
+                   helmet, both branches and every leaf take one continuous
+                   sheen instead of each shape restarting it. The ramp runs
+                   top to bottom on purpose: the right branch is the left one
+                   drawn through a mirror, and a vertical ramp reads the same
+                   either side of it, so the two halves stay continuous without
+                   a mirrored copy of the paint.
+
+                   Outside <g id="nr-crest"> so the <use> of the crest does not
+                   clone them. The partial is included once per page; a second
+                   include would duplicate these ids along with the crest's. -->
+              <defs>
+                <linearGradient
+                  id="crest-metal"
+                  gradientUnits="userSpaceOnUse"
+                  x1="0"
+                  y1="9"
+                  x2="0"
+                  y2="39"
+                >
+                  <stop offset="0" style="stop-color: var(--metal-lo)" />
+                  <stop offset="0.3" style="stop-color: var(--metal-mid)" />
+                  <stop offset="0.48" style="stop-color: var(--metal-hi)" />
+                  <stop offset="0.66" style="stop-color: var(--metal-mid)" />
+                  <stop offset="1" style="stop-color: var(--metal-lo)" />
+                </linearGradient>
+                <!-- The same metal one step deeper, for a crest on a light
+                     ground, where the ramp's bright end would sink into the
+                     cream: every stop moves down a rung. A context opts in
+                     with --crest-paint: url(#crest-metal-deep). -->
+                <linearGradient id="crest-metal-deep" href="#crest-metal">
+                  <stop offset="0" style="stop-color: var(--metal-shade)" />
+                  <stop offset="0.3" style="stop-color: var(--metal-lo)" />
+                  <stop offset="0.48" style="stop-color: var(--metal-mid)" />
+                  <stop offset="0.66" style="stop-color: var(--metal-lo)" />
+                  <stop offset="1" style="stop-color: var(--metal-shade)" />
+                </linearGradient>
+                <!-- The glint: a soft band of light, laid across the drawing at
+                     25deg and parked just short of its left edge, so at rest it
+                     paints nothing. lib/crest-glint.ts sweeps a per-crest copy
+                     of it data-travel units along its own axis, which carries
+                     the band clear of the far corner. -->
+                <linearGradient
+                  id="crest-glint"
+                  gradientUnits="userSpaceOnUse"
+                  x1="-14"
+                  y1="0"
+                  x2="10"
+                  y2="0"
+                  gradientTransform="rotate(25)"
+                  data-travel="82"
+                >
+                  <stop offset="0.34" style="stop-color: var(--metal-shine); stop-opacity: 0" />
+                  <stop offset="0.5" style="stop-color: var(--metal-shine); stop-opacity: 0.85" />
+                  <stop offset="0.66" style="stop-color: var(--metal-shine); stop-opacity: 0" />
+                </linearGradient>
+                <!-- The glint as the mirrored branch sees it: its user space is
+                     flipped about x = 32, so the band is flipped back through
+                     the same mirror to cross both branches as one line. -->
+                <linearGradient
+                  id="crest-glint-mirror"
+                  href="#crest-glint"
+                  gradientTransform="matrix(-1 0 0 1 64 0) rotate(25)"
+                />
+              </defs>
               <g id="nr-crest">
               <!-- --crest-helmet and --crest-branch-hide are hooks for the On
                    Track header, which grows the crest in as it arrives. Unset,
-                   as everywhere else, the drawing is simply whole. -->
-              <g fill="currentColor" style="opacity: var(--crest-helmet, 1)">
+                   as everywhere else, the drawing is simply whole.
+
+                   --crest-paint is what every shape is painted with: the
+                   metal unless a context says otherwise. -->
+              <g
+                id="nr-crest-helmet"
+                style="fill: var(--crest-paint, url(#crest-metal)); opacity: var(--crest-helmet, 1)"
+              >
                 <!-- Helmet: dome and chin bar, visor aperture knocked out. -->
                 <path
                   d="M32 9c-6.1 0-11 4.9-11 11v6.3c0 1.9 1.5 3.4 3.4 3.4h15.2c1.9 0 3.4-1.5 3.4-3.4V20c0-6.1-4.9-11-11-11Z"
@@ -20,33 +95,46 @@
               <!-- Left branch: stem plus five leaves placed along the curve. -->
               <g
                 id="nr-branch"
-                fill="currentColor"
-                style="clip-path: inset(var(--crest-branch-hide, 0%) 0 0 0)"
+                style="fill: var(--crest-paint, url(#crest-metal)); clip-path: inset(var(--crest-branch-hide, 0%) 0 0 0)"
               >
                 <path
                   d="M18 38C11 34.5 6.5 26.5 7.5 17.5"
                   fill="none"
-                  stroke="currentColor"
+                  style="stroke: var(--crest-paint, url(#crest-metal))"
                   stroke-width="1.3"
                   stroke-linecap="round"
                 />
-                <g transform="translate(15 36.1) rotate(-125)">
-                  <path d="M0 0c2.2-2.6 5.4-3 7.4-1.2C5.2 1.4 2 1.6 0 0Z" />
-                </g>
-                <g transform="translate(11.7 32.8) rotate(-138)">
-                  <path d="M0 0c2.2-2.6 5.4-3 7.4-1.2C5.2 1.4 2 1.6 0 0Z" />
-                </g>
-                <g transform="translate(9.2 28.7) rotate(-150)">
-                  <path d="M0 0c2.2-2.6 5.4-3 7.4-1.2C5.2 1.4 2 1.6 0 0Z" />
-                </g>
-                <g transform="translate(7.7 24) rotate(-162)">
-                  <path d="M0 0c2.2-2.6 5.4-3 7.4-1.2C5.2 1.4 2 1.6 0 0Z" />
-                </g>
-                <g transform="translate(7.4 19.4) rotate(-172)">
-                  <path d="M0 0c2.2-2.6 5.4-3 7.4-1.2C5.2 1.4 2 1.6 0 0Z" />
-                </g>
+                <!-- One leaf, "M0 0c2.2-2.6 5.4-3 7.4-1.2C5.2 1.4 2 1.6 0 0Z",
+                     placed five times by translate + rotate:
+                       (15 36.1) -125   (11.7 32.8) -138   (9.2 28.7) -150
+                       (7.7 24) -162    (7.4 19.4) -172
+                     Written out with each placement applied to its points,
+                     not wrapped in a <g transform>: a transformed group paints
+                     in its own rotated space, so every leaf would take its own
+                     slice of the metal instead of the drawing's one sheen. The
+                     shapes are the same to a hundredth of a unit. -->
+                <path d="M15 36.1C11.61 35.79 9.45 33.4 9.77 30.73C13.16 31.04 15.16 33.54 15 36.1Z" />
+                <path d="M11.7 32.8C8.33 33.26 5.68 31.42 5.4 28.74C8.77 28.28 11.28 30.27 11.7 32.8Z" />
+                <path d="M9.2 28.7C5.99 29.85 3.02 28.6 2.19 26.04C5.4 24.89 8.27 26.31 9.2 28.7Z" />
+                <path d="M7.7 24C4.8 25.79 1.64 25.18 0.29 22.85C3.19 21.06 6.29 21.86 7.7 24Z" />
+                <path d="M7.4 19.4C4.86 21.67 1.64 21.62 -0.09 19.56C2.45 17.29 5.64 17.54 7.4 19.4Z" />
               </g>
               <!-- Right branch is the left one mirrored about the centre line,
                    so the two can never drift apart when the left is tweaked. -->
               <use href="#nr-branch" transform="matrix(-1 0 0 1 64 0)" />
+              <!-- The glint layer: the same three pieces again, painted with
+                   the glint instead of the metal. It inherits the growth hooks
+                   like the drawing under it, so it can never light a leaf that
+                   has not grown yet. --crest-glint and --crest-glint-mirror
+                   are set per crest by lib/crest-glint.ts, which gives each
+                   crest its own copy of the band to move. -->
+              <g style="--crest-paint: var(--crest-glint, url(#crest-glint))">
+                <use href="#nr-crest-helmet" />
+                <use href="#nr-branch" />
+                <use
+                  href="#nr-branch"
+                  transform="matrix(-1 0 0 1 64 0)"
+                  style="--crest-paint: var(--crest-glint-mirror, url(#crest-glint-mirror))"
+                />
+              </g>
               </g>

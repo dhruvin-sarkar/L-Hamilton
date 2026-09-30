@@ -339,6 +339,18 @@ export class ContourField {
     }
   }
 
+  /**
+   * Compile the noise pass without blocking, against its own target for the
+   * reason FluidCursor.compile gives. Resolves once the program is linked.
+   */
+  compile(): Promise<unknown> {
+    const previous = this.renderer.getRenderTarget();
+    this.renderer.setRenderTarget(this.target);
+    const linked = this.renderer.compileAsync(this.scene, this.camera);
+    this.renderer.setRenderTarget(previous);
+    return linked;
+  }
+
   update(time: number): void {
     /* Mouse pace: distance moved this frame, normalised and smoothed.
      *

@@ -20,6 +20,15 @@ body[data-page='calendar'] {
   background: var(--black);
 }
 
+/* Holds the crest drawing for the menu. Zero-sized rather than display: none,
+   which would stop the gradients it carries from painting the crest. */
+.cal-defs {
+  position: absolute;
+  inline-size: 0;
+  block-size: 0;
+  overflow: hidden;
+}
+
 /* Proportional figures, as the reference sets every digit on this page: the
    body's tabular default widens each 1 by half again ("FORMULA 1" ran 12px
    long) and dots Mona's zeros. The countdown keeps On Track's setting. */

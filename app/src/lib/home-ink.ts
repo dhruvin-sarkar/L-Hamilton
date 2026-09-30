@@ -12,6 +12,7 @@
  * the drawing simply stands, whole. Leaving that context puts them back.
  */
 
+import { glintCrest, glintCrestOnHover } from './crest-glint';
 import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './motion';
 import { clearInk, measureInk, setInk } from './pen';
 
@@ -26,11 +27,22 @@ import { clearInk, measureInk, setInk } from './pen';
 function mountImpactCrest(): void {
   const crest = document.querySelector<SVGSVGElement>('.impact__crest');
   if (!crest) return;
+  const section = crest.closest('.impact');
+  if (!section) throw new Error('impact crest: .impact__crest outside .impact');
 
   mm.add(WIDE_AND_ANIMATED, () => {
     gsap.set(crest, { '--crest-branch-hide': '100%', '--crest-helmet': 0 });
+    // Grown, its metal catches the light once, and again on each entry into
+    // the wall (lib/crest-glint.ts).
+    let stopGlintOnHover: (() => void) | undefined;
     const grow = gsap
-      .timeline({ paused: true })
+      .timeline({
+        paused: true,
+        onComplete: () => {
+          glintCrest(crest);
+          stopGlintOnHover = glintCrestOnHover(crest, section);
+        },
+      })
       .to(crest, { '--crest-branch-hide': '0%', duration: 0.5, ease: 'power2.out' }, 0)
       .to(crest, { '--crest-helmet': 1, duration: 0.45, ease: 'power2.out' }, 0.35);
     const trigger = ScrollTrigger.create({
@@ -43,6 +55,7 @@ function mountImpactCrest(): void {
     return () => {
       trigger.kill();
       grow.kill();
+      stopGlintOnHover?.();
       crest.style.removeProperty('--crest-branch-hide');
       crest.style.removeProperty('--crest-helmet');
     };

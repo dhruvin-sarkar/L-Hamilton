@@ -158,9 +158,9 @@ function sessionResult(kind: SessionKind, result: RoundResult): { place: string;
         ? { place: finishText(result.sprint.positionText), time: result.sprint.time ?? dash }
         : { place: dash, time: dash };
     default:
-      /* Practice is not classified in the record the site is built on
-         (Jolpica carries qualifying, sprint and race results only), so a
-         practice session reads as a dash rather than as a figure from
+      /* Practice and sprint qualifying are not classified in the record the
+         site is built on (Jolpica carries qualifying, sprint and race results
+         only), so those sessions read as a dash rather than as a figure from
          somewhere else. */
       return { place: dash, time: dash };
   }

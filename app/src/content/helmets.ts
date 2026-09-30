@@ -1,7 +1,7 @@
 /* Helmet Hall of Fame — the data behind the grid.
  *
  * One entry per helmet, in the order they are displayed. Both images for an
- * entry are keyed off `id` alone:
+ * entry are keyed off `id` alone, with one exception (see HELMET_FILE):
  *
  *   /assets/helmets-hof/helmet-NN.webp   the helmet, studio side-on
  *   /assets/helmets-hof/reveal-NN.webp   Hamilton wearing it, shown on hover
@@ -44,8 +44,18 @@ function stem(id: number): string {
   return String(id).padStart(2, '0');
 }
 
+/* Helmets 1 and 2 swap files. The helmet shots as first supplied (kept in
+   asset-sources/helmets-hof-originals, where the doubled number is the helmet
+   for that reveal) pair 11.webp, the roulette-crowned lid, with reveal 1 and
+   22.webp, a yellow lid with diamonds along the crown, with reveal 2. The
+   transparent cut-outs that replaced them came numbered the other way round,
+   and were copied in by position. Every other id still matches its original.
+   The files stay where they are, because the filenames are the record; the
+   entries point at the right one instead. */
+const HELMET_FILE: Readonly<Record<number, number>> = { 1: 2, 2: 1 };
+
 export function helmetSrc(helmet: Helmet): string {
-  return `/assets/helmets-hof/helmet-${stem(helmet.id)}.webp`;
+  return `/assets/helmets-hof/helmet-${stem(HELMET_FILE[helmet.id] ?? helmet.id)}.webp`;
 }
 
 export function revealSrc(helmet: Helmet): string {
@@ -92,19 +102,40 @@ const F1_FERRARI_FIRST_LOOK =
 
 /* OLDEST FIRST, one record per asset id, in asset order except where noted.
 
-   Ids 1-3 stay null because the two photographs of each entry disagree, not
-   for want of a source. formula1.com prints all three reveals: 01 is the 2010
-   Monaco "casino" lid, 02 the 2009 British GP one, 03 his practice debut at
-   the 2007 Australian GP. But helmet 02 is that same roulette-topped 2010
-   Monaco lid, the partner of reveal 01, not of its own; helmet 01 is a
-   Steinmetz-branded yellow lid with a plain crown, which no source better than
-   a replica maker's catalogue dates; and helmet 03 carries the "LH" stripe logo
-   the 2007 lid lacks. Any label would be wrong for one picture of its pair, so
-   none is given. The pairing of the files is what needs fixing. */
+   formula1.com prints all three McLaren reveals: 01 is the 2010 Monaco
+   "casino" lid (its caption: parc fermé, round 6, qualifying day), 02 the
+   2009 British GP one, 03 his practice debut at the 2007 Australian GP. So 3,
+   2, 1 is their order on the calendar, and the order they run in here. */
 const byId: readonly Helmet[] = [
-  { id: 1, name: null, year: null },
-  { id: 2, name: null, year: null },
+  /* Null. The reveal is dated (formula1.com: his practice debut at the 2007
+     Australian GP); the helmet is not. It is an undated drawing, not a
+     photograph, of the yellow McLaren lid: Vodafone halo, Johnnie Walker,
+     Kenwood on the visor strip, SAP and Mobil 1 on the chin, his "LH" mark on
+     the blue band. The Monaco lid under id 2 carries every one of those too,
+     and the painter kept the side of the design unchanged into 2009, adding
+     only a cartoon on the back "without changing his now world-recognised
+     design" (JLF Designs, 27 March 2009,
+     http://jlfdesigns.blogspot.com/2009/03/lewis-hamilton-helmet-cartoon.html).
+     Side-on, the drawing could be 2007, 2008 or 2009, so 2007 would be a
+     guess. */
   { id: 3, name: null, year: null },
+  /* Null, and no remapping fixes it: the two pictures are different lids, and
+     no helmet shot in the set shows the reveal's. The reveal is the 2009
+     British GP lid, which its painter posted as "a Union Jack flag on the top,
+     showing through a 'torn' section in the yellow" (JLF Designs, 24 June 2009,
+     http://jlfdesigns.blogspot.com/2009/06/for-british-gp-we-added-patriotic-touch.html).
+     The helmet's crown is plain yellow with a line of diamonds along it, which
+     makes it one of the Steinmetz diamond lids McLaren ran at Monaco. Its white
+     Vodafone halo rules out 2009, whose halo the painter made "a prismatic
+     silver ... to match the Steinmetz diamonds"; between 2007 and 2008 nothing
+     better than a replica maker's catalogue decides, so it is not dated. */
+  { id: 2, name: null, year: null },
+  /* Roulette wheel across the crown, in both pictures: the helmet shot is the
+     file HELMET_FILE points 1 at. formula1.com names the race. The painter,
+     JLF Designs, posted the lid that week (13 May 2010) as "a special Casino
+     theme. The top features a roulette wheel with a pair of dice on the back":
+     http://jlfdesigns.blogspot.com/2010/05/lewis-hamilton-monaco-2010-helmet.html */
+  { id: 1, name: 'Monaco', year: 2010, source: F1_HELMETS },
   // Bob Marley on the crown, "One Love"; worn at the Marley family's request.
   { id: 4, name: 'India', year: 2011, source: F1_HELMETS },
   // Singapore's lion on the crown, the flag's crescent and stars on the side.
@@ -137,7 +168,13 @@ const byId: readonly Helmet[] = [
   { id: 15, name: 'Pride', year: 2021, source: F1_HELMETS },
   /* Year only. The helmet is the fluorescent-yellow 2022 season lid; the reveal
      is the flag-covered one he wore in São Paulo that November. Both are 2022,
-     but no one name fits both pictures. */
+     but no one name fits both pictures, and no other file in the set pairs
+     better (every helmet but 1 and 2 still sits on its original reveal).
+     The helmet's year checks out on its own: it carries Akkodis, a team
+     partner from 2022, and lacks the G42 mark that his 2023 and 2024 lids (18,
+     19, 20) wear by the visor pivot. G42 joined on 15 February 2023 with its
+     logo "on the helmets of race drivers Lewis Hamilton and George Russell":
+     https://www.g42.ai/resources/news/mercedes-amg-petronas-f1-team-announces-g42-official-partner */
   { id: 17, name: null, year: 2022, source: MERCEDES_BRAZIL },
   // Hajime Sorayama's chrome lid with the illuminated visor.
   { id: 18, name: 'Japan', year: 2023, source: F1_HELMETS },
@@ -146,8 +183,12 @@ const byId: readonly Helmet[] = [
      wears WhatsApp, a team partner only from November 2023. */
   { id: 19, name: 'Season', year: 2024, source: F1_FERRARI_FIRST_LOOK },
   /* Name only. Both pictures are his São Paulo lid, but from different years:
-     the reveal is the 2023 one Mercedes prints, flag on the crown; the helmet
-     is the 2024 one, which carries Signify, a team partner only from July 2024. */
+     the reveal is the 2023 one Mercedes prints, flag on the crown and Monster
+     down the sides where his 2024 lids carry Solera; the helmet is the 2024
+     one (formula1.com's "helmet covered in the Brazilian flag"), which carries
+     Signify, a team partner only from 3 July 2024:
+     https://www.signify.com/en-us/our-company/news/press-releases/2024/20240703-signify-and-mercedes-amg-petronas-f1-team-launch-new-partnership
+     No single year fits both, and no other file in the set pairs better. */
   { id: 20, name: 'Brazil', year: null, source: MERCEDES_BRAZIL },
   // Back to the yellow of his karting days, for his first Ferrari season.
   { id: 21, name: 'Season', year: 2025, source: F1_HELMETS },
