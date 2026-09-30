@@ -309,23 +309,41 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
  *
  * Ten photographs stacked in the frame, the first on top. The flight below
  * shows one at a time by scroll progress; at rest only the first shows.
+ *
+ * The first is in off-track.html, so it is requested with the document: it
+ * is the page's largest paint. The other nine are only seen once the flight
+ * is scrolled, and never under reduced motion, so they get their pictures
+ * after the load event. Stacked in a frame on screen, `loading="lazy"` did
+ * not hold them back, and their 1.2 MB kept the load event -- and so the
+ * loader's reveal -- waiting.
  * ------------------------------------------------------------------ */
 
-{
+const flightLayers: HTMLImageElement[] = (() => {
   const flight = must('[data-flight]');
-  flight.replaceChildren(
-    ...hero.flight.map((photo, i) => {
-      const img = el('img', 'oft-flight__layer');
-      img.src = photo.src;
-      img.width = photo.width;
-      img.height = photo.height;
-      img.alt = '';
-      img.decoding = 'async';
-      img.loading = i === 0 ? 'eager' : 'lazy';
-      return img;
-    }),
-  );
-}
+  const [lead, ...rest] = hero.flight;
+  const first = flight.querySelector<HTMLImageElement>('img.oft-flight__layer');
+  if (!lead || !first || first.getAttribute('src') !== lead.src) {
+    throw new Error(
+      `[off-track] the flight's first picture in off-track.html must be hero.flight[0] (${lead?.src ?? 'none'})`,
+    );
+  }
+  const later = rest.map((photo) => {
+    const img = el('img', 'oft-flight__layer');
+    img.dataset.src = photo.src;
+    img.width = photo.width;
+    img.height = photo.height;
+    img.alt = '';
+    img.decoding = 'async';
+    return img;
+  });
+  flight.replaceChildren(first, ...later);
+  return later;
+})();
+
+const pageLoaded = new Promise<void>((resolve) => {
+  if (document.readyState === 'complete') resolve();
+  else window.addEventListener('load', () => resolve(), { once: true });
+});
 
 /* ------------------------------------------------------------------ *
  * The statement's oval reveal
@@ -606,6 +624,13 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
 
   track.append(flight);
   flight.classList.add('is-flying');
+
+  void pageLoaded.then(() => {
+    for (const layer of flightLayers) {
+      const src = layer.dataset.src;
+      if (src && !layer.hasAttribute('src')) layer.src = src;
+    }
+  });
 
   let shown = 0;
   const show = (i: number): void => {
