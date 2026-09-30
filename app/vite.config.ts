@@ -164,10 +164,46 @@ function heroMarquee(): Plugin {
   };
 }
 
+/**
+ * The built pages' stylesheets first in their heads.
+ *
+ * Vite writes a page's stylesheet links at the end of the head, after the
+ * module script, its modulepreloads and the font preloads the markup carries.
+ * The browser asks for files in the order it finds them, and over HTTP/1.1
+ * (which `vite preview` and many hosts serve) it keeps six connections to a
+ * host: measured on a throttled phone, the three render-blocking stylesheets
+ * waited 0.7-0.9s behind five fonts and scripts nothing paints with before
+ * them. Moved above every other link, they are asked for first and the first
+ * paint comes that much sooner. Nothing else changes: the same files, still
+ * render-blocking, in the same order among themselves.
+ */
+function stylesFirst(): Plugin {
+  const STYLESHEET = /[ \t]*<link rel="stylesheet"[^>]*>\n?/g;
+
+  return {
+    name: 'styles-first',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html, ctx) {
+        const head = html.slice(0, html.indexOf('</head>'));
+        const links = head.match(STYLESHEET) ?? [];
+        if (!links.length) return html;
+        const firstLink = head.search(/<link\b/);
+        if (firstLink < 0) throw new Error(`${ctx.filename}: no <link> in the head to put the stylesheets before`);
+        let rest = html.slice(firstLink);
+        for (const link of links) rest = rest.replace(link, '');
+        const indent = head.slice(head.lastIndexOf('\n', firstLink) + 1, firstLink);
+        return html.slice(0, firstLink) + links.map((link) => link.trim()).join(`\n${indent}`) + `\n${indent}` + rest;
+      },
+    },
+  };
+}
+
 export default defineConfig({
   root: here,
   publicDir: fileURLToPath(new URL('./public', import.meta.url)),
-  plugins: [htmlPartials(), heroMarquee()],
+  plugins: [htmlPartials(), heroMarquee(), stylesFirst()],
   server: { port: 5173, open: false },
   /* The dependency cache lives beside this config, not in node_modules. Every
      worktree links app/node_modules to one shared install, so the default
