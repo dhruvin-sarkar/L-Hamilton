@@ -23,6 +23,7 @@ import { mountHelmetScroll } from './HelmetScroll';
 import { mountFooterMarquee } from './lib/marquee';
 import { closedReef, drawClosedReef } from './lib/closed-reef';
 import type { ReefBranch as ClosedReefBranch } from './lib/closed-reef';
+import { MONTHS, monthAbbr, sessionWhen, ukWhen, weekendSessions, weekendSpan } from './lib/schedule';
 import { Signature } from './Signature';
 import { mountReveals } from './lib/reveal';
 import {
@@ -54,7 +55,7 @@ import {
   seasonsNewestFirst,
   wins,
 } from './content/live-stats';
-import type { CalendarRound, RaceSession } from './content/live-stats';
+import type { CalendarRound } from './content/live-stats';
 import { countryName, flagUrl } from './content/countries';
 import { circuitFacts, formatKm } from './content/circuit-facts';
 
@@ -152,15 +153,11 @@ function spell(n: number): string {
 }
 
 /**
- * Three-letter months, as the reference prints them. `toLocaleDateString`
- * cannot be trusted with this: en-GB's short September is "Sept".
- */
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-/**
- * "2008-07-06" -> "6 Jul". Read in UTC, because the record's dates are
- * calendar days rather than instants, and a local zone west of Greenwich would
- * otherwise print every one of them a day early.
+ * "2008-07-06" -> "6 Jul", its month from the site's one table of three-letter
+ * months (lib/schedule.ts: en-GB's short September is "Sept"). Read in UTC,
+ * because the record's dates are calendar days rather than instants, and a
+ * local zone west of Greenwich would otherwise print every one of them a day
+ * early.
  */
 function shortDate(iso: string): string {
   const day = new Date(`${iso}T00:00:00Z`);
@@ -537,28 +534,6 @@ function reveal(selector: string): void {
   if (panel) panel.hidden = false;
 }
 
-/**
- * The weekend as the reference's hero card prints it: two words, the days
- * zero-padded and hyphenated ("04-06") and the race day's month in three
- * letters ("Sep" -- not the "Sept" en-GB formatting now returns).
- */
-function weekend(round: CalendarRound): { days: string; month: string } {
-  const dates = [
-    round.sessions.practice1?.date,
-    round.sessions.practice2?.date,
-    round.sessions.qualifying?.date,
-    round.sessions.sprint?.date,
-    round.date,
-  ].filter((d): d is string => typeof d === 'string');
-
-  const first = dates.reduce((a, b) => (a < b ? a : b));
-  const day = (iso: string): string =>
-    String(new Date(`${iso}T00:00:00Z`).getUTCDate()).padStart(2, '0');
-  const month = MONTHS[new Date(`${round.date}T00:00:00Z`).getUTCMonth()];
-  if (!month) throw new Error(`[hero] unreadable race date "${round.date}"`);
-  return { days: `${day(first)}-${day(round.date)}`, month };
-}
-
 const previous = lastRound();
 if (previous) {
   // The markup carries the "GP" as a second word, as the reference does.
@@ -638,7 +613,9 @@ if (next) {
 
   slot('round-circuit', next.circuitName);
   slot('round-country', next.country);
-  const dates = weekend(next);
+  /* "04-06" and "Sep": the weekend as the schedule panel prints it, the race's
+     month alone across a month's end (lib/schedule.ts). */
+  const dates = weekendSpan(next);
   slot('round-days', dates.days);
   slot('round-month', dates.month);
 
@@ -1908,106 +1885,6 @@ if (juniorGrid) {
 }
 
 /* ------------------------------------------------------------------ *
- * Dates, as the countdown and the calendar print them
- *
- * In UK time, which is what the reference prints and footnotes (*UK TIME), and
- * with three-letter months from a fixed table: en-GB's own short September is
- * "Sept", where the reference -- like every timing screen -- reads SEP. The
- * table is MONTHS, declared once above for every date on the page.
- * ------------------------------------------------------------------ */
-
-function monthAbbr(month: number): string {
-  const name = MONTHS[month - 1];
-  if (!name) throw new Error(`[calendar] no month ${month}`);
-  return name;
-}
-
-const pad2 = (n: number): string => String(n).padStart(2, '0');
-
-const ukClock = new Intl.DateTimeFormat('en-GB', {
-  timeZone: 'Europe/London',
-  year: 'numeric',
-  month: 'numeric',
-  day: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-  hourCycle: 'h23',
-});
-
-interface UkWhen {
-  day: number;
-  month: number;
-  /** "9:30", "13:00" -- the reference's own format, no leading zero. */
-  time: string;
-}
-
-function ukWhen(instant: Date): UkWhen {
-  const parts = new Map(ukClock.formatToParts(instant).map((p) => [p.type, p.value]));
-  const read = (type: Intl.DateTimeFormatPartTypes): string => {
-    const value = parts.get(type);
-    if (value === undefined) throw new Error(`[calendar] no ${type} in ${instant.toISOString()}`);
-    return value;
-  };
-  return {
-    day: Number(read('day')),
-    month: Number(read('month')),
-    time: `${Number(read('hour'))}:${read('minute')}`,
-  };
-}
-
-/** A session in UK time. Without a published start, its calendar day and TBC. */
-function sessionWhen(session: RaceSession): UkWhen {
-  if (session.time) return ukWhen(new Date(`${session.date}T${session.time}`));
-  const [, month, day] = session.date.split('-').map(Number);
-  if (!month || !day) throw new Error(`[calendar] unreadable session date "${session.date}"`);
-  return { day, month, time: 'TBC' };
-}
-
-interface WeekendSession {
-  label: string;
-  session: RaceSession;
-  race: boolean;
-}
-
-/**
- * A weekend's sessions in running order, the race last. A sprint weekend has
- * no second or third practice, and sprint qualifying and a sprint instead.
- */
-function weekendSessions(round: CalendarRound): WeekendSession[] {
-  const s = round.sessions;
-  const listed: [string, RaceSession | null][] = [
-    ['Practice 1', s.practice1],
-    ['Practice 2', s.practice2],
-    ['Practice 3', s.practice3],
-    ['Sprint Qualifying', s.sprintQualifying],
-    ['Sprint', s.sprint],
-    ['Qualifying', s.qualifying],
-  ];
-  const at = (x: RaceSession): string => `${x.date}T${x.time ?? '00:00:00Z'}`;
-  return [
-    ...listed
-      .filter((entry): entry is [string, RaceSession] => entry[1] !== null)
-      .sort((a, b) => at(a[1]).localeCompare(at(b[1])))
-      .map(([label, session]) => ({ label, session, race: false })),
-    { label: 'Race', session: { date: round.date, time: round.time }, race: true },
-  ];
-}
-
-/** "24-26" and "Sep" -- the weekend as both the panel and the table print it. */
-function weekendSpan(round: CalendarRound): { days: string; month: string } {
-  const sessions = weekendSessions(round);
-  const first = sessionWhen((sessions[0] as WeekendSession).session);
-  const race = sessionWhen((sessions[sessions.length - 1] as WeekendSession).session);
-  return {
-    days: `${pad2(first.day)}-${pad2(race.day)}`,
-    month:
-      first.month === race.month
-        ? monthAbbr(race.month)
-        : `${monthAbbr(first.month)}/${monthAbbr(race.month)}`,
-  };
-}
-
-/* ------------------------------------------------------------------ *
  * Countdown to the next race
  *
  * Reference section 5. Its target is plain text in a hidden element and its
@@ -2409,9 +2286,9 @@ function mountCalendar(section: HTMLElement): void {
     flag.replaceChildren(image);
 
     sessionsHost.replaceChildren();
-    for (const { label, session, race } of weekendSessions(round)) {
+    for (const { kind, label, session } of weekendSessions(round)) {
       const when = sessionWhen(session);
-      const row = el('p', race ? 'ot-cal__session ot-cal__session--race' : 'ot-cal__session');
+      const row = el('p', kind === 'race' ? 'ot-cal__session ot-cal__session--race' : 'ot-cal__session');
       row.append(
         el('span', undefined, label),
         /* Unpadded here, where the weekend's span pads: "4 SEP", "04-06". */
