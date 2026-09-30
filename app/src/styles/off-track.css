@@ -29,6 +29,13 @@ body[data-page='off-track'] {
   position: relative;
   background: var(--bg);
   color: var(--text);
+  /* The title runs off both sides; on a phone the identity row runs past the
+     right edge by its grid's three gaps; and from 768 to 991 the picture, and
+     the flight that follows it, hang 80px past it. The reference's are the
+     same, and its page wrapper clips them. None may widen the page. Clip, not
+     hidden: this must not become a scroller, and the flight still leaves the
+     group downwards. */
+  overflow-x: clip;
 }
 
 /* ================================================================ Header */
@@ -38,10 +45,6 @@ body[data-page='off-track'] {
   block-size: min(100svh, 1200px);
   /* Proportional figures, as the reference sets "26 y.o". */
   font-variant-numeric: normal;
-  /* The title runs off both sides, and on a phone the identity row runs past
-     the right edge by its grid's three gaps, as the reference's does. Neither
-     may widen the page. Clip, not hidden: this must not become a scroller. */
-  overflow-x: clip;
 }
 
 .oft-hero__c {
@@ -622,8 +625,49 @@ body[data-page='off-track'] {
  * Ground: the page's dark, flat, as the reference's is one flat cream here.
  * Ink: the reference's dark-green-tint-2 greys become the page's grey. */
 
+/* Reduced motion takes the narrow column at every width, as Home's gallery
+ * does and for Home's reason: without the travel the track is a sideways
+ * scroller with no painted scrollbar and nothing focusable in it, so four of
+ * its five groups could not be reached. home.css gives every gallery that
+ * column's structure only below 992px, so on a wide screen it is restated
+ * here, at the same specificity and ahead of this track's own rules, so the
+ * cascade is the one the column has below 992px. The narrow rules further
+ * down then apply as they do there. */
+@media (prefers-reduced-motion: reduce) and (min-width: 992px) {
+  :where(.gallery--off-track) .gallery__pin {
+    position: static;
+    block-size: auto;
+    overflow: visible;
+    display: block;
+  }
+
+  :where(.gallery--off-track) .gallery__track {
+    flex-direction: column;
+    align-items: stretch;
+    transform: none;
+  }
+
+  :where(.gallery--off-track) .gallery__col {
+    inline-size: 100%;
+  }
+
+  :where(.gallery--off-track) .gallery__spacer {
+    display: none;
+  }
+
+  :where(.gallery--off-track) .gallery__item,
+  :where(.gallery--off-track) .gallery__callout {
+    margin-block-start: 0;
+  }
+
+  :where(.gallery--off-track) .gallery__item.is-out {
+    margin-inline-start: 0;
+  }
+}
+
 .gallery--off-track {
   --u: 1rem;
+  --eyebrow: calc(0.625 * var(--u));
   --grid-spacer: 31.51vh;
   /* home.css crossfades the gallery's ink with Home's WebGL ground; pinned at
      its dark end here, as On Track pins it. */
@@ -919,12 +963,18 @@ body[data-page='off-track'] {
  *              side; the opening picture over its heading, the mark beside it
  *
  * The captions are the reference's .text-eyebrow: 0.8rem under 992, 1rem
- * under 768 and 0.8rem again under 480. */
+ * under 768 and 0.8rem again under 480.
+ *
+ * Reduced motion on a wide screen takes the same column (see the top of this
+ * section) at the desktop's own --u. */
 @media (max-width: 991px) {
   .gallery--off-track {
     --u: calc(100vw / 86.4);
+    --eyebrow: calc(0.8 * var(--u));
   }
+}
 
+@media (max-width: 991px), (prefers-reduced-motion: reduce) {
   .gallery--off-track .gallery__track {
     block-size: auto;
     gap: calc(5 * var(--u));
@@ -949,8 +999,9 @@ body[data-page='off-track'] {
     inline-size: min(var(--w), 100%);
   }
 
-  .gallery--off-track .gallery__cap {
-    font-size: calc(0.8 * var(--u));
+  .gallery--off-track .gallery__cap,
+  .oft-gal__eyebrow {
+    font-size: var(--eyebrow);
   }
 
   .gallery--off-track .oft-callout__text {
@@ -998,8 +1049,8 @@ body[data-page='off-track'] {
 }
 
 @media (max-width: 767px) {
-  .gallery--off-track .gallery__cap {
-    font-size: var(--u);
+  .gallery--off-track {
+    --eyebrow: var(--u);
   }
 }
 
@@ -1021,8 +1072,8 @@ body[data-page='off-track'] {
     inline-size: 100%;
   }
 
-  .gallery--off-track .gallery__cap {
-    font-size: calc(0.8 * var(--u));
+  .gallery--off-track {
+    --eyebrow: calc(0.8 * var(--u));
   }
 
   .gallery--off-track .gallery__frame img {
@@ -1062,22 +1113,27 @@ body[data-page='off-track'] {
     grid-column: 2;
   }
 
-  .oft-gal__heading-plain {
-    font-size: calc(2.6 * var(--u));
-    letter-spacing: calc(-0.07 * var(--u));
-  }
-
+  .oft-gal__heading-plain,
   .oft-gal__heading-serif {
-    font-size: calc(2.7 * var(--u));
+    font-size: calc(2.6 * var(--u));
   }
 
   /* ---- the titles: the name and its descriptor side by side ---- */
 
+  /* Across the column, which is a flex column that would otherwise shrink
+     the grid to its content. */
   .oft-gal__title {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     align-items: start;
     gap: calc(1.25 * var(--u));
+    inline-size: 100%;
+  }
+
+  /* .is-m-offset: every descriptor after the first sits 0.15rem low. */
+  .gallery__col--title-mid :is(.oft-gal__eyebrow, .oft-gal__descriptor),
+  .gallery__col--title-top ~ .gallery__col--title-top .oft-gal__eyebrow {
+    translate: 0 calc(0.15 * var(--u));
   }
 
   .oft-gal__title--mid {
@@ -1085,6 +1141,7 @@ body[data-page='off-track'] {
   }
 
   .oft-gal__name {
+    font-size: calc(1.9 * var(--u));
     white-space: normal;
   }
 
@@ -1145,9 +1202,8 @@ body[data-page='off-track'] {
     aspect-ratio: 1;
   }
 
-  .oft-pair-a-2 {
-    --top: calc(-7 * var(--u));
-    margin-block-end: 0;
+  .gallery--off-track .oft-pair-a-2 {
+    margin-block: calc(-7 * var(--u)) 0;
   }
 
   .oft-pair-a-2 .gallery__frame {
@@ -1164,8 +1220,8 @@ body[data-page='off-track'] {
     aspect-ratio: 1;
   }
 
-  .oft-pair-b-2 {
-    --top: calc(-7 * var(--u));
+  .gallery--off-track .oft-pair-b-2 {
+    margin-block-start: calc(-7 * var(--u));
   }
 
   .oft-pair-b-2 .gallery__frame {
@@ -1178,10 +1234,9 @@ body[data-page='off-track'] {
     aspect-ratio: 1;
   }
 
-  .oft-pair-d-2 {
-    --top: calc(-5 * var(--u));
+  .gallery--off-track .oft-pair-d-2 {
     inset-inline-start: 0;
-    margin-block-end: 0;
+    margin-block: calc(-5 * var(--u)) 0;
   }
 
   .oft-pair-d-2 .gallery__frame {
@@ -1214,6 +1269,13 @@ body[data-page='off-track'] {
 
 [data-page='off-track'] .socials__links a {
   color: var(--text);
+}
+
+/* home.css gives the socials the ink ring for its cream field, which is all
+   but invisible on this ground. The site's rosso ring is the one that reads
+   here, as it is on On Track's dark socials. */
+[data-page='off-track'] .socials :focus-visible {
+  outline-color: var(--era);
 }
 
 [data-page='off-track'] .footer {
@@ -1343,6 +1405,13 @@ body[data-page='off-track'] {
 
   .oft-impact__text {
     font-size: calc(3.5 * var(--r));
+  }
+
+  /* The reference's line splitter drops the <br> after its first word, which
+     only shows on a phone, where the first line then runs on to a second
+     word. The same here, by taking the break out of the flow. */
+  .oft-impact__text br {
+    display: none;
   }
 
   .oft-impact__accent {
