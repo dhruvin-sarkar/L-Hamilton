@@ -107,9 +107,17 @@ const F1_FERRARI_FIRST_LOOK =
    2009 British GP one, 03 his practice debut at the 2007 Australian GP. So 3,
    2, 1 is their order on the calendar, and the order they run in here. */
 const byId: readonly Helmet[] = [
-  /* Null: not yet matched. The helmet is a drawing, not a photograph, of a
-     yellow lid with his "LH" mark on the blue band and no Steinmetz; nothing
-     found so far dates that drawing to the 2007 lid the reveal shows. */
+  /* Null. The reveal is dated (formula1.com: his practice debut at the 2007
+     Australian GP); the helmet is not. It is an undated drawing, not a
+     photograph, of the yellow McLaren lid: Vodafone halo, Johnnie Walker,
+     Kenwood on the visor strip, SAP and Mobil 1 on the chin, his "LH" mark on
+     the blue band. The Monaco lid under id 2 carries every one of those too,
+     and the painter kept the side of the design unchanged into 2009, adding
+     only a cartoon on the back "without changing his now world-recognised
+     design" (JLF Designs, 27 March 2009,
+     http://jlfdesigns.blogspot.com/2009/03/lewis-hamilton-helmet-cartoon.html).
+     Side-on, the drawing could be 2007, 2008 or 2009, so 2007 would be a
+     guess. */
   { id: 3, name: null, year: null },
   /* Null, and no remapping fixes it: the two pictures are different lids, and
      no helmet shot in the set shows the reveal's. The reveal is the 2009
