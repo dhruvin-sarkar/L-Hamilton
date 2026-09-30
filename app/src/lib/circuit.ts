@@ -44,12 +44,46 @@ type RiveRuntime = typeof import('@rive-app/canvas-lite');
 
 let runtime: Promise<RiveRuntime> | null = null;
 
-/** The runtime, imported once and shared by every canvas on the page. */
+/**
+ * The runtime, imported once and shared by every canvas on the page, with its
+ * wasm already loaded.
+ *
+ * Left to itself the runtime asks for the wasm only when the first Rive is
+ * constructed, which is after this module AND the .riv have both arrived -- a
+ * third round trip in series, and the wasm is the largest of the three. Asked
+ * for here, it downloads alongside the file.
+ */
 const riveRuntime = (): Promise<RiveRuntime> =>
-  (runtime ??= import('@rive-app/canvas-lite').then((rive) => {
+  (runtime ??= import('@rive-app/canvas-lite').then(async (rive) => {
     rive.RuntimeLoader.setWasmUrl(wasmUrl);
+    await rive.RuntimeLoader.awaitInstance();
     return rive;
   }));
+
+let prefetched = false;
+
+/**
+ * Starts all three of Rive's downloads at once: the runtime, the file, and the
+ * wasm. The runtime would ask for the wasm itself, but only once it has
+ * arrived and run, and the wasm is the largest of the three (541KB, most of
+ * four seconds on a slow 4G line). The preload is what its request then finds:
+ * it fetches with credentials 'same-origin', which is what `crossorigin`
+ * (anonymous) matches.
+ *
+ * A failed download is not lost by the catch: mountRive awaits the same two
+ * promises, and its caller reports the failure there.
+ */
+function prefetchRive(): void {
+  if (prefetched) return;
+  prefetched = true;
+  const wasm = document.createElement('link');
+  wasm.rel = 'preload';
+  wasm.as = 'fetch';
+  wasm.crossOrigin = 'anonymous';
+  wasm.href = wasmUrl;
+  document.head.append(wasm);
+  void Promise.all([riveRuntime(), file()]).catch(() => undefined);
+}
 
 const FILE = '/assets/rive/circuits.riv';
 const ARTBOARD = 'circuits';
@@ -192,10 +226,16 @@ export async function mountCircuit(host: HTMLElement, opts: CircuitOptions): Pro
     for (const [renderer, handle] of drawn) handle.canvas.style.display = renderer === showing ? '' : 'none';
   };
 
-  /* Watched through its container, not itself: a host can be `display: none`
-     until its drawing lands -- Home's next-race card swaps it in for the
-     fallback loop only then -- and a box-less element never intersects. */
-  await nearViewport(host.parentElement ?? host);
+  /* The files are asked for now; only building the drawing waits for the
+     section. Home's and On Track's heroes both carry a circuit, and nothing
+     can say a section is on screen until the page's first script run has
+     finished and a frame has been drawn -- on a throttled phone that is
+     seconds, and the downloads should overlap it rather than follow it. */
+  if (first === 'rive') prefetchRive();
+
+  /* Through its section, not itself: a host can be `display: none` until its
+     drawing lands, or clipped shut inside a card that opens on hover. */
+  await nearViewport(host);
   const firstHandle = await drawing(first, opts.circuitId);
   show();
 
