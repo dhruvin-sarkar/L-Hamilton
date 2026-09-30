@@ -167,14 +167,10 @@ export function mountHelmets(): void {
   /* Drawn widths for the srcsets. A card is a quarter of the grid from 992px
      (just under 24vw), half of it on a phone (50vw less the gutters). The
      helmet is 65% of the card and scales 1.1 on hover, so 18vw. The wearing
-     shots are landscape and `contain`ed, so they are drawn card-wide. The 1.25
-     from 1.1dppx is the margin explained over the Home gallery in index.html. */
-  const HELMET_SIZES =
-    '(min-width: 992px) and (min-resolution: 1.1dppx) 22.5vw, (min-width: 992px) 18vw, ' +
-    '(min-resolution: 1.1dppx) calc(1.25 * (35.75vw - 21px)), calc(35.75vw - 21px)';
-  const REVEAL_SIZES =
-    '(min-width: 992px) and (min-resolution: 1.1dppx) 30vw, (min-width: 992px) 24vw, ' +
-    '(min-resolution: 1.1dppx) calc(1.25 * (50vw - 30px)), calc(50vw - 30px)';
+     shots are landscape and `contain`ed, so they are drawn card-wide. See the
+     note over the Home gallery in index.html. */
+  const HELMET_SIZES = '(min-width: 992px) 18vw, calc(35.75vw - 21px)';
+  const REVEAL_SIZES = '(min-width: 992px) 24vw, calc(50vw - 30px)';
 
   function revealImg(helmet: Helmet, className: string): string {
     const [width, height] = revealSize(helmet);
