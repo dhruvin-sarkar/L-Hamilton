@@ -121,6 +121,61 @@
   clip-path: none;
 }
 
+/* ================================================== Target size
+ *
+ * WCAG 2.2's 24px minimum. The social links are one line of 1rem capitals
+ * (the X is 10 x 16 at a phone) and the footer's links are 21px tall there, so
+ * each gets a transparent box, centred on it, that grows the part a pointer
+ * can hit to at least 24 x 24 and never shrinks it. It paints nothing and moves
+ * nothing: the type, the rolls and the focus rings stay the reference's.
+ *
+ * ::before, because the line reveal owns ::after on these links. While the
+ * reveal's clip is on them it trims this box back to the link, so lib/chrome.ts
+ * lifts the clip once the reveal has finished (mountTargetSize). */
+
+.socials__links a,
+.footer__link,
+.footer__store,
+.footer__legal-link {
+  position: relative;
+}
+
+.socials__links a::before,
+.footer__link::before,
+.footer__store::before,
+.footer__legal-link::before {
+  content: '';
+  position: absolute;
+  inset-block: min(0px, calc(50% - 12px));
+  inset-inline: min(0px, calc(50% - 12px));
+}
+
+/* The socials row is the last thing in its section, and the footer starts
+   flush under it on a layer above it (the section isolates, the footer is
+   z-index 0), so the footer's empty lead-in took the bottom of the row's hit
+   boxes. The footer's own box and its two decorative layers stand aside for
+   the pointer; the shell, which holds everything in it that can be used,
+   still answers. */
+.footer,
+.footer__lead,
+.footer__glow {
+  pointer-events: none;
+}
+
+.footer__shell {
+  pointer-events: auto;
+}
+
+/* On Track runs the store callout straight after the socials instead, and its
+   empty top padding did the same. Its layout keeps the pointer. */
+.callout {
+  pointer-events: none;
+}
+
+.callout__layout {
+  pointer-events: auto;
+}
+
 /* ================================================== Scroll indicator
  *
  * The reference's `.scroll-indicator`, measured at 1728x1080: fixed to the
