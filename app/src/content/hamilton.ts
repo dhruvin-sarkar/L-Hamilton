@@ -345,6 +345,10 @@ export const statsCurrentThrough = provenance.latestRace;
  * reference draws each race's own trophy, and until those are supplied every
  * row carries the same cup, drawn for this site. Swapping either is a change to
  * one path here and nowhere else.
+ *
+ * The photos are the 768px renditions: the photo box is at most 366 x 437px,
+ * so 768 covers a 2x screen for a portrait. gallery-11 is landscape and drawn
+ * about 656px wide under `cover`, so it keeps its original.
  */
 interface HighlightPick {
   season: number;
@@ -357,19 +361,19 @@ const TROPHY = '/assets/highlights/trophy.svg';
 
 const HIGHLIGHT_PICKS: readonly HighlightPick[] = [
   // His first win with Ferrari.
-  { season: 2026, round: 7, photo: '/assets/gallery/gallery-04.webp', trophy: TROPHY },
+  { season: 2026, round: 7, photo: '/assets/gallery/gallery-04-768.webp', trophy: TROPHY },
   // From tenth on the grid, after being sent to the back of the sprint.
   { season: 2021, round: 19, photo: '/assets/gallery/gallery-11.webp', trophy: TROPHY },
   // The win that sealed his seventh world title.
-  { season: 2020, round: 14, photo: '/assets/gallery/gallery-01.webp', trophy: TROPHY },
+  { season: 2020, round: 14, photo: '/assets/gallery/gallery-01-768.webp', trophy: TROPHY },
   // Win number 92, which took the all-time record.
-  { season: 2020, round: 12, photo: '/assets/gallery/gallery-09.webp', trophy: TROPHY },
+  { season: 2020, round: 12, photo: '/assets/gallery/gallery-09-768.webp', trophy: TROPHY },
   // From fourteenth on the grid, the furthest back he has ever won from.
-  { season: 2018, round: 11, photo: '/assets/gallery/gallery-10.webp', trophy: TROPHY },
+  { season: 2018, round: 11, photo: '/assets/gallery/gallery-10-768.webp', trophy: TROPHY },
   // Silverstone in the wet, won by more than a minute.
-  { season: 2008, round: 9, photo: '/assets/gallery/gallery-07.webp', trophy: TROPHY },
+  { season: 2008, round: 9, photo: '/assets/gallery/gallery-07-768.webp', trophy: TROPHY },
   // His first Grand Prix win.
-  { season: 2007, round: 6, photo: '/assets/gallery/gallery-03.webp', trophy: TROPHY },
+  { season: 2007, round: 6, photo: '/assets/gallery/gallery-03-768.webp', trophy: TROPHY },
 ];
 
 export interface ResultHighlight {

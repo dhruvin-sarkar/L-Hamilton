@@ -1427,11 +1427,15 @@ if (trackWord && scriptWord && crest && signHost) {
  * Decoration: hidden from assistive tech, and built only from 992px up with a
  * fine pointer and motion allowed. Placeholder photographs until the real
  * podium set is supplied.
+ *
+ * The 768px renditions, not the originals: the photo is 20.6rem wide, at most
+ * 366px, so 768 covers a 2x screen, and the ten of them cost a third of what
+ * the originals did.
  * ------------------------------------------------------------------ */
 
 const PODIUM_PHOTOS = Array.from(
   { length: 10 },
-  (_, i) => `/assets/gallery/gallery-${String(i + 1).padStart(2, '0')}.webp`,
+  (_, i) => `/assets/gallery/gallery-${String(i + 1).padStart(2, '0')}-768.webp`,
 );
 
 const podiumPhoto = document.querySelector<HTMLElement>('[data-podium-photo]');
