@@ -383,7 +383,7 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
       if (fastest) lap.append(el('span', 'ot-cal__unit', 's'));
 
       label =
-        `Round ${round.round}, ${round.raceName}, ${day.dayMonth} ${round.season}. ` +
+        `Round ${round.round}, ${round.raceName}, ${name}, ${day.dayMonth} ${round.season}. ` +
         (result
           ? `He ${outcomeOf(result)}${fastest ? `, fastest lap ${fastest}` : ''}.`
           : 'Result not yet recorded.');
