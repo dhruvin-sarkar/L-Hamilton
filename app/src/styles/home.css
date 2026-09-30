@@ -1095,28 +1095,6 @@
   }
 }
 
-/* The nav is a wordmark on the left and a store/menu cluster on the right, and
-   at the lockup's full size the two stop fitting side by side. Measured at
-   360px: the wordmark takes ~250px of a 360px line, which pushed the cluster
-   166px off the right edge — taking the menu button, the primary navigation,
-   with it. Nothing overflowed the document, so it failed silently.
-
-   The lockup is sized off one number, so bringing that down brings both lines
-   with it and the pair keeps its ratio. */
-@media (max-width: 26rem) {
-  .wordmark {
-    /* Solved, not eyeballed. At 360px the line has 360 - 2*12 = 336px. The menu
-       button is 63 and the store button 118, which leaves ~145 for the lockup
-       and the gaps between the three. 1.5rem measures ~138. */
-    --wordmark-size: 1.5rem;
-  }
-
-  .nav-inner {
-    padding-inline: 0.75rem;
-    gap: 0.5rem;
-  }
-}
-
 /* ================================================== Hero entrance
  * The furniture settles in around the portrait rather than being there from
  * the first frame. Staggered by --in-delay, which main.ts assigns in document
@@ -2499,30 +2477,86 @@
  *
  * Keyed at 992px because that is where the fluid root locks and the whole
  * layout stops scaling with the viewport. */
-/* The nav, on a phone.
+/* The nav, below 992px.
  *
- * Everything in it is sized in rem, and below 992px the fluid root stops
- * scaling and locks at 16px — so the lockup and the two buttons keep their full
- * desktop size on a 390px screen and the STORE pill ends up two thirds of the
- * way across it. A factor rather than an override: .wordmark and .topbar are
- * already scaled by the hero's scroll shrink, and replacing that transform
- * would drop the settle as the plate closes. The two multiply. */
+ * The reference's own narrow nav, measured at 360, 390, 768 and 1024: its
+ * brand lockup goes (`.nav-brand-link { display: none }`), its button pair
+ * spreads across the whole bar (`.btn-layout.is-nav`, space-between) so STORE
+ * sits top LEFT and the menu top right, and the centre mark stays. Everything
+ * is in its rem, which keeps scaling under 992 where ours locks at 16px -- so
+ * it is restated here as --nav-u, band by band, the same formula the page
+ * sections use:
+ *
+ *   768-991   20/1728 of the width   buttons 3.75, mark 2.75     (33px at 768)
+ *   480-767   20/1728 of the width   the same
+ *   320-479   48/1728 of the width   buttons 4.7, mark 2.5       (47px at 360)
+ *
+ * with the bar padded 1.25 all round. The desktop settle (--nav-shrink) only
+ * runs from 992 up, so nothing scales these; they are sized outright. Without
+ * the lockup there is nothing left to stand on the page's content as it
+ * scrolls under the bar -- the buttons are opaque, the mark fades. */
 @media (max-width: 991px) {
-  /* 0.725 of the 60px resting buttons: the 43.5px the phone nav has always
-     had. The wordmark's own size is set to land where it did too. */
   .nav-inner {
-    --nav-scale: 0.725;
-    --nav-height: 4.4rem;
+    --nav-u: calc(clamp(768px, 100vw, 991px) / 1728 * 20);
+    --nav-btn: calc(var(--nav-u) * 3.75);
+    --nav-mark: calc(var(--nav-u) * 2.75);
+    --nav-height: calc(var(--nav-btn) + var(--nav-u) * 2.5);
+    padding: calc(var(--nav-u) * 1.25);
   }
 
   .wordmark {
-    --wordmark-size: 1.82rem;
+    display: none;
   }
 
-  /* Anchored to their own corners so the pair stays pinned to the edges as it
-     scales, instead of drifting toward the middle. */
   .topbar {
-    transform-origin: 100% 0;
+    flex: 1;
+    justify-content: space-between;
+    gap: calc(var(--nav-u) * 0.625);
+  }
+
+  .store {
+    block-size: var(--nav-btn);
+    padding-inline: var(--nav-u);
+    gap: calc(var(--nav-u) * 0.625);
+    border-radius: calc(var(--nav-u) * 0.54);
+    font-size: calc(var(--nav-u) * 1.25);
+  }
+
+  .store__icon {
+    inline-size: calc(var(--nav-u) * 1.2);
+    block-size: calc(var(--nav-u) * 1.2);
+  }
+
+  .menu-btn {
+    inline-size: var(--nav-btn);
+    block-size: var(--nav-btn);
+    border-radius: calc(var(--nav-u) * 0.74);
+  }
+
+  /* The reference's mark box, centred on the buttons' middle. Our glyph fills
+     0.955 of that box, as its does at the design width (42px in 44). */
+  .monogram {
+    --monogram-size: calc(var(--nav-mark) * 0.955);
+    top: calc(var(--nav-u) * 1.25 + var(--nav-btn) / 2);
+  }
+}
+
+@media (max-width: 767px) {
+  .nav-inner {
+    --nav-u: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
+  }
+}
+
+@media (max-width: 479px) {
+  .nav-inner {
+    --nav-u: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
+    --nav-btn: calc(var(--nav-u) * 4.7);
+    --nav-mark: calc(var(--nav-u) * 2.5);
+  }
+
+  .store__icon {
+    inline-size: calc(var(--nav-u) * 1.5);
+    block-size: calc(var(--nav-u) * 1.5);
   }
 }
 
