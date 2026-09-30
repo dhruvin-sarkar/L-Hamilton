@@ -907,10 +907,11 @@
                 <path d="M226 64 L295 64 L248 292 L176 292 L225 65 Z" />
               </svg>
 
-              <!-- The circuit, drawn large. The reference renders its tracks in
-                   3D in a site-wide WebGL scene; ours is the same traced outline
-                   every other circuit on the site uses, lit and set in
-                   perspective. Decorative: the round is named in the tab. -->
+              <!-- The circuit, drawn large: the round's circuit as a lit 3D
+                   ribbon under a slowly turning camera (lib/track3d.ts, the
+                   calendar's map), where the reference renders its own model in
+                   a site-wide WebGL scene. Decorative: the round is named in
+                   the tab. -->
               <div class="ot-cal__track" data-cal-track aria-hidden="true"></div>
             </div>
 

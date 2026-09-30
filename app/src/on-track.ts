@@ -21,6 +21,8 @@ import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountGalleryScroll } from './lib/gallery';
 import { mountHelmetScroll } from './HelmetScroll';
 import { mountFooterMarquee } from './lib/marquee';
+import { mountTrackMap } from './lib/track3d';
+import type { TrackMap } from './lib/track3d';
 import { closedReef, drawClosedReef } from './lib/closed-reef';
 import type { ReefBranch as ClosedReefBranch } from './lib/closed-reef';
 import { MONTHS, monthAbbr, sessionWhen, ukWhen, weekendSessions, weekendSpan } from './lib/schedule';
@@ -2223,25 +2225,30 @@ function mountCalendar(section: HTMLElement): void {
   const clips = (): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('.ot-cal__t')];
   const bars = (): HTMLElement[] => [...panel.querySelectorAll<HTMLElement>('.ot-cal__t-bar')];
 
-  /* ------------------------------------------------------ The circuit */
+  /* ------------------------------------------------------ The circuit
+   *
+   * The reference sets this slot's circuit in its site-wide 3D scene (the
+   * panel's `[data-gl="tracks"]` target), where the hero, the countdown and the
+   * pointer's card draw the flat outline: so this is the calendar page's map,
+   * lib/track3d.ts, with the reference's camera, bloom and two-second swap.
+   *
+   * Mounted once the panel is within a screen of the viewport -- the page's
+   * one WebGL context for it, retargeted from then on rather than rebuilt --
+   * and kept for the life of the page: the map itself stops drawing when it
+   * is off screen or the tab is hidden, and the next page is a new document.
+   * Every change turns it forward, arrows and rows alike, as the reference's
+   * does (its scene only ever swaps "forward"). */
 
-  type Circuit = Awaited<ReturnType<typeof mountCircuit>>;
-  let track: Promise<Circuit> | null = null;
-
-  /** Points the large drawing at a round, or empties it for one without a shape. */
-  const drawTrack = (round: CalendarRound): void => {
-    const drawable = hasTrack(round.circuitId);
-    trackHost.classList.toggle('is-empty', !drawable);
-    if (!drawable) return;
-    track ??= mountCircuit(trackHost, { circuitId: round.circuitId, lit: true, weight: 'thin' });
-    void track.then(
-      (handle) => trackHost.classList.toggle('is-empty', !handle.select(round.circuitId)),
-      (error: unknown) => {
-        console.warn('[on-track] calendar circuit did not load', error);
-        track = null; // so a later round retries
-      },
-    );
-  };
+  let map: TrackMap | null = null;
+  const mapWatch = new IntersectionObserver(
+    ([entry]) => {
+      if (!entry?.isIntersecting) return;
+      mapWatch.disconnect();
+      map = mountTrackMap(trackHost, roundAt(current).circuitId);
+    },
+    { rootMargin: '100% 0px' },
+  );
+  mapWatch.observe(trackHost);
 
   /* ------------------------------------------------------ The values */
 
@@ -2397,7 +2404,7 @@ function mountCalendar(section: HTMLElement): void {
   const show = (index: number, announce: boolean): void => {
     current = index;
     const round = roundAt(index);
-    drawTrack(round);
+    map?.show(round.circuitId);
     markActive();
     if (announce) live.textContent = `Showing round ${round.round}, the ${round.raceName}.`;
 
@@ -2495,6 +2502,7 @@ function mountCalendar(section: HTMLElement): void {
 
     /* One canvas, retargeted per row -- the reference's own gesture. Black on
        the accent card: the light ground's ink. */
+    type Circuit = Awaited<ReturnType<typeof mountCircuit>>;
     const firstDrawable = rounds.find((r) => hasTrack(r.circuitId));
     let shape: Promise<Circuit> | null = firstDrawable
       ? mountCircuit(shapeHost, { circuitId: firstDrawable.circuitId, ground: 'light' })
