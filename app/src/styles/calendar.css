@@ -193,6 +193,18 @@ body[data-page='calendar'] {
   text-transform: none;
 }
 
+/* The line is written by calendar.ts, after the first paint. Until then its
+   lines are held open with no-break spaces, so the row does not grow when it
+   arrives: on a phone, where the standing sits under the line, that growth
+   dropped the rest of the page 81px -- a 0.18 layout shift. Measured, all
+   three of the line's wordings set on two lines at every width from 480px to
+   2560px, and on three below 480px (the block under 479px). Once it has text
+   it is sized by its text as before. */
+.cal-sched__lede:empty::before {
+  content: '\a0\A\a0';
+  white-space: pre;
+}
+
 .cal-sched__para-layout {
   grid-column: 3 / 5;
   display: flex;
@@ -748,6 +760,10 @@ button.cal-row--past:hover:focus-visible {
 
   .cal-sched__btns {
     flex-wrap: wrap;
+  }
+
+  .cal-sched__lede:empty::before {
+    content: '\a0\A\a0\A\a0';
   }
 
   /* The reference's `data-hide="m"`: a run round drops its date here and
