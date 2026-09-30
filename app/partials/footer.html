@@ -94,11 +94,27 @@
 
             <!-- Anchored to the panel's bottom and allowed to overhang it: the
                  mask does the cropping, which is what puts the shoulders off
-                 the bottom edge rather than a hand-placed crop. -->
+                 the bottom edge rather than a hand-placed crop.
+
+                 The same photograph as the hero, at the same framing, but from
+                 its own copies in /assets/footer/ rather than the 3780px file
+                 the WebGL scene loads, which was a 317 KB download for this on
+                 every page. Drawn 54.4rem tall, so 72.56rem (67.2vw) wide from
+                 992px; below that 80% of the panel, capped at 30rem. The 1.25
+                 from 1.1dppx is the margin explained over the Home gallery.
+                 width/height stay the master's, for the ratio. -->
             <div class="footer__art">
               <div class="footer__art-inner">
-                <img class="footer__portrait" src="/assets/hero/lewis-hero.webp" alt=""
-                  width="3780" height="2834" loading="lazy" decoding="async" aria-hidden="true" />
+                <img class="footer__portrait" src="/assets/footer/portrait-1024.webp" alt=""
+                  width="3780" height="2834"
+                  srcset="/assets/footer/portrait-640.webp 640w, /assets/footer/portrait-1024.webp 1024w,
+                    /assets/footer/portrait-1440.webp 1440w, /assets/footer/portrait-1920.webp 1920w,
+                    /assets/footer/portrait-2560.webp 2560w"
+                  sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * 67.2vw),
+                    (min-width: 992px) 67.2vw, (min-width: 640px) and (min-resolution: 1.1dppx) 600px,
+                    (min-width: 640px) 480px, (min-resolution: 1.1dppx) calc(1.25 * (80vw - 32px)),
+                    calc(80vw - 32px)"
+                  loading="lazy" decoding="async" aria-hidden="true" />
                 <div class="footer__cta">
                   <a class="footer-cta__link" href="#" data-placeholder-href>
                     <span class="sr-only">Business enquiries</span>
