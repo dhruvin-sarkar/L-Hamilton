@@ -52,8 +52,6 @@ if (!reducedMotion) {
   smoothScroller = instance;
 }
 
-mountFooterMarquee();
-
 /* ------------------------------------------------------------------ *
  * The season this page is about
  * ------------------------------------------------------------------ */
@@ -154,33 +152,47 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-cal-jump]
 }
 
 /* ------------------------------------------------------------------ *
- * The sections
+ * The sections, the chrome, the reveals and the entrance
+ *
+ * Mounted after the frame that paints the words above, not in the same task.
+ * Everything to this point writes the first screen's copy -- the year, the
+ * line under it, his standing -- and on a phone that line is the page's
+ * largest paint. Built in one task with the sections, it could not paint
+ * until the whole page had been mounted: measured on a 4x-throttled phone,
+ * a second after the module started. The loader panel is over the page for
+ * that frame (and under reduced motion nothing below hides anything), so the
+ * frame in between is never seen.
  * ------------------------------------------------------------------ */
 
-mountSeason(need('.cal-sched'), smoothScroller);
-mountResults(need('.cal-results'), smoothScroller);
-mountCountdown(need('[data-countdown]'));
+function mountPage(): void {
+  mountFooterMarquee();
 
-/* The hooked arrows -- the two jump links and the panel's next and previous --
-   cycle while hovered or focused, as the reference's Rive arrow does
-   (lib/arrow-cycle.ts). */
-mountArrowCycles();
+  mountSeason(need('.cal-sched'), smoothScroller);
+  mountResults(need('.cal-results'), smoothScroller);
+  mountCountdown(need('[data-countdown]'));
 
-/* ------------------------------------------------------------------ *
- * Chrome, reveals, and the entrance
- * ------------------------------------------------------------------ */
+  /* The hooked arrows -- the two jump links and the panel's next and previous --
+     cycle while hovered or focused, as the reference's Rive arrow does
+     (lib/arrow-cycle.ts). After the season, which builds the panel. */
+  mountArrowCycles();
 
-mountChrome();
+  mountChrome();
 
-mountReveals({
-  immediate: '.cal-hero',
-  whenReady: (runReveals) => void entranceReady.then(() => gsap.delayedCall(HERO_CUE, runReveals)),
-});
+  mountReveals({
+    immediate: '.cal-hero',
+    whenReady: (runReveals) => void entranceReady.then(() => gsap.delayedCall(HERO_CUE, runReveals)),
+  });
 
-void document.fonts.ready.then(() => {
-  for (const block of document.querySelectorAll<HTMLElement>('[data-oval-scroll]')) {
-    mountOvalScroll(block);
-  }
-  document.body.classList.add('is-ready');
-  ScrollTrigger.refresh();
-});
+  void document.fonts.ready.then(() => {
+    for (const block of document.querySelectorAll<HTMLElement>('[data-oval-scroll]')) {
+      mountOvalScroll(block);
+    }
+    document.body.classList.add('is-ready');
+    ScrollTrigger.refresh();
+  });
+}
+
+/* A task queued from a frame callback runs after that frame is painted. A tab
+   opened in the background draws no frames, and has nothing to paint first. */
+if (document.hidden) mountPage();
+else requestAnimationFrame(() => setTimeout(mountPage, 0));
