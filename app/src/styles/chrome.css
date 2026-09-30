@@ -108,6 +108,19 @@
   }
 }
 
+/* ================================================== Menu focus
+ *
+ * The menu's contact and social links wipe in under a clip-path (home.css,
+ * [data-menu-highlight]) that comes to rest at inset(0 0 0 0), which is the
+ * link's own border box. The focus ring is drawn 3px outside that box, so the
+ * resting clip cut it away entirely: tabbing onto BUSINESS ENQUIRIES or any
+ * social link in the open menu showed no ring at all. A focused link drops the
+ * clip; the wipe has long finished by the time anything inside it takes focus. */
+
+.menu [data-menu-highlight]:focus-visible {
+  clip-path: none;
+}
+
 /* ================================================== Scroll indicator
  *
  * The reference's `.scroll-indicator`, measured at 1728x1080: fixed to the
