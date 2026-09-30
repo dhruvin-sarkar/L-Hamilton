@@ -221,3 +221,19 @@ a {
   text-decoration: none;
   border-radius: 0.25rem;
 }
+
+/* Lazy images whose stylesheet sizes one axis and leaves the other `auto`: the
+   ratio their width and height attributes carry is only a fallback, so
+   DevTools counts them as undimensioned. Stated here, from the files' own
+   proportions, it is the same shape the attributes already give; nothing moves. */
+.otot__cut.is-on img {
+  aspect-ratio: 1450 / 1600;
+}
+
+.otot__cut.is-off img {
+  aspect-ratio: 1115 / 1600;
+}
+
+.footer__portrait {
+  aspect-ratio: 3780 / 2834;
+}
