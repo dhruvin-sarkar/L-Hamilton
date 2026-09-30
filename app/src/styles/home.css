@@ -2007,47 +2007,69 @@
   margin-inline: auto;
 }
 
-/* The reference's own two steps down, at its own breakpoints. Below 992px the
-   fluid root locks at 16px, so 80rem stops scaling with the viewport and the
-   gutter has to come back. */
+/* The reference's own two steps down, at its own breakpoints — and at its own
+   SCALE. Below 992px its root keeps shrinking with the viewport (100vw / 86.4
+   down to 480, 100vw / 36 below that) where ours locks at 16px, so its rem
+   values cannot be copied across: 7rem is 62px on its 768 screen and was 112px
+   on ours, one word to a line, and at 480 "REDEFINING" ran 657px wide and
+   pushed the page 89px sideways. --u is the reference's root at this width and
+   every size in the wall is written in it, so the section lays out as the
+   reference's does — measured at 768 and 390: padding 6u over 12u, the crest
+   6.06u by 3.19u (4.7u wide on a phone), 3.75u down to the wall, type at 7u
+   (3.5u on a phone) on the same tracking. The eyebrow keeps its own size:
+   scaled, it would be 7px. */
 
 @media (max-width: 991px) {
+  .impact {
+    --u: calc(100vw / 86.4);
+  }
+
   .impact__inner {
-    padding-inline: 3vw;
+    max-inline-size: calc(80.1 * var(--u));
+    padding: calc(6 * var(--u)) 3vw calc(12 * var(--u));
+    gap: calc(3.75 * var(--u));
+  }
+
+  .impact__icon {
+    gap: calc(1.25 * var(--u));
+  }
+
+  .impact__crest {
+    inline-size: calc(6.06 * var(--u));
+    block-size: calc(3.19 * var(--u));
   }
 
   .impact__text {
-    font-size: 7rem;
+    font-size: calc(7 * var(--u));
+    letter-spacing: calc(-0.0625 * var(--u));
   }
 
   /* The reference's accent goes to `inherit` here, so both voices share the
      base size below the desktop root. */
   .impact__accent {
     font-size: inherit;
-  }
-
-  /* Below 992px the fluid root locks at 16px, so the type is a fixed pixel size
-     against a viewport that still varies — and one long word at 7rem is wider
-     than a phone. `anywhere` rather than `break-word`: only `anywhere` lowers
-     an element's min-content width. It engages only when a word cannot fit a
-     line on its own, so ordinary copy is untouched. */
-  .impact__text {
-    overflow-wrap: anywhere;
+    letter-spacing: calc(-0.1875 * var(--u));
   }
 }
 
+/* The phone step, with the reference's .c gutter (1.25u a side) for 3vw. */
 @media (max-width: 479px) {
+  .impact {
+    --u: calc(100vw / 36);
+  }
+
   .impact__inner {
-    padding-inline: 0;
+    padding-inline: calc(1.25 * var(--u));
   }
 
   .impact__text {
-    font-size: 3.5rem;
+    font-size: calc(3.5 * var(--u));
   }
 
+  /* The reference's phone slot is 4.7u by 2.5u, 51 x 27 at 390. */
   .impact__crest {
-    inline-size: 4.7rem;
-    block-size: auto;
+    inline-size: calc(4.7 * var(--u));
+    block-size: calc(2.5 * var(--u));
   }
 }
 
