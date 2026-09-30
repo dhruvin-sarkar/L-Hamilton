@@ -13,6 +13,7 @@ import { mountFooterMarquee, mountMarquee } from './lib/marquee';
 import { mountHomeInk } from './lib/home-ink';
 import { cssRGB, hexRGB, legibleOn, mixRGB, toLinear, type RGB } from './lib/legible';
 import { mountReveals } from './lib/reveal';
+import { GLLayer } from './lib/gl-layers';
 import {
   mountCalloutCrest,
   mountHelmets,
@@ -43,7 +44,6 @@ declare global {
       head: HeadScene;
       renderer: THREE.WebGLRenderer;
       background: BackgroundField | null;
-      bgRenderer: THREE.WebGLRenderer | null;
       ScrollTrigger: typeof ScrollTrigger;
       lenis: Lenis | null;
     };
@@ -1051,11 +1051,16 @@ mountChrome();
 const stage = document.querySelector<HTMLDivElement>('#stage');
 
 if (stage) {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  /* ONE renderer for both GL layers, drawing off-screen and handing each frame
+     to its layer's canvas — see GLLayer. The settings are the hero's, which
+     the field needs nothing different from: its one full-screen quad has no
+     edge for antialiasing to touch, and it writes opaque alpha everywhere. */
+  const offscreen = new OffscreenCanvas(1, 1);
+  const renderer = new THREE.WebGLRenderer({ canvas: offscreen, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.setClearColor(0x000000, 0);
-  stage.appendChild(renderer.domElement);
+  const heroLayer = new GLLayer(stage, false);
 
   /* 1.012, which is 0.88 raised by 15%.
    *
@@ -1067,41 +1072,30 @@ if (stage) {
   const head = new HeadScene(renderer, { subjectScale: 0.88 * 1.15 });
 
   /* The revealed screen behind the plate: the SAME two-pass contour field, in
-     the inverse palette. Its own renderer because the marquee bands sit between
-     the two layers and are DOM text — see BackgroundField for the full note.
+     the inverse palette, drawn by the same renderer onto its own layer because
+     the marquee bands sit between the two and are DOM text — see
+     BackgroundField for the full note.
 
      Skipped entirely under reduced motion. In that mode the hero never shrinks,
-     so the screen behind it is never uncovered, and a second continuously
-     rendering context would burn a frame budget on something no one can see. */
+     so the screen behind it is never uncovered, and drawing it every frame
+     would burn a frame budget on something no one can see. */
   const bgStage = document.querySelector<HTMLDivElement>('#bg-stage');
-  let bgRenderer: THREE.WebGLRenderer | null = null;
+  /* Opaque: this is the bottom layer and paints every pixel, so letting the
+     compositor blend it would only add work. */
+  const bgLayer = bgStage && !reducedMotion ? new GLLayer(bgStage, true) : null;
+  if (bgLayer) background = new BackgroundField(renderer);
 
-  if (bgStage && !reducedMotion) {
-    /* No alpha: this is the bottom layer and paints every pixel, so an alpha
-       buffer only adds a blend the compositor then has to resolve. No antialias
-       either — the scene is one fullscreen quad, and there is no geometry edge
-       for MSAA to find. Neither is a downgrade from the hero; both are settings
-       the hero needs and this does not. */
-    bgRenderer = new THREE.WebGLRenderer({ antialias: false, alpha: false });
-    /* The SAME cap as the hero. This was 1.5, on the reasoning that a field of
-       flat colour needs fewer pixels than a portrait — but the field is thin
-       contour lines, which is exactly what undersampling shows up on, and on a
-       HiDPI display it put softer lines behind a crisply drawn plate. The whole
-       layer costs 0.015ms a frame; there was nothing to save. */
-    bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    // The ELEMENT's box, not the window's. They differ by the scrollbar, and
-    // sizing a canvas to the window inside a narrower element stretches every
-    // pixel horizontally — which on a field of thin contour lines shows up as
-    // the background's topography not quite lining up with the hero's.
-    bgRenderer.setSize(bgStage.clientWidth, bgStage.clientHeight);
-    bgStage.appendChild(bgRenderer.domElement);
-    background = new BackgroundField(bgRenderer);
-  }
-
+  /* Both layers are the same box — 100% by 100dvh, the field fixed and the
+     plate pinned — so one drawing buffer size serves both. The ELEMENT's box,
+     not the window's: they differ by the scrollbar, and a canvas sized to the
+     window inside a narrower element stretches every pixel horizontally, which
+     on thin contour lines shows up as the two fields not lining up. */
   const resize = () => {
-    renderer.setSize(stage.clientWidth, stage.clientHeight);
+    renderer.setSize(stage.clientWidth, stage.clientHeight, false);
+    const { width, height } = offscreen;
+    heroLayer.setSize(width, height);
+    bgLayer?.setSize(width, height);
     head.resize();
-    if (bgStage) bgRenderer?.setSize(bgStage.clientWidth, bgStage.clientHeight);
     background?.resize();
     // Its canvas is sized off the host box, which is sized in vw — so a resize
     // changes it, and the cached ink has to be re-rendered at the new scale.
@@ -1482,7 +1476,7 @@ if (stage) {
   // lenis too: without it there is no way to put the page at an exact scroll
   // position from the console. window.scrollTo fights the smoothing and the
   // page drifts somewhere else entirely, which makes every measurement a lie.
-  window.hamiltonGL = { head, renderer, background, bgRenderer, ScrollTrigger, lenis };
+  window.hamiltonGL = { head, renderer, background, ScrollTrigger, lenis };
 
   /* Every frame of this scene is a fluid simulation with 20 pressure
      iterations, a two-pass contour field and a Three.js draw. None of it is
@@ -1517,21 +1511,22 @@ if (stage) {
            on values like 1e-7.
          - a backgrounded tab. rAF already throttles hard there, but not always
            to zero, and this is the one pass that now runs the whole page. */
-    if (shrunk > 0.001 && !document.hidden) {
-      background?.update();
-      background?.render();
+    if (background && bgLayer && shrunk > 0.001 && !document.hidden) {
+      background.update();
+      background.render();
+      bgLayer.present(offscreen);
     }
 
     // The portrait is the opposite case: it is a fixed-size plate that leaves
     // the viewport for good, so it stops as soon as it is gone.
     if (!heroVisible) return;
 
-    /* It keeps drawing after it goes inert, though. No preserveDrawingBuffer, so
-       skipping the draw can blank the plate. The saving is inside update(),
-       which returns before the fluid and contour passes; what is left is one
-       textured quad. */
-    head.update();
+    /* Once it has gone inert it is a still picture, drawn again only when
+       something feeding it changes — the layer keeps showing the last frame it
+       was handed. update() says which. */
+    if (!head.update()) return;
     renderer.render(head.scene, head.camera);
+    heroLayer.present(offscreen);
   };
 
   head

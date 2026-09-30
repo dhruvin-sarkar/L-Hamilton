@@ -605,6 +605,13 @@ export class HeadScene {
   private still = false;
   /** Wants to be still; `still` follows once the reveal has faded out. */
   private goingStill = false;
+  /**
+   * A still plate is the same picture frame after frame, so it is drawn only
+   * when something that feeds it changes: the scroll-out filter, a resize, the
+   * handover itself. Everything that can is a setter below, and each one marks
+   * this. See update().
+   */
+  private dirty = true;
 
   /**
    * How much the helmet follows the pointer, 1 at rest. The reference's
@@ -957,6 +964,7 @@ export class HeadScene {
     /* Where the helmet's lower rim lands on the portrait, for the neck shadow.
        Measured off the fitted helmet itself rather than derived, so it holds
        whatever the fit. */
+    this.dirty = true;
     rig.lit.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(rig.lit);
     const planeW = S * this.aspect;
@@ -1061,6 +1069,7 @@ export class HeadScene {
 
   set parallax(v: number) {
     this.headU.uParallax.value = v;
+    this.dirty = true;
   }
 
   /**
@@ -1069,6 +1078,7 @@ export class HeadScene {
    */
   set fieldVisible(v: boolean) {
     this.fieldMesh.visible = v;
+    this.dirty = true;
   }
 
   /**
@@ -1098,6 +1108,7 @@ export class HeadScene {
   /** Bring the scene in line with `goingStill` — see `set inert`. */
   private applyStill(): void {
     this.still = this.goingStill;
+    this.dirty = true;
     /* Flat rather than hidden: the ground is still drawn, so it keeps the
        field's own colour instead of stepping to the canvas's CSS backing, and
        it takes the transition with everything else. */
@@ -1115,7 +1126,9 @@ export class HeadScene {
    * scroll. See filterChunk.
    */
   set filter(v: number) {
+    if (this.filterU.uFilter.value === v) return;
     this.filterU.uFilter.value = v;
+    this.dirty = true;
   }
 
   /**
@@ -1154,9 +1167,14 @@ export class HeadScene {
 
     this.layout();
     this.fitHelmet();
+    this.dirty = true;
   }
 
-  update(): void {
+  /**
+   * Step the scene. Returns whether it needs drawing: always while it is
+   * simulating, and only after a change once it has gone still.
+   */
+  update(): boolean {
     /* CLAMPED. rAF does not fire in a background tab, so the first frame back
      * would otherwise integrate the whole gap: the intro would be over and the
      * idle sweep would teleport. A 15fps frame is the ceiling; longer is a gap,
@@ -1167,7 +1185,9 @@ export class HeadScene {
     /* A still picture is one that is not being simulated. getDelta() above
        still runs, so the clock does not bank the gap for when the plate
        reopens. */
-    if (this.still) return;
+    const changed = this.dirty;
+    this.dirty = false;
+    if (this.still) return changed;
 
     // The idle path is fed in before the step that consumes it.
     this.runIdle(dt);
@@ -1213,6 +1233,7 @@ export class HeadScene {
       rig.wireU.uIsWireframeAnimating.value = this.params.IS_WIREFRAME_ANIMATING;
       this.maskU.uShowHelmet.value = this.params.SHOW_HELMET_PERMANENTLY ? 1 : 0;
     }
+    return true;
   }
 
   /**
