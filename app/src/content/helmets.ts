@@ -183,8 +183,12 @@ const byId: readonly Helmet[] = [
      wears WhatsApp, a team partner only from November 2023. */
   { id: 19, name: 'Season', year: 2024, source: F1_FERRARI_FIRST_LOOK },
   /* Name only. Both pictures are his São Paulo lid, but from different years:
-     the reveal is the 2023 one Mercedes prints, flag on the crown; the helmet
-     is the 2024 one, which carries Signify, a team partner only from July 2024. */
+     the reveal is the 2023 one Mercedes prints, flag on the crown and Monster
+     down the sides where his 2024 lids carry Solera; the helmet is the 2024
+     one (formula1.com's "helmet covered in the Brazilian flag"), which carries
+     Signify, a team partner only from 3 July 2024:
+     https://www.signify.com/en-us/our-company/news/press-releases/2024/20240703-signify-and-mercedes-amg-petronas-f1-team-launch-new-partnership
+     No single year fits both, and no other file in the set pairs better. */
   { id: 20, name: 'Brazil', year: null, source: MERCEDES_BRAZIL },
   // Back to the yellow of his karting days, for his first Ferrari season.
   { id: 21, name: 'Season', year: 2025, source: F1_HELMETS },
