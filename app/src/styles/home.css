@@ -1123,8 +1123,9 @@
  * order so the sequence follows the eye: wordmark, nav, then the corners.
  *
  * Gated on body.is-ready rather than running on load, so nothing animates
- * until the scene has actually painted — otherwise the sequence plays out
- * against an empty canvas and is over before the hero appears.
+ * under the loader: main.ts sets it on the loader's cue, just before the panel
+ * opens, and the sequence plays in view. Not on the WebGL scene — the page is
+ * shown composed and the canvas comes in when it is ready.
  * ------------------------------------------------------------------ */
 
 .hero-in {
@@ -2010,47 +2011,69 @@
   margin-inline: auto;
 }
 
-/* The reference's own two steps down, at its own breakpoints. Below 992px the
-   fluid root locks at 16px, so 80rem stops scaling with the viewport and the
-   gutter has to come back. */
+/* The reference's own two steps down, at its own breakpoints — and at its own
+   SCALE. Below 992px its root keeps shrinking with the viewport (100vw / 86.4
+   down to 480, 100vw / 36 below that) where ours locks at 16px, so its rem
+   values cannot be copied across: 7rem is 62px on its 768 screen and was 112px
+   on ours, one word to a line, and at 480 "REDEFINING" ran 657px wide and
+   pushed the page 89px sideways. --u is the reference's root at this width and
+   every size in the wall is written in it, so the section lays out as the
+   reference's does — measured at 768 and 390: padding 6u over 12u, the crest
+   6.06u by 3.19u (4.7u wide on a phone), 3.75u down to the wall, type at 7u
+   (3.5u on a phone) on the same tracking. The eyebrow keeps its own size:
+   scaled, it would be 7px. */
 
 @media (max-width: 991px) {
+  .impact {
+    --u: calc(100vw / 86.4);
+  }
+
   .impact__inner {
-    padding-inline: 3vw;
+    max-inline-size: calc(80.1 * var(--u));
+    padding: calc(6 * var(--u)) 3vw calc(12 * var(--u));
+    gap: calc(3.75 * var(--u));
+  }
+
+  .impact__icon {
+    gap: calc(1.25 * var(--u));
+  }
+
+  .impact__crest {
+    inline-size: calc(6.06 * var(--u));
+    block-size: calc(3.19 * var(--u));
   }
 
   .impact__text {
-    font-size: 7rem;
+    font-size: calc(7 * var(--u));
+    letter-spacing: calc(-0.0625 * var(--u));
   }
 
   /* The reference's accent goes to `inherit` here, so both voices share the
      base size below the desktop root. */
   .impact__accent {
     font-size: inherit;
-  }
-
-  /* Below 992px the fluid root locks at 16px, so the type is a fixed pixel size
-     against a viewport that still varies — and one long word at 7rem is wider
-     than a phone. `anywhere` rather than `break-word`: only `anywhere` lowers
-     an element's min-content width. It engages only when a word cannot fit a
-     line on its own, so ordinary copy is untouched. */
-  .impact__text {
-    overflow-wrap: anywhere;
+    letter-spacing: calc(-0.1875 * var(--u));
   }
 }
 
+/* The phone step, with the reference's .c gutter (1.25u a side) for 3vw. */
 @media (max-width: 479px) {
+  .impact {
+    --u: calc(100vw / 36);
+  }
+
   .impact__inner {
-    padding-inline: 0;
+    padding-inline: calc(1.25 * var(--u));
   }
 
   .impact__text {
-    font-size: 3.5rem;
+    font-size: calc(3.5 * var(--u));
   }
 
+  /* The reference's phone slot is 4.7u by 2.5u, 51 x 27 at 390. */
   .impact__crest {
-    inline-size: 4.7rem;
-    block-size: auto;
+    inline-size: calc(4.7 * var(--u));
+    block-size: calc(2.5 * var(--u));
   }
 }
 
@@ -3944,6 +3967,11 @@
   block-size: 100%;
 }
 
+/* The phone outline, swapped in under 480px — see the end of this section. */
+.hof__frame--narrow {
+  display: none;
+}
+
 .hof__frame path {
   fill: none;
   stroke: currentColor;
@@ -4201,6 +4229,77 @@
   .hof__item:nth-child(4n + 2),
   .hof__item:nth-child(4n + 4) {
     transform: none;
+  }
+
+  /* The card, below 992px, as the reference sets it — measured off its cards at
+     768, 480, 390 and 360 and written as shares of the card, because its root
+     keeps shrinking here where ours holds at 16px.
+
+     The helmet: its `.helmet-grid-item-img-helmet` caps at 20rem, a centred
+     square 48.4% of the card at both 768 and 480, where the wide layout lets
+     it fill the card. The box below is the wide one (65% of the square, 17.5%
+     in, 15.65% down) carried into that smaller square.
+
+     The label: 1.2rem type on a 2rem box, 2.9% and 4.85% of the card; the name
+     and year 3.46% apart. The 0.6rem floor stays: at 480 the reference's type
+     falls to 7.2px, which is below anything that reads. The box grows with the
+     type rather than clipping it at the card's edge. */
+  .hof__helmet {
+    inset-inline-start: 34.27%;
+    inset-block-start: 33.54%;
+    inline-size: 31.46%;
+    block-size: 31.15%;
+  }
+
+  .hof__label {
+    block-size: max(4.85cqi, 1.25em);
+    font-size: max(0.6rem, 2.9cqi);
+  }
+
+  .hof__name + .hof__year {
+    margin-inline-start: 3.46cqi;
+  }
+}
+
+/* Under 480px the reference changes the card itself. Its `.helmet-grid-frame-w
+   .mobile` outline steps up near the LEFT edge instead of past the middle, so
+   the notch spans three quarters of the width and the label reads in it; the
+   wide outline's half-width notch put "Silverstone 2021" across the diagonal.
+   The photograph's clip follows the line, as it does on the wide card.
+
+   Measured at 390 and at 360, as shares of the card: the helmet square is
+   74.4% (its 12rem cap), the type 5.58% (.9rem), name and year 4.4% apart, and
+   the label drops to the card's foot — `align-items: flex-end` on a line
+   height of 1 — rather than centring in its 2rem box. */
+@media (max-width: 479px) {
+  .hof__media {
+    clip-path: url(#hof-card-narrow);
+  }
+
+  .hof__frame--wide {
+    display: none;
+  }
+
+  .hof__frame--narrow {
+    display: block;
+  }
+
+  .hof__helmet {
+    inset-inline-start: 25.82%;
+    inset-block-start: 24.7%;
+    inline-size: 48.36%;
+    block-size: 47.88%;
+  }
+
+  .hof__label {
+    align-items: flex-end;
+    block-size: 12.4cqi;
+    font-size: max(0.6rem, 5.58cqi);
+    line-height: 1;
+  }
+
+  .hof__name + .hof__year {
+    margin-inline-start: 4.4cqi;
   }
 }
 
@@ -4890,6 +4989,7 @@
  *             lean away to give it room, nearer ones further than far ones, so
  *             the row behaves like one connected object rather than seven
  *             independent tiles.
+ *   --lift    the last card's 1rem rise while a card to its left is hovered.
  *   --fan-*   the measured rest position, untouched by any of them.
  *
  * Written as one transform rather than as competing rules, because two rules
@@ -4910,8 +5010,8 @@
     translate(
       calc(var(--fan-x, 0rem) * var(--spread, 1) + var(--push, 0rem)),
       calc(
-        var(--fan-y, 0rem) * var(--spread, 1) - var(--pop, 0) * 2.5rem + var(--rise, 0) *
-          10rem
+        var(--fan-y, 0rem) * var(--spread, 1) - var(--pop, 0) * 2.5rem + var(--lift, 0rem) +
+          var(--rise, 0) * 10rem
       )
     )
     rotate(calc(var(--fan-rot, 0deg) * var(--spread, 1) + var(--lean, 0deg)))

@@ -5,24 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta
       name="description"
-      content="Lewis Hamilton — seven-time Formula 1 World Champion. Career, seasons, helmets and results."
+      content="Lewis Hamilton — %%titles-word%%-time Formula 1 World Champion. Career, seasons, helmets and results."
     />
-    <title>2026 Ferrari Formula 1 Driver — Lewis Hamilton</title>
+    <title>%%season%% %%team%% Formula 1 Driver — Lewis Hamilton</title>
     <!-- The monogram doubles as the tab icon. Declared explicitly because the
          browser otherwise asks for /favicon.ico on every load and logs a 404 —
          the only error left in the console. -->
     <link rel="icon" href="/assets/brand/lh-monogram.svg" type="image/svg+xml" />
 
-    <!-- Only the two faces that paint before anything is scrolled: the display
-         grotesque, which sets the wordmark's surname and every large heading,
-         and the Didone italic that sets the given name beside it.
+    <!-- Only the faces that paint before anything is scrolled: the display
+         grotesque, which sets the wordmark's surname, every large heading and
+         the hero's lower band; the Didone italic that sets the given name
+         beside it; and the Didone upright that sets the hero's upper band.
 
          Without these the first paint is Arial and the swap reflows the lockup
          and the whole impact wall — Archivo Narrow is far narrower than Arial,
-         so it is not a subtle shift. Playfair upright and Inter are not
-         preloaded on purpose: they set the wall's accents and body copy, both
-         below the fold, and preloading everything just makes the four files
-         compete for the same first-paint bandwidth.
+         so it is not a subtle shift. The upper band is here because it is in
+         the served page and is the first screen's largest text: left to be
+         discovered at first layout, its face arrived after the band's loop had
+         started, and the swap re-laid the text in the same frame as the loop's
+         first step — a layout shift of that whole step. Nothing else is
+         preloaded, because every file here competes for the same first-paint
+         bandwidth.
 
          crossorigin is required even though these are same-origin. Fonts are
          fetched in CORS mode, and a preload without it is a different request
@@ -42,6 +46,13 @@
       type="font/woff2"
       crossorigin
     />
+    <link
+      rel="preload"
+      href="/assets/fonts/playfair-display-latin-wght-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
 
     <!-- The stylesheet is linked HERE rather than imported from main.ts.
          Imported from JS it is not a stylesheet as far as the parser is
@@ -54,6 +65,22 @@
          what is wanted here; Vite serves it directly in dev and rewrites it to
          the hashed extracted file on build. -->
     <link rel="stylesheet" href="/src/styles/main.css" />
+
+    <!-- The hero entrance's backstop. main.ts releases the entrance on the
+         loader's cue, just before the panel opens onto the page. If the page's
+         script never claims the panel -- it failed to load, or threw first --
+         the panel steps aside on its own at 10s (chrome.css
+         `transition-failsafe`), and the furniture has to come in with it
+         rather than stay at opacity 0 for good. Inline in the head so it is
+         armed as the document is parsed: nothing in the module graph can
+         delay it. Keep the delay in step with the panel's. -->
+    <script>
+      setTimeout(function () {
+        var panel = document.querySelector('[data-transition]');
+        if (panel && panel.hasAttribute('data-state')) return;
+        document.body.classList.add('is-ready');
+      }, 10000);
+    </script>
   </head>
   <body>
     <!--#include "partials/transition.html"-->
@@ -88,15 +115,18 @@
 
              Two counter-scrolling bands: a serif in the muted accent over a
              bold grotesque in the page's ink, the reference's carousel. The
-             words come from the content model in main.ts; the sr-only copy
-             below carries them for screen readers, since the visible rows
-             repeat themselves several times to close the loop. -->
+             words come from src/content/home.ts, set into each track at build
+             time (vite.config.ts) so they paint with the document; main.ts
+             adds the repeats the loop needs. The sr-only copy below carries
+             them for screen readers, since the visible rows repeat themselves
+             several times to close the loop. No whitespace inside a track:
+             it is `white-space: pre`. -->
         <div class="hero-back" aria-hidden="true">
           <div class="marquee__row" data-marquee="left">
-            <div class="marquee__track" data-marquee-track></div>
+            <div class="marquee__track" data-marquee-track><!--#marquee "left"--></div>
           </div>
           <div class="marquee__row" data-marquee="right">
-            <div class="marquee__track" data-marquee-track></div>
+            <div class="marquee__track" data-marquee-track><!--#marquee "right"--></div>
           </div>
         </div>
 
@@ -219,7 +249,7 @@
              several times over to close the loop, which a screen reader would
              otherwise read out in full. This carries the real content. -->
         <h2 class="sr-only" id="marquee-h">The story of Lewis</h2>
-        <p class="sr-only" id="marquee-text"></p>
+        <p class="sr-only" id="marquee-text"><!--#marquee-spoken--></p>
       </div>
       <!-- /.hero-track -->
 
@@ -308,6 +338,22 @@
            reference's race-win pill under the fifth picture: a "1" there would
            claim a result for a photograph that has none, so only its space is
            kept. -->
+      <!-- Responsive images, here and on every photograph below.
+
+           srcset lists the narrower copies made by tools/gen-image-variants.sh
+           and the original as the widest. sizes is the width the picture is
+           drawn at, taken from its CSS: here the frame's --w plus the 4rem of
+           pan slack (4rem is 3.71vw between the 992px and 1920px clamps), and
+           --w alone on a phone. With object-fit: cover, that is the drawn
+           width of the photograph and not of its box.
+
+           Past 1.1dppx every size is stated 1.25x large, on purpose. Chrome
+           takes the candidate just under the screen's density whenever that is
+           nearer, geometrically, than the one above. With these steps that let
+           a 2x screen get a 1.6x picture. A 1.25x margin is about the square
+           root of the widest step, so the pick lands at the screen's density
+           or above it, to within a few percent. At 1x there is no such
+           rounding, so the size is stated exactly. -->
       <section class="gallery gallery--home" data-gallery aria-labelledby="gallery-h">
         <h2 class="sr-only" id="gallery-h">Gallery</h2>
 
@@ -318,6 +364,9 @@
                 <figcaption class="gallery__cap reveal-text">On the mic</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-01.webp" alt="" width="1121" height="1400"
+                    srcset="/assets/gallery/gallery-01-480.webp 480w, /assets/gallery/gallery-01-768.webp 768w, /assets/gallery/gallery-01.webp 1121w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (27vh + 3.71vw)),
+                      (min-width: 992px) calc(27vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 27vh), 27vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -325,6 +374,9 @@
                 <figcaption class="gallery__cap reveal-text">Lowrider</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-02.webp" alt="" width="1120" height="1400"
+                    srcset="/assets/gallery/gallery-02-480.webp 480w, /assets/gallery/gallery-02-768.webp 768w, /assets/gallery/gallery-02.webp 1120w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (29.3vh + 3.71vw)),
+                      (min-width: 992px) calc(29.3vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 29.3vh), 29.3vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -345,6 +397,9 @@
                 <figcaption class="gallery__cap reveal-text">Head in hands</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-03.webp" alt="" width="1050" height="1400"
+                    srcset="/assets/gallery/gallery-03-480.webp 480w, /assets/gallery/gallery-03-768.webp 768w, /assets/gallery/gallery-03.webp 1050w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (65.48vh + 3.71vw)),
+                      (min-width: 992px) calc(65.48vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 65.48vh), 65.48vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -357,6 +412,9 @@
                 <figcaption class="gallery__cap reveal-text">Trophy</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-04.webp" alt="" width="1050" height="1400"
+                    srcset="/assets/gallery/gallery-04-480.webp 480w, /assets/gallery/gallery-04-768.webp 768w, /assets/gallery/gallery-04.webp 1050w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (21.98vh + 3.71vw)),
+                      (min-width: 992px) calc(21.98vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 21.98vh), 21.98vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -364,6 +422,9 @@
                 <figcaption class="gallery__cap reveal-text">Lakeside</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-05.webp" alt="" width="1050" height="1400"
+                    srcset="/assets/gallery/gallery-05-480.webp 480w, /assets/gallery/gallery-05-768.webp 768w, /assets/gallery/gallery-05.webp 1050w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (31.75vh + 3.71vw)),
+                      (min-width: 992px) calc(31.75vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 31.75vh), 31.75vh"
                     loading="lazy" decoding="async" />
                 </div>
                 <span class="gallery__pill-slot" aria-hidden="true"></span>
@@ -377,6 +438,9 @@
                 <figcaption class="gallery__cap reveal-text">On the green</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-06.webp" alt="" width="1050" height="1400"
+                    srcset="/assets/gallery/gallery-06-480.webp 480w, /assets/gallery/gallery-06-768.webp 768w, /assets/gallery/gallery-06.webp 1050w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (21.38vh + 3.71vw)),
+                      (min-width: 992px) calc(21.38vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 21.38vh), 21.38vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -386,6 +450,9 @@
                 <figcaption class="gallery__cap reveal-text">The home crowd</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-07.webp" alt="" width="1050" height="1400"
+                    srcset="/assets/gallery/gallery-07-480.webp 480w, /assets/gallery/gallery-07-768.webp 768w, /assets/gallery/gallery-07.webp 1050w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (20.74vh + 3.71vw)),
+                      (min-width: 992px) calc(20.74vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 20.74vh), 20.74vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -398,6 +465,9 @@
                 <figcaption class="gallery__cap reveal-text">In the dojo</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-08.webp" alt="" width="1050" height="1400"
+                    srcset="/assets/gallery/gallery-08-480.webp 480w, /assets/gallery/gallery-08-768.webp 768w, /assets/gallery/gallery-08.webp 1050w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (60.95vh + 3.71vw)),
+                      (min-width: 992px) calc(60.95vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 60.95vh), 60.95vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -417,6 +487,9 @@
                 <figcaption class="gallery__cap reveal-text">F40</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-09.webp" alt="" width="1055" height="1400"
+                    srcset="/assets/gallery/gallery-09-480.webp 480w, /assets/gallery/gallery-09-768.webp 768w, /assets/gallery/gallery-09.webp 1055w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (31.69vh + 3.71vw)),
+                      (min-width: 992px) calc(31.69vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 31.69vh), 31.69vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -424,6 +497,9 @@
                 <figcaption class="gallery__cap reveal-text">Colour study</figcaption>
                 <div class="gallery__frame">
                   <img src="/assets/gallery/gallery-10.webp" alt="" width="1050" height="1400"
+                    srcset="/assets/gallery/gallery-10-480.webp 480w, /assets/gallery/gallery-10-768.webp 768w, /assets/gallery/gallery-10.webp 1050w"
+                    sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * (27.42vh + 3.71vw)),
+                      (min-width: 992px) calc(27.42vh + 3.71vw), (min-resolution: 1.1dppx) calc(1.25 * 27.42vh), 27.42vh"
                     loading="lazy" decoding="async" />
                 </div>
               </figure>
@@ -445,13 +521,24 @@
 
         <div class="otot__pin">
           <!-- Behind the type, bleeding off the outer edges. Decorative: the
-               links below carry the meaning, so alt is empty. -->
+               links below carry the meaning, so alt is empty.
+
+               Drawn at the frame's 90.67vh height by the file's own ratio. On
+               a phone that height is the section's, which its text decides,
+               and at a phone's density it wants more than the original has.
+               So there the size is the original's width, which picks it. -->
           <div class="otot__cut is-on">
             <img src="/assets/otot/on-track.webp" alt="" width="1450" height="1600"
+              srcset="/assets/otot/on-track-768.webp 768w, /assets/otot/on-track-1024.webp 1024w, /assets/otot/on-track.webp 1450w"
+              sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * 82.2vh),
+                (min-width: 992px) 82.2vh, 1450px"
               loading="lazy" decoding="async" />
           </div>
           <div class="otot__cut is-off">
             <img src="/assets/otot/off-track.webp" alt="" width="1115" height="1600"
+              srcset="/assets/otot/off-track-640.webp 640w, /assets/otot/off-track-800.webp 800w, /assets/otot/off-track.webp 1115w"
+              sizes="(min-width: 992px) and (min-resolution: 1.1dppx) calc(1.25 * 63.2vh),
+                (min-width: 992px) 63.2vh, 1115px"
               loading="lazy" decoding="async" />
           </div>
 

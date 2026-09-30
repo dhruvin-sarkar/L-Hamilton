@@ -18,7 +18,8 @@
  *   link        The number zooms in SOLID from the centre until it covers the
  *               screen (~430ms), the mark appears inside it at ~270ms and joins
  *               its loop, and at 1000ms (v$) the next page is swapped in. That
- *               page reveals 500ms after it enters (cL's setTimeout(H$, 500)).
+ *               page reveals 500ms after it enters (cL's setTimeout(H$, 500)) —
+ *               after its DOM and scripts, not after its images.
  *
  * The zoom is exponential: the glyph grows by a near-constant ~1.2x per frame
  * (log-linear) from 100ms and lands softly over the last ~60ms, with a quick
@@ -362,11 +363,31 @@ export function mountTransition(opts: { closeMenu: () => void }): void {
 
   let busy = false;
   let active: gsap.core.Timeline | null = null;
+  let generation = 0;
+
+  /* Every half is built on gsap's NEXT tick rather than when it is called.
+     lagSmoothing is off (main.ts, for Lenis), so after a long task the global
+     clock jumps by the whole stall on its next tick, and a timeline created
+     during that stall is placed at the stale time and jumps with it. Measured
+     on a production first load: the reveal came due while the helmet was being
+     built, a 1.7s task, and its 450ms zoom went from 'revealing' to 'revealed'
+     in 6ms — the panel simply vanished. The ticker runs the root timeline
+     first, so a once-listener sees the clock already caught up, and the zoom
+     plays in full whatever the main thread was doing, as the reference's Rive
+     reveal does. The generation guard drops a half that was superseded before
+     its tick came. */
+  const start = (build: () => gsap.core.Timeline): void => {
+    active?.kill();
+    active = null;
+    const mine = ++generation;
+    gsap.ticker.add(() => {
+      if (mine === generation) active = build();
+    }, true);
+  };
 
   /* ---------------------------------------------------------- reveal */
 
   const reveal = (): void => {
-    active?.kill();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const ox = vw / 2;
@@ -380,39 +401,40 @@ export function mountTransition(opts: { closeMenu: () => void }): void {
 
     root.dataset.state = 'revealing';
     draw();
-    active = gsap
-      .timeline({
-        onComplete: () => {
-          root.dataset.state = 'revealed';
-          shape.setAttribute('d', '');
-          mark?.loop.pause();
-          busy = false;
-        },
-      })
-      .to(size, { h: popH, duration: TIMING.pop, ease: 'power1.in', onUpdate: draw }, 0)
-      .to(
-        size,
-        {
-          z: 1,
-          duration: TIMING.zoom - TIMING.pop,
-          ease: zoomEase,
-          onUpdate: () => {
-            size.h = Math.exp(Math.log(popH) + (Math.log(endH) - Math.log(popH)) * size.z);
-            draw();
+    start(() =>
+      gsap
+        .timeline({
+          onComplete: () => {
+            root.dataset.state = 'revealed';
+            shape.setAttribute('d', '');
+            mark?.loop.pause();
+            busy = false;
           },
-        },
-        TIMING.pop,
-      )
-      .to(markSvg, { scale: 0, duration: TIMING.markOut, ease: 'power2.in' }, 0)
-      .to(label, { opacity: 0, duration: TIMING.labelFade, ease: 'power1.inOut' }, TIMING.labelDelay)
-      // Taken away at 500ms whatever the zoom is doing, as H$ does.
-      .set({}, {}, TIMING.hide);
+        })
+        .to(size, { h: popH, duration: TIMING.pop, ease: 'power1.in', onUpdate: draw }, 0)
+        .to(
+          size,
+          {
+            z: 1,
+            duration: TIMING.zoom - TIMING.pop,
+            ease: zoomEase,
+            onUpdate: () => {
+              size.h = Math.exp(Math.log(popH) + (Math.log(endH) - Math.log(popH)) * size.z);
+              draw();
+            },
+          },
+          TIMING.pop,
+        )
+        .to(markSvg, { scale: 0, duration: TIMING.markOut, ease: 'power2.in' }, 0)
+        .to(label, { opacity: 0, duration: TIMING.labelFade, ease: 'power1.inOut' }, TIMING.labelDelay)
+        // Taken away at 500ms whatever the zoom is doing, as H$ does.
+        .set({}, {}, TIMING.hide),
+    );
   };
 
   /* ---------------------------------------------------------- cover */
 
   const cover = (then: () => void): void => {
-    active?.kill();
     busy = true;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
@@ -436,43 +458,53 @@ export function mountTransition(opts: { closeMenu: () => void }): void {
         String(Date.now() - (LOOP.period - COVER_FOLD_AT) * 1000),
       );
     }
-    active = gsap
-      .timeline()
-      .to(size, { h: popH, duration: TIMING.pop, ease: 'none', onUpdate: draw }, 0)
-      .to(
-        size,
-        {
-          z: 1,
-          duration: TIMING.zoom - TIMING.pop,
-          ease: zoomEase,
-          onUpdate: () => {
-            size.h = Math.exp(Math.log(popH) + (Math.log(endH) - Math.log(popH)) * size.z);
-            draw();
+    start(() =>
+      gsap
+        .timeline()
+        .to(size, { h: popH, duration: TIMING.pop, ease: 'none', onUpdate: draw }, 0)
+        .to(
+          size,
+          {
+            z: 1,
+            duration: TIMING.zoom - TIMING.pop,
+            ease: zoomEase,
+            onUpdate: () => {
+              size.h = Math.exp(Math.log(popH) + (Math.log(endH) - Math.log(popH)) * size.z);
+              draw();
+            },
           },
-        },
-        TIMING.pop,
-      )
-      .to(
-        markSvg,
-        { scale: 1, duration: TIMING.markIn[1] - TIMING.markIn[0], ease: 'power2.out' },
-        TIMING.markIn[0],
-      )
-      // Solid from here: a panel colour rather than a path, so nothing can
-      // show through at an edge whatever the window does next.
-      .call(() => {
-        root.dataset.state = 'covered';
-        shape.setAttribute('d', '');
-      }, [], TIMING.zoom)
-      .call(then, [], TIMING.cover);
+          TIMING.pop,
+        )
+        .to(
+          markSvg,
+          { scale: 1, duration: TIMING.markIn[1] - TIMING.markIn[0], ease: 'power2.out' },
+          TIMING.markIn[0],
+        )
+        // Solid from here: a panel colour rather than a path, so nothing can
+        // show through at an edge whatever the window does next.
+        .call(() => {
+          root.dataset.state = 'covered';
+          shape.setAttribute('d', '');
+        }, [], TIMING.zoom)
+        .call(then, [], TIMING.cover),
+    );
   };
 
   /* ---------------------------------------------------------- first paint */
 
   const hold = kind === 'first' ? TIMING.holdFirst : TIMING.holdArrival;
 
+  /* What the hold counts from differs by kind, as the reference's does. A first
+     load waits for the document to be COMPLETE (mL polls readyState for it). An
+     arrival counts from the page having ENTERED — its DOM in and its scripts
+     run (cL, straight after the router's swap) — and never waits on the new
+     page's images. Ours is a new document, so that moment is DOMContentLoaded.
+     Held to the load event, an arrival on On Track sat covered for another
+     ~940ms of photographs before its 500ms hold even began. */
   const loaded = new Promise<void>((resolve) => {
-    if (document.readyState === 'complete') resolve();
-    else window.addEventListener('load', () => resolve(), { once: true });
+    const ready = kind === 'first' ? document.readyState === 'complete' : document.readyState !== 'loading';
+    if (ready) resolve();
+    else window.addEventListener(kind === 'first' ? 'load' : 'DOMContentLoaded', () => resolve(), { once: true });
   });
   const capped = new Promise<void>((resolve) => setTimeout(resolve, TIMING.loadCap * 1000));
   /* Wall-clock timers, as the reference's are, not gsap.delayedCall: a delayed
@@ -539,6 +571,8 @@ export function mountTransition(opts: { closeMenu: () => void }): void {
   window.addEventListener('pageshow', (event) => {
     if (!event.persisted) return;
     active?.kill();
+    active = null;
+    generation++;
     busy = false;
     window.scrollTo(0, 0);
     root.dataset.state = 'covered';
