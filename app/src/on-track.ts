@@ -21,6 +21,8 @@ import { hasTrack, mountCircuit } from './lib/circuit';
 import { mountGalleryScroll } from './lib/gallery';
 import { mountHelmetScroll } from './HelmetScroll';
 import { mountFooterMarquee } from './lib/marquee';
+import { closedReef, drawClosedReef } from './lib/closed-reef';
+import type { ReefBranch as ClosedReefBranch } from './lib/closed-reef';
 import { Signature } from './Signature';
 import { mountReveals } from './lib/reveal';
 import {
@@ -185,182 +187,6 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
  * draws the scribble, and a `const` declared down beside the pre-F1 list would
  * put both callers inside its temporal dead zone.
  * ------------------------------------------------------------------ */
-
-/* ------------------------------------------------------------------ *
- * The closed reef
- *
- * The small closed wreath the reference hangs beside each pre-F1 result (its
- * Rive "reef" artboard, played once as the result scrolls into view): two
- * laurel branches rising from a bare stem at the bottom centre, curling up the
- * sides almost into a circle and leaving a gap at the top. Redrawn here as an
- * original -- a curved stem with leaves at a regular step, the outer row
- * leaning out and up, the inner row in, and a fan of four at the tip -- and
- * grown the way the statement's reef is: the stem drawn on while the leaves
- * open one after another from the base.
- * ------------------------------------------------------------------ */
-
-/** The left branch in the 60x60 box: a bare tail running in from the bottom
-    centre (start, control), then the leafy stem (base, two controls, tip). */
-const CLOSED_REEF_TAIL = [
-  [27.2, 51.6],
-  [24, 51.2],
-] as const;
-const CLOSED_REEF_STEM = [
-  [21, 50.3],
-  [7, 45.5],
-  [6, 20],
-  [20, 14],
-] as const;
-
-/**
- * The left branch's leaves, painted in this order: where each joins the stem
- * (0 base to 1 tip), its turn off the stem in degrees (negative is outward),
- * its length, and how far it then leans toward upright (0 none, 1 fully).
- */
-const CLOSED_REEF_LEAVES: readonly (readonly [at: number, turn: number, length: number, lean: number])[] = [
-  // Outer row: the lowest lies along the ground, the top ones stand up.
-  [0.02, -15, 8, 0],
-  [0.12, -38, 8.4, 0.2],
-  [0.22, -42, 8.6, 0.1],
-  [0.32, -42, 8.4, 0.1],
-  [0.42, -40, 8.2, 0.1],
-  [0.52, -36, 8.4, 0.2],
-  [0.62, -30, 9.6, 0.3],
-  [0.72, -28, 10, 0.3],
-  [0.82, -28, 10, 0.3],
-  // Inner row.
-  [0.07, 52, 8.8, 0],
-  [0.2, 48, 9.2, 0],
-  [0.33, 45, 8, 0],
-  [0.46, 45, 7.8, 0],
-  [0.59, 45, 8, 0],
-  [0.72, 45, 7.6, 0],
-  [0.85, 45, 7, 0],
-  // The fan at the tip.
-  [0.96, -50, 8.4, 0],
-  [0.97, 38, 6, 0],
-  [1, -25, 8.8, 0],
-  [1, 8, 7, 0],
-];
-
-/** A leaf's width over its length: a slim pointed lens. */
-const CLOSED_REEF_LEAF_WIDTH = 0.2;
-
-function closedReefPoint(t: number): [number, number] {
-  const [p0, p1, p2, p3] = CLOSED_REEF_STEM;
-  const u = 1 - t;
-  const a = u * u * u;
-  const b = 3 * u * u * t;
-  const c = 3 * u * t * t;
-  const d = t * t * t;
-  return [
-    a * p0[0] + b * p1[0] + c * p2[0] + d * p3[0],
-    a * p0[1] + b * p1[1] + c * p2[1] + d * p3[1],
-  ];
-}
-
-/** The stem's direction at `t`, in degrees clockwise from +x. */
-function closedReefHeading(t: number): number {
-  const [p0, p1, p2, p3] = CLOSED_REEF_STEM;
-  const u = 1 - t;
-  const dx = 3 * u * u * (p1[0] - p0[0]) + 6 * u * t * (p2[0] - p1[0]) + 3 * t * t * (p3[0] - p2[0]);
-  const dy = 3 * u * u * (p1[1] - p0[1]) + 6 * u * t * (p2[1] - p1[1]) + 3 * t * t * (p3[1] - p2[1]);
-  return (Math.atan2(dy, dx) * 180) / Math.PI;
-}
-
-/** Length of a polyline through `points`, for the stem's dash. */
-function polylineLength(points: readonly (readonly [number, number])[]): number {
-  let length = 0;
-  let previous = points[0];
-  for (const point of points) {
-    if (previous) length += Math.hypot(point[0] - previous[0], point[1] - previous[1]);
-    previous = point;
-  }
-  return length;
-}
-
-function closedReefBranch(mirror: string): ReefBranch {
-  const group = document.createElementNS(SVG_NS, 'g');
-  if (mirror) group.setAttribute('transform', mirror);
-
-  const [tailStart, tailControl] = CLOSED_REEF_TAIL;
-  const [base, c1, c2, tip] = CLOSED_REEF_STEM;
-  const stem = document.createElementNS(SVG_NS, 'path');
-  const xy = (p: readonly [number, number]): string => p.join(' ');
-  stem.setAttribute('d', `M${xy(tailStart)}Q${xy(tailControl)} ${xy(base)}C${xy(c1)} ${xy(c2)} ${xy(tip)}`);
-  stem.setAttribute('fill', 'none');
-  stem.setAttribute('stroke', 'currentColor');
-  stem.setAttribute('stroke-width', '0.9');
-  stem.setAttribute('stroke-linecap', 'round');
-  group.appendChild(stem);
-
-  /* Measured once by sampling, so the dash covers the path and each leaf
-     knows how far along the drawn line it sits. */
-  const samples = Array.from({ length: 49 }, (_, i) => i / 48);
-  const tailLength = polylineLength(
-    samples.map((t): [number, number] => {
-      const u = 1 - t;
-      return [
-        u * u * tailStart[0] + 2 * u * t * tailControl[0] + t * t * base[0],
-        u * u * tailStart[1] + 2 * u * t * tailControl[1] + t * t * base[1],
-      ];
-    }),
-  );
-  const leafyLength = polylineLength(samples.map(closedReefPoint));
-  const stemLength = tailLength + leafyLength;
-
-  /* A leaf is a pointed lens drawn along +x from its own base, so a rotation
-     aims it and a scale grows it out of the stem. */
-  const leaves: ReefLeaf[] = CLOSED_REEF_LEAVES.map(([t, turn, length, lean]) => {
-    const [x, y] = closedReefPoint(t);
-    let angle = closedReefHeading(t) + turn;
-    const toUpright = ((-90 - angle + 540) % 360) - 180;
-    angle += lean * toUpright;
-    const half = length * CLOSED_REEF_LEAF_WIDTH;
-    const leaf = document.createElementNS(SVG_NS, 'path');
-    leaf.setAttribute(
-      'd',
-      `M0 0C${length * 0.25} ${-half} ${length * 0.62} ${-half} ${length} 0` +
-        `C${length * 0.62} ${half} ${length * 0.25} ${half} 0 0Z`,
-    );
-    leaf.setAttribute('fill', 'currentColor');
-    group.appendChild(leaf);
-    /* Opens as the drawn stem reaches it: `at` is its share of the whole line. */
-    const at = (tailLength + t * leafyLength) / stemLength;
-    return { el: leaf, x, y, angle, at };
-  });
-
-  return { group, stem, stemLength, leaves, mirror };
-}
-
-/** Both branches at growth `g`, 0 unseen to 1 full: the stem draws on just
-    ahead of the leaves, which open in turn from the base. */
-function drawClosedReef(branches: readonly ReefBranch[], g: number): void {
-  const drawn = clamp01(g / 0.85);
-  for (const branch of branches) {
-    branch.stem.setAttribute('stroke-dasharray', String(branch.stemLength));
-    branch.stem.setAttribute('stroke-dashoffset', String(branch.stemLength * (1 - drawn)));
-    for (const leaf of branch.leaves) {
-      /* Exactly 1 once grown: (1 - 0.8) / 0.2 is 0.9999999999999998 in floats. */
-      const open = g >= 1 ? 1 : clamp01((g - leaf.at * 0.8) / 0.2);
-      leaf.el.setAttribute(
-        'transform',
-        `translate(${leaf.x} ${leaf.y}) rotate(${leaf.angle}) scale(${open})`,
-      );
-    }
-  }
-}
-
-/** The wreath's SVG and its two branches, for growing. Drawn by the caller. */
-function closedReef(): { svg: SVGSVGElement; branches: ReefBranch[] } {
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('viewBox', '0 0 60 60');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.setAttribute('focusable', 'false');
-  const branches = [closedReefBranch(''), closedReefBranch('translate(60 0) scale(-1 1)')];
-  for (const branch of branches) svg.appendChild(branch.group);
-  return { svg, branches };
-}
 
 /* ------------------------------------------------------------------ *
  * The reef
@@ -2000,8 +1826,8 @@ for (const figure of document.querySelectorAll<HTMLElement>('[data-gallery-race]
  * Reference section 5. Its achievements each carry a closed laurel whose
  * colour says whether the result was a title -- lime for a championship, grey
  * for a placing -- and whose Rive plays once as it scrolls into view. Both are
- * kept: the laurel is drawn above rather than lifted, and grows once, at the
- * reference's trigger. The label says "champion" or "2nd place" in words, so
+ * kept: the laurel is drawn rather than lifted (lib/closed-reef.ts, which the
+ * calendar's results share), and grows once, at the reference's trigger. The label says "champion" or "2nd place" in words, so
  * the colour is never the only signal.
  *
  * Newest first, as the reference orders its own: the senior titles lead.
@@ -2010,14 +1836,13 @@ for (const figure of document.querySelectorAll<HTMLElement>('[data-gallery-race]
 const juniorGrid = document.querySelector<HTMLElement>('[data-junior-grid]');
 
 if (juniorGrid) {
-  const wreaths: { mark: HTMLElement; branches: ReefBranch[] }[] = [];
+  const wreaths: { mark: HTMLElement; branches: ClosedReefBranch[] }[] = [];
 
   for (const entry of [...preF1Championships].reverse()) {
     const item = el('li', 'ot-pref1__item');
     item.dataset.place = String(entry.position);
 
     const { svg, branches } = closedReef();
-    drawClosedReef(branches, 1);
     const mark = el('span', 'ot-pref1__mark');
     mark.appendChild(svg);
     wreaths.push({ mark, branches });
