@@ -3,13 +3,12 @@
  * sessions in running order, places as figures and letters, small numbers in
  * words.
  *
- * The calendar page's formatting, in one module so its panel, its two lists
- * and its season-by-season results cannot disagree about how a date looks.
- * These are the rules on-track.ts applies to its own schedule, lifted out
- * unchanged: UK time because the reference prints and footnotes it (*UK TIME),
- * and three-letter months from a fixed table because en-GB's own short
- * September is "Sept", where the reference -- like every timing screen --
- * reads SEP.
+ * One module for both pages' schedules -- On Track's panel, its rows and its
+ * hero card, and the calendar's panel, lists and season-by-season results --
+ * so none of them can disagree about how a date looks. UK time because the
+ * reference prints and footnotes it (*UK TIME), and three-letter months from
+ * a fixed table because en-GB's own short September is "Sept", where the
+ * reference -- like every timing screen -- reads SEP.
  */
 
 import type { CalendarRound, RaceSession } from '../content/live-stats';
@@ -93,7 +92,14 @@ export function sessionWhen(session: RaceSession): UkWhen {
   return { day, month, time: 'TBC' };
 }
 
-export type SessionKind = 'practice1' | 'practice2' | 'practice3' | 'sprint' | 'qualifying' | 'race';
+export type SessionKind =
+  | 'practice1'
+  | 'practice2'
+  | 'practice3'
+  | 'sprintQualifying'
+  | 'sprint'
+  | 'qualifying'
+  | 'race';
 
 export interface WeekendSession {
   kind: SessionKind;
@@ -103,8 +109,7 @@ export interface WeekendSession {
 
 /**
  * A weekend's sessions in running order, the race last. A sprint weekend has
- * no second or third practice and a sprint instead; the calendar does not
- * carry sprint qualifying, so it is not invented here.
+ * no second or third practice, and sprint qualifying and a sprint instead.
  */
 export function weekendSessions(round: CalendarRound): WeekendSession[] {
   const s = round.sessions;
@@ -112,6 +117,7 @@ export function weekendSessions(round: CalendarRound): WeekendSession[] {
     ['practice1', 'Practice 1', s.practice1],
     ['practice2', 'Practice 2', s.practice2],
     ['practice3', 'Practice 3', s.practice3],
+    ['sprintQualifying', 'Sprint Qualifying', s.sprintQualifying],
     ['sprint', 'Sprint', s.sprint],
     ['qualifying', 'Qualifying', s.qualifying],
   ];
