@@ -49,6 +49,11 @@ body[data-page='off-track'] {
 
 .oft-hero__c {
   block-size: 100%;
+  /* Reference .c: the fluid container, capped where the root stops growing
+     (1920px) and centred beyond. Uncapped, on a wider screen the copy stood
+     at the far left edge and the columns spread with the window. */
+  max-inline-size: 108rem;
+  margin-inline: auto;
   /* Reference: --on-t-nav-spacer (5.375rem) on top, the container's --gap at
      the sides, and .off-t-hero-title-layout's --gap at the foot. */
   padding: calc(5.375 * var(--r)) var(--gap) var(--gap);
@@ -310,12 +315,13 @@ body[data-page='off-track'] {
 
 /* ------------------------------------------------------------ The marquee */
 
-/* Reference .marquee-offest-w.z-20: the full viewport width, pulled out of
-   the container's left gap, 2rem under the note. */
+/* Reference .marquee-offest-w.z-20: the full viewport width, capped with the
+   container, pulled out of the container's left gap, 2rem under the note. */
 .oft-hero__marquee {
   position: relative;
   z-index: 20;
   inline-size: 100vw;
+  max-inline-size: 108rem;
   margin-block-start: calc(2 * var(--r));
   margin-inline-start: calc(var(--gap) * -1);
   overflow: clip;
