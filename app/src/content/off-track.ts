@@ -72,7 +72,7 @@ export const hero = {
 
   /** The short "recently" note. Reference: "Recently, Lando has been…". */
   recently: {
-    text: 'Recently, Lewis co-chaired the 2025 Met Gala and produced F1, the film released in June 2025.',
+    text: 'In 2025, Lewis co-chaired the 2025 Met Gala and produced F1, the film released in June 2025.',
     sources: [
       'https://www.formula1.com/en/latest/article/hamilton-reflects-on-really-special-moment-as-co-chair-of-2025-met-gala.4WtmIKncsWEmVfaVHCzxrd',
       'https://www.formula1.com/en/latest/article/release-date-confirmed-for-apple-original-films-formula-1-movie.18IMLaYq0UFsKfEELXjO2w',

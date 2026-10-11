@@ -51,6 +51,12 @@ if (missingPhotos.length > 0) {
   );
 }
 
+/* Where every STORE link goes: the nav's button, the footer's, Home's store
+   section and On Track's callout, which all name "the +44 collection". One
+   value, so the four cannot drift apart. It is +44's own shop; the
+   store.lewishamilton.com they used to point at is not a host that exists. */
+const STORE_URL = 'https://www.plus44world.com';
+
 /**
  * `%%name%%` in any HTML entry: a fact from the data layer, written into the
  * served document.
@@ -73,6 +79,7 @@ const HEAD_TOKENS: ReadonlyMap<string, string> = new Map([
   ['team', driver.currentTeam],
   ['titles-word', spell(career.championships)],
   ['seasons-word', spell(career.seasonsContested)],
+  ['store-url', STORE_URL],
 ]);
 
 function fillTokens(html: string, filename: string): string {
@@ -459,6 +466,10 @@ export default defineConfig({
     ],
   },
   build: {
+    /* The floor the code already has: @property, lh units and OffscreenCanvas
+       need Safari 16.4. Stated, so the bundler stops rewriting syntax for
+       browsers the site cannot run on and flags anything newer than this. */
+    target: ['es2022', 'safari16.4', 'firefox128', 'chrome111'],
     outDir: 'dist',
     emptyOutDir: true,
     rollupOptions: {
