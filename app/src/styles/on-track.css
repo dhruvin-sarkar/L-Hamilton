@@ -1240,8 +1240,8 @@ body[data-page='on-track'] {
  * arrangement the scroll ends on rather than the collision it starts from.
  *
  * Every digit after the first rises, not just the second: the reference has
- * two, so that IS its second, and Hamilton's word sits under both the 0 and
- * the 7 of 207. */
+ * two, so that IS its second, and Hamilton's word sits under the last two of
+ * his three. */
 @property --podium-p {
   syntax: '<number>';
   inherits: true;
@@ -1257,7 +1257,7 @@ body[data-page='on-track'] {
   --podium-label-from: calc(17.5 * var(--ref-rem));
   /* Three digits where the reference's 56 is two, so at 114rem the number would
      run 780px off the page. on-track.ts scales it (--podium-fit) until its ink
-     ends where the reference's does: about 76rem for 208. */
+     ends where the reference's does: about 76rem for a three-digit count. */
   --podium-font: calc(var(--podium-ref) * var(--podium-fit, 1));
   position: relative;
   /* Scaled down from 114rem, the number's box keeps its top but the glyphs'
