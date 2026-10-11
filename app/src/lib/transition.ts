@@ -397,6 +397,8 @@ export function mountTransition(opts: { closeMenu: () => void }): void {
   let busy = false;
   let active: gsap.core.Timeline | null = null;
   let generation = 0;
+  /** The timer armed as a link hands over to the next page. See the links. */
+  let stranded = 0;
 
   /* Every half is built on gsap's NEXT tick rather than when it is called.
      lagSmoothing is off (main.ts, for Lenis), so after a long task the global
@@ -576,6 +578,19 @@ export function mountTransition(opts: { closeMenu: () => void }): void {
     cover(() => {
       writeStored(STORAGE.left, String(Date.now() - TIMING.cover * 1000));
       location.href = url.href;
+      /* The handover is a request, and it can come to nothing: the reader
+         presses Stop or Escape while the next page is still on its way, or the
+         request dies. This document then lives on behind a panel only a reveal
+         takes down, with `busy` still set -- so it stayed covered for good and
+         swallowed every later link click. Nothing tells a page its navigation
+         was abandoned, so it is timed, on the cap a load that never completes
+         already gets: a document still running that long after handing over
+         was not left, and it opens again and takes links again. The pageshow
+         below disarms it for a page that WAS left and then comes back. */
+      stranded = window.setTimeout(() => {
+        busy = false;
+        reveal();
+      }, TIMING.loadCap * 1000);
     });
   });
 
@@ -600,6 +615,9 @@ export function mountTransition(opts: { closeMenu: () => void }): void {
 
   window.addEventListener('pageshow', (event) => {
     if (!event.persisted) return;
+    // Frozen with the page and thawed with it: this handover did happen, and
+    // its timer would otherwise play a second reveal over the restored page.
+    window.clearTimeout(stranded);
     active?.kill();
     active = null;
     generation++;
