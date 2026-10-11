@@ -176,7 +176,13 @@ const MARQUEE_DRIFT_VW = 10;
     scroller.append(copy);
   }
 
-  if (!reducedMotion) {
+  /* Built only where the row is shown. Up to 497px it is `display: none`
+     (off-track.css, the reference's data-hide="m") and has no width to pace
+     the loop by: built there all the same, as it was when this ran once on
+     load, the loop got a duration of zero and the row stood still once a
+     phone was turned to landscape. matchMedia builds it on entering the width
+     the row exists at, measured then, and reverts it on leaving. */
+  mm.add('(min-width: 498px) and (prefers-reduced-motion: no-preference)', () => {
     const first = copies[0] as HTMLElement;
     const duration = MARQUEE_SPEED * (first.offsetWidth / window.innerWidth);
     const loop = gsap.to(copies, { xPercent: -100, repeat: -1, duration, ease: 'none' });
@@ -203,11 +209,14 @@ const MARQUEE_DRIFT_VW = 10;
       },
     );
 
-    new IntersectionObserver(([entry]) => {
+    const inView = new IntersectionObserver(([entry]) => {
       if (entry?.isIntersecting) loop.play();
       else loop.pause();
-    }).observe(box);
-  }
+    });
+    inView.observe(box);
+
+    return () => inView.disconnect();
+  });
 }
 
 /* ------------------------------------------------------------------ *
