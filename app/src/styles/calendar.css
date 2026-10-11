@@ -335,12 +335,14 @@ body[data-page='calendar'] {
 }
 
 /* Reference `.f1-highlight-round-svg`: 110% of the number's width, centred,
-   in the accent. */
+   in the accent. Wider than its box on purpose, so the base rule that keeps
+   an svg inside its parent is lifted. */
 .cal-row__strike {
   position: absolute;
   inset-block-start: 50%;
   inset-inline-start: 50%;
   inline-size: 110%;
+  max-inline-size: none;
   block-size: auto;
   color: var(--accent);
   transform: translate(-50%, -50%);
@@ -719,14 +721,10 @@ button.cal-row--past:hover:focus-visible {
     --u: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
   }
 
-  .cal-results__title-row {
-    grid-template-columns: 1fr;
-    row-gap: calc(var(--g) * 2);
-  }
-
-  .cal-results__h,
+  /* Reference `.text-body-reg-mona` here: 1.75rem. The title row keeps its
+     four columns down to 480px, as the reference's `.grid-main` does. */
   .cal-results__para {
-    grid-column: 1;
+    font-size: calc(var(--u) * 1.75);
   }
 }
 
@@ -784,21 +782,66 @@ button.cal-row--past:hover:focus-visible {
     display: flex;
   }
 
+  /* Reference `.f1-highlight-item-round-w` and `.f1-highlight-round-svg`
+     here: the box only as wide as its number, so the number starts under its
+     header, and the strike half as wide again. */
+  .cal-row__round-w {
+    min-inline-size: auto;
+  }
+
+  .cal-row__strike {
+    inline-size: 150%;
+  }
+
+  /* Reference `.text-on-t-stat-label-sm.is-super` here: level with the top of
+     its figure, a win's letters 0.1rem under that. */
+  .cal-row__suffix {
+    inset-block-start: 0;
+  }
+
+  .cal-row__suffix--win {
+    inset-block-start: calc(var(--u) * 0.1);
+  }
+
+  /* Reference `.title-layout.grid-main` here: two columns 2 --gap apart with
+     2 --gap under them, the title at 2.6rem beside its copy at 1.3rem.
+     Padding, not margin: a margin would collapse into the table's 10 units
+     rather than add to them, as the reference's does. */
+  .cal-results__title-row {
+    grid-template-columns: 1fr 1fr;
+    column-gap: calc(var(--g) * 2);
+    padding-block-end: calc(var(--g) * 2);
+  }
+
+  .cal-results__h {
+    grid-column: 1;
+    font-size: calc(var(--u) * 2.6);
+  }
+
+  .cal-results__h-line--serif {
+    font-size: calc(var(--u) * 2.6);
+  }
+
+  .cal-results__para {
+    grid-column: 2;
+    max-inline-size: none;
+    font-size: calc(var(--u) * 1.3);
+  }
+
   /* Reference `.f1-highlight-trophy-w` here: 2.6rem left of the finish, not
-     5.6 -- hung that far out on four columns it sat over the circuit's name. */
-  .cal-row__trophy {
+     5.6 -- hung that far out on four columns it sat over the circuit's name.
+     A season's wreath hangs in the same box. */
+  .cal-row__trophy,
+  .cal-results__reef {
     inset-inline-start: calc(var(--u) * -2.6);
   }
 
-  /* Reference `.f1-highlight-grid.row-head` and `.is-history` here. */
+  /* Reference `.f1-highlight-grid.row-head` and `.is-history` here. The year
+     and Location keep their two columns, so a season's place and podiums
+     stand in the last two, under Finish and Podiums. */
   .cal-results__trigger,
   .cal-results__head {
     grid-template-columns: minmax(0, 0.5fr) minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr) minmax(0, 0.75fr);
-  }
-
-  .cal-results__year,
-  .cal-results__head-loc {
-    grid-column: auto;
   }
 
   .cal-results__race,
@@ -819,12 +862,7 @@ button.cal-row--past:hover:focus-visible {
     display: flex;
   }
 
-  .cal-results__reef {
-    position: relative;
-    inset-inline-start: auto;
-    block-size: auto;
-  }
-
+  /* Reference `.icon-svg-closed-reef.pre-f1-car.is-2nd.is-history` here. */
   .cal-results__reef svg {
     inline-size: calc(var(--u) * 2);
     block-size: calc(var(--u) * 2);
