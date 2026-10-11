@@ -653,6 +653,15 @@ export class HeadScene {
   private readonly ease: number;
   private readonly subjectScale: number;
   private aspect = 1;
+  /** The scene's own width over its height, from resize(). */
+  private view = 1;
+  /**
+   * The middle of his face, as a fraction of the photograph's height from its
+   * top edge. Set so the wide fit crops the plate a quarter from the top and
+   * three quarters from the bottom, the split that was measured to hold the
+   * face centred in the landed box.
+   */
+  private static readonly FACE_IN_PHOTO = 0.442;
   private readonly clock = new THREE.Clock();
 
   /**
@@ -1132,33 +1141,60 @@ export class HeadScene {
   }
 
   /**
-   * Fit the portrait. The source is 4:3 landscape where the reference's was
-   * square, so fitting by height alone leaves the subject small — hence the
-   * subjectScale multiplier rather than a plain contain.
+   * Fit the portrait to the scene's HEIGHT, at every width.
+   *
+   * The reference's head is seen by a perspective camera with a fixed vertical
+   * field of view, so its size on screen follows the height alone: a narrow
+   * window crops the shoulders, it does not shrink the subject. At 768px and
+   * below its `responsive()` pulls that camera back from z 3 to 3.75, which
+   * draws the head at 3 / 3.75 of its desktop size against the height.
+   *
+   * This used to contain the photo inside the width instead. The source is 4:3
+   * landscape, so on a phone held upright the whole portrait shrank to a strip
+   * across the bottom third of the screen: at 390x844 the head was 97px wide
+   * where the reference's fills the width.
    */
   private layout(): void {
-    const view = window.innerWidth / window.innerHeight;
-    const base = view > this.aspect ? 2 : (2 * view) / this.aspect;
-    const scale = base * this.subjectScale;
+    const windowAspect = window.innerWidth / window.innerHeight;
+    const pullBack = window.innerWidth <= 768 ? 3 / 3.75 : 1;
+    const scale = 2 * this.subjectScale * pullBack;
     this.portraitHeight = scale;
     this.headMesh.scale.set(scale * this.aspect, scale, 1);
 
-    // Bottom edge on the bottom of the hero, so the subject stands in frame
-    // rather than floating in it; nudged right of centre to break symmetry.
-    this.headBase.set(0.08, -1 + scale / 2);
+    /* Bottom edge on the bottom of the hero, so the subject stands in frame
+       rather than floating in it; nudged right of centre to break symmetry.
+       The nudge is 2.5% of the window's width, capped at the 0.08 units that
+       is at 16:10 and wider: a fixed 0.08 on a phone is a tenth of the screen. */
+    this.headBase.set(Math.min(0.08, 0.05 * windowAspect), -1 + scale / 2);
     this.headMesh.position.set(this.headBase.x, this.headBase.y, 0);
 
-    this.fieldMesh.scale.set(view * 2, 2, 1);
+    this.fieldMesh.scale.set(this.view * 2, 2, 1);
   }
 
-  resize(dpr = Math.min(window.devicePixelRatio, 2)): void {
-    const view = window.innerWidth / window.innerHeight;
-    this.fluid.setSize(window.innerWidth, window.innerHeight);
+  /**
+   * How far down the scene the middle of the face sits, 0 at the top and 1 at
+   * the bottom. The shrinking plate crops toward this, so the face stays in
+   * the box whatever the fit above has done with the portrait.
+   */
+  get faceCentre(): number {
+    const height = this.portraitHeight / 2;
+    return 1 - height + HeadScene.FACE_IN_PHOTO * height;
+  }
+
+  /**
+   * The scene's box, in CSS pixels. Not always the window's: on an upright
+   * screen main.ts makes it wider, so the plate still has picture to its edges
+   * once it has shrunk to a box that is wider than the window is.
+   */
+  resize(width: number, height: number, dpr = Math.min(window.devicePixelRatio, 2)): void {
+    const view = width / height;
+    this.view = view;
+    this.fluid.setSize(width, height);
     // CSS pixels, not device — the noise target's texel size IS the contour
     // line weight, so this is a visual decision rather than a quality one.
-    this.contour.setSize(window.innerWidth, window.innerHeight);
+    this.contour.setSize(width, height);
     // gl_FragCoord is in device pixels, so the divisor carries the DPR.
-    this.viewportPx.set(window.innerWidth * dpr, window.innerHeight * dpr);
+    this.viewportPx.set(width * dpr, height * dpr);
     this.camera.left = -view;
     this.camera.right = view;
     this.camera.top = 1;

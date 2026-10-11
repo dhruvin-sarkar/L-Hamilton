@@ -677,6 +677,7 @@
 .hero-bg {
   position: fixed;
   z-index: 0;
+  overflow: clip;
 }
 
 .hero-bg canvas {
@@ -715,6 +716,7 @@
  * rebuilding this inside the GL. */
 .hero__stage {
   z-index: 2;
+  overflow: clip;
   /* The mute lives in the portrait's shader now, not in a filter here. A
      filter on a full-viewport element makes the compositor rasterise the
      layer, run a pass over it and composite the result on every frame the
@@ -754,6 +756,18 @@
       var(--hero-crop-x, 0%)
   );
   will-change: transform, clip-path;
+}
+
+/* The scene is the window's width, or wider. On an upright screen the plate
+   lands in a box that is wider for its height than the window is, so main.ts
+   draws both layers --scene-w across, centred here, and their two boxes clip
+   what overhangs. Unset, which is every landscape window, they are 100%.
+   After both canvases' own rules, so it is the width that wins. */
+.hero-bg canvas,
+.hero__stage canvas {
+  inline-size: var(--scene-w, 100%);
+  max-inline-size: none;
+  margin-inline-start: calc((100% - var(--scene-w, 100%)) / 2);
 }
 
 /* Above the plate, and deliberately WIDER than it. On the reference the
