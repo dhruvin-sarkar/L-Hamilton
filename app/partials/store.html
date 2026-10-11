@@ -22,8 +22,14 @@
               <span class="shop__title-line is-serif reveal-text">Rise</span>
             </h2>
 
-            <p class="shop__body reveal-text">
-              Seven stars, one number, and the line he has carried since 2007.
+            <!-- The line in the headline is the one printed on the product, and
+                 the copy says only that: it is the collection's, not something
+                 the site reports him saying or carrying. The star count is his
+                 title count, so it is bound from the data layer rather than
+                 typed; `data-reveal-rich` is what lets a block with a span in
+                 it keep its line reveal. -->
+            <p class="shop__body reveal-text" data-reveal-rich>
+              <span data-bind="titles-word-initial">Seven</span> stars, one number, and the line printed across it.
               The +44 collection, for anyone who counted every one of them.
             </p>
 
