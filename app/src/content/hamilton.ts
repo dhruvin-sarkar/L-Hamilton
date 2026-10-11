@@ -201,8 +201,8 @@ export const preF1Championships: JuniorChampionship[] = [
   {
     year: 1995,
     series: 'Super One National Championship',
-    label: 'Super One Comer Cadet',
-    category: 'Comer Cadet',
+    label: 'Super One IAME Cadet',
+    category: 'IAME Cadet',
     team: null,
     position: 1,
     note: 'The youngest winner of the British cadet title, at ten years old.',
@@ -241,8 +241,8 @@ export const preF1Championships: JuniorChampionship[] = [
   {
     year: 1997,
     series: 'Super One National Championship',
-    label: 'Super One Junior Yamaha',
-    category: 'Junior Yamaha',
+    label: 'Super One Formula Yamaha',
+    category: 'Formula Yamaha',
     team: null,
     position: 1,
     note: null,
