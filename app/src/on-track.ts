@@ -1068,9 +1068,20 @@ if (impactSign && !reducedMotion) {
 
 if (hero && impact && helmStops.length === 3) {
   const stops = helmStops as [HTMLElement, HTMLElement, HTMLElement];
-  mm.add('(min-width: 992px)', () =>
-    mountHelmetScroll({ from: hero, to: impact, stops, still: reducedMotion }),
-  );
+  /* Caught, because this runs at module level and the helmet is decoration:
+     where the browser will not give out a WebGL context (a blocklisted GPU,
+     hardware acceleration off, too many contexts) three.js throws, and
+     uncaught that took every section built below here down with it -- the
+     season table, the highlights, the countdown, the schedule. The hero and
+     the statement are complete without the helmet. */
+  mm.add('(min-width: 992px)', () => {
+    try {
+      return mountHelmetScroll({ from: hero, to: impact, stops, still: reducedMotion });
+    } catch (error) {
+      console.warn('[on-track] the scroll helmet could not start', error);
+      return undefined;
+    }
+  });
 }
 
 /* ------------------------------------------------------------------ *
@@ -2083,7 +2094,13 @@ function mountCalendar(section: HTMLElement): void {
     ([entry]) => {
       if (!entry?.isIntersecting) return;
       mapWatch.disconnect();
-      map = mountTrackMap(trackHost, roundAt(current).circuitId);
+      /* No WebGL context, no map: the panel's name, figures and sessions are
+         all text and stand without it, so the throw stops here. */
+      try {
+        map = mountTrackMap(trackHost, roundAt(current).circuitId);
+      } catch (error) {
+        console.warn('[on-track] the 3D circuit map could not start', error);
+      }
     },
     { rootMargin: '100% 0px' },
   );

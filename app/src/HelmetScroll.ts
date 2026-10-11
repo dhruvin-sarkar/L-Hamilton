@@ -104,9 +104,12 @@ export function mountHelmetScroll(opts: HelmetScrollOptions): () => void {
   const canvas = document.createElement('canvas');
   canvas.className = 'helmet-scroll';
   canvas.setAttribute('aria-hidden', 'true');
-  document.body.appendChild(canvas);
 
+  /* The renderer before the canvas goes into the page: three.js throws where
+     the browser will not give out a WebGL context, and a mount that failed
+     should leave nothing behind for its caller to clear up. */
   const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  document.body.appendChild(canvas);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setClearColor(0x000000, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
