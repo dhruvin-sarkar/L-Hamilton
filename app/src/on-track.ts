@@ -439,10 +439,11 @@ const bindings: Record<string, string> = {
   'debut-year': String(driver.debutYear),
   /* The hero paragraph's two figures. Spelled rather than set as digits
      because they sit inside a sentence, and counted rather than typed because
-     both move: the title count on a championship Sunday, the team count on a
-     transfer. */
+     both move on a championship Sunday. The teams are the ones he has won a
+     title with, not the ones he has raced for: the sentence says the titles
+     were won across them, and the team it names next has none yet. */
   'titles-word': spell(career.championships),
-  'teams-word': spell(eras.length),
+  'title-teams-word': spell(new Set(seasons.filter((s) => s.isChampion).map((s) => s.teamId)).size),
   /* The result highlights' blurb, "throughout his twenty seasons". Counted
      from the seasons record, the current one included, as the reference
      counts its own. */
