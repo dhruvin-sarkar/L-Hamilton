@@ -581,6 +581,14 @@ body[data-page='calendar'] {
   margin-block-start: calc(var(--u) * 2.5);
 }
 
+/* Where an opened season stops when the page is brought to it: 100px under
+   the top of the screen, the reference's offset, clear of the fixed top bar.
+   Set here, not in the script, so the smooth scroller and the native jump
+   under reduced motion stop at the same place (calendar/results.ts). */
+.cal-results__item {
+  scroll-margin-block-start: 100px;
+}
+
 .cal-results__heading {
   margin: 0;
   font: inherit;

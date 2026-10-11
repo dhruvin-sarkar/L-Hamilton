@@ -230,7 +230,9 @@ export function mountResults(section: HTMLElement, scroller: Lenis | null): void
     requestAnimationFrame(() => {
       const top = season.item.getBoundingClientRect().top;
       if (top >= 0 && top <= window.innerHeight * 0.3) return;
-      if (scroller) scroller.scrollTo(season.item, { offset: -100, duration: 0.5 });
+      /* Both stop 100px above it: the item's scroll margin (calendar.css),
+         which the smooth scroller reads as the native jump does. */
+      if (scroller) scroller.scrollTo(season.item, { duration: 0.5 });
       else season.item.scrollIntoView({ block: 'start' });
     });
   };
