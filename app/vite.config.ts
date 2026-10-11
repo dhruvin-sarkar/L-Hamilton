@@ -47,7 +47,8 @@ if (currentSeason === undefined) throw new Error('[head] the season calendar is 
  * values the pages bind in their bodies (main.ts, on-track.ts). Figures inside
  * a sentence are spelled, as the pages spell them. The Calendar's hidden
  * schedule heading reads `season` too, so its outline names the year before
- * any script runs.
+ * any script runs, and so does the footer's copyright line (partials/
+ * footer.html), which would otherwise be a year typed by hand.
  *
  * Every token must be one of these; anything else stops the build.
  */
@@ -85,7 +86,7 @@ function fillTokens(html: string, filename: string): string {
  * partial are rewritten and hashed exactly as if they had been typed inline.
  *
  * The same pass then fills the `%%name%%` tokens (HEAD_TOKENS above), after
- * the includes so a partial could carry one too.
+ * the includes so a partial can carry one too, as the footer does.
  */
 function htmlPartials(): Plugin {
   const DIRECTIVE = /<!--#include\s+"([^"]+)"\s*-->/g;
