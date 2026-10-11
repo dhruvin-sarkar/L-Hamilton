@@ -141,6 +141,11 @@ const DISQUALIFIED = 'Disqualified';
 const classifiedPosition = (result) =>
   result.status === DISQUALIFIED ? null : finishedPosition(result.positionText);
 
+/** The same result as the pages print it: "D" for every disqualification, so
+    2023 United States reads DSQ like the other two rather than "19th". */
+const classifiedText = (result) =>
+  result.status === DISQUALIFIED ? 'D' : result.positionText;
+
 async function main() {
   console.log('Fetching Hamilton career record from Jolpica-F1…');
 
@@ -517,7 +522,7 @@ async function main() {
       result: r
         ? {
             position: classifiedPosition(r),
-            positionText: r.positionText,
+            positionText: classifiedText(r),
             points: Number(r.points),
             grid: Number(r.grid),
             status: r.status,
@@ -550,8 +555,8 @@ async function main() {
       circuitId: race.Circuit.circuitId,
       country: race.Circuit.Location.country,
       locality: race.Circuit.Location.locality,
-      position: finishedPosition(r.positionText),
-      positionText: r.positionText,
+      position: classifiedPosition(r),
+      positionText: classifiedText(r),
       status: r.status,
       fastestLap: r.FastestLap?.Time?.time ?? null,
     };

@@ -3,7 +3,7 @@
   "source": {
     "api": "https://api.jolpi.ca/ergast/f1",
     "driver": "hamilton",
-    "fetchedAt": "2026-10-11T16:48:34.963Z",
+    "fetchedAt": "2026-10-11T17:32:33.464Z",
     "requests": 33,
     "polesDefinition": "Pole = started the Grand Prix from the front of the grid, as the record books count it, so grid penalties and qualifying exclusions move the pole with them. On 2022 sprint weekends, pole went to the fastest qualifier instead.",
     "latestRace": {
@@ -7985,8 +7985,8 @@
       "circuitId": "americas",
       "country": "USA",
       "locality": "Austin",
-      "position": 19,
-      "positionText": "19",
+      "position": null,
+      "positionText": "D",
       "status": "Disqualified",
       "fastestLap": "1:39.582"
     },
