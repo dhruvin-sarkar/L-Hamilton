@@ -606,9 +606,10 @@ const inkWidth = (host: HTMLElement): number =>
  *
  * Reference `.on-t-podium-text-layout`: "56" at 114rem, in the face this page
  * shares with it. Its two digits span 1649px of their 1824px size, 0.904 of
- * an em. 207 at that size would run 2430px, so it is scaled until it spans the
- * same: the ratio goes to --podium-fit and the CSS multiplies the reference's
- * size by it, which lands 207 at 77.4rem. Two digits resolve to exactly 114.
+ * an em. Three digits at that size would run some 2430px, so the number is
+ * scaled until its ink ends where the reference's does: the ratio goes to
+ * --podium-fit and the CSS multiplies the reference's size by it, which lands
+ * a three-digit count near 76rem and a two-digit one back at 114.
  *
  * Then the scroll, the reference's own (its bundle's L_): over the layout's
  * `top bottom` to `bottom center`, eased power1.in and scrubbed, the digits
@@ -617,8 +618,32 @@ const inkWidth = (host: HTMLElement): number =>
  * distances live in the CSS, so the narrow sizes need no second copy.
  * ------------------------------------------------------------------ */
 
-/** What the reference's number spans, as a share of its font size: 1648.92 / 1824. */
-const REFERENCE_SPAN_EM = 1648.92 / 1824;
+/**
+ * Where the reference's number ENDS, as a share of its font size: the 1648.92px
+ * its two digits advance at 1824, less the 41.72px its 6 leaves blank on its
+ * right. Fitting to the advance alone set our last digit's box where the
+ * reference's box ends, but a digit scaled down carries a smaller blank with
+ * it, so its ink ran past the reference's -- 3px of the 8 off the screen at
+ * 768, where the 6 stands 5px clear of the edge.
+ */
+const REFERENCE_INK_END_EM = (1648.92 - 41.72) / 1824;
+
+const glyphProbe = document.createElement('canvas').getContext('2d');
+
+/**
+ * The blank a glyph leaves between its ink and its advance, in ems. Measured at
+ * 256px, where a canvas still reports the glyph's own bounds to the pixel, and
+ * rounded outward there -- so this errs small, and the fit below errs inside
+ * the reference's edge rather than past it. Zero without a canvas, which errs
+ * the same way.
+ */
+function rightBearingEm(glyph: string, style: CSSStyleDeclaration): number {
+  if (!glyphProbe) return 0;
+  const PROBE_PX = 256;
+  glyphProbe.font = `${style.fontWeight} ${PROBE_PX}px ${style.fontFamily}`;
+  const metrics = glyphProbe.measureText(glyph);
+  return Math.max(0, metrics.width - metrics.actualBoundingBoxRight) / PROBE_PX;
+}
 
 const podium = document.querySelector<HTMLElement>('[data-podium]');
 const gigantic = document.querySelector<HTMLElement>('[data-gigantic]');
@@ -635,14 +660,17 @@ if (podium && gigantic && giganticSr) {
   gigantic.textContent = '';
   for (const ch of String(value)) gigantic.appendChild(el('span', 'ot-podium__char', ch));
 
-  /* Measured at the reference's own size, so the ratio is exact rather than
-     scaled up from a probe. */
+  /* The digits' advance is measured at the reference's own size, so the ratio
+     is exact rather than scaled up from a probe; the last digit's blank comes
+     off it, so what is fitted is where the ink ends. */
+  const lastDigit = String(value).slice(-1);
   const fit = (): void => {
     podium.style.removeProperty('--podium-fit');
-    const size = Number.parseFloat(getComputedStyle(gigantic).fontSize);
-    const ink = inkWidth(gigantic);
-    if (!(size > 0) || !(ink > 0)) return;
-    podium.style.setProperty('--podium-fit', String((size * REFERENCE_SPAN_EM) / ink));
+    const style = getComputedStyle(gigantic);
+    const size = Number.parseFloat(style.fontSize);
+    const end = inkWidth(gigantic) - rightBearingEm(lastDigit, style) * size;
+    if (!(size > 0) || !(end > 0)) return;
+    podium.style.setProperty('--podium-fit', String((size * REFERENCE_INK_END_EM) / end));
   };
   /* Run once now — that first pass is what keeps the number sized correctly if
      a face never arrives at all — then again whenever the metrics change. */
