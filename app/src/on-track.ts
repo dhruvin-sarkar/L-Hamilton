@@ -439,10 +439,11 @@ const bindings: Record<string, string> = {
   'debut-year': String(driver.debutYear),
   /* The hero paragraph's two figures. Spelled rather than set as digits
      because they sit inside a sentence, and counted rather than typed because
-     both move: the title count on a championship Sunday, the team count on a
-     transfer. */
+     both move on a championship Sunday. The teams are the ones he has won a
+     title with, not the ones he has raced for: the sentence says the titles
+     were won across them, and the team it names next has none yet. */
   'titles-word': spell(career.championships),
-  'teams-word': spell(eras.length),
+  'title-teams-word': spell(new Set(seasons.filter((s) => s.isChampion).map((s) => s.teamId)).size),
   /* The result highlights' blurb, "throughout his twenty seasons". Counted
      from the seasons record, the current one included, as the reference
      counts its own. */
@@ -509,10 +510,12 @@ if (previous) {
      reference's does. Phrased as a sentence, in words a screen reader says
      cleanly: "Finished 3rd", not "Finished P3" (read as "P 3"), and a car
      that was not classified "did not finish", with the status the timing
-     screens print for it in brackets -- never "Finished Retired". */
+     screens print for it in brackets -- never "Finished Retired". A
+     disqualified car did finish, so it is said to be disqualified. */
   const spokenOutcome = (result: NonNullable<CalendarRound['result']>): string => {
     const pts = `${points(result.points)} ${result.points === 1 ? 'point' : 'points'}.`;
     if (result.position) return `Finished ${ordinal(result.position)}, ${pts}`;
+    if (result.positionText === 'D') return `Disqualified, ${pts}`;
     const status = result.status.trim();
     if (/^did not/i.test(status)) return `${status}, ${pts}`;
     return `Did not finish (${status.toLowerCase()}), ${pts}`;
@@ -1894,7 +1897,7 @@ if (juniorGrid) {
   });
 
   const span = document.querySelector<HTMLElement>('[data-junior-span]');
-  if (span) span.textContent = `${preF1Span.from}-${preF1Span.to}`;
+  if (span) span.textContent = `${preF1Span.from}–${preF1Span.to}`;
 
   /* The reference's own sentence, with the count it leaves vague made exact
      and read from the list above rather than typed. Third person, never a

@@ -102,7 +102,6 @@ export const hero = {
       name: 'Dawn Apollo Films',
       sources: ['https://www.blackbookmotorsport.com/news/f1-star-lewis-hamilton-film-tv-production-company-dawn-apollo-apple-tv/'],
     },
-    { name: 'X44', sources: ['https://www.extreme-e.com/en/news/118_Lewis-Hamilton-founds-Extreme-E-team'] },
     {
       name: 'Neat Burger',
       sources: [
