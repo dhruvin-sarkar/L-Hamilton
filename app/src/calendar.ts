@@ -137,7 +137,10 @@ if (standing && after) {
 }
 
 /* The two buttons are in-page links; with the smooth scroller they travel
-   through it, and keyboard readers land on the thing they asked for. */
+   through it, and keyboard readers land on the thing they asked for. That is
+   the link's target, unless the link names another (data-cal-jump-focus): the
+   visualiser's target is an empty spacer that only sets where the page stops,
+   so its focus goes to the round panel under it, which a screen reader names. */
 for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-cal-jump]')) {
   link.addEventListener('click', (event) => {
     const id = link.hash.slice(1);
@@ -146,7 +149,8 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-cal-jump]
     event.preventDefault();
     if (smoothScroller) smoothScroller.scrollTo(target, { duration: 1.2 });
     else target.scrollIntoView();
-    target.focus({ preventScroll: true });
+    const landing = link.dataset.calJumpFocus;
+    (landing ? need(`#${landing}`) : target).focus({ preventScroll: true });
     history.replaceState(null, '', link.hash);
   });
 }

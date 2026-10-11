@@ -256,10 +256,6 @@ body[data-page='calendar'] {
   block-size: calc(var(--u) * 4);
 }
 
-.cal-sched__spacer:focus {
-  outline: none;
-}
-
 /* ================================================================ Oval
  * The oval reveal's boxes (calendar/oval.ts). Each line is a block in its
  * own clip; the whole set is clipped once more, as the reference's outer

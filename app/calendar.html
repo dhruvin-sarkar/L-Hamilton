@@ -102,7 +102,9 @@
               </div>
 
               <div class="cal-sched__btns">
-                <a class="ot-btn cal-btn-line" href="#track-vis" data-cal-jump>
+                <!-- The page stops at the spacer over the panel; focus goes to
+                     the panel, which has a name to announce. -->
+                <a class="ot-btn cal-btn-line" href="#track-vis" data-cal-jump data-cal-jump-focus="cal-panel">
                   <span class="sr-only">Track visualiser</span>
                   <span class="btn-text" aria-hidden="true" data-split-chars>Track visualiser</span>
                   <svg class="ot-cal__btn-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -122,7 +124,7 @@
             </div>
           </div>
 
-          <div class="cal-sched__spacer" id="track-vis" tabindex="-1"></div>
+          <div class="cal-sched__spacer" id="track-vis"></div>
 
           <div
             class="ot-cal__panel cal-panel"
