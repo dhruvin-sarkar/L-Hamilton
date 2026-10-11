@@ -648,7 +648,7 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
   const flight = must('[data-flight]');
   const home = flight.parentElement;
   const stops = [1, 2, 3].map((n) => must(`[data-flight-stop="${n}"]`));
-  const layers = [...flight.children] as HTMLElement[];
+  const layers = [...flight.children] as HTMLImageElement[];
   if (!home || layers.length === 0) throw new Error('[off-track] flight has nothing to fly');
 
   track.append(flight);
@@ -661,15 +661,26 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
     }
   });
 
+  /* The layer the flight's progress asks for, and the one on show. They differ
+     only while the wanted photograph is still on its way: the later layers
+     are not asked for until the load event, and on a slow connection the page
+     can be scrolled for seconds before the last has come. Switched to
+     regardless, the frame flew empty; it keeps the photograph it has until
+     the wanted one arrives, and takes that the moment it does. */
+  let wanted = 0;
   let shown = 0;
   const show = (i: number): void => {
+    wanted = i;
     if (i === shown) return;
     const was = layers[shown];
     const now = layers[i];
+    if (!now?.complete || now.naturalWidth === 0) return;
     if (was) was.style.opacity = '0';
-    if (now) now.style.opacity = '1';
+    now.style.opacity = '1';
     shown = i;
   };
+  const arrived = (): void => show(wanted);
+  for (const layer of flightLayers) layer.addEventListener('load', arrived);
 
   let tween: gsap.core.Tween | null = null;
   /** What the tween was last built from: its three stops and its trigger. */
@@ -748,6 +759,7 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
 
   return () => {
     remeasureFlight = null;
+    for (const layer of flightLayers) layer.removeEventListener('load', arrived);
     tween?.scrollTrigger?.kill();
     tween?.kill();
     flight.classList.remove('is-flying');
