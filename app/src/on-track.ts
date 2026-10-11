@@ -1444,11 +1444,16 @@ if (seasonsBody) {
     seasonsBody.appendChild(row);
   }
 
-  if (seasonsCaption) {
+  /* The caption describes the rows above it, not the career: the season being
+     raced is not among them, so neither its year nor its place in the count
+     is read out over a table that does not show it. */
+  const newest = pastSeasons[0];
+  const oldest = pastSeasons[pastSeasons.length - 1];
+  if (seasonsCaption && newest && oldest) {
+    const titles = pastSeasons.filter((season) => season.isChampion).length;
     seasonsCaption.textContent =
-      `Formula 1 season-by-season record, ${seasons[0]?.year}–` +
-      `${seasons[seasons.length - 1]?.year}. ${career.seasonsContested} seasons, ` +
-      `${career.championships} world championships.`;
+      `Formula 1 season-by-season record, ${oldest.year}–${newest.year}. ` +
+      `${pastSeasons.length} completed seasons, ${titles} world championships.`;
   }
 
   /* Row entry, the reference's `[data-stat-list]` to the number, and the same
