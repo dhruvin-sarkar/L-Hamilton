@@ -1,9 +1,9 @@
 {
-  "name": "lando-rebuild",
+  "name": "lewishamilton-web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "From-scratch rebuild. Own code, own architecture — reuses only the asset files from ../public.",
+  "description": "The Lewis Hamilton site: Home, On Track, Off Track and Calendar, built with Vite, TypeScript, Three.js, GSAP and Lenis. Career figures come from the data layer (npm run fetch-stats), not from the markup.",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
