@@ -102,14 +102,18 @@
               </div>
 
               <div class="cal-sched__btns">
-                <a class="ot-btn cal-btn-line" href="#track-vis" data-cal-jump>
+                <!-- The page stops at the spacer over the panel; focus goes to
+                     the panel, which has a name to announce. -->
+                <a class="ot-btn cal-btn-line" href="#track-vis" data-cal-jump data-cal-jump-focus="cal-panel">
                   <span class="sr-only">Track visualiser</span>
                   <span class="btn-text" aria-hidden="true" data-split-chars>Track visualiser</span>
                   <svg class="ot-cal__btn-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <path d="M15 4.5l4.5 4.5-4.5 4.5M19.5 9H10a5 5 0 0 0 0 10h3" />
                   </svg>
                 </a>
-                <a class="ot-btn cal-btn-line" href="#calendar-upcoming" data-cal-jump>
+                <!-- Once no round is to come, season.ts points this at the
+                     rounds run (#calendar-list) instead. -->
+                <a class="ot-btn cal-btn-line" href="#calendar-upcoming" data-cal-jump data-cal-list-link>
                   <span class="sr-only">Calendar list</span>
                   <span class="btn-text" aria-hidden="true" data-split-chars>Calendar list</span>
                   <svg class="ot-cal__btn-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -120,7 +124,7 @@
             </div>
           </div>
 
-          <div class="cal-sched__spacer" id="track-vis" tabindex="-1"></div>
+          <div class="cal-sched__spacer" id="track-vis"></div>
 
           <div
             class="ot-cal__panel cal-panel"
@@ -261,7 +265,7 @@
              picture, as the reference's does. -->
         <!-- The card's ground is the whole block, header included, where the
              list below's is its rows only: as the reference sets them. -->
-        <div class="cal-list" id="calendar-list" data-cal-previous-wrap data-cal-area>
+        <div class="cal-list" id="calendar-list" tabindex="-1" data-cal-previous-wrap data-cal-area>
           <div class="ot-cal__row ot-cal__row--head cal-list__head" aria-hidden="true">
             <p class="ot-cal__eyebrow reveal-text">Round</p>
             <p class="ot-cal__eyebrow reveal-text">Location</p>

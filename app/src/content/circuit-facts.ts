@@ -1,7 +1,7 @@
 /**
  * Circuit facts: lap length, race laps and race distance, per circuit.
  *
- * Figures checked 2026-09-24, each against the official Formula 1 page for its
+ * Figures checked 2026-10-11, each against the official Formula 1 page for its
  * 2026 round (formula1.com/en/racing/2026/<race>), which lists "Circuit
  * Length", "Number of Laps" and "Race Distance". The URL is on every entry.
  *
@@ -68,9 +68,9 @@ const FACTS: Readonly<Record<string, CircuitFacts>> = {
   monza: { lengthKm: 5.793, laps: 53, raceDistanceKm: 306.72, timeZone: 'Europe/Rome', source: `${F1}/italy` },
   madring: { lengthKm: 5.414, laps: 57, raceDistanceKm: 308.399, timeZone: 'Europe/Madrid', source: `${F1}/spain` },
   baku: { lengthKm: 6.003, laps: 51, raceDistanceKm: 306.049, timeZone: 'Asia/Baku', source: `${F1}/azerbaijan` },
-  sepang: { lengthKm: 5.543, laps: 56, raceDistanceKm: 310.418, timeZone: 'Asia/Kuala_Lumpur', source: `${F1}/bahrain` },
+  sepang: { lengthKm: 5.543, laps: 56, raceDistanceKm: 310.417, timeZone: 'Asia/Kuala_Lumpur', source: `${F1}/bahrain` },
   marina_bay: { lengthKm: 4.927, laps: 62, raceDistanceKm: 305.337, timeZone: 'Asia/Singapore', source: `${F1}/singapore` },
-  americas: { lengthKm: 5.513, laps: 56, raceDistanceKm: 308.432, timeZone: 'America/Chicago', source: `${F1}/united-states` },
+  americas: { lengthKm: 5.513, laps: 56, raceDistanceKm: 308.405, timeZone: 'America/Chicago', source: `${F1}/united-states` },
   rodriguez: { lengthKm: 4.304, laps: 71, raceDistanceKm: 305.354, timeZone: 'America/Mexico_City', source: `${F1}/mexico` },
   interlagos: { lengthKm: 4.309, laps: 71, raceDistanceKm: 305.879, timeZone: 'America/Sao_Paulo', source: `${F1}/brazil` },
   vegas: { lengthKm: 6.201, laps: 50, raceDistanceKm: 309.958, timeZone: 'America/Los_Angeles', source: `${F1}/las-vegas` },
