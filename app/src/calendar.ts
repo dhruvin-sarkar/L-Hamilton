@@ -151,7 +151,9 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-cal-jump]
     else target.scrollIntoView();
     const landing = link.dataset.calJumpFocus;
     (landing ? need(`#${landing}`) : target).focus({ preventScroll: true });
-    history.replaceState(null, '', link.hash);
+    /* The address keeps no fragment. Every document starts at the top
+       (lib/transition.ts), so a reload from one would jump to it, build the
+       row entrances there, and be taken back up with them already spent. */
   });
 }
 
