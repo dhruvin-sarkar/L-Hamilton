@@ -135,7 +135,10 @@
           </div>
 
           <div class="footer__legal">
-            <p class="footer__copy"><strong>&copy; 2026 Lewis Hamilton.</strong> All rights reserved</p>
+            <!-- The year is the season the site is about, filled at build from
+                 the data layer (vite.config.ts, HEAD_TOKENS), so it turns over
+                 with the calendar and the page titles instead of being typed. -->
+            <p class="footer__copy"><strong>&copy; %%season%% Lewis Hamilton.</strong> All rights reserved</p>
             <div class="footer__legal-links">
               <a class="footer__legal-link" href="#" data-placeholder-href>
                 <span class="sr-only">Privacy policy</span>

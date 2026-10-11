@@ -47,7 +47,8 @@ if (currentSeason === undefined) throw new Error('[head] the season calendar is 
  * values the pages bind in their bodies (main.ts, on-track.ts). Figures inside
  * a sentence are spelled, as the pages spell them. The Calendar's hidden
  * schedule heading reads `season` too, so its outline names the year before
- * any script runs.
+ * any script runs, and so does the footer's copyright line (partials/
+ * footer.html), which would otherwise be a year typed by hand.
  *
  * Every token must be one of these; anything else stops the build.
  */
@@ -85,7 +86,7 @@ function fillTokens(html: string, filename: string): string {
  * partial are rewritten and hashed exactly as if they had been typed inline.
  *
  * The same pass then fills the `%%name%%` tokens (HEAD_TOKENS above), after
- * the includes so a partial could carry one too.
+ * the includes so a partial can carry one too, as the footer does.
  */
 function htmlPartials(): Plugin {
   const DIRECTIVE = /<!--#include\s+"([^"]+)"\s*-->/g;
@@ -122,6 +123,138 @@ function htmlPartials(): Plugin {
         return [];
       }
       return undefined;
+    },
+  };
+}
+
+/** The share card, as a path under public/ and so as a URL on the site. Made by
+    tools/gen-brand-images.py. */
+const SHARE_CARD = '/assets/brand/share-card.png';
+const SHARE_CARD_ALT = 'The LH monogram above the name Lewis Hamilton, on Rosso Corsa red.';
+
+/**
+ * The origin the site is served from, such as https://example.com, read from
+ * the SITE_ORIGIN environment variable.
+ *
+ * It is needed for one thing, the share image's address. A scraper does not
+ * resolve og:image against the page it found it on, so the address has to be
+ * absolute, and nothing in this repository records where the site will live.
+ * It is not guessed here. Unset, the address stays root-relative and the build
+ * says so (headTags, below).
+ */
+function siteOrigin(): string | undefined {
+  const value = process.env.SITE_ORIGIN?.trim();
+  if (value === undefined || value === '') return undefined;
+  const expected = `SITE_ORIGIN is "${value}"; expected an origin with nothing after it, such as https://example.com`;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(expected);
+  }
+  const web = url.protocol === 'https:' || url.protocol === 'http:';
+  if (!web || url.pathname !== '/' || url.search !== '' || url.hash !== '') throw new Error(expected);
+  return url.origin;
+}
+
+/** The pixel size of a PNG under public/, from its header. A missing file or
+    one that is not a PNG stops the build, naming the tool that makes it. */
+function pngSize(publicPath: string): { width: number; height: number } {
+  let bytes: Buffer;
+  try {
+    bytes = readFileSync(path.join(here, 'public', publicPath));
+  } catch {
+    throw new Error(`[head] public${publicPath} is missing; run tools/gen-brand-images.py`);
+  }
+  // The 8-byte signature, then the IHDR chunk: its length, its name, and the
+  // width and height as big-endian 32-bit integers.
+  if (bytes.toString('latin1', 1, 4) !== 'PNG' || bytes.toString('latin1', 12, 16) !== 'IHDR') {
+    throw new Error(`[head] public${publicPath} is not a PNG`);
+  }
+  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+}
+
+/** The one match of `pattern` in a page's head. None, or two, stops the build. */
+function only(head: string, pattern: RegExp, what: string, filename: string): RegExpExecArray {
+  const found = [...head.matchAll(pattern)];
+  const [match] = found;
+  if (match === undefined || found.length !== 1) {
+    throw new Error(`${filename}: expected one ${what} in the head, found ${found.length}`);
+  }
+  return match;
+}
+
+/**
+ * The tags a link preview is drawn from, written from each page's own <title>
+ * and meta description.
+ *
+ * Paste a link into a message or a post and the card that appears is built
+ * from the page's og: and twitter: tags, by a scraper that runs no script. The
+ * pages had none, so a shared link was a bare address. They are derived here
+ * rather than typed into four heads so each page has one title and one
+ * description: change either and its card follows.
+ *
+ * Both are read as the page wrote them, entities included, which is already
+ * the encoding an attribute value takes; only a double quote in a title needs
+ * escaping. The title's tokens are filled by htmlPartials, so this has to run
+ * after it: the order of the plugins below.
+ *
+ * Dev and build alike, so the head view-source shows in dev is the one that
+ * ships.
+ */
+function headTags(): Plugin {
+  const origin = siteOrigin();
+  const card = pngSize(SHARE_CARD);
+  const image = (origin ?? '') + SHARE_CARD;
+  const TITLE = /^([ \t]*)<title>([\s\S]*?)<\/title>/gim;
+  const DESCRIPTION = /<meta\s+name="description"\s+content="([^"]*)"\s*\/?>/gi;
+
+  return {
+    name: 'head-tags',
+    configResolved(config) {
+      if (config.command === 'build' && origin === undefined) {
+        config.logger.warn(
+          `\n[head] SITE_ORIGIN is not set, so og:image and twitter:image are written as ${SHARE_CARD}.\n` +
+            `       Link previews need an absolute address and will show no picture. Before publishing,\n` +
+            `       build with the site's origin: SITE_ORIGIN=https://<host> npm run build\n`,
+        );
+      }
+    },
+    transformIndexHtml: {
+      order: 'pre',
+      handler(html, ctx) {
+        const headEnd = html.indexOf('</head>');
+        if (headEnd < 0) throw new Error(`${ctx.filename}: no </head>`);
+        const head = html.slice(0, headEnd);
+
+        const titleTag = only(head, TITLE, '<title>', ctx.filename);
+        const indent = titleTag[1] ?? '';
+        const title = (titleTag[2] ?? '').replace(/\s+/g, ' ').trim().replace(/"/g, '&quot;');
+        const description = (only(head, DESCRIPTION, 'meta description', ctx.filename)[1] ?? '').trim();
+        if (title === '' || description === '') {
+          throw new Error(`${ctx.filename}: the title or the meta description is empty`);
+        }
+        if (title.includes('%%') || description.includes('%%')) {
+          throw new Error(`${ctx.filename}: head-tags ran before the %% tokens were filled`);
+        }
+
+        const tags = [
+          `<meta property="og:type" content="website" />`,
+          `<meta property="og:title" content="${title}" />`,
+          `<meta property="og:description" content="${description}" />`,
+          `<meta property="og:image" content="${image}" />`,
+          `<meta property="og:image:width" content="${card.width}" />`,
+          `<meta property="og:image:height" content="${card.height}" />`,
+          `<meta property="og:image:alt" content="${SHARE_CARD_ALT}" />`,
+          `<meta name="twitter:card" content="summary_large_image" />`,
+          `<meta name="twitter:title" content="${title}" />`,
+          `<meta name="twitter:description" content="${description}" />`,
+          `<meta name="twitter:image" content="${image}" />`,
+          `<meta name="twitter:image:alt" content="${SHARE_CARD_ALT}" />`,
+        ];
+        const after = titleTag.index + titleTag[0].length;
+        return html.slice(0, after) + tags.map((tag) => `\n${indent}${tag}`).join('') + html.slice(after);
+      },
     },
   };
 }
@@ -202,10 +335,70 @@ function stylesFirst(): Plugin {
   };
 }
 
+/**
+ * The built pages without their authoring comments.
+ *
+ * The entries and the partials explain themselves at length in HTML comments,
+ * and the build copied every one into the served document: 36-42% of each
+ * page's bytes, and more than half of what a visitor downloads (Home's document
+ * gzips to 26 kB with them and 10 kB without). The document is the first
+ * render-blocking download. They are also working notes, naming the reference
+ * site and this repository's briefs, which a published page should not carry.
+ *
+ * Build only. The sources keep their comments and the dev server still serves
+ * them, so view-source in dev explains the page.
+ *
+ * A comment alone on its line or lines goes with them, so no blank line marks
+ * where it was; one sharing a line with markup leaves the rest of that line as
+ * it stood. An inline <script> or <style> block is matched first and returned
+ * untouched, because `<!--` inside one is script or CSS text, not a comment.
+ *
+ * A comment that still opens with `<!--#` is an include or marquee directive
+ * the passes above did not resolve (a misspelt name). Deleting it would drop
+ * part of the page without a word, so it stops the build instead.
+ */
+function stripComments(): Plugin {
+  /* Alternatives in the order they must win: a whole script or style block,
+     then a comment with the indent before it and the line end after it, where
+     it has them. The body is `(?:(?!-->)[\s\S])*` rather than a lazy
+     `[\s\S]*?` so it cannot run past its own `-->`: a lazy match backtracks to
+     find a line end, and would swallow the markup between two comments that
+     share a line. */
+  const TOKEN = /(<(script|style)\b[^>]*>[\s\S]*?<\/\2\s*>)|(^[ \t]*)?<!--((?:(?!-->)[\s\S])*)-->([ \t]*\r?\n)?/gim;
+
+  return {
+    name: 'strip-comments',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html, ctx) {
+        return html.replace(
+          TOKEN,
+          (
+            _match,
+            block: string | undefined,
+            _tag: string | undefined,
+            indent: string | undefined,
+            body: string,
+            lineEnd: string | undefined,
+          ) => {
+            if (block !== undefined) return block;
+            if (body.startsWith('#')) {
+              throw new Error(`${ctx.filename}: unresolved directive <!--${body}--> left in the built page`);
+            }
+            const ownLines = indent !== undefined && lineEnd !== undefined;
+            return ownLines ? '' : (indent ?? '') + (lineEnd ?? '');
+          },
+        );
+      },
+    },
+  };
+}
+
 export default defineConfig({
   root: here,
   publicDir: fileURLToPath(new URL('./public', import.meta.url)),
-  plugins: [htmlPartials(), heroMarquee(), stylesFirst()],
+  plugins: [htmlPartials(), headTags(), heroMarquee(), stylesFirst(), stripComments()],
   server: { port: 5173, open: false },
   /* The dependency cache lives beside this config, not in node_modules. Every
      worktree links app/node_modules to one shared install, so the default
