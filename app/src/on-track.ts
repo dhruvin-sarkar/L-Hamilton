@@ -1895,7 +1895,7 @@ if (juniorGrid) {
   });
 
   const span = document.querySelector<HTMLElement>('[data-junior-span]');
-  if (span) span.textContent = `${preF1Span.from}-${preF1Span.to}`;
+  if (span) span.textContent = `${preF1Span.from}–${preF1Span.to}`;
 
   /* The reference's own sentence, with the count it leaves vague made exact
      and read from the list above rather than typed. Third person, never a
