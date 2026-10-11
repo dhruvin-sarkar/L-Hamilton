@@ -1,12 +1,12 @@
 """
-Remove EXIF and XMP from every WebP under app/public, leaving the pictures
-exactly as they are.
+Remove EXIF and XMP from every WebP under app/public and app/tools/sources,
+leaving the pictures exactly as they are.
 
-Everything in app/public is copied into dist and served, and it is tracked in
-git. An export from a design tool carries an XMP packet naming its author, the
-account it came from and that account's workspace, plus an EXIF block; 38 of
-the originals here shipped that to every visitor. None of it is read by a
-browser to draw the picture.
+Everything in app/public is copied into dist and served, and both folders are
+tracked in git. An export from a design tool carries an XMP packet naming its
+author, the account it came from and that account's workspace, plus an EXIF
+block; 38 of the originals here shipped that to every visitor. None of it is
+read by a browser to draw the picture.
 
 WebP is a RIFF container: a 12-byte header, then chunks of
 <fourcc><uint32 size><payload><pad byte if size is odd>. The metadata sits in
@@ -32,7 +32,10 @@ import struct
 import sys
 from pathlib import Path
 
-PUBLIC = Path(__file__).resolve().parent.parent / "public"
+APP = Path(__file__).resolve().parent.parent
+# What is served, and the originals the image tools cut from: the two places a
+# picture can be committed.
+ROOTS = (APP / "public", APP / "tools/sources")
 
 DROPPED = (b"EXIF", b"XMP ")
 # Bits of the VP8X chunk's first byte: "an EXIF chunk follows", "an XMP chunk
@@ -74,15 +77,15 @@ def strip(data: bytes, name: str) -> bytes:
 
 
 def main() -> int:
-    files = sorted(PUBLIC.rglob("*.webp"))
+    files = sorted(file for root in ROOTS for file in root.rglob("*.webp"))
     if not files:
-        raise SystemExit(f"no .webp under {PUBLIC}")
+        raise SystemExit(f"no .webp under {' or '.join(str(root) for root in ROOTS)}")
 
     changed = 0
     saved = 0
     for file in files:
         before = file.read_bytes()
-        after = strip(before, str(file.relative_to(PUBLIC)))
+        after = strip(before, str(file.relative_to(APP)))
         if after is before:
             continue
         file.write_bytes(after)
