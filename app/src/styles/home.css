@@ -4067,9 +4067,13 @@
   color: var(--cream);
 }
 
+/* The accent lifted a touch towards white: on the wall's ground (--gl-bg) the
+   plain accent is 4.44:1, just short of the 4.5:1 that labels this small
+   need, and this reads 4.7:1. The same accent passes on the darker grounds,
+   so only this use is adjusted. */
 .hof__year {
   font-weight: 700;
-  color: var(--accent);
+  color: color-mix(in oklab, var(--accent), var(--white) 8%);
 }
 
 .hof__name + .hof__year {
@@ -4889,6 +4893,29 @@
   inline-size: max-content;
   /* Written by lib/marquee.ts; the loop owns transform on this element. */
   will-change: transform;
+}
+
+/* Reduced motion: the loop is not built, and a single non-wrapping line
+   inside a clipped box would leave all but the first few names off screen
+   for good. One copy, wrapped and centred, shows every name. The copies are
+   lib/marquee.ts's `display: contents` wrappers, set inline, hence the
+   !important that takes the later ones out. */
+@media (prefers-reduced-motion: reduce) {
+  .collabs__marquee-scroll {
+    inline-size: 100%;
+    margin-inline-start: 0;
+  }
+
+  .collabs__track {
+    inline-size: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 1.5rem;
+  }
+
+  .collabs__track > :not(:first-child) {
+    display: none !important;
+  }
 }
 
 .collabs__item {

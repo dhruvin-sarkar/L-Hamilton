@@ -336,6 +336,27 @@ body[data-page='off-track'] {
   will-change: transform;
 }
 
+/* Reduced motion: the loop is not built, so one copy is wrapped and centred
+   and the others are taken out, or most of the ventures would sit off screen
+   in a clipped row with no way to reach them. */
+@media (prefers-reduced-motion: reduce) {
+  .oft-hero__marquee-scroll {
+    inline-size: 100%;
+    margin-inline-start: 0;
+  }
+
+  .oft-hero__marquee-track {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: calc(1.5 * var(--r));
+  }
+
+  .oft-hero__marquee-track ~ .oft-hero__marquee-track {
+    display: none;
+  }
+}
+
 /* One venture: set as type in the slot the reference fills with a 3.4375rem
    logo, with its 7rem spacer after it. */
 .oft-hero__venture {
@@ -892,7 +913,10 @@ body[data-page='off-track'] {
 /* `.op-0`: the reference keeps this one in the flow but invisible on the
    sideways track. */
 .oft-callout--head-hidden {
-  opacity: 0;
+  /* Not opacity: 0, which a screen reader still reads out. The slot keeps
+     its box either way; this also keeps a sentence no one can see from
+     being announced. */
+  visibility: hidden;
 }
 
 /* Reference .horizontal-item-text: Brier 1.5rem on 94.6%, +0.05rem. */

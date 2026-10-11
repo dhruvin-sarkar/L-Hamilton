@@ -13,7 +13,7 @@ import { mountFooterMarquee, mountMarquee } from './lib/marquee';
 import { mountHomeInk } from './lib/home-ink';
 import { cssRGB, hexRGB, legibleOn, mixRGB, toLinear, type RGB } from './lib/legible';
 import { mountReveals } from './lib/reveal';
-import { spell } from './lib/schedule';
+import { shortRaceName, spell } from './lib/schedule';
 import { GLLayer } from './lib/gl-layers';
 import {
   mountCalloutCrest,
@@ -112,7 +112,7 @@ let background: BackgroundField | null = null;
  * same answer as scrolling through them would.
  * ------------------------------------------------------------------ */
 
-const groundCross = { darkening: 0, ink: 0, lightening: 0, panel: 0, visor: 0 };
+const groundCross = { darkening: 0, ink: 0, lightening: 0, panel: 0, visor: 0, wall: 0 };
 
 /** Resolved once. The script is a module, so the nav is already parsed. */
 const navGroundStyle = document.querySelector<HTMLElement>('.nav-inner')?.style ?? null;
@@ -137,6 +137,7 @@ function applyGroundCross(): void {
         clamp(groundCross.ink - groundCross.lightening),
         groundCross.panel,
         groundCross.visor,
+        groundCross.wall,
       ),
     ),
   );
@@ -293,7 +294,7 @@ const bindings: Record<string, string> = {
      final race of a season there is no next round, and TBC is then the true
      answer rather than a stale one. The card's markup supplies the "gp" after
      it, so the suffix comes off the name. */
-  'race-name': nextRound()?.raceName.replace(/ Grand Prix$/, '') ?? 'TBC',
+  'race-name': shortRaceName(nextRound()?.raceName ?? 'TBC'),
   /* The team line, in one place. It was typed out in the impact eyebrow and
      again in the menu while the next-race card bound the same year properly —
      three statements of one fact, two of which could go stale on their own.
@@ -898,6 +899,36 @@ if (footerPanel) {
   });
 }
 
+/* The helmet wall and the callout under it: an opaque dark ground that is not
+   the field's. Where the gallery is built it has taken the ground dark by
+   here and its `ink` term carries the nav across both. Below 992px and under
+   reduced motion the gallery is a plain column that reports nothing, so the
+   nav kept its dark ink on this dark ground and the menu button, the only
+   route to the menu on a phone, was all but invisible for the whole wall.
+   Asserted from here on that side only, so the two never describe the same
+   stretch twice. */
+const helmetWall = document.querySelector<HTMLElement>('.hof');
+const wallCallout = document.querySelector<HTMLElement>('.callout');
+if (helmetWall && wallCallout) {
+  mm.add('(max-width: 991px), (prefers-reduced-motion: reduce)', () => {
+    ScrollTrigger.create({
+      trigger: helmetWall,
+      start: () => `top top+=${navHeight()}`,
+      endTrigger: wallCallout,
+      end: () => `bottom top+=${navHeight()}`,
+      invalidateOnRefresh: true,
+      onToggle: (self) => {
+        groundCross.wall = self.isActive ? 1 : 0;
+        applyGroundCross();
+      },
+    });
+    return () => {
+      groundCross.wall = 0;
+      applyGroundCross();
+    };
+  });
+}
+
 /* The footer's row: the same names and the same behaviour as the partners row
    above, in the accent instead of the ink, running the other way. aria-hidden
    in the markup — the readable list is the one up there. */
@@ -1330,8 +1361,13 @@ if (stage && heroLayer && gl) {
        2px, shown at 0). A toggle rather than a scrub; the clip and its timing
        live in home.css. */
     const heroSection = heroTrack.querySelector<HTMLElement>('.hero');
+    const furniture = heroSection?.querySelectorAll<HTMLElement>('.next-race, .lock') ?? [];
     const syncFurniture = (): void => {
-      heroSection?.classList.toggle('is-scrolled', window.scrollY > 0);
+      const scrolled = window.scrollY > 0;
+      heroSection?.classList.toggle('is-scrolled', scrolled);
+      /* Clipped shut they paint nothing, focus ring included, so they leave
+         the tab order with it rather than taking focus unseen. */
+      for (const piece of furniture) piece.inert = scrolled;
     };
     window.addEventListener('scroll', syncFurniture, { passive: true });
     syncFurniture();
@@ -1476,6 +1512,27 @@ if (stage && heroLayer && gl) {
         // hero leaves the whole page in its scroll-zero state.
         onRefresh: (self) => applyShrink(self.progress),
       },
+    });
+  }
+
+  /* Reduced motion builds no shrink, so nothing above ever crosses the nav to
+     its dark ink, and it stayed light on the cream page below the hero: a
+     white menu button and a yellow name at under 1.4:1. A plain toggle
+     instead: light ink while the hero's plate is under the nav, dark from
+     there down. */
+  if (heroTrack && reducedMotion) {
+    /* By position, not by isActive: at the very bottom of the page the
+       trigger has ended and reports inactive, with the nav still on cream. */
+    const cross = (self: ScrollTrigger): void => {
+      navStyle?.setProperty('--nav-invert', self.scroll() >= self.start ? '1' : '0');
+    };
+    ScrollTrigger.create({
+      trigger: heroTrack,
+      start: () => `bottom top+=${navHeight()}`,
+      end: 'max',
+      invalidateOnRefresh: true,
+      onToggle: cross,
+      onRefresh: cross,
     });
   }
 

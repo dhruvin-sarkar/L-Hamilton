@@ -842,8 +842,10 @@ function buildGallery(): void {
     img.dataset.src = photo.src;
     img.width = photo.width;
     img.height = photo.height;
-    // The caption says where; the picture itself is not described in text.
-    img.alt = '';
+    /* The caption is two words and says nothing to someone who cannot see the
+       picture; the photograph's authored subject is its description, as On
+       Track's gallery describes the same files. */
+    img.alt = `Lewis Hamilton, ${photo.subject.charAt(0).toLowerCase()}${photo.subject.slice(1)}`;
     img.decoding = 'async';
     box.append(img);
     fig.append(box);
