@@ -1376,12 +1376,6 @@ body[data-page='off-track'] {
     --r: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
     --text--eyebrow: var(--r);
   }
-
-  /* The reference's --padding--container drops to 1rem here and its
-     --on-t-nav-spacer grows to 6.375rem. */
-  .oft-hero__c {
-    padding: calc(6.375 * var(--r)) var(--r) var(--gap);
-  }
 }
 
 /* Reference [data-hide='m']: the ventures row is not shown on a phone.
@@ -1398,6 +1392,13 @@ body[data-page='off-track'] {
   .oft-group {
     --r: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
     --text--eyebrow: calc(0.8 * var(--r));
+  }
+
+  /* The reference's --padding--container drops to 1rem here and its
+     --on-t-nav-spacer grows to 6.375rem: on .c.is-on-track-home, under 480
+     and not before. */
+  .oft-hero__c {
+    padding: calc(6.375 * var(--r)) var(--r) var(--gap);
   }
 
   .oft-hero__title-w {
