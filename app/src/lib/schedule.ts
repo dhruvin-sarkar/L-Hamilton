@@ -65,6 +65,19 @@ export function shortRaceName(raceName: string): string {
   return raceName.replace(/ Grand Prix.*$/, '');
 }
 
+/**
+ * The Calendar's opening line: where the season stands. One rule, read twice --
+ * by the build (vite.config.ts), which writes the line into the page so it is
+ * in the first paint, and by calendar.ts, which corrects it if the season has
+ * moved on since.
+ */
+export function seasonLede(season: number, roundsRun: number, roundToCome: boolean): string {
+  if (!roundsRun) return `The ${season} Formula 1 season is about to begin, view Lewis's schedule below.`;
+  return roundToCome
+    ? "The Formula 1 season is underway, view Lewis's schedule below."
+    : `The ${season} Formula 1 season is complete, view Lewis's results below.`;
+}
+
 const ukClock = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'Europe/London',
   year: 'numeric',

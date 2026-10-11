@@ -16,8 +16,8 @@ import { bandCopy, bandsSpoken, isHeroBand } from './src/content/home';
    read by crawlers and link previews that never run the page's script. */
 import { driver } from './src/content/hamilton';
 import { roundPhoto } from './src/content/calendar-media';
-import { calendar, career } from './src/content/live-stats';
-import { spell } from './src/lib/schedule';
+import { calendar, career, nextRound } from './src/content/live-stats';
+import { seasonLede, spell } from './src/lib/schedule';
 
 // `import.meta.url` rather than `__dirname`: this package is ESM ("type":
 // "module"), where __dirname does not exist and would be undefined at runtime.
@@ -80,6 +80,10 @@ const HEAD_TOKENS: ReadonlyMap<string, string> = new Map([
   ['titles-word', spell(career.championships)],
   ['seasons-word', spell(career.seasonsContested)],
   ['store-url', STORE_URL],
+  /* The Calendar's opening line, as of this build. Written into the page
+     because it is the largest text on a phone's first screen: left for the
+     page's script to write, it was first painted when the loader lifted. */
+  ['calendar-lede', seasonLede(currentSeason, calendar.filter((r) => r.result).length, nextRound() !== null)],
 ]);
 
 function fillTokens(html: string, filename: string): string {
