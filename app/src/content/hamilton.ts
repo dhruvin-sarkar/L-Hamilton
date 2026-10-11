@@ -8,16 +8,14 @@
  *   VOLATILE — career totals. Hamilton is racing *right now*; every one of these
  *              moves on a race weekend. They are NOT written here: they come
  *              from `live-stats.ts`, which validates the record fetched from the
- *              Jolpica-F1 API, and they carry a `lastUpdated` the UI must
- *              surface rather than presenting them as settled fact.
+ *              Jolpica-F1 API, and its `provenance` carries the fetch date the
+ *              UI must surface rather than presenting them as settled fact.
  *
  * See docs/CONTENT-DATA.md. Do not hardcode a number anywhere else in the app.
  */
 
 import {
-  career,
   championshipYears as championshipYearsFromResults,
-  provenance,
   seasons,
   wins,
 } from './live-stats';
@@ -30,39 +28,6 @@ export interface Era {
   team: string;
   from: number;
   to: number | null; // null = ongoing
-}
-
-export interface Season {
-  year: number;
-  team: TeamId;
-  /** Championship finishing position. */
-  position: number | null;
-  points: number;
-  wins: number;
-  podiums: number;
-  poles: number;
-  isChampion: boolean;
-}
-
-export interface CareerTotals {
-  starts: number;
-  wins: number;
-  podiums: number;
-  poles: number;
-  fastestLaps: number;
-  points: number;
-  championships: number;
-  /** ISO 8601 date. Render this near any figure below. */
-  lastUpdated: string;
-  /**
-   * True once these are traceable to the live structured source and have passed
-   * the generator's and loader's cross-checks. It is not a claim that a human
-   * has confirmed them: published tallies still disagree by a few
-   * wins/poles/podiums, partly because they were published between different
-   * 2026 races and partly because they count non-classified finishes — and
-   * sprint-era poles — differently.
-   */
-  verified: boolean;
 }
 
 /* ------------------------------------------------------------------ *
@@ -201,8 +166,8 @@ export const preF1Championships: JuniorChampionship[] = [
   {
     year: 1995,
     series: 'Super One National Championship',
-    label: 'Super One Comer Cadet',
-    category: 'Comer Cadet',
+    label: 'Super One IAME Cadet',
+    category: 'IAME Cadet',
     team: null,
     position: 1,
     note: 'The youngest winner of the British cadet title, at ten years old.',
@@ -241,8 +206,8 @@ export const preF1Championships: JuniorChampionship[] = [
   {
     year: 1997,
     series: 'Super One National Championship',
-    label: 'Super One Junior Yamaha',
-    category: 'Junior Yamaha',
+    label: 'Super One Formula Yamaha',
+    category: 'Formula Yamaha',
     team: null,
     position: 1,
     note: null,
@@ -330,43 +295,6 @@ export const preF1Span: { from: number; to: number } = {
 };
 
 /* ------------------------------------------------------------------ *
- * Volatile
- * ------------------------------------------------------------------ */
-
-/**
- * Sourced, no longer placeholder. `live-stats.ts` reads the generated record
- * that `tools/fetch-stats.mjs` derives from the Jolpica-F1 API, and this is the
- * projection of it onto the shape the rest of the app already consumed.
- *
- * `verified: true` here means *traceable to a live structured source and
- * internally cross-checked* — not that a human has signed it off. The checks
- * that earn it: the generator counts wins, fastest laps and poles by two
- * independent routes and refuses to write on a mismatch; `live-stats.ts`
- * asserts every total is the sum of its seasons and of its circuits; and the
- * seasons finishing P1 are asserted above to be exactly `championshipYears`.
- * CONTENT-DATA.md still asks for human re-verification before launch and after
- * every race weekend.
- */
-export const careerTotals: CareerTotals = {
-  starts: career.starts,
-  wins: career.wins,
-  podiums: career.podiums,
-  poles: career.poles,
-  fastestLaps: career.fastestLaps,
-  points: career.points,
-  championships: career.championships,
-  lastUpdated: provenance.fetchedAt.slice(0, 10),
-  verified: true,
-};
-
-/**
- * What the totals are current through. Render this near any stat block — the
- * figures move on a race weekend, and a bare number implies a permanence it
- * does not have.
- */
-export const statsCurrentThrough = provenance.latestRace;
-
-/* ------------------------------------------------------------------ *
  * F1 result highlights
  * ------------------------------------------------------------------ */
 
@@ -450,8 +378,4 @@ export function age(on: Date = new Date()): number {
 /** Seasons contested, inclusive of the current one. */
 export function seasonsRacing(on: Date = new Date()): number {
   return on.getFullYear() - driver.debutYear + 1;
-}
-
-export function eraFor(year: number): Era | undefined {
-  return eras.find((e) => year >= e.from && (e.to === null || year <= e.to));
 }
