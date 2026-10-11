@@ -708,6 +708,14 @@ body[data-page='off-track'] {
   :where(.gallery--off-track) .gallery__item.is-out {
     margin-inline-start: 0;
   }
+
+  /* On the sideways track two of the titles are pushed down their column,
+     50.5vh off its foot. Stacked, that margin is half a screen of nothing
+     between the title and its pictures. This one is not the column's own
+     rule, so it is written to win over the track's, further down. */
+  .gallery--off-track .oft-gal__title--mid {
+    margin-block: 0;
+  }
 }
 
 .gallery--off-track {
