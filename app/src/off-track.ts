@@ -465,9 +465,9 @@ function cutLines(block: HTMLElement, runs: Run[]): OvalCut {
 }
 
 /**
- * Re-measures the flight against its stops. Set by the flight while it is
- * mounted (see "The flight" below) and called by the statement's re-cut once
- * the new lines are in the page.
+ * Re-measures the flight against its stops, and says whether any had moved.
+ * Set by the flight while it is mounted (see "The flight" below) and called by
+ * the statement's re-cut once the new lines are in the page.
  *
  * Stops 2 and 3 sit in and under the statement, so after a resize the flight
  * has to be measured AFTER the cut, never beside it. Each on a timer of its
@@ -475,7 +475,7 @@ function cutLines(block: HTMLElement, runs: Run[]): OvalCut {
  * last stop by the height of the line the cut went on to add or take away:
  * 34px low, loaded at 500px and narrowed to 390px.
  */
-let remeasureFlight: (() => void) | null = null;
+let remeasureFlight: (() => boolean) | null = null;
 
 function mountOval(block: HTMLElement): void {
   const runs = runsOf(block);
@@ -527,17 +527,29 @@ function mountOval(block: HTMLElement): void {
 
     // Line breaks move with the width below 992px, where the root stops
     // scaling. Re-cut from the authored runs; a block already read stays read.
+    let width = block.clientWidth;
     let wait = 0;
     const recut = (): void => {
       window.clearTimeout(wait);
       wait = window.setTimeout(() => {
-        gsap.killTweensOf([...cut.boxes, ...cut.lines, ...cut.chars.flat()]);
-        cut = cutLines(block, runs);
-        if (!played) hide(cut);
+        /* Only when the width has changed, as the calendar's oval does. A
+           phone's address bar sliding away as the reader starts to scroll is a
+           resize too, with the lines exactly where they were: re-cutting for
+           it killed the reveal a third of the way in and snapped the
+           statement fully open. */
+        const recutNow = block.clientWidth !== width;
+        if (recutNow) {
+          width = block.clientWidth;
+          gsap.killTweensOf([...cut.boxes, ...cut.lines, ...cut.chars.flat()]);
+          cut = cutLines(block, runs);
+          if (!played) hide(cut);
+        }
         /* The statement may be a line taller or shorter now: the flight is
-           measured against it first, then every trigger further down. */
-        remeasureFlight?.();
-        ScrollTrigger.refresh();
+           measured against it first, then every trigger further down. The
+           flight is asked either way, as its first stop also moves with the
+           screen's height, and answers whether it had anything to rebuild. */
+        const flightMoved = remeasureFlight?.() ?? false;
+        if (recutNow || flightMoved) ScrollTrigger.refresh();
       }, 200);
     };
     window.addEventListener('resize', recut);
@@ -660,11 +672,11 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
   };
 
   let tween: gsap.core.Tween | null = null;
+  /** What the tween was last built from: its three stops and its trigger. */
+  let builtFrom = '';
 
-  const build = (): void => {
-    tween?.scrollTrigger?.kill();
-    tween?.kill();
-
+  /** Builds the flight from where its stops are now; false if none has moved. */
+  const build = (): boolean => {
     const origin = track.getBoundingClientRect();
     const [a, b, c] = stops.map((stop) => {
       const r = stop.getBoundingClientRect();
@@ -675,6 +687,18 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
         h: r.height,
       };
     }) as [Box, Box, Box];
+    const narrow = window.innerWidth <= 991;
+
+    /* A resize that moves no stop -- a phone's address bar sliding away --
+       leaves the tween it already has. To a tenth of a pixel: the boxes are
+       differences of screen positions, which carry the scroll's rounding. */
+    const boxes = [a, b, c].map((s) => [s.x, s.y, s.w, s.h].map((n) => n.toFixed(1)).join());
+    const measured = `${boxes.join(';')};${narrow ? 'narrow' : 'wide'}`;
+    if (measured === builtFrom) return false;
+    builtFrom = measured;
+
+    tween?.scrollTrigger?.kill();
+    tween?.kill();
 
     gsap.set(flight, { xPercent: -50, yPercent: -50, x: a.x, y: a.y, width: a.w, height: a.h });
 
@@ -687,7 +711,6 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
       `M${a.x},${a.y} C${p1.x},${p1.y} ${p2.x},${p2.y} ${b.x},${b.y} ` +
       `C${p3.x},${p3.y} ${p4.x},${p4.y} ${c.x},${c.y}`;
 
-    const narrow = window.innerWidth <= 991;
     tween = gsap.to(flight, {
       duration: 1.5,
       ease: 'none',
@@ -706,6 +729,7 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
         scrub: true,
       },
     });
+    return true;
   };
 
   interface Box {
