@@ -3,28 +3,28 @@
   "source": {
     "api": "https://api.jolpi.ca/ergast/f1",
     "driver": "hamilton",
-    "fetchedAt": "2026-09-30T06:29:10.903Z",
+    "fetchedAt": "2026-10-11T06:53:14.363Z",
     "requests": 33,
     "polesDefinition": "Pole = started the Grand Prix from the front of the grid, as the record books count it, so grid penalties and qualifying exclusions move the pole with them. On 2022 sprint weekends, pole went to the fastest qualifier instead.",
     "latestRace": {
       "season": "2026",
-      "round": "15",
-      "name": "Azerbaijan Grand Prix",
-      "date": "2026-09-26"
+      "round": "16",
+      "name": "Bahrain Grand Prix in Malaysia",
+      "date": "2026-10-04"
     }
   },
   "totals": {
-    "starts": 395,
+    "starts": 396,
     "wins": 106,
-    "podiums": 207,
+    "podiums": 208,
     "poles": 104,
     "qualifyingWins": 107,
     "fastestLaps": 69,
-    "points": 5217.5,
+    "points": 5239.5,
     "sprintWins": 1,
     "dnfs": 31,
     "disqualifications": 3,
-    "averageFinish": 3.86,
+    "averageFinish": 3.85,
     "championships": 7,
     "seasonsContested": 20
   },
@@ -373,19 +373,19 @@
     },
     {
       "year": 2026,
-      "entries": 15,
+      "entries": 16,
       "wins": 1,
-      "podiums": 5,
+      "podiums": 6,
       "poles": 0,
       "qualifyingWins": 0,
       "fastestLaps": 1,
       "sprintWins": 0,
       "dnfs": 1,
       "disqualifications": 0,
-      "finishes": 14,
-      "finishPositionSum": 57,
+      "finishes": 15,
+      "finishPositionSum": 60,
       "position": 3,
-      "points": 199,
+      "points": 221,
       "team": "Ferrari",
       "teamId": "ferrari"
     }
@@ -2620,13 +2620,13 @@
       "name": "Sepang International Circuit",
       "country": "Malaysia",
       "locality": "Kuala Lumpur",
-      "starts": 11,
+      "starts": 12,
       "wins": 1,
-      "podiums": 6,
+      "podiums": 7,
       "poles": 5,
       "bestFinish": 1,
       "firstRaced": 2007,
-      "lastRaced": 2017,
+      "lastRaced": 2026,
       "laps": 56
     },
     {
@@ -3468,7 +3468,20 @@
         },
         "sprint": null
       },
-      "result": null
+      "result": {
+        "position": 3,
+        "positionText": "3",
+        "points": 15,
+        "grid": 2,
+        "status": "Finished",
+        "time": "+4.919",
+        "fastestLap": "1:38.610",
+        "qualifying": {
+          "position": 2,
+          "time": "1:35.428"
+        },
+        "sprint": null
+      }
     },
     {
       "season": 2026,
@@ -8830,6 +8843,19 @@
       "positionText": "6",
       "status": "Finished",
       "fastestLap": "1:46.170"
+    },
+    {
+      "season": 2026,
+      "round": 16,
+      "raceName": "Bahrain Grand Prix in Malaysia",
+      "date": "2026-10-04",
+      "circuitId": "sepang",
+      "country": "Malaysia",
+      "locality": "Kuala Lumpur",
+      "position": 3,
+      "positionText": "3",
+      "status": "Finished",
+      "fastestLap": "1:38.610"
     }
   ]
 }
