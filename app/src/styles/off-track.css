@@ -551,13 +551,25 @@ body[data-page='off-track'] {
 }
 
 /* One line of the statement, cut by off-track.ts for the oval reveal: a clip
-   box the width of its words, and the words inside it. */
+   box the width of its words, and the words inside it.
+
+   The clip edge stands 0.2em off the line on every side, for the glyphs that
+   overhang it: padding out to that edge and a margin of the same size back
+   in, so the words sit exactly where an unpadded box puts them.
+   overflow-clip-margin says the same in one line, but Safari does not
+   implement it and clipped at the line itself, shaving those glyphs. */
 .oft-oval {
   display: block;
   inline-size: fit-content;
-  margin-inline: auto;
+  padding: 0.2em;
+  margin: -0.2em auto;
   overflow: clip;
-  overflow-clip-margin: 0.2em;
+}
+
+/* Adjoining margins collapse to the larger of the two rather than adding up,
+   so between two lines the pull-back of both is written on the lower one. */
+.oft-oval + .oft-oval {
+  margin-block-start: -0.4em;
 }
 
 .oft-oval__line {
