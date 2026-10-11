@@ -333,7 +333,10 @@ export interface TrackMap {
 }
 
 export function mountTrackMap(host: HTMLElement, circuitId: string): TrackMap {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  /* No multisampling: the canvas only ever receives the composer's two
+     full-screen passes, which have no edge inside them to smooth, so a
+     four-sample canvas cost its fill and its resolve for the same picture. */
+  const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.domElement.className = 'track3d__canvas';
