@@ -15,10 +15,17 @@
 # downscale, WebP q82. The alpha plane is lossless, so a cut-out's edge is the
 # original's edge.
 #
+# No file leaves here with EXIF or XMP in it. sharp writes none unless asked
+# to, so the renditions are clean as made; the originals are whatever was
+# exported into this folder, and a design tool's export names its author and
+# account. The last line strips every .webp under public, so an original
+# dropped in beside its renditions is cleaned by the same run that cuts them.
+#
 # Run:  bash tools/gen-image-variants.sh      (from app/)
 # Out:  public/assets/**/<stem>-<width>.webp, and public/assets/footer/portrait-<width>.webp
 set -euo pipefail
-cd "$(dirname "$0")/../public/assets"
+tools="$(cd "$(dirname "$0")" && pwd)"
+cd "$tools/../public/assets"
 
 # variants <width...> -- <file...>
 variants() {
@@ -52,3 +59,5 @@ for w in 640 1024 1440 1920 2560; do
   npx -y sharp-cli@5 -i hero/lewis-hero.webp -o "footer/portrait-$w.webp" \
     -q 82 --effort 6 --alphaQuality 100 resize "$w" >/dev/null
 done
+
+python "$tools/strip-webp-metadata.py"
