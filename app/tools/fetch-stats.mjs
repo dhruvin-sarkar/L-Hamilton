@@ -142,7 +142,8 @@ const classifiedPosition = (result) =>
   result.status === DISQUALIFIED ? null : finishedPosition(result.positionText);
 
 /** The same result as the pages print it: "D" for every disqualification, so
-    2023 United States reads DSQ like the other two rather than "19th". */
+    2023 United States reads DSQ like the other two rather than "19th":
+    skysports.com/f1/news/12990721/lewis-hamilton-and-charles-leclerc-disqualified-from-united-states-grand-prix-after-failed-plank-inspections */
 const classifiedText = (result) =>
   result.status === DISQUALIFIED ? 'D' : result.positionText;
 
