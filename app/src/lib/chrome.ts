@@ -603,10 +603,18 @@ function mountLandscapeSteer(): void {
   /* The way past the sheet. A phone mounted sideways, or held by someone who
      cannot turn it, would otherwise be shut out of the whole site: one press
      takes the sheet down for the rest of the visit (chrome.css reads the
-     class). */
-  document
-    .querySelector<HTMLButtonElement>('[data-landscape-continue]')
-    ?.addEventListener('click', () => document.documentElement.classList.add('landscape-ok'));
+     class). The class only lasts as long as this document, and every link
+     opens a new one, so the press is kept for the tab as well and the next
+     page puts the class back before its sheet is drawn (partials/nav.html).
+     Where storage is refused the sheet simply asks again on the next page. */
+  document.querySelector<HTMLButtonElement>('[data-landscape-continue]')?.addEventListener('click', () => {
+    document.documentElement.classList.add('landscape-ok');
+    try {
+      sessionStorage.setItem('lh:landscape-ok', '1');
+    } catch {
+      // Refused: nothing carried over.
+    }
+  });
 
   const steer = document.querySelector<SVGGElement>('.landscape-block__steer');
   if (!steer) return;

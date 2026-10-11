@@ -158,6 +158,17 @@
          The reference animates a steering wheel in its hands in a Rive file.
          This one is drawn here: an original line drawing of a wheel, its display
          carrying the LH mark. Site copy, the reference's own line. -->
+    <!-- "Continue in landscape", carried to this page. Every page is a new
+         document, so the press is kept for the tab (lib/chrome.ts) and read
+         here, ahead of the sheet, so a reader who chose to continue is not
+         shown it again on the next page, not even for a frame. -->
+    <script>
+      try {
+        if (sessionStorage.getItem('lh:landscape-ok')) {
+          document.documentElement.classList.add('landscape-ok');
+        }
+      } catch (e) {}
+    </script>
     <div class="landscape-block" role="alert">
       <svg class="landscape-block__wheel" viewBox="0 0 200 200" aria-hidden="true">
         <g class="landscape-block__steer">
