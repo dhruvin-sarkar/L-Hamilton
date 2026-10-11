@@ -6,6 +6,7 @@
 
 /*
 !/.gitignore
+!/README.md
 !/app/
 
 # Inside app/
@@ -14,6 +15,9 @@ app/dist/
 app/*.log
 app/*.err
 app/.vite/
+# A design-lint hook's cache. It was kept out only by one clone's
+# .git/info/exclude, so anywhere else it showed up as untracked.
+app/.impeccable/
 
 # NOTE: there was an ignore rule here for app/public/assets/helmet/helmet.glb,
 # added when the reference site's own helmet briefly sat at that filename. That
