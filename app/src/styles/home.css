@@ -922,6 +922,117 @@
      now, and painting over it would hide the portrait entirely. */
 }
 
+/* --------------------------------------------- Name under the mark (<992px)
+ *
+ * The reference's .home-hero-tablet-hero-text. Below 992px its nav has no room
+ * for the lockup, so the hero carries the name instead: the centre mark comes
+ * down 3.5rem to stand over it, the wordmark is set on one line 10rem down the
+ * screen, and the team line sits a gap beneath. Measured at 390 wide: mark
+ * 63-90, name 108-129, team line 142-151; at 820, 50-76, 95-116 and 128-136.
+ *
+ * It leaves on the pin's RAW progress, the reference's Z_() timeline again:
+ * over 70-85% of the pin the wordmark is clipped away upwards by an ellipse
+ * hung from its top edge, and the team line's letters roll up out of their
+ * line 0.02s apart, each on power3.out. main.ts writes the two fractions of
+ * the pin those take, because they depend on how many letters the line has.
+ *
+ * Until then it does not move. The plate shrinks away from under it from
+ * about 40%, and from there it is light ink on the light screen — as the
+ * reference's is dark on dark through the same stretch. */
+.hero-name {
+  display: none;
+}
+
+@media (max-width: 991px) {
+  .hero-name {
+    position: absolute;
+    inset-block-start: calc(var(--hero-u) * 10);
+    inset-inline: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(var(--hero-u) * 1.25);
+    pointer-events: none;
+  }
+
+  /* One line, both names at one cap height: the reference's is a 19rem image
+     2.2rem tall, 16 by 1.76 below 480px. */
+  .hero-name__mark {
+    --name-cap: calc(var(--hero-u) * 2.2);
+    --name-x: clamp(0, (var(--hero-t) - 0.7) / var(--name-span, 0.1), 1);
+    /* What is left of the move; to the 4th power it is GSAP's power3.out. */
+    --name-r: calc((1 - var(--name-x)) * (1 - var(--name-x)) * (1 - var(--name-x)) * (1 - var(--name-x)));
+    display: flex;
+    align-items: baseline;
+    gap: 0.1em;
+    /* The reference's image is the capitals and nothing else; a line of type
+       carries room above and below them. Taken back off, so the capitals and
+       the team line land where its do. */
+    margin-block: calc(var(--name-cap) * -0.14) calc(var(--name-cap) * -0.21);
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+    clip-path: ellipse(
+      calc(100% + 10% * var(--name-r)) calc(110% * var(--name-r)) at 50% 0
+    );
+  }
+
+  /* Playfair's capitals are 0.708 of its em and Mona Sans's 0.729. */
+  .hero-name__first {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: calc(var(--name-cap) / 0.708);
+    letter-spacing: -0.04em;
+    color: var(--rosso-corsa);
+  }
+
+  .hero-name__last {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: calc(var(--name-cap) / 0.729);
+    letter-spacing: -0.03em;
+    color: var(--giallo-modena);
+  }
+
+  .hero-name__team {
+    font-size: var(--text--eyebrow);
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .hero-name__line {
+    display: flex;
+    overflow: clip;
+    white-space: pre;
+  }
+
+  .hero-name__char {
+    --char-x: clamp(
+      0,
+      (var(--hero-t) - 0.7 - var(--i, 0) * var(--name-step, 0)) / var(--name-span, 0.1),
+      1
+    );
+    --char-r: calc(1 - var(--char-x));
+    display: inline-block;
+    translate: 0
+      calc((var(--char-r) * var(--char-r) * var(--char-r) * var(--char-r) - 1) * 100%);
+  }
+
+  /* Home only: the other three pages keep the mark between the buttons, as
+     the reference sets it back to 0 on leaving its home page. */
+  body:not([data-page]) .monogram {
+    top: calc(var(--nav-u) * 4.75 + var(--nav-btn) / 2);
+  }
+}
+
+@media (max-width: 479px) {
+  .hero-name__mark {
+    --name-cap: calc(var(--hero-u) * 1.76);
+  }
+}
+
 /* The hero's own furniture belongs to the full-bleed screen, so it goes with
    it — and the reference does not scrub this. The moment the page moves off
    zero its card takes `.hidden`, and an ellipse hung from the card's top edge
@@ -1088,6 +1199,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* Not on a phone. The reference drops the card below 480px, where the portrait
+   fills the width and the card would stand across his collar. */
+@media (max-width: 479px) {
+  .next-race {
+    display: none;
+  }
 }
 
 /* ------------------------------------------ Tap to lock (bottom-right) */

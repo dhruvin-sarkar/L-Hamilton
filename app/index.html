@@ -164,6 +164,28 @@
 
       <section class="hero" data-era="ferrari">
 
+        <!-- Below 992px only: the reference's .home-hero-tablet-hero-text. Its
+             nav drops the name lockup there and the hero carries it instead, a
+             one-line wordmark with the team line beneath, hung 10rem down the
+             screen under the centre mark. It leaves as the plate lands, over
+             70-85% of the pin (see .hero-name in home.css).
+
+             The team line is the same bound string as the eyebrow below, so
+             the year has one source; main.ts cuts the visible copy into
+             letters, which is why a whole copy sits beside it for a screen
+             reader. No hero-in class: the entrance staggers by document
+             order, and a hidden extra member would hold the card and the lock
+             back a step on a desktop that never shows this. -->
+        <div class="hero-name">
+          <p class="hero-name__mark">
+            <span class="hero-name__first">Lewis</span> <span class="hero-name__last">Hamilton</span>
+          </p>
+          <p class="hero-name__team">
+            <span class="sr-only" data-bind="team-line">Scuderia Ferrari since 2025</span>
+            <span class="hero-name__line" aria-hidden="true" data-bind="team-line" data-hero-team>Scuderia Ferrari since 2025</span>
+          </p>
+        </div>
+
         <!-- Bottom-left -->
         <aside class="next-race hero-in" aria-labelledby="next-race-h">
           <!-- The card border is an SVG because the top-left corner is notched

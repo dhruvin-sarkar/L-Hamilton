@@ -1446,20 +1446,38 @@ if (stage && heroLayer && gl) {
     window.addEventListener('scroll', syncFurniture, { passive: true });
     syncFurniture();
 
-    /* The landed label rises a character at a time, so each one is its own box
-       carrying its index; the pacing is CSS's, off --hero-t. */
-    const heroEyebrow = heroTrack.querySelector<HTMLElement>('[data-hero-eyebrow]');
-    if (heroEyebrow) {
-      const text = heroEyebrow.textContent ?? '';
-      heroEyebrow.textContent = '';
+    /** Cut a label into one box per character, each carrying its letter's index. Returns the letter count. */
+    const splitLetters = (label: HTMLElement, className: string): number => {
+      const text = label.textContent ?? '';
+      label.textContent = '';
       // Counted over letters only, as the reference splits its label: a space
       // is not a character that arrives.
       let letter = 0;
       for (const char of text) {
-        const box = el('span', 'hero-mark__char', char);
+        const box = el('span', className, char);
         box.style.setProperty('--i', String(char === ' ' ? letter : letter++));
-        heroEyebrow.append(box);
+        label.append(box);
       }
+      return letter;
+    };
+
+    /* The landed label rises a character at a time, so each one is its own box
+       carrying its index; the pacing is CSS's, off --hero-t. */
+    const heroEyebrow = heroTrack.querySelector<HTMLElement>('[data-hero-eyebrow]');
+    if (heroEyebrow) splitLetters(heroEyebrow, 'hero-mark__char');
+
+    /* Below 992px the hero carries the name, and its team line leaves a letter
+       at a time (see .hero-name). The reference's timeline gives the
+       wordmark's clip 0.8s and each letter 0.8s, 0.02s apart, and scrubs the
+       whole of it across 15% of the pin — so how much of the pin one of those
+       moves takes depends on how many letters the line has. */
+    const teamLine = heroTrack.querySelector<HTMLElement>('[data-hero-team]');
+    if (teamLine) {
+      const letters = splitLetters(teamLine, 'hero-name__char');
+      const total = 0.8 + 0.02 * Math.max(0, letters - 1);
+      const name = teamLine.closest<HTMLElement>('.hero-name');
+      name?.style.setProperty('--name-span', String((0.15 * 0.8) / total));
+      name?.style.setProperty('--name-step', String((0.15 * 0.02) / total));
     }
 
     const p = { t: 0 };
