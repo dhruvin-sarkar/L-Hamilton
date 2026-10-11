@@ -3,28 +3,28 @@
   "source": {
     "api": "https://api.jolpi.ca/ergast/f1",
     "driver": "hamilton",
-    "fetchedAt": "2026-10-11T06:53:14.363Z",
+    "fetchedAt": "2026-10-11T16:48:34.963Z",
     "requests": 33,
     "polesDefinition": "Pole = started the Grand Prix from the front of the grid, as the record books count it, so grid penalties and qualifying exclusions move the pole with them. On 2022 sprint weekends, pole went to the fastest qualifier instead.",
     "latestRace": {
       "season": "2026",
-      "round": "16",
-      "name": "Bahrain Grand Prix in Malaysia",
-      "date": "2026-10-04"
+      "round": "17",
+      "name": "Singapore Grand Prix",
+      "date": "2026-10-11"
     }
   },
   "totals": {
-    "starts": 396,
+    "starts": 397,
     "wins": 106,
     "podiums": 208,
     "poles": 104,
     "qualifyingWins": 107,
     "fastestLaps": 69,
-    "points": 5239.5,
+    "points": 5247.5,
     "sprintWins": 1,
     "dnfs": 31,
     "disqualifications": 3,
-    "averageFinish": 3.85,
+    "averageFinish": 3.86,
     "championships": 7,
     "seasonsContested": 20
   },
@@ -373,7 +373,7 @@
     },
     {
       "year": 2026,
-      "entries": 16,
+      "entries": 17,
       "wins": 1,
       "podiums": 6,
       "poles": 0,
@@ -382,10 +382,10 @@
       "sprintWins": 0,
       "dnfs": 1,
       "disqualifications": 0,
-      "finishes": 15,
-      "finishPositionSum": 60,
+      "finishes": 16,
+      "finishPositionSum": 66,
       "position": 3,
-      "points": 221,
+      "points": 229,
       "team": "Ferrari",
       "teamId": "ferrari"
     }
@@ -2354,13 +2354,13 @@
       "name": "Marina Bay Street Circuit",
       "country": "Singapore",
       "locality": "Marina Bay",
-      "starts": 16,
+      "starts": 17,
       "wins": 4,
       "podiums": 7,
       "poles": 4,
       "bestFinish": 1,
       "firstRaced": 2008,
-      "lastRaced": 2025,
+      "lastRaced": 2026,
       "laps": 62
     },
     {
@@ -3513,7 +3513,24 @@
           "time": "09:00:00Z"
         }
       },
-      "result": null
+      "result": {
+        "position": 6,
+        "positionText": "6",
+        "points": 8,
+        "grid": 3,
+        "status": "Finished",
+        "time": "+53.188",
+        "fastestLap": "1:36.922",
+        "qualifying": {
+          "position": 3,
+          "time": "1:31.496"
+        },
+        "sprint": {
+          "position": 2,
+          "positionText": "2",
+          "time": "+2.591"
+        }
+      }
     },
     {
       "season": 2026,
@@ -8856,6 +8873,19 @@
       "positionText": "3",
       "status": "Finished",
       "fastestLap": "1:38.610"
+    },
+    {
+      "season": 2026,
+      "round": 17,
+      "raceName": "Singapore Grand Prix",
+      "date": "2026-10-11",
+      "circuitId": "marina_bay",
+      "country": "Singapore",
+      "locality": "Marina Bay",
+      "position": 6,
+      "positionText": "6",
+      "status": "Finished",
+      "fastestLap": "1:36.922"
     }
   ]
 }
