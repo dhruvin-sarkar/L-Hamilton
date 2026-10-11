@@ -163,6 +163,32 @@ function spell(n: number): string {
   return `${TENS[Math.floor(n / 10)]}${unit ? `-${SMALL_NUMBERS[unit]}` : ''}`;
 }
 
+/** The ordinals that are not their cardinal with "th" on the end. */
+const IRREGULAR_ORDINALS: Readonly<Record<string, string>> = {
+  one: 'first',
+  two: 'second',
+  three: 'third',
+  five: 'fifth',
+  eight: 'eighth',
+  nine: 'ninth',
+  twelve: 'twelfth',
+};
+
+/**
+ * spell() as an ordinal -- 8 -> "eighth", 21 -> "twenty-first" -- for "chasing
+ * the eighth". Only a number's last word changes. Past spell()'s range it goes
+ * to figures as spell() does: "100th".
+ */
+function spellOrdinal(n: number): string {
+  if (!Number.isInteger(n) || n < 0 || n >= 100) return ordinal(n);
+  const words = spell(n);
+  const cut = words.lastIndexOf('-') + 1;
+  const last = words.slice(cut);
+  const turned =
+    IRREGULAR_ORDINALS[last] ?? (last.endsWith('y') ? `${last.slice(0, -1)}ieth` : `${last}th`);
+  return words.slice(0, cut) + turned;
+}
+
 /**
  * "2008-07-06" -> "6 Jul", its month from the site's one table of three-letter
  * months (lib/schedule.ts: en-GB's short September is "Sept"). Read in UTC,
@@ -421,6 +447,10 @@ const bindings: Record<string, string> = {
   'seasons-word': spell(career.seasonsContested),
   /* The statement's "chasing eight": the title after the ones he has. */
   'next-title-word': spell(career.championships + 1),
+  /* The hero's "chasing the eighth", in its eyebrow and again closing its
+     paragraph: the same title as an ordinal, so neither can fall a title
+     behind the "seven titles" printed beside them. */
+  'next-title-chase': `chasing the ${spellOrdinal(career.championships + 1)}`,
   /* "Ferrari F1 since 2025", where the reference has its own team and year.
      Read off the era that has not ended, so the year comes from the same
      record as the team rather than from a second place that can disagree. */
