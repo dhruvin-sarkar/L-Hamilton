@@ -86,6 +86,39 @@ const STORAGE = {
   loopEpoch: 'lh:loop-epoch',
 } as const;
 
+/*
+ * Both keys go through these two, because session storage may not be there.
+ *
+ * With site data blocked (Chrome's "don't allow sites to save data", Firefox
+ * and Safari with all cookies off) reading `window.sessionStorage` itself
+ * throws. Uncaught, that stopped the mount one line AFTER it had claimed the
+ * panel -- which is what switches off the panel's CSS failsafe -- so the reveal
+ * was never scheduled and every page stayed under the panel for good, with the
+ * rest of the chrome unmounted behind it.
+ *
+ * All the keys carry is continuity between two documents: the phase of the
+ * mark's loop, and that the next page was reached through the panel. A refusal
+ * costs that and nothing else: the next page opens as a first load, its mark
+ * from wherever its own clock puts it.
+ */
+function readStored(key: string): string | null {
+  try {
+    return sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/** `null` removes the key. */
+function writeStored(key: string, value: string | null): void {
+  try {
+    if (value === null) sessionStorage.removeItem(key);
+    else sessionStorage.setItem(key, value);
+  } catch {
+    // Refused. Nothing to carry over, which readStored already answers for.
+  }
+}
+
 /* ------------------------------------------------------------------ *
  * The glyph: "44", drawn for this site.
  *
@@ -345,11 +378,11 @@ export function mountTransition(opts: { closeMenu: () => void }): void {
 
   /* Resume the loop where the last page left it, so the new document's mark
      carries on rather than restarting. */
-  const epoch = Number(sessionStorage.getItem(STORAGE.loopEpoch)) || Date.now();
-  sessionStorage.setItem(STORAGE.loopEpoch, String(epoch));
+  const epoch = Number(readStored(STORAGE.loopEpoch)) || Date.now();
+  writeStored(STORAGE.loopEpoch, String(epoch));
   const seekLoop = () => {
     if (!mark) return;
-    const at = Number(sessionStorage.getItem(STORAGE.loopEpoch)) || epoch;
+    const at = Number(readStored(STORAGE.loopEpoch)) || epoch;
     mark.loop.time(((Date.now() - at) / 1000) % LOOP.period);
     mark.applyAll();
     mark.loop.play();
@@ -358,7 +391,7 @@ export function mountTransition(opts: { closeMenu: () => void }): void {
 
   // One-shot: read by the page that follows a transition, then gone, so a
   // later reload is a first load again.
-  sessionStorage.removeItem(STORAGE.left);
+  writeStored(STORAGE.left, null);
   const kind: Arrival = document.documentElement.hasAttribute('data-arrival') ? 'arrival' : 'first';
 
   let busy = false;
@@ -453,10 +486,7 @@ export function mountTransition(opts: { closeMenu: () => void }): void {
       // Line the loop up so its fold starts as the cover completes.
       mark.loop.time(LOOP.period - COVER_FOLD_AT);
       mark.loop.play();
-      sessionStorage.setItem(
-        STORAGE.loopEpoch,
-        String(Date.now() - (LOOP.period - COVER_FOLD_AT) * 1000),
-      );
+      writeStored(STORAGE.loopEpoch, String(Date.now() - (LOOP.period - COVER_FOLD_AT) * 1000));
     }
     start(() =>
       gsap
@@ -544,7 +574,7 @@ export function mountTransition(opts: { closeMenu: () => void }): void {
     if (busy) return;
     opts.closeMenu();
     cover(() => {
-      sessionStorage.setItem(STORAGE.left, String(Date.now() - TIMING.cover * 1000));
+      writeStored(STORAGE.left, String(Date.now() - TIMING.cover * 1000));
       location.href = url.href;
     });
   });

@@ -442,6 +442,31 @@ export function mountReveals(opts: RevealOptions): void {
       for (const line of immediateLines) line.classList.add('is-in');
     });
 
+    /* An observed line must not be laid out inline.
+     *
+     * Each line waits behind its own clip-path, and Chrome reports an inline box
+     * emptied by its clip as never intersecting: with the clip the rect it tests
+     * is [0,0,0,0], as an inline-block it is the line. So neither observer below
+     * ever fires for one, and its words stay hidden at every scroll position --
+     * which is how On Track's season table lost its Year, Finish and Podiums
+     * headers.
+     *
+     * Thrown rather than worked around, so it is the markup or its stylesheet
+     * that gets fixed (a `display: inline-block` on the line is enough). Checked
+     * whether or not the line is showing, because a column hidden at this width
+     * is exactly where one would wait unnoticed until a resize. Dev only: the
+     * read forces a style pass the built page has no use for. */
+    if (import.meta.env.DEV) {
+      for (const line of [...scrollLines, ...sidewaysLines]) {
+        if (getComputedStyle(line).display !== 'inline') continue;
+        const words = (line.textContent ?? '').trim().slice(0, 40);
+        throw new Error(
+          `[reveal] <${line.localName} class="${line.className}"> "${words}" is display: inline, ` +
+            'so its observer can never fire and it would stay hidden. Make it inline-block.',
+        );
+      }
+    }
+
     const textRevealer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
