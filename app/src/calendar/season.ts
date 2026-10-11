@@ -470,8 +470,16 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
 
   /* A list with nothing in it -- before the first round, after the last --
      steps aside rather than showing a header over no rows. */
-  need('[data-cal-previous-wrap]').hidden = previousList.childElementCount === 0;
-  need('[data-cal-upcoming-wrap]').hidden = upcomingList.childElementCount === 0;
+  const previousWrap = need('[data-cal-previous-wrap]');
+  const upcomingWrap = need('[data-cal-upcoming-wrap]');
+  previousWrap.hidden = previousList.childElementCount === 0;
+  upcomingWrap.hidden = upcomingList.childElementCount === 0;
+
+  /* "Calendar list" leads to the rounds to come. Once the last round has
+     started there are none and their block is hidden, where a jump moves
+     nothing and focuses nothing: the button then leads to the list that is
+     left, the rounds run. */
+  if (upcomingWrap.hidden) need('[data-cal-list-link]').setAttribute('href', `#${previousWrap.id}`);
 
   const markActive = (): void => {
     buttons.forEach((row, i) => {
