@@ -426,7 +426,7 @@ export function mountSeason(section: HTMLElement, scroller: Lenis | null): void 
 
       const lap = cell('ot-cal__cell ot-cal__cell--unit');
       const fastest = result?.fastestLap ?? null;
-      lap.append(el('span', 'ot-cal__reg', fastest ?? '-'));
+      lap.append(el('span', 'ot-cal__reg', fastest ?? '–'));
       if (fastest) lap.append(el('span', 'ot-cal__unit', 's'));
 
       label =

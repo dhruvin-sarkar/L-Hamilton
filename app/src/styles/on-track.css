@@ -2446,7 +2446,11 @@ body[data-page='on-track'] {
 /* The reference's units sit in --color--dark-green-tint-2, a step above the
    ground: there to be read second. */
 .ot-count__unit {
-  color: var(--dark-tint-2);
+  /* A step lighter than --dark-tint-2, which is 1.77:1 on the page ground:
+     the letters say which figure is days and which is minutes, so they have
+     to be legible. This is 3.25:1, the floor for type this large, and still
+     well under the digits. */
+  color: #75605f;
 }
 
 /* Over the digits, centred on their row, as the reference's phrase canvas is. */

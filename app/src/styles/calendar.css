@@ -830,3 +830,12 @@ button.cal-row--past:hover:focus-visible {
     block-size: calc(var(--u) * 2);
   }
 }
+
+/* The shared footer takes Home's cream ground unless a page restates it, as On
+   Track and Off Track do. Left at cream here it put a light band under this
+   dark page's nav: a white menu button and a yellow name on cream, at about
+   1.3:1. The page's own ground instead, so the nav reads as it does on every
+   other screen of the page. */
+[data-page='calendar'] .footer {
+  background: var(--bg);
+}

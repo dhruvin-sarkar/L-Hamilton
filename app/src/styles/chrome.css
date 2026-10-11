@@ -237,10 +237,26 @@
   pointer-events: auto;
 }
 
+/* Shown until the reader says otherwise: a phone that is mounted sideways, or
+   held by someone who cannot turn it, must still be able to read the site
+   (WCAG 1.3.4), so the sheet carries a way past it (lib/chrome.ts). */
 @media (orientation: landscape) and (max-height: 540px) and (hover: none) and (pointer: coarse) {
-  .landscape-block {
+  html:not(.landscape-ok) .landscape-block {
     display: flex;
   }
+}
+
+.landscape-block__continue {
+  min-block-size: 2.75rem;
+  padding: 0.5rem 1rem;
+  border: 0;
+  background: none;
+  color: currentColor;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
 }
 
 .landscape-block__wheel {

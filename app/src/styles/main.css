@@ -53,13 +53,26 @@
  * is gone.
  * ---------------------------------------------------------------- */
 
-html {
-  scrollbar-width: none; /* Firefox */
+/* Only where motion is allowed. Under reduced motion the smooth scroller is
+   not running and the scroll indicator that stands in for the bar does not
+   move, so a reader who scrolls by dragging the bar would have nothing to
+   drag: they keep the native one, in a gutter that stays put when the menu
+   opens. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scrollbar-width: none; /* Firefox */
+  }
+
+  body ::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none; /* Chromium, WebKit */
+  }
 }
 
-body ::-webkit-scrollbar,
-body::-webkit-scrollbar {
-  display: none; /* Chromium, WebKit */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scrollbar-gutter: stable;
+  }
 }
 
 /* ---------------------------------------------------------------- *

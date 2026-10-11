@@ -600,6 +600,14 @@ const LANDSCAPE_QUERY =
   '(orientation: landscape) and (max-height: 540px) and (hover: none) and (pointer: coarse) and (prefers-reduced-motion: no-preference)';
 
 function mountLandscapeSteer(): void {
+  /* The way past the sheet. A phone mounted sideways, or held by someone who
+     cannot turn it, would otherwise be shut out of the whole site: one press
+     takes the sheet down for the rest of the visit (chrome.css reads the
+     class). */
+  document
+    .querySelector<HTMLButtonElement>('[data-landscape-continue]')
+    ?.addEventListener('click', () => document.documentElement.classList.add('landscape-ok'));
+
   const steer = document.querySelector<SVGGElement>('.landscape-block__steer');
   if (!steer) return;
   mm.add(LANDSCAPE_QUERY, () => {

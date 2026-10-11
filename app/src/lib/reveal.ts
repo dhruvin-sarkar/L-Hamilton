@@ -203,7 +203,7 @@ export function mountReveals(opts: RevealOptions): void {
           }
           // Keep the hyphen on the fragment before it — that is the side it
           // stays on when a browser breaks there.
-          for (const fragment of token.split(/(?<=-)/)) {
+          for (const fragment of token.match(/[^-]*-|[^-]+/g) ?? []) {
             if (!fragment) continue;
             const span = document.createElement('span');
             span.textContent = fragment;

@@ -110,7 +110,7 @@ function raceRow(race: RaceEntry, season: readonly RaceEntry[]): HTMLLIElement {
   }
 
   const lap = el('span', 'ot-cal__cell ot-cal__cell--unit');
-  lap.appendChild(el('span', 'ot-cal__reg', race.fastestLap ?? '-'));
+  lap.appendChild(el('span', 'ot-cal__reg', race.fastestLap ?? '–'));
   if (race.fastestLap) lap.appendChild(el('span', 'ot-cal__unit', 's'));
 
   row.append(round, location, when, finish, lap, el('span', 'ot-cal__rule'));
