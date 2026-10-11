@@ -127,6 +127,138 @@ function htmlPartials(): Plugin {
   };
 }
 
+/** The share card, as a path under public/ and so as a URL on the site. Made by
+    tools/gen-brand-images.py. */
+const SHARE_CARD = '/assets/brand/share-card.png';
+const SHARE_CARD_ALT = 'The LH monogram above the name Lewis Hamilton, on Rosso Corsa red.';
+
+/**
+ * The origin the site is served from, such as https://example.com, read from
+ * the SITE_ORIGIN environment variable.
+ *
+ * It is needed for one thing, the share image's address. A scraper does not
+ * resolve og:image against the page it found it on, so the address has to be
+ * absolute, and nothing in this repository records where the site will live.
+ * It is not guessed here. Unset, the address stays root-relative and the build
+ * says so (headTags, below).
+ */
+function siteOrigin(): string | undefined {
+  const value = process.env.SITE_ORIGIN?.trim();
+  if (value === undefined || value === '') return undefined;
+  const expected = `SITE_ORIGIN is "${value}"; expected an origin with nothing after it, such as https://example.com`;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(expected);
+  }
+  const web = url.protocol === 'https:' || url.protocol === 'http:';
+  if (!web || url.pathname !== '/' || url.search !== '' || url.hash !== '') throw new Error(expected);
+  return url.origin;
+}
+
+/** The pixel size of a PNG under public/, from its header. A missing file or
+    one that is not a PNG stops the build, naming the tool that makes it. */
+function pngSize(publicPath: string): { width: number; height: number } {
+  let bytes: Buffer;
+  try {
+    bytes = readFileSync(path.join(here, 'public', publicPath));
+  } catch {
+    throw new Error(`[head] public${publicPath} is missing; run tools/gen-brand-images.py`);
+  }
+  // The 8-byte signature, then the IHDR chunk: its length, its name, and the
+  // width and height as big-endian 32-bit integers.
+  if (bytes.toString('latin1', 1, 4) !== 'PNG' || bytes.toString('latin1', 12, 16) !== 'IHDR') {
+    throw new Error(`[head] public${publicPath} is not a PNG`);
+  }
+  return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
+}
+
+/** The one match of `pattern` in a page's head. None, or two, stops the build. */
+function only(head: string, pattern: RegExp, what: string, filename: string): RegExpExecArray {
+  const found = [...head.matchAll(pattern)];
+  const [match] = found;
+  if (match === undefined || found.length !== 1) {
+    throw new Error(`${filename}: expected one ${what} in the head, found ${found.length}`);
+  }
+  return match;
+}
+
+/**
+ * The tags a link preview is drawn from, written from each page's own <title>
+ * and meta description.
+ *
+ * Paste a link into a message or a post and the card that appears is built
+ * from the page's og: and twitter: tags, by a scraper that runs no script. The
+ * pages had none, so a shared link was a bare address. They are derived here
+ * rather than typed into four heads so each page has one title and one
+ * description: change either and its card follows.
+ *
+ * Both are read as the page wrote them, entities included, which is already
+ * the encoding an attribute value takes; only a double quote in a title needs
+ * escaping. The title's tokens are filled by htmlPartials, so this has to run
+ * after it: the order of the plugins below.
+ *
+ * Dev and build alike, so the head view-source shows in dev is the one that
+ * ships.
+ */
+function headTags(): Plugin {
+  const origin = siteOrigin();
+  const card = pngSize(SHARE_CARD);
+  const image = (origin ?? '') + SHARE_CARD;
+  const TITLE = /^([ \t]*)<title>([\s\S]*?)<\/title>/gim;
+  const DESCRIPTION = /<meta\s+name="description"\s+content="([^"]*)"\s*\/?>/gi;
+
+  return {
+    name: 'head-tags',
+    configResolved(config) {
+      if (config.command === 'build' && origin === undefined) {
+        config.logger.warn(
+          `\n[head] SITE_ORIGIN is not set, so og:image and twitter:image are written as ${SHARE_CARD}.\n` +
+            `       Link previews need an absolute address and will show no picture. Before publishing,\n` +
+            `       build with the site's origin: SITE_ORIGIN=https://<host> npm run build\n`,
+        );
+      }
+    },
+    transformIndexHtml: {
+      order: 'pre',
+      handler(html, ctx) {
+        const headEnd = html.indexOf('</head>');
+        if (headEnd < 0) throw new Error(`${ctx.filename}: no </head>`);
+        const head = html.slice(0, headEnd);
+
+        const titleTag = only(head, TITLE, '<title>', ctx.filename);
+        const indent = titleTag[1] ?? '';
+        const title = (titleTag[2] ?? '').replace(/\s+/g, ' ').trim().replace(/"/g, '&quot;');
+        const description = (only(head, DESCRIPTION, 'meta description', ctx.filename)[1] ?? '').trim();
+        if (title === '' || description === '') {
+          throw new Error(`${ctx.filename}: the title or the meta description is empty`);
+        }
+        if (title.includes('%%') || description.includes('%%')) {
+          throw new Error(`${ctx.filename}: head-tags ran before the %% tokens were filled`);
+        }
+
+        const tags = [
+          `<meta property="og:type" content="website" />`,
+          `<meta property="og:title" content="${title}" />`,
+          `<meta property="og:description" content="${description}" />`,
+          `<meta property="og:image" content="${image}" />`,
+          `<meta property="og:image:width" content="${card.width}" />`,
+          `<meta property="og:image:height" content="${card.height}" />`,
+          `<meta property="og:image:alt" content="${SHARE_CARD_ALT}" />`,
+          `<meta name="twitter:card" content="summary_large_image" />`,
+          `<meta name="twitter:title" content="${title}" />`,
+          `<meta name="twitter:description" content="${description}" />`,
+          `<meta name="twitter:image" content="${image}" />`,
+          `<meta name="twitter:image:alt" content="${SHARE_CARD_ALT}" />`,
+        ];
+        const after = titleTag.index + titleTag[0].length;
+        return html.slice(0, after) + tags.map((tag) => `\n${indent}${tag}`).join('') + html.slice(after);
+      },
+    },
+  };
+}
+
 /** Text for an HTML text node. */
 const escapeHtml = (text: string): string =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -266,7 +398,7 @@ function stripComments(): Plugin {
 export default defineConfig({
   root: here,
   publicDir: fileURLToPath(new URL('./public', import.meta.url)),
-  plugins: [htmlPartials(), heroMarquee(), stylesFirst(), stripComments()],
+  plugins: [htmlPartials(), headTags(), heroMarquee(), stylesFirst(), stripComments()],
   server: { port: 5173, open: false },
   /* The dependency cache lives beside this config, not in node_modules. Every
      worktree links app/node_modules to one shared install, so the default
