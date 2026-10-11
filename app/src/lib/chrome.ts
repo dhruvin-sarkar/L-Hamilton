@@ -993,9 +993,17 @@ export function mountChrome(): void {
       else menuBtn.focus();
     };
 
-    // `hidden` is `boolean | "until-found"` in the DOM lib, and "until-found" is
-    // still hidden, so coerce rather than compare against true.
-    menuBtn.addEventListener('click', () => setOpen(Boolean(menu.hidden)));
+    /* Toggled on the button's own state, not on `menu.hidden`. The panel stays
+       unhidden until its reversed timeline has run out, about 1.3s after a
+       close, and for all of that time the button already says "Open menu".
+       Reading `hidden` made a press in that window close the menu a second
+       time, which is to say do nothing: measured 400ms after a close, the
+       click changed no state and the panel went on to hide. Read off
+       aria-expanded, the press does what the button says, and the paused
+       timelines turn round from wherever they have got to. */
+    menuBtn.addEventListener('click', () => {
+      setOpen(menuBtn.getAttribute('aria-expanded') !== 'true');
+    });
 
     // A followed link closes it, as the reference's transition does
     // (closeNavigation() at the start of its transition-out).
