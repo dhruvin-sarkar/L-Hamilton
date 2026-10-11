@@ -1692,6 +1692,19 @@ body[data-page='on-track'] {
   padding-inline-end: 0;
 }
 
+/* A header's label is a `.reveal-text` span, and an INLINE one never reveals.
+   The observer in lib/reveal.ts watches the line itself, the line waits behind
+   its own clip-path, and Chrome reports an inline box emptied by its clip as
+   never intersecting -- so Year, Finish and Podiums stayed clipped shut at
+   every scroll position. As an inline-block the label keeps a box for the
+   observer to find and sits on the line exactly where the span did. The
+   highlights headers are flex items wherever they show, so this only reaches
+   them in the two columns a phone hides. */
+.ot-seasons__th .reveal-text,
+.ot-hl__th .reveal-text {
+  display: inline-block;
+}
+
 .ot-seasons__row {
   position: relative;
   transition: background-color var(--dur-micro) var(--ease-out);
