@@ -23,7 +23,7 @@ import { mountCountdown } from './lib/countdown';
 import { mountFooterMarquee } from './lib/marquee';
 import { mountArrowCycles } from './lib/arrow-cycle';
 import { mountReveals } from './lib/reveal';
-import { place } from './lib/schedule';
+import { place, seasonLede } from './lib/schedule';
 import { Signature, signatureTrace } from './Signature';
 import { calendar, nextRound, provenance, seasons } from './content/live-stats';
 import { mountSeason } from './calendar/season';
@@ -116,11 +116,12 @@ if (!reducedMotion) {
 
 const upcoming = nextRound();
 const run = calendar.filter((r) => r.result).length;
-need('[data-cal-lede]').textContent = !run
-  ? `The ${season} Formula 1 season is about to begin, view Lewis's schedule below.`
-  : upcoming
-    ? "The Formula 1 season is underway, view Lewis's schedule below."
-    : `The ${season} Formula 1 season is complete, view Lewis's results below.`;
+/* The line is in the page as the build wrote it (vite.config.ts, the
+   `calendar-lede` token), so it is part of the first paint. It is rewritten
+   here only when the season has moved on since that build. */
+const lede = need('[data-cal-lede]');
+const ledeNow = seasonLede(season, run, upcoming !== null);
+if (lede.textContent !== ledeNow) lede.textContent = ledeNow;
 
 /* His championship place and the round it stands after -- the round the
    standings were last fetched at, so the two figures describe one moment.
