@@ -76,9 +76,13 @@
            reference's two pages share one component. Every value is written
            by calendar.ts from the data layer; nothing below is typed. -->
       <section class="ot-cal cal-sched" aria-labelledby="cal-sched-h">
+        <!-- The section's name, for the outline. The visible line under it is a
+             sentence, not a heading. The season is the data layer's, filled at
+             build (vite.config.ts, HEAD_TOKENS). -->
+        <h2 class="sr-only" id="cal-sched-h">%%season%% schedule</h2>
         <div class="ot-cal__c">
           <div class="cal-sched__title-row">
-            <h2 class="cal-sched__lede" id="cal-sched-h" data-oval-scroll data-cal-lede></h2>
+            <p class="cal-sched__lede" data-oval-scroll data-cal-lede></p>
 
             <div class="cal-sched__para-layout">
               <div class="ot-cal__standings cal-sched__standings" data-cal-standings>
