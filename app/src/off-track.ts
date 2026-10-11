@@ -464,6 +464,19 @@ function cutLines(block: HTMLElement, runs: Run[]): OvalCut {
   return cut;
 }
 
+/**
+ * Re-measures the flight against its stops. Set by the flight while it is
+ * mounted (see "The flight" below) and called by the statement's re-cut once
+ * the new lines are in the page.
+ *
+ * Stops 2 and 3 sit in and under the statement, so after a resize the flight
+ * has to be measured AFTER the cut, never beside it. Each on a timer of its
+ * own, the flight's ran first, measured the old lines, and then rested off its
+ * last stop by the height of the line the cut went on to add or take away:
+ * 34px low, loaded at 500px and narrowed to 390px.
+ */
+let remeasureFlight: (() => void) | null = null;
+
 function mountOval(block: HTMLElement): void {
   const runs = runsOf(block);
   const plain = runs.map((r) => (r.br ? ' ' : r.text)).join('').replace(/\s+/g, ' ').trim();
@@ -521,6 +534,10 @@ function mountOval(block: HTMLElement): void {
         gsap.killTweensOf([...cut.boxes, ...cut.lines, ...cut.chars.flat()]);
         cut = cutLines(block, runs);
         if (!played) hide(cut);
+        /* The statement may be a line taller or shorter now: the flight is
+           measured against it first, then every trigger further down. */
+        remeasureFlight?.();
+        ScrollTrigger.refresh();
       }, 200);
     };
     window.addEventListener('resize', recut);
@@ -698,20 +715,15 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
     h: number;
   }
 
-  let wait = 0;
-  const rebuild = (): void => {
-    window.clearTimeout(wait);
-    wait = window.setTimeout(build, 200);
-  };
-
   build();
   // Positions settle with the real faces and the statement's cut.
   void document.fonts.ready.then(() => requestAnimationFrame(build));
-  window.addEventListener('resize', rebuild);
+  /* And after a resize, on the statement's re-cut rather than a listener of
+     its own, so it is never measured against the old lines. */
+  remeasureFlight = build;
 
   return () => {
-    window.removeEventListener('resize', rebuild);
-    window.clearTimeout(wait);
+    remeasureFlight = null;
     tween?.scrollTrigger?.kill();
     tween?.kill();
     flight.classList.remove('is-flying');
