@@ -69,7 +69,12 @@ export function mountOvalScroll(block: HTMLElement): void {
   const hasAuthoredLines = block.querySelector('[data-oval-line]') !== null;
   let opened = false;
 
-  const build = (): { clips: HTMLElement[]; lines: HTMLElement[]; chars: HTMLElement[][] } => {
+  /* Cut into letters, the block is one text node per letter and is read out
+     that way -- and so is anything named by it. Name it once from its copy, as
+     off-track.ts's oval does. An unsplit line still reads as its words. */
+  if (splitChars) block.setAttribute('aria-label', text.replace(/\s+/g, ' '));
+
+  const build =(): { clips: HTMLElement[]; lines: HTMLElement[]; chars: HTMLElement[][] } => {
     block.replaceChildren(...authored.map((node) => node.cloneNode(true)));
     const spec = linesOf(block, text);
 
