@@ -1239,14 +1239,38 @@ if (stage && heroLayer && gl) {
   };
   window.addEventListener('resize', onResize);
 
-  // "Tap to lock" freezes the reveal where it is, so the composition can be
-  // read without the cursor dragging it around.
-  let locked = false;
+  /* "Tap to lock" holds the PAGE, not the reveal — the reference's
+     [data-home-swipe-toggle]. A touch screen has one finger for scrolling and
+     for drawing, so pressing this puts the page at the top and keeps it there
+     while the finger draws on the portrait, and pressing it again hands the
+     scroll back. Lenis is stopped where it is the scroller; the flag on the
+     root is what stops the browser itself panning (home.css), which under
+     reduced motion is the only scroller there is. */
   const lockBtn = document.querySelector<HTMLButtonElement>('#lock-btn');
-  lockBtn?.addEventListener('click', () => {
-    locked = !locked;
-    lockBtn.setAttribute('aria-pressed', String(locked));
-  });
+  if (lockBtn) {
+    const hold = (held: boolean): void => {
+      lockBtn.setAttribute('aria-pressed', String(held));
+      document.documentElement.toggleAttribute('data-hero-held', held);
+      if (held) {
+        window.scrollTo(0, 0);
+        lenis?.stop();
+      } else {
+        lenis?.start();
+      }
+    };
+    lockBtn.addEventListener('click', () => hold(lockBtn.getAttribute('aria-pressed') !== 'true'));
+
+    /* Let go if the page moves anyway. Focus travelling down the document
+       scrolls it whatever is held, and a page left off the top with its scroll
+       switched off and this control out of reach would be a trap. */
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (window.scrollY > 0 && lockBtn.getAttribute('aria-pressed') === 'true') hold(false);
+      },
+      { passive: true },
+    );
+  }
 
   // Hovering the team row brings the whole helmet up over the head -- the
   // reference's [data-gl-helmet="hover"] on the same row of the same card.
@@ -1257,7 +1281,6 @@ if (stage && heroLayer && gl) {
   window.addEventListener(
     'pointermove',
     (e) => {
-      if (locked) return;
       /* -1..1, y flipped: screen y grows downward, the shader assumes y up.
          Across the SCENE, which is centred on the window and may overhang it. */
       const nx = ((e.clientX - (window.innerWidth - sceneW) / 2) / sceneW) * 2 - 1;
@@ -1435,13 +1458,18 @@ if (stage && heroLayer && gl) {
        2px, shown at 0). A toggle rather than a scrub; the clip and its timing
        live in home.css. */
     const heroSection = heroTrack.querySelector<HTMLElement>('.hero');
-    const furniture = heroSection?.querySelectorAll<HTMLElement>('.next-race, .lock') ?? [];
+    const card = heroSection?.querySelector<HTMLElement>('.next-race');
+    const touchControl = heroSection?.querySelector<HTMLElement>('.lock');
     const syncFurniture = (): void => {
       const scrolled = window.scrollY > 0;
       heroSection?.classList.toggle('is-scrolled', scrolled);
-      /* Clipped shut they paint nothing, focus ring included, so they leave
-         the tab order with it rather than taking focus unseen. */
-      for (const piece of furniture) piece.inert = scrolled;
+      /* Clipped shut it paints nothing, focus ring included, so it leaves the
+         tab order with it rather than taking focus unseen. */
+      if (card) card.inert = scrolled;
+      /* The touch control outlasts the card: the reference keeps it for the
+         first tenth of a screen (a ScrollTrigger on its 10vh top marker) and
+         then fades it. `inert` is the switch, and the fade hangs off it. */
+      if (touchControl) touchControl.inert = window.scrollY > window.innerHeight * 0.1;
     };
     window.addEventListener('scroll', syncFurniture, { passive: true });
     syncFurniture();

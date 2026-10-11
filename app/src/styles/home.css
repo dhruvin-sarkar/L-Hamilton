@@ -1042,8 +1042,7 @@
    Three selectors, and that is load-bearing: `.is-ready .hero-in` sets the
    entrance transition at 0-2-0 LATER in this file, so this has to out-rank it
    and restate the entrance's two properties alongside the clip. */
-.hero-track .hero .next-race,
-.hero-track .hero .lock {
+.hero-track .hero .next-race {
   clip-path: ellipse(100% 120% at 50% 0);
   transition:
     clip-path var(--duration-default) var(--cubic-default),
@@ -1051,8 +1050,7 @@
     translate 0.9s var(--cubic-default) var(--in-delay, 0ms);
 }
 
-.hero-track .hero.is-scrolled .next-race,
-.hero-track .hero.is-scrolled .lock {
+.hero-track .hero.is-scrolled .next-race {
   clip-path: ellipse(100% 0% at 50% 0);
 }
 
@@ -1070,8 +1068,10 @@
  * card's centre line (race name 36.5-122.6 in a card at 20-139). */
 .next-race {
   position: absolute;
-  left: var(--padding--container);
-  bottom: var(--padding--container);
+  /* 1.25 of the reference's unit, which below 992px is the nav buttons' own
+     inset (12px at 820) rather than our 20px. */
+  left: calc(var(--hero-u) * 1.25);
+  bottom: calc(var(--hero-u) * 1.25);
   z-index: 10;
   inline-size: 7.4375rem;
   block-size: 15.25rem;
@@ -1212,16 +1212,18 @@
 /* ------------------------------------------ Tap to lock (bottom-right) */
 
 /* A touch control. The reference's `.home-hero-touch-controls-w` is
-   `display: none` on desktop and only appears at 991px and below, where there
-   is no hover to separate "move the cursor" from "scroll the page". */
+   `display: none` on desktop and only appears at 991px and below, where one
+   finger has to both scroll the page and draw on the portrait. Its measures,
+   in its own unit: 1.25 off the corner, a button 5 across (4 below 480px, with
+   a rounder corner) and the label one unit to the button's left. */
 .lock {
   position: absolute;
-  right: var(--padding--container);
-  bottom: var(--padding--container);
+  right: calc(var(--hero-u) * 1.25);
+  bottom: calc(var(--hero-u) * 1.25);
   z-index: 10;
   display: none;
   align-items: center;
-  gap: 0.9rem;
+  gap: var(--hero-u);
 }
 
 @media (max-width: 991px) {
@@ -1230,41 +1232,98 @@
   }
 }
 
-.lock__label {
-  font-size: var(--text--eyebrow);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-  font-weight: 600;
+/* Held (main.ts, the button below): the document can be neither scrolled nor
+   panned, so a finger moving over the portrait stays a pointer the scene can
+   follow. Pinching to zoom is left alone. The reference gets the clip from
+   Lenis's own stylesheet, `.lenis-stopped { overflow: clip }`. */
+:root[data-hero-held] {
+  overflow: clip;
+  touch-action: pinch-zoom;
 }
 
+/* Two labels in one cell, and the cell cut to a single line: the one not in
+   use waits a line below, and they trade places over 0.3s on power2.out as
+   the button is pressed. The reference's .text-eyebrow, in its white. */
+.lock__label {
+  display: grid;
+  justify-items: end;
+  overflow: clip;
+  font-size: var(--text--eyebrow);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text);
+  transition: opacity 0.3s var(--ease-reveal-open);
+}
+
+.lock__state {
+  grid-area: 1 / 1;
+  transition: translate 0.3s var(--ease-reveal-open);
+}
+
+.lock__state[data-lock-label='locked'],
+:root[data-hero-held] .lock__state[data-lock-label='unlocked'] {
+  translate: 0 100%;
+}
+
+:root[data-hero-held] .lock__state[data-lock-label='locked'] {
+  translate: none;
+}
+
+/* Never under 2.75rem. The reference's unit alone takes its button down to
+   28px on a 480px screen, which is less than a fingertip. */
 .lock__btn {
   display: grid;
   place-items: center;
-  inline-size: 3.4rem;
-  block-size: 3.4rem;
-  border-radius: var(--radius--btn);
+  inline-size: max(calc(var(--hero-u) * 5), 2.75rem);
+  aspect-ratio: 1;
+  border-radius: calc(var(--hero-u) * 0.54);
   background: var(--accent);
   color: var(--dark);
-  transition: background var(--animation-default);
+  transition:
+    background var(--animation-default),
+    opacity 0.3s var(--ease-reveal-open);
 }
 
-.lock__btn svg {
-  inline-size: 1.4rem;
-  block-size: 1.4rem;
+@media (max-width: 479px) {
+  .lock__btn {
+    inline-size: max(min(calc(var(--hero-u) * 4), 60px), 2.75rem);
+    border-radius: calc(var(--hero-u) * 0.75);
+  }
+}
+
+/* A hand while the page scrolls, a cross while it is held — swapped outright,
+   as the reference swaps its own two. Both drawn in the same 24-unit box. */
+.lock__icon {
+  grid-area: 1 / 1;
+  inline-size: 80%;
+  block-size: 80%;
+}
+
+.lock__btn[aria-pressed='false'] [data-lock-icon='locked'],
+.lock__btn[aria-pressed='true'] [data-lock-icon='unlocked'] {
+  display: none;
 }
 
 .lock__btn:hover {
   background: var(--accent-off);
 }
 
-.lock__btn[aria-pressed='true'] {
-  background: var(--text);
+/* It outlasts the card, and it fades rather than being clipped shut: the
+   reference keeps it for the first tenth of a screen and takes it out over
+   0.3s. main.ts makes it inert there, and this hangs off that so the control
+   is never faded and still focusable. On the two children, because the
+   wrapper's own opacity belongs to the entrance (.hero-in, below). */
+.lock[inert] > * {
+  opacity: 0;
 }
 
-@media (max-width: 40rem) {
-  .lock__label {
-    display: none;
+@media (prefers-reduced-motion: reduce) {
+  .lock__state,
+  .lock__label,
+  .lock__btn {
+    transition: none;
   }
 }
 
