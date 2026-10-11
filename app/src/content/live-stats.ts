@@ -280,29 +280,6 @@ export const championshipYears: readonly number[] = championSeasons;
 /** Seasons newest-first — the order every table on the site renders in. */
 export const seasonsNewestFirst: CareerSeason[] = [...seasons].reverse();
 
-/** Seasons grouped by team, in career order. Drives the era-tagged table. */
-export const seasonsByTeam: { teamId: string; team: string; seasons: CareerSeason[] }[] =
-  seasons.reduce<{ teamId: string; team: string; seasons: CareerSeason[] }[]>((groups, season) => {
-    const last = groups[groups.length - 1];
-    if (last && last.teamId === season.teamId) last.seasons.push(season);
-    else groups.push({ teamId: season.teamId, team: season.team, seasons: [season] });
-    return groups;
-  }, []);
-
-/** Best championship finish that was not a title — for "runner-up" style copy. */
-export const bestNonTitleFinish: number = Math.min(
-  ...seasons.filter((s) => !s.isChampion).map((s) => s.position),
-);
-
-/**
- * How stale the figures are, in whole days. The UI surfaces this rather than
- * presenting a race-weekend-sensitive number as settled fact.
- */
-export function daysSinceFetch(now: Date = new Date()): number {
-  const then = new Date(provenance.fetchedAt).getTime();
-  return Math.max(0, Math.floor((now.getTime() - then) / 86_400_000));
-}
-
 /* ------------------------------------------------------------------ *
  * Wins, circuits and the season calendar
  *
@@ -665,6 +642,3 @@ export function lastRound(now: Date = new Date()): CalendarRound | null {
   const past = calendar.filter((r) => roundStart(r).getTime() <= now.getTime());
   return past.length ? (past[past.length - 1] as CalendarRound) : null;
 }
-
-/** Wins newest-first — the order a results feed reads in. */
-export const winsNewestFirst: Win[] = [...wins].reverse();
