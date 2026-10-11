@@ -110,7 +110,9 @@
               <div class="ot-hero__spacer" aria-hidden="true"></div>
 
               <div class="ot-hero__stats-layout">
-                <p class="ot-hero__eyebrow reveal-text">chasing the eighth</p>
+                <!-- "the eighth" is the title after the ones he has: bound, like
+                     the paragraph's own counts, so the two cannot disagree. -->
+                <p class="ot-hero__eyebrow reveal-text" data-bind="next-title-chase">chasing the eighth</p>
 
                 <div class="ot-hero__para-w">
                   <!-- Third-person site copy, never a quote — CLAUDE.md forbids
@@ -123,7 +125,7 @@
                     <span data-bind="debut-year">2007</span>, Lewis Hamilton has won
                     <span data-bind="titles-word">seven</span> titles across
                     <span data-bind="teams-word">three</span> teams &ndash; and at Ferrari he is
-                    <span class="ot-hero__accent">chasing the eighth</span>.
+                    <span class="ot-hero__accent" data-bind="next-title-chase">chasing the eighth</span>.
                   </p>
                 </div>
 
@@ -266,7 +268,7 @@
                     <div class="ot-hero__round-col2">
                       <!-- His car number, in the accent, where the reference
                            sets its driver's. -->
-                      <p class="ot-hero__number" data-driver-number>44</p>
+                      <p class="ot-hero__number" data-bind="driver-number">44</p>
                       <div class="ot-hero__sign" aria-hidden="true"></div>
                     </div>
                   </article>
