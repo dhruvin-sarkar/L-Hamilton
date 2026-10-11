@@ -39,4 +39,17 @@ export class GLLayer {
   present(source: OffscreenCanvas): void {
     this.context.transferFromImageBitmap(source.transferToImageBitmap());
   }
+
+  /**
+   * Show an empty picture: transparent on a layer with alpha, black on an
+   * opaque one.
+   *
+   * For a layer whose CSS box has to paint before any frame reaches it.
+   * Chrome draws nothing at all for a `bitmaprenderer` canvas that has never
+   * been handed a bitmap — not its background either — and keeps drawing it
+   * once it has, through every later resize.
+   */
+  clear(): void {
+    this.context.transferFromImageBitmap(null);
+  }
 }

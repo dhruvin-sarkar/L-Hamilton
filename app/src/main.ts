@@ -563,7 +563,13 @@ mm.add(WIDE_AND_ANIMATED, () => {
    * this curve on every channel.
    */
   const applyGround = (progress: number) => {
-    const t = 1 - (1 - progress) * (1 - progress);
+    /* Only a field that exists can go dark. With no GL context there is no
+       field, the ground under this section is #main's light one for good (see
+       home.css), and everything below that follows from `t` — the captions,
+       On/Off Track's type, the nav — has to stay the dark ink that reads on
+       it. Crossing them regardless left light type on a cream page from here
+       to the store. */
+    const t = background ? 1 - (1 - progress) * (1 - progress) : 0;
     gallery.style.setProperty('--gallery-dark', String(t));
 
     /* The ink flips on its OWN curve, far steeper than the ground's, and that
@@ -1027,17 +1033,50 @@ mountChrome();
 
 const stage = document.querySelector<HTMLDivElement>('#stage');
 
-if (stage) {
-  /* ONE renderer for both GL layers, drawing off-screen and handing each frame
-     to its layer's canvas — see GLLayer. The settings are the hero's, which
-     the field needs nothing different from: its one full-screen quad has no
-     edge for antialiasing to touch, and it writes opaque alpha everywhere. */
-  const offscreen = new OffscreenCanvas(1, 1);
-  const renderer = new THREE.WebGLRenderer({ canvas: offscreen, antialias: true, alpha: true });
+/**
+ * ONE renderer for both GL layers, drawing off-screen and handing each frame
+ * to its layer's canvas — see GLLayer. The settings are the hero's, which the
+ * field needs nothing different from: its one full-screen quad has no edge for
+ * antialiasing to touch, and it writes opaque alpha everywhere.
+ *
+ * Null where the browser will not give an OffscreenCanvas a WebGL context —
+ * Safari before 17, a blocklisted driver, a GPU process that has given up.
+ * Three throws for that, and thrown at module scope it was an uncaught error
+ * that took the rest of this file with it. The page has a state for it instead:
+ * the hero stands unpinned on its flat plate and everything below is dark ink
+ * on #main's light ground, as home.css describes. Logged, because it is still
+ * a scene that did not come up.
+ */
+function createRenderer(): { offscreen: OffscreenCanvas; renderer: THREE.WebGLRenderer } | null {
+  try {
+    const offscreen = new OffscreenCanvas(1, 1);
+    const renderer = new THREE.WebGLRenderer({ canvas: offscreen, antialias: true, alpha: true });
+    return { offscreen, renderer };
+  } catch (err) {
+    console.error('[hero] no WebGL context, so the page stays on its static ground', err);
+    return null;
+  }
+}
+
+/* The plate's canvas goes in BEFORE the renderer is asked for, and whether or
+   not one comes back. It is what paints the plate's ground — --gl-bg, on
+   `.hero__stage canvas` — and the hero's furniture is light type that only
+   reads on that. Built after the renderer, a failed context left #stage empty
+   and the next-race card pale grey on off-white.
+
+   Cleared straight away, because that ground is a CSS background and a layer
+   that has been handed nothing does not paint one (see GLLayer.clear). Only
+   the plate: the field's layer is opaque, so the same call there would lay
+   black over a page whose fallback ground is the light one. */
+const heroLayer = stage ? new GLLayer(stage, false) : null;
+heroLayer?.clear();
+const gl = stage ? createRenderer() : null;
+
+if (stage && heroLayer && gl) {
+  const { offscreen, renderer } = gl;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.setClearColor(0x000000, 0);
-  const heroLayer = new GLLayer(stage, false);
 
   /* 1.012, which is 0.88 raised by 15%.
    *
@@ -1461,6 +1500,8 @@ if (stage) {
      The loop stays scheduled and only the work is skipped, so there is no
      restart to coordinate; update()'s clamped dt absorbs the gap on resume. */
   let heroVisible = true;
+  /** Set once the portrait's three maps are in. Until then the plate is its flat ground. */
+  let portraitLoaded = false;
   new IntersectionObserver(
     ([entry]) => {
       // Default to visible: an observer that has not reported yet must never
@@ -1491,8 +1532,9 @@ if (stage) {
     }
 
     // The portrait is the opposite case: it is a fixed-size plate that leaves
-    // the viewport for good, so it stops as soon as it is gone.
-    if (!heroVisible) return;
+    // the viewport for good, so it stops as soon as it is gone. And there is
+    // nothing of it to draw if its maps never arrived — see the load below.
+    if (!portraitLoaded || !heroVisible) return;
 
     /* Once it has gone inert it is a still picture, drawn again only when
        something feeding it changes — the layer keeps showing the last frame it
@@ -1504,20 +1546,31 @@ if (stage) {
 
   head
     .load()
+    .then(
+      () => {
+        portraitLoaded = true;
+      },
+      (err: unknown) => {
+        /* The page is fully readable without the portrait, so fail quietly for
+           the visitor and loudly for us — and fail no further than the
+           portrait. This used to remove #stage and never start the loop, which
+           took two things the rest of the page stands on: the plate's ground,
+           so the hero's light furniture was left on off-white, and the field,
+           so the gallery crossed its type to light over a ground that never
+           went dark. The plate keeps its flat --gl-bg and the field, which
+           needs none of the portrait's maps, still draws. */
+        console.error('[hero] scene failed to load', err);
+      },
+    )
     .then(() => {
       resize();
       frame();
+      if (!portraitLoaded) return;
       // Helmet is ~11 MB, so it loads after the hero is already interactive
       // and never blocks it. If it fails the scene is still complete enough to
       // ship — log it, don't take the page down with it.
       return head.loadHelmet().catch((err: unknown) => {
         console.error('[hero] helmet failed to load', err);
       });
-    })
-    .catch((err: unknown) => {
-      // The page is fully readable without the canvas, so fail quietly for the
-      // visitor and loudly for us.
-      console.error('[hero] scene failed to load', err);
-      stage.remove();
     });
 }
