@@ -491,6 +491,29 @@
      dead scroll. */
   min-block-size: 100dvh;
   background: var(--white);
+  /* The reference's rem, for the measures that place the hero's parts against
+     each other. Ours from 992px up; below it the reference's keeps scaling
+     where ours locks at 16px, so it is restated band by band, as the nav's
+     --nav-u is. */
+  --hero-u: 1rem;
+}
+
+@media (max-width: 991px) {
+  .hero-track {
+    --hero-u: calc(clamp(768px, 100vw, 991px) / 1728 * 20);
+  }
+}
+
+@media (max-width: 767px) {
+  .hero-track {
+    --hero-u: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
+  }
+}
+
+@media (max-width: 479px) {
+  .hero-track {
+    --hero-u: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
+  }
 }
 
 /* Two viewport heights: the first is the shrink, the second is what a sticky
@@ -790,11 +813,28 @@
 
    The ink is drawn into a canvas rather than composited through an SVG mask.
    The mask version looked identical and cost more per frame than both WebGL
-   scenes put together; the measurements are in Signature. */
+   scenes put together; the measurements are in Signature.
+
+   The reference's box for it is .marquee-gl-rive-target, 70rem capped at 800px,
+   50vw below 992px and 80vw below 480px, and its ink fills 98.25% of that box
+   across (786 of 800, read off its canvas at 1440). The cap is the size at
+   every width from 1235px up, which is why this is not a share of the width. */
 .hero-sign canvas {
   display: block;
-  inline-size: min(41vw, 52rem);
+  inline-size: min(68.775rem, 786px);
   block-size: auto;
+}
+
+@media (max-width: 991px) {
+  .hero-sign canvas {
+    inline-size: 49.125vw;
+  }
+}
+
+@media (max-width: 479px) {
+  .hero-sign canvas {
+    inline-size: 78.6vw;
+  }
 }
 
 /* ------------------------------------------- Monogram above the plate
@@ -829,8 +869,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--gap);
-  padding-block-start: calc(50dvh - 22.5rem);
+  gap: calc(var(--hero-u) * 1.25);
+  padding-block-start: calc(50dvh - var(--hero-u) * 22.5);
 }
 
 /* The mark is where the SHRUNK hero lands, over the revealed cream screen.
@@ -847,8 +887,8 @@
   --mark-r: calc(1 - var(--mark-x));
   inline-size: auto;
   /* 34px of mark at the top of the reference's 2.284rem slot. */
-  block-size: 2.125rem;
-  margin-block-end: 0.1594rem;
+  block-size: calc(var(--hero-u) * 2.125);
+  margin-block-end: calc(var(--hero-u) * 0.1594);
   flex: none;
   color: var(--rosso-corsa);
   opacity: calc(1 - var(--mark-r) * var(--mark-r) * var(--mark-r) * var(--mark-r));
@@ -1783,9 +1823,23 @@
  * ------------------------------------------------------------------ */
 
 .hero-back {
-  --marquee-top-size: 12.42vh; /* Brier's 0.697 cap on a 12.656vh em */
-  --marquee-bottom-size: 12.163vh; /* 0.84 / 6.906 */
-  --marquee-gap: 1.448vh; /* the 0.1-unit seam between copies */
+  /* 768px and below, the reference pulls the camera back and drops the plane
+     the bands are drawn on by 35% of the screen (its carousel's responsive()):
+     z 4.5 becomes 6.5 at 768 running out to 11 at 480, and 9.5 at 479 out to
+     14 at 320. So the bands are 4.5 / z of their size, about their own middle,
+     and sit that much lower, under the landed plate instead of behind it.
+     main.ts writes the ratio, which CSS cannot divide for; the drop is here. */
+  --marquee-k: 1;
+  --marquee-drop: 0vh;
+  --marquee-top-size: calc(12.42vh * var(--marquee-k)); /* Brier's 0.697 cap on a 12.656vh em */
+  --marquee-bottom-size: calc(12.163vh * var(--marquee-k)); /* 0.84 / 6.906 */
+  --marquee-gap: calc(1.448vh * var(--marquee-k)); /* the 0.1-unit seam between copies */
+}
+
+@media (max-width: 768px) {
+  .hero-back {
+    --marquee-drop: 35vh;
+  }
 }
 
 .marquee__row {
@@ -1797,10 +1851,12 @@
 }
 
 /* Cap tops at 427px and 548px of a 1080px frame, measured off the landed
-   screen; each row's top is that less the face's own cap offset in a
-   line-height: 1 box. */
+   screen — 10.37vh above the middle and 0.741vh below it; each row's top is
+   that less the face's own cap offset in a line-height: 1 box. */
 .hero-back [data-marquee='left'] {
-  inset-block-start: calc(39.63vh - 0.207 * var(--marquee-top-size));
+  inset-block-start: calc(
+    50vh + var(--marquee-drop) - 10.37vh * var(--marquee-k) - 0.207 * var(--marquee-top-size)
+  );
   color: var(--accent-off);
 }
 
@@ -1808,7 +1864,9 @@
   /* The group is squeezed to 0.9 about the screen's centre. Scaling a
      full-width row would shrink its clip to 90% of the screen too, so it is
      laid out a ninth wider and pulled back by half of that first. */
-  inset-block-start: calc(50.741vh - 0.155 * var(--marquee-bottom-size));
+  inset-block-start: calc(
+    50vh + var(--marquee-drop) + 0.741vh * var(--marquee-k) - 0.155 * var(--marquee-bottom-size)
+  );
   inset-inline-start: calc((100% - 100% / 0.9) / 2);
   inline-size: calc(100% / 0.9);
   transform: scaleX(0.9);

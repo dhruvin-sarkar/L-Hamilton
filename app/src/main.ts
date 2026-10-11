@@ -358,8 +358,29 @@ function el<K extends keyof HTMLElementTagNameMap>(
 /** Copies per track when the track cannot be measured. See the build below. */
 const MARQUEE_FALLBACK_COPIES = 4;
 
+/**
+ * How large the bands are drawn against the desktop's, for this window width.
+ *
+ * The reference's carousel is seen by a camera at z 4.5. At 768px and below
+ * its responsive() pulls that camera back — 6.5 at 768 out to 11 at 480, then
+ * 9.5 at 479 out to 14 at 320 — so everything on the plane is 4.5 / z the
+ * size: 0.37 at 390, 0.69 at 768. The stylesheet takes it as --marquee-k.
+ */
+function marqueeScale(): number {
+  const vw = window.innerWidth;
+  if (vw > 768) return 1;
+  const z = vw >= 480 ? 11 - (4.5 * (vw - 480)) / 288 : 14 - (4.5 * Math.max(vw - 320, 0)) / 160;
+  return 4.5 / z;
+}
+
 const marquee = document.querySelector<HTMLElement>('.hero-back');
 if (marquee) {
+  /* Before anything below measures a band: the copy count is taken off the
+     size the text is actually drawn at. */
+  const sizeBands = (): void => marquee.style.setProperty('--marquee-k', String(marqueeScale()));
+  sizeBands();
+  window.addEventListener('resize', sizeBands);
+
   /* Built here, animated further down once the reduced-motion branch is known.
      Carrying the copy count in a local rather than round-tripping it through a
      data attribute: a missing attribute would silently fall back to a different
@@ -418,9 +439,10 @@ if (marquee) {
        * The reference moves each band one world unit a second, and 6.906 units
        * span the viewport's height: 14.48vh a second on screen. The bottom row
        * is squeezed to 0.9 by a transform its track sits inside, so its own
-       * layout distance is a ninth longer for the same on-screen speed. */
+       * layout distance is a ninth longer for the same on-screen speed. A unit
+       * is that much smaller on a phone, where the camera stands further back. */
       const squeeze = rightward ? 0.9 : 1;
-      const pxPerSecond = (window.innerHeight / 6.906) / squeeze;
+      const pxPerSecond = ((window.innerHeight / 6.906) * marqueeScale()) / squeeze;
       const duration = (track.scrollWidth * (step / 100)) / pxPerSecond;
 
       /* The two bands travel opposite ways, and the rightward one has to START
