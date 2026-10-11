@@ -1,5 +1,5 @@
 import { defineConfig, type Plugin } from 'vite';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { bandCopy, bandsSpoken, isHeroBand } from './src/content/home';
@@ -15,6 +15,7 @@ import { bandCopy, bandsSpoken, isHeroBand } from './src/content/home';
    from it below (see HEAD_TOKENS), because a title and a meta description are
    read by crawlers and link previews that never run the page's script. */
 import { driver } from './src/content/hamilton';
+import { roundPhoto } from './src/content/calendar-media';
 import { calendar, career } from './src/content/live-stats';
 import { spell } from './src/lib/schedule';
 
@@ -34,6 +35,21 @@ const here = fileURLToPath(new URL('.', import.meta.url));
    this only narrows the type. */
 const currentSeason = calendar[0]?.season;
 if (currentSeason === undefined) throw new Error('[head] the season calendar is empty');
+
+/* Every round's picture, checked to be there. roundPhoto() only formats a path
+   from a round's season and number, and the Calendar page sets it as an image
+   source at runtime, so nothing noticed a file that was not there: the day
+   fetch-stats rolls the calendar into a new season, or a round is added, the
+   card shows a dark empty frame and the build still passes. Checked here with
+   the rest of the data layer, so it stops the build and the dev server
+   instead. */
+const missingPhotos = calendar.map(roundPhoto).filter((photo) => !existsSync(path.join(here, 'public', photo)));
+if (missingPhotos.length > 0) {
+  throw new Error(
+    `[calendar] ${missingPhotos.length} of ${calendar.length} rounds have no picture in public: ` +
+      `${missingPhotos.join(', ')}. Make them with: python tools/gen-calendar-placeholders.py`,
+  );
+}
 
 /**
  * `%%name%%` in any HTML entry: a fact from the data layer, written into the
