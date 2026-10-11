@@ -578,7 +578,7 @@ if (next) {
   slot('next-team', `${era.team} F1 since ${era.from}`);
 
   slot('round-circuit', next.circuitName);
-  slot('round-country', next.country);
+  slot('round-country', countryName(next.country));
   /* "04-06" and "Sep": the weekend as the schedule panel prints it, the race's
      month alone across a month's end (lib/schedule.ts). */
   const dates = weekendSpan(next);
@@ -2176,8 +2176,8 @@ function mountCalendar(section: HTMLElement): void {
        user can see (WCAG 2.5.3), with the race and the town it is in after the
        country they belong to. */
     const label =
-      `Round ${round.round}, ${round.country}, ${round.raceName}, ${round.locality}, ` +
-      `${span.days} ${span.month}, ${facts.laps} laps, ${distance} km. ${state}`;
+      `Round ${round.round}, ${countryName(round.country)}, ${round.raceName}, ` +
+      `${round.locality}, ${span.days} ${span.month}, ${facts.laps} laps, ${distance} km. ${state}`;
     row.setAttribute('aria-label', label.trim());
 
     const cell = (className = 'ot-cal__cell'): HTMLSpanElement => {
@@ -2189,7 +2189,7 @@ function mountCalendar(section: HTMLElement): void {
     cell().appendChild(el('span', 'ot-cal__major', String(round.round)));
 
     const location = cell();
-    location.appendChild(el('span', 'ot-cal__major ot-cal__nowrap', round.country));
+    location.appendChild(el('span', 'ot-cal__major ot-cal__nowrap', countryName(round.country)));
     const flag = el('img', 'ot-cal__row-flag');
     flag.src = flagUrl(round.country);
     flag.alt = '';
