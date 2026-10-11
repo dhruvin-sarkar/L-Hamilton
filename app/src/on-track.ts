@@ -511,7 +511,7 @@ if (previous) {
      that was not classified "did not finish", with the status the timing
      screens print for it in brackets -- never "Finished Retired". */
   const spokenOutcome = (result: NonNullable<CalendarRound['result']>): string => {
-    const pts = `${points(result.points)} points.`;
+    const pts = `${points(result.points)} ${result.points === 1 ? 'point' : 'points'}.`;
     if (result.position) return `Finished ${ordinal(result.position)}, ${pts}`;
     const status = result.status.trim();
     if (/^did not/i.test(status)) return `${status}, ${pts}`;
