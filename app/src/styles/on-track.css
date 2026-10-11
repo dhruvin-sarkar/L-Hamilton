@@ -2281,10 +2281,24 @@ body[data-page='on-track'] {
     grid-template-columns: 2fr 1fr 0.6fr;
   }
 
-  .ot-hl__col--series,
-  .ot-hl__col--time,
+  /* Already aria-hidden: the full year beside it is what gets read. */
   .ot-hl__yy {
     display: none;
+  }
+
+  /* Off the screen here, as the reference's are, but not out of the table:
+     `display: none` took the series and the winning time away from a screen
+     reader too, on the one width where nothing shows they were dropped.
+     Clipped to a pixel and lifted out of the grid instead, so the three
+     columns above are still the only three it lays out. */
+  .ot-hl__col--series,
+  .ot-hl__col--time {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .ot-hl__major {
