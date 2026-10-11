@@ -14,7 +14,7 @@
 
 import './styles/off-track.css';
 import Lenis from 'lenis';
-import { gsap, mm, reducedMotion, ScrollTrigger } from './lib/motion';
+import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './lib/motion';
 import { mountChrome } from './lib/chrome';
 import { whenEntranceCued } from './lib/transition';
 import { mountReveals } from './lib/reveal';
@@ -781,12 +781,12 @@ function buildGallery(): void {
     if (photo.caption) fig.append(el('figcaption', 'gallery__cap reveal-text', photo.caption));
     const box = el('div', 'gallery__frame');
     const img = el('img');
-    img.src = photo.src;
+    // Given its picture on approach: see loadGalleryOnApproach.
+    img.dataset.src = photo.src;
     img.width = photo.width;
     img.height = photo.height;
     // The caption says where; the picture itself is not described in text.
     img.alt = '';
-    img.loading = 'lazy';
     img.decoding = 'async';
     box.append(img);
     fig.append(box);
@@ -852,7 +852,77 @@ function buildGallery(): void {
   });
 }
 
+/**
+ * The gallery's pictures, asked for as they come within a screen of view.
+ *
+ * With `loading="lazy"` they were asked for with the page. Measured on a
+ * 390x844 phone on Fast 4G, where the gallery is a column starting under two
+ * screens down: five of them, 457KB, were requested before the load event,
+ * sharing the phone's bandwidth with the hero picture that is its largest
+ * paint and holding the load event back. Asked for on approach, the hero
+ * picture is the only one requested before the load event, and 192KB less has
+ * come down by the first scroll. Scrolled at 1000px a second, every picture
+ * was loaded on the first frame it was in view.
+ *
+ * In the column each picture is watched on its own. In the sideways row every
+ * frame past the first screen is clipped by the pin (`overflow: clip`), and
+ * a clipped frame does not intersect until it is on screen, so there the
+ * section is watched instead and the whole row is asked for as it approaches:
+ * the travel carries all of it past within the section's scroll.
+ */
+function loadGalleryOnApproach(): void {
+  const gallery = must('[data-gallery]');
+  const pictures = [...gallery.querySelectorAll<HTMLImageElement>('img[data-src]')];
+  const sideways = window.matchMedia(WIDE_AND_ANIMATED);
+
+  /** Whether the section is within a screen of view, as last reported. */
+  let near = false;
+
+  const load = (img: HTMLImageElement): void => {
+    const src = img.dataset.src;
+    if (!src) return;
+    img.src = src;
+    delete img.dataset.src;
+  };
+
+  /* The whole row, once the section is near AND laid out as a row. Asked on
+     both changes, not only the section's: a window loaded narrow with the
+     section already near and then widened past 992px gets no second report
+     from the observer, and the row's frames, now clipped, were each asked for
+     only as they came on screen. */
+  const loadRow = (): void => {
+    if (!near || !sideways.matches) return;
+    pictures.forEach(load);
+    approach.disconnect();
+    sideways.removeEventListener('change', loadRow);
+  };
+
+  const settle = (entries: IntersectionObserverEntry[]): void => {
+    for (const entry of entries) {
+      if (entry.target === gallery) {
+        near = entry.isIntersecting;
+      } else if (entry.isIntersecting) {
+        approach.unobserve(entry.target);
+        load(entry.target as HTMLImageElement);
+      }
+    }
+    loadRow();
+  };
+
+  const approach = new IntersectionObserver(settle, { rootMargin: '100% 0px' });
+  approach.observe(gallery);
+  for (const img of pictures) approach.observe(img);
+  sideways.addEventListener('change', loadRow);
+
+  /* The observer's callback is held back while the page loads (lib/near.ts),
+     which is what keeps these out of the load. A page reloaded onto the
+     gallery has pictures on screen from the start, though: the second frame
+     reads the observer's queue itself, as nearViewport does. */
+  requestAnimationFrame(() => requestAnimationFrame(() => settle(approach.takeRecords())));
+}
+
 buildGallery();
+loadGalleryOnApproach();
 
 /* The reference's own timing for this section, the same as On Track's: travel
    from the moment the section enters, with a second of catch-up. */
