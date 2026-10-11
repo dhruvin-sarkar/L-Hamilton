@@ -348,12 +348,17 @@ export function mountReveals(opts: RevealOptions): void {
      *
      * Every block goes through each phase before any block starts the next, so
      * reads and writes never interleave: two layouts for the whole page, where
-     * cutting one block at a time cost two per block. */
-    const applySplits = (): void => {
-      // READ: which blocks qualify, and which have already played, before any
-      // of them is touched.
+     * cutting one block at a time cost two per block.
+     *
+     * Answers whether any block came out cut differently from how it went in,
+     * which is the only way a re-cut moves anything on the page. */
+    const applySplits = (): boolean => {
+      // READ: which blocks qualify, which have already played, and each one's
+      // markup as it stands, before any of them is touched. Markup, not
+      // layout: reading it costs no style or layout pass.
       const targets = lines.filter(splittable);
       const played = targets.filter((el) => el.classList.contains('is-in'));
+      const before = targets.map((el) => el.innerHTML);
 
       /* WRITE: every block back to its authored runs, cut into measuring pieces.
        *
@@ -393,6 +398,11 @@ export function mountReveals(opts: RevealOptions): void {
         delete el.dataset.revealSplit;
       }
       for (const el of played) el.classList.add('is-done');
+
+      // The same lines as before leave the same boxes as before, so a block's
+      // markup is the whole question. Compared after the last write, and again
+      // without touching layout.
+      return targets.some((el, i) => el.innerHTML !== before[i]);
     };
 
     void document.fonts.ready.then(() => {
@@ -402,10 +412,25 @@ export function mountReveals(opts: RevealOptions): void {
       ScrollTrigger.refresh();
     });
 
+    /* A re-cut that changed any block is followed by a refresh, for the reason
+     * the first cut is: it lands AFTER ScrollTrigger has measured. Narrowing
+     * Home from 1280 to 800, ScrollTrigger refreshed 46ms after the resize (the
+     * breakpoint's matchMedia, which also cancels its own debounced refresh),
+     * the re-cut 200ms later took the document from 19745px to 19677px, and
+     * nothing measured again: all eleven triggers below the helmet wall stood
+     * 68-69px off where a refresh then put them.
+     *
+     * Only when it changed something. This listener also hears a phone's
+     * toolbar sliding away, a height-only resize that ScrollTrigger ignores on
+     * purpose, because re-measuring mid-scroll makes its pinned sections jump.
+     * The words break where they did, so the re-cut is a no-op there, and an
+     * unconditional refresh would bring exactly that jump back. */
     let resplit = 0;
     window.addEventListener('resize', () => {
       window.clearTimeout(resplit);
-      resplit = window.setTimeout(applySplits, 200);
+      resplit = window.setTimeout(() => {
+        if (applySplits()) ScrollTrigger.refresh();
+      }, 200);
     });
 
     /**
