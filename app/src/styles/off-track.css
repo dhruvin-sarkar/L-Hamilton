@@ -355,6 +355,12 @@ body[data-page='off-track'] {
   .oft-hero__marquee-track ~ .oft-hero__marquee-track {
     display: none;
   }
+
+  /* The spacer that follows each name in the loop goes half to either side
+     of it here, or every wrapped line sits half a spacer left of centre. */
+  .oft-hero__marquee-track .oft-hero__venture {
+    padding-inline: calc(3.5 * var(--r));
+  }
 }
 
 /* One venture: set as type in the slot the reference fills with a 3.4375rem
