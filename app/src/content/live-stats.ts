@@ -92,6 +92,35 @@ function number(value: unknown, where: string): number {
   return value;
 }
 
+/* `number` alone is too loose for most of this record. It passes -60 laps, a
+   grid slot of -3 and 4.5 wins, and the cross-checks further down only catch
+   those where a second figure happens to disagree: a circuit's lap count has
+   none, and a negative in one row cancels against a surplus in another. So
+   each kind of figure has its own reader, and says what it is when it is
+   wrong. */
+
+/** A tally, a year, a round, a lap count, a grid slot (0 is the pit lane):
+    whole, and never negative. */
+function count(value: unknown, where: string): number {
+  const n = number(value, where);
+  if (!Number.isInteger(n) || n < 0) fail(`${where} is ${n}, expected a whole number of zero or more`);
+  return n;
+}
+
+/** A place in a result or a standings table: first is 1. */
+function place(value: unknown, where: string): number {
+  const n = count(value, where);
+  if (n === 0) fail(`${where} is 0, expected a place of 1 or higher`);
+  return n;
+}
+
+/** Points come in halves (2009, 2021) but never below nothing. */
+function points(value: unknown, where: string): number {
+  const n = number(value, where);
+  if (n < 0) fail(`${where} is ${n}, expected points of zero or more`);
+  return n;
+}
+
 function text(value: unknown, where: string): string {
   if (typeof value !== 'string' || value.length === 0) {
     fail(`${where} is ${JSON.stringify(value)}, expected a non-empty string`);
@@ -119,16 +148,26 @@ export const provenance: StatsProvenance = {
   },
 };
 
+/* Every total is a tally but two: points, and the average, which is a mean
+   and is held to the seasons further down. */
 export const career: CareerRecord = Object.fromEntries(
-  REQUIRED_TOTALS.map((k) => [
-    k,
-    number((raw.totals as Record<string, unknown>)?.[k], `totals.${k}`),
-  ]),
+  REQUIRED_TOTALS.map((k) => {
+    const value = (raw.totals as Record<string, unknown>)?.[k];
+    const where = `totals.${k}`;
+    if (k === 'points') return [k, points(value, where)];
+    if (k === 'averageFinish') return [k, number(value, where)];
+    return [k, count(value, where)];
+  }),
 ) as unknown as CareerRecord;
 
 export const seasons: CareerSeason[] = raw.seasons.map((s, i) => {
   const row = s as Record<string, unknown>;
-  for (const k of REQUIRED_SEASON) number(row[k], `seasons[${i}].${k}`);
+  for (const k of REQUIRED_SEASON) {
+    const where = `seasons[${i}].${k}`;
+    if (k === 'points') points(row[k], where);
+    else if (k === 'position') place(row[k], where);
+    else count(row[k], where);
+  }
   const position = row.position as number;
   return {
     year: row.year as number,
@@ -149,6 +188,16 @@ export const seasons: CareerSeason[] = raw.seasons.map((s, i) => {
     finishPositionSum: row.finishPositionSum as number,
     isChampion: position === 1,
   };
+});
+
+/* Career order, one row a year. The first row is read as his debut and the
+   list reversed as newest-first, so a repeated or misplaced year would
+   reorder every season table while each total still added up. */
+seasons.forEach((s, i) => {
+  const previous = seasons[i - 1];
+  if (previous && s.year <= previous.year) {
+    fail(`seasons[${i}] is ${s.year}, straight after ${previous.year}: one row a year, in order`);
+  }
 });
 
 /* ------------------------------------------------------------------ *
@@ -202,6 +251,17 @@ for (const s of seasons) {
       `${s.year}: ${s.finishes} classified + ${s.dnfs} DNF + ${s.disqualifications} DSQ ` +
         `does not make ${s.entries} entries`,
     );
+  }
+}
+
+/* A win is a podium, and a podium, a pole or a fastest lap each belong to a
+   race he entered, so within one season the tallies are ordered. The sums
+   above cannot see this: move wins from one season to another and every
+   total still agrees, while one row claims more wins than it had races. */
+for (const s of seasons) {
+  if (s.wins > s.podiums) fail(`${s.year}: ${s.wins} wins but only ${s.podiums} podiums`);
+  for (const key of ['podiums', 'poles', 'fastestLaps'] as const) {
+    if (s[key] > s.entries) fail(`${s.year}: ${s[key]} ${key} from ${s.entries} entries`);
   }
 }
 
@@ -368,8 +428,8 @@ function textOrNull(value: unknown, where: string): string | null {
   return value === null ? null : text(value, where);
 }
 
-function numberOrNull(value: unknown, where: string): number | null {
-  return value === null ? null : number(value, where);
+function placeOrNull(value: unknown, where: string): number | null {
+  return value === null ? null : place(value, where);
 }
 
 function flag(value: unknown, where: string): boolean {
@@ -377,18 +437,37 @@ function flag(value: unknown, where: string): boolean {
   return value;
 }
 
-/** YYYY-MM-DD, as the source writes every date. */
+/** YYYY-MM-DD, as the source writes every date -- and a day that exists. */
 function isoDate(value: unknown, where: string): string {
   const date = text(value, where);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) fail(`${where} is "${date}", expected YYYY-MM-DD`);
+  /* The shape alone passes 2026-13-45. A real day parses and prints back
+     unchanged; an impossible one is invalid or rolls into the next month. */
+  const day = new Date(`${date}T00:00:00Z`);
+  if (Number.isNaN(day.getTime()) || day.toISOString().slice(0, 10) !== date) {
+    fail(`${where} is "${date}", which is not a day in the calendar`);
+  }
   return date;
+}
+
+/**
+ * "13:00:00Z", the UTC clock time the source gives a session, or null where it
+ * gives none. `roundStart` joins it to the date, and anything else here makes
+ * an Invalid Date: one that is never ahead of now, so the countdown would skip
+ * the round without a word.
+ */
+function utcTimeOrNull(value: unknown, where: string): string | null {
+  if (value === null) return null;
+  const time = text(value, where);
+  if (!/^([01]\d|2[0-3]):[0-5]\d:[0-5]\dZ$/.test(time)) fail(`${where} is "${time}", expected HH:MM:SSZ`);
+  return time;
 }
 
 function raceSession(value: unknown, where: string): RaceSession | null {
   if (value === null) return null;
   if (!value || typeof value !== 'object') fail(`${where} is not a session or null`);
   const s = value as Fields;
-  return { date: isoDate(s.date, `${where}.date`), time: textOrNull(s.time, `${where}.time`) };
+  return { date: isoDate(s.date, `${where}.date`), time: utcTimeOrNull(s.time, `${where}.time`) };
 }
 
 function qualifyingOrNull(value: unknown, where: string): RoundResult['qualifying'] {
@@ -396,7 +475,7 @@ function qualifyingOrNull(value: unknown, where: string): RoundResult['qualifyin
   if (!value || typeof value !== 'object') fail(`${where} is not a qualifying result or null`);
   const q = value as Fields;
   return {
-    position: numberOrNull(q.position, `${where}.position`),
+    position: placeOrNull(q.position, `${where}.position`),
     time: textOrNull(q.time, `${where}.time`),
   };
 }
@@ -406,7 +485,7 @@ function sprintOrNull(value: unknown, where: string): RoundResult['sprint'] {
   if (!value || typeof value !== 'object') fail(`${where} is not a sprint result or null`);
   const s = value as Fields;
   return {
-    position: numberOrNull(s.position, `${where}.position`),
+    position: placeOrNull(s.position, `${where}.position`),
     positionText: text(s.positionText, `${where}.positionText`),
     time: textOrNull(s.time, `${where}.time`),
   };
@@ -415,8 +494,8 @@ function sprintOrNull(value: unknown, where: string): RoundResult['sprint'] {
 export const wins: Win[] = list(raw.wins, 'wins').map((w, i) => {
   const at = `wins[${i}]`;
   return {
-    season: number(w.season, `${at}.season`),
-    round: number(w.round, `${at}.round`),
+    season: count(w.season, `${at}.season`),
+    round: count(w.round, `${at}.round`),
     raceName: text(w.raceName, `${at}.raceName`),
     date: isoDate(w.date, `${at}.date`),
     circuitId: text(w.circuitId, `${at}.circuitId`),
@@ -425,8 +504,8 @@ export const wins: Win[] = list(raw.wins, 'wins').map((w, i) => {
     locality: text(w.locality, `${at}.locality`),
     team: text(w.team, `${at}.team`),
     teamId: text(w.teamId, `${at}.teamId`),
-    grid: number(w.grid, `${at}.grid`),
-    laps: number(w.laps, `${at}.laps`),
+    grid: count(w.grid, `${at}.grid`),
+    laps: count(w.laps, `${at}.laps`),
     raceTime: textOrNull(w.raceTime, `${at}.raceTime`),
     fastestLap: textOrNull(w.fastestLap, `${at}.fastestLap`),
     fromPole: flag(w.fromPole, `${at}.fromPole`),
@@ -444,14 +523,14 @@ export const circuits: CircuitRecord[] = list(raw.circuits, 'circuits').map((c, 
     name: text(c.name, `${at}.name`),
     country: text(c.country, `${at}.country`),
     locality: text(c.locality, `${at}.locality`),
-    starts: number(c.starts, `${at}.starts`),
-    wins: number(c.wins, `${at}.wins`),
-    podiums: number(c.podiums, `${at}.podiums`),
-    poles: number(c.poles, `${at}.poles`),
-    bestFinish: numberOrNull(c.bestFinish, `${at}.bestFinish`),
-    firstRaced: number(c.firstRaced, `${at}.firstRaced`),
-    lastRaced: number(c.lastRaced, `${at}.lastRaced`),
-    laps: number(c.laps, `${at}.laps`),
+    starts: count(c.starts, `${at}.starts`),
+    wins: count(c.wins, `${at}.wins`),
+    podiums: count(c.podiums, `${at}.podiums`),
+    poles: count(c.poles, `${at}.poles`),
+    bestFinish: placeOrNull(c.bestFinish, `${at}.bestFinish`),
+    firstRaced: count(c.firstRaced, `${at}.firstRaced`),
+    lastRaced: count(c.lastRaced, `${at}.lastRaced`),
+    laps: count(c.laps, `${at}.laps`),
   };
 });
 
@@ -461,6 +540,16 @@ for (const key of ['starts', 'wins', 'podiums', 'poles'] as const) {
   const summed = circuits.reduce((n, c) => n + c[key], 0);
   if (summed !== career[key]) {
     fail(`the circuit records sum to ${summed} ${key}, but totals.${key} is ${career[key]}`);
+  }
+}
+
+/* And within one circuit, as within one season: no more wins than podiums, no
+   more podiums or poles than starts. The sums hold just as well with a win
+   moved from one circuit to another. */
+for (const c of circuits) {
+  if (c.wins > c.podiums) fail(`${c.id}: ${c.wins} wins but only ${c.podiums} podiums`);
+  for (const key of ['podiums', 'poles'] as const) {
+    if (c[key] > c.starts) fail(`${c.id}: ${c[key]} ${key} from ${c.starts} starts`);
   }
 }
 
@@ -477,10 +566,10 @@ export const calendar: CalendarRound[] = list(raw.calendar, 'calendar').map((r, 
     if (!r.result || typeof r.result !== 'object') fail(`${at}.result is not a result or null`);
     const x = r.result as Fields;
     result = {
-      position: numberOrNull(x.position, `${at}.result.position`),
+      position: placeOrNull(x.position, `${at}.result.position`),
       positionText: text(x.positionText, `${at}.result.positionText`),
-      points: number(x.points, `${at}.result.points`),
-      grid: number(x.grid, `${at}.result.grid`),
+      points: points(x.points, `${at}.result.points`),
+      grid: count(x.grid, `${at}.result.grid`),
       status: text(x.status, `${at}.result.status`),
       /* The fields the calendar page reads off a run round. Absent (rather
          than null) means a career.json written before the generator emitted
@@ -492,15 +581,15 @@ export const calendar: CalendarRound[] = list(raw.calendar, 'calendar').map((r, 
     };
   }
   return {
-    season: number(r.season, `${at}.season`),
-    round: number(r.round, `${at}.round`),
+    season: count(r.season, `${at}.season`),
+    round: count(r.round, `${at}.round`),
     raceName: text(r.raceName, `${at}.raceName`),
     circuitId: text(r.circuitId, `${at}.circuitId`),
     circuitName: text(r.circuitName, `${at}.circuitName`),
     country: text(r.country, `${at}.country`),
     locality: text(r.locality, `${at}.locality`),
     date: isoDate(r.date, `${at}.date`),
-    time: textOrNull(r.time, `${at}.time`),
+    time: utcTimeOrNull(r.time, `${at}.time`),
     sessions: {
       practice1: raceSession(s.practice1, `${at}.sessions.practice1`),
       practice2: raceSession(s.practice2, `${at}.sessions.practice2`),
@@ -528,14 +617,14 @@ calendar.forEach((r, i) => {
 export const races: RaceEntry[] = list(raw.races, 'races').map((r, i) => {
   const at = `races[${i}]`;
   return {
-    season: number(r.season, `${at}.season`),
-    round: number(r.round, `${at}.round`),
+    season: count(r.season, `${at}.season`),
+    round: count(r.round, `${at}.round`),
     raceName: text(r.raceName, `${at}.raceName`),
     date: isoDate(r.date, `${at}.date`),
     circuitId: text(r.circuitId, `${at}.circuitId`),
     country: text(r.country, `${at}.country`),
     locality: text(r.locality, `${at}.locality`),
-    position: numberOrNull(r.position, `${at}.position`),
+    position: placeOrNull(r.position, `${at}.position`),
     positionText: text(r.positionText, `${at}.positionText`),
     status: text(r.status, `${at}.status`),
     fastestLap: textOrNull(r.fastestLap, `${at}.fastestLap`),

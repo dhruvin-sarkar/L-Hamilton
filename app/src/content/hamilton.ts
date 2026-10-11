@@ -18,6 +18,7 @@ import {
   career,
   championshipYears as championshipYearsFromResults,
   provenance,
+  seasons,
   wins,
 } from './live-stats';
 import type { Win } from './live-stats';
@@ -68,18 +69,6 @@ export interface CareerTotals {
  * Stable
  * ------------------------------------------------------------------ */
 
-export const driver = {
-  firstName: 'Lewis',
-  lastName: 'Hamilton',
-  fullName: 'Lewis Carl Davidson Hamilton',
-  dateOfBirth: '1985-01-07',
-  birthplace: 'Stevenage, UK',
-  nationality: 'British',
-  number: 44,
-  currentTeam: 'Ferrari',
-  debutYear: 2007,
-} as const;
-
 export const eras: Era[] = [
   {
     id: 'mclaren',
@@ -101,6 +90,28 @@ export const eras: Era[] = [
   },
 ];
 
+/* The team he drives for is stated once, by the era left open, and `driver`
+   reads it from there. Typed a second time on `driver` it could be changed
+   without the era, and the home page would name one team beside the other's
+   first year. That "open" means one era, the newest, is the check on the eras
+   further down. */
+const currentEra = eras.find((e) => e.to === null);
+if (!currentEra) {
+  throw new Error('[content] eras has no open era (to: null), so there is no current team to name');
+}
+
+export const driver = {
+  firstName: 'Lewis',
+  lastName: 'Hamilton',
+  fullName: 'Lewis Carl Davidson Hamilton',
+  dateOfBirth: '1985-01-07',
+  birthplace: 'Stevenage, UK',
+  nationality: 'British',
+  number: 44,
+  currentTeam: currentEra.team,
+  debutYear: 2007,
+} as const;
+
 /** The seven title years — stable, and the spine of the career narrative. */
 export const championshipYears = [2008, 2014, 2015, 2017, 2018, 2019, 2020] as const;
 
@@ -112,6 +123,36 @@ if (championshipYears.join() !== championshipYearsFromResults.join()) {
   throw new Error(
     `[content] championshipYears declares ${championshipYears.join(', ')} but the fetched ` +
       `standings put him first in ${championshipYearsFromResults.join(', ')}`,
+  );
+}
+
+/* The eras and the debut year are held to the fetched record the same way,
+   for the same reason. Read in career order, the seasons fall into runs of
+   one team, and the eras must be exactly those runs: the same teams, the same
+   first and last years, and the newest left open because he is still in it.
+   The debut year must be the first season's. Without this a change of team,
+   or a slip of the hand above, would print "Ferrari since 2025" and "three
+   teams" beside a season table that says otherwise. */
+const teamRuns = seasons.reduce<{ id: string; from: number; to: number }[]>((runs, season) => {
+  const run = runs[runs.length - 1];
+  if (run && run.id === season.teamId) run.to = season.year;
+  else runs.push({ id: season.teamId, from: season.year, to: season.year });
+  return runs;
+}, []);
+const erasDeclared = eras.map((e) => `${e.id} ${e.from}-${e.to ?? 'now'}`).join(', ');
+const erasFromResults = teamRuns
+  .map((run, i) => `${run.id} ${run.from}-${i === teamRuns.length - 1 ? 'now' : run.to}`)
+  .join(', ');
+if (erasDeclared !== erasFromResults) {
+  throw new Error(
+    `[content] eras declares ${erasDeclared} but the fetched seasons run ${erasFromResults}`,
+  );
+}
+
+if (driver.debutYear !== seasons[0]?.year) {
+  throw new Error(
+    `[content] driver.debutYear is ${driver.debutYear} but the first fetched season is ` +
+      `${seasons[0]?.year}`,
   );
 }
 
