@@ -132,6 +132,11 @@ function htmlPartials(): Plugin {
 const SHARE_CARD = '/assets/brand/share-card.png';
 const SHARE_CARD_ALT = 'The LH monogram above the name Lewis Hamilton, on Rosso Corsa red.';
 
+/** The tab icon's two PNG copies, drawn by the same tool from the icon itself,
+    brand/lh-monogram.svg. */
+const ICON_PNG = '/assets/brand/favicon-32.png';
+const TOUCH_ICON = '/assets/brand/apple-touch-icon.png';
+
 /**
  * The origin the site is served from, such as https://example.com, read from
  * the SITE_ORIGIN environment variable.
@@ -199,12 +204,21 @@ function only(head: string, pattern: RegExp, what: string, filename: string): Re
  * escaping. The title's tokens are filled by htmlPartials, so this has to run
  * after it: the order of the plugins below.
  *
+ * The tab icon's PNG copies are named here as well, for the same reason: one
+ * place rather than four heads. Each page's own <link rel="icon"> names the
+ * SVG, which is the icon wherever SVG icons are drawn. Ahead of it go the 32px
+ * PNG, with its size stated, for a browser that does not draw them, and the
+ * touch icon a phone uses for a home-screen shortcut. Without those two such a
+ * browser fell back to asking for /favicon.ico, which does not exist.
+ *
  * Dev and build alike, so the head view-source shows in dev is the one that
  * ships.
  */
 function headTags(): Plugin {
   const origin = siteOrigin();
   const card = pngSize(SHARE_CARD);
+  const icon = pngSize(ICON_PNG);
+  const touchIcon = pngSize(TOUCH_ICON);
   const image = (origin ?? '') + SHARE_CARD;
   const TITLE = /^([ \t]*)<title>([\s\S]*?)<\/title>/gim;
   const DESCRIPTION = /<meta\s+name="description"\s+content="([^"]*)"\s*\/?>/gi;
@@ -251,6 +265,8 @@ function headTags(): Plugin {
           `<meta name="twitter:description" content="${description}" />`,
           `<meta name="twitter:image" content="${image}" />`,
           `<meta name="twitter:image:alt" content="${SHARE_CARD_ALT}" />`,
+          `<link rel="icon" href="${ICON_PNG}" type="image/png" sizes="${icon.width}x${icon.height}" />`,
+          `<link rel="apple-touch-icon" href="${TOUCH_ICON}" sizes="${touchIcon.width}x${touchIcon.height}" />`,
         ];
         const after = titleTag.index + titleTag[0].length;
         return html.slice(0, after) + tags.map((tag) => `\n${indent}${tag}`).join('') + html.slice(after);
