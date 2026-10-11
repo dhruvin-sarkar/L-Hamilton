@@ -1341,7 +1341,10 @@ body[data-page='off-track'] {
   }
 }
 
-/* Reference [data-hide='m']: the ventures row is not shown on a phone. */
+/* Reference [data-hide='m']: the ventures row is not shown on a phone.
+   off-track.ts builds the row's loop on the other side of this width
+   (min-width: 498px), where the row has a width to measure: the two move
+   together. */
 @media (max-width: 497px) {
   .oft-hero__marquee {
     display: none;
