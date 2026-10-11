@@ -900,32 +900,28 @@ if (footerPanel) {
 }
 
 /* The helmet wall and the callout under it: an opaque dark ground that is not
-   the field's. Where the gallery is built it has taken the ground dark by
-   here and its `ink` term carries the nav across both. Below 992px and under
-   reduced motion the gallery is a plain column that reports nothing, so the
-   nav kept its dark ink on this dark ground and the menu button, the only
-   route to the menu on a phone, was all but invisible for the whole wall.
-   Asserted from here on that side only, so the two never describe the same
-   stretch twice. */
+   the field's. Where the gallery is built over a field it has taken the
+   ground dark by here and its `ink` term carries the nav across both. Below
+   992px and under reduced motion the gallery is a plain column that reports
+   nothing, and with no WebGL context it has no field to take dark, so the nav
+   kept its dark ink on this dark ground and the menu button, the only route
+   to the menu on a phone, was all but invisible for the whole wall. Asserted
+   here like the two dark surfaces above, whatever the gallery says: the terms
+   are combined by their maximum, so over a field already dark this one
+   changes nothing. */
 const helmetWall = document.querySelector<HTMLElement>('.hof');
 const wallCallout = document.querySelector<HTMLElement>('.callout');
 if (helmetWall && wallCallout) {
-  mm.add('(max-width: 991px), (prefers-reduced-motion: reduce)', () => {
-    ScrollTrigger.create({
-      trigger: helmetWall,
-      start: () => `top top+=${navHeight()}`,
-      endTrigger: wallCallout,
-      end: () => `bottom top+=${navHeight()}`,
-      invalidateOnRefresh: true,
-      onToggle: (self) => {
-        groundCross.wall = self.isActive ? 1 : 0;
-        applyGroundCross();
-      },
-    });
-    return () => {
-      groundCross.wall = 0;
+  ScrollTrigger.create({
+    trigger: helmetWall,
+    start: () => `top top+=${navHeight()}`,
+    endTrigger: wallCallout,
+    end: () => `bottom top+=${navHeight()}`,
+    invalidateOnRefresh: true,
+    onToggle: (self) => {
+      groundCross.wall = self.isActive ? 1 : 0;
       applyGroundCross();
-    };
+    },
   });
 }
 
@@ -1515,27 +1511,6 @@ if (stage && heroLayer && gl) {
     });
   }
 
-  /* Reduced motion builds no shrink, so nothing above ever crosses the nav to
-     its dark ink, and it stayed light on the cream page below the hero: a
-     white menu button and a yellow name at under 1.4:1. A plain toggle
-     instead: light ink while the hero's plate is under the nav, dark from
-     there down. */
-  if (heroTrack && reducedMotion) {
-    /* By position, not by isActive: at the very bottom of the page the
-       trigger has ended and reports inactive, with the nav still on cream. */
-    const cross = (self: ScrollTrigger): void => {
-      navStyle?.setProperty('--nav-invert', self.scroll() >= self.start ? '1' : '0');
-    };
-    ScrollTrigger.create({
-      trigger: heroTrack,
-      start: () => `bottom top+=${navHeight()}`,
-      end: 'max',
-      invalidateOnRefresh: true,
-      onToggle: cross,
-      onRefresh: cross,
-    });
-  }
-
   /* Live handle on the scene, the way the reference exposes window.landoGL.
      Reading and setting values from the console beats re-editing source to tune
      by eye, and ScrollTrigger rides along so a trigger's live start, end and
@@ -1630,4 +1605,28 @@ if (stage && heroLayer && gl) {
         console.error('[hero] helmet failed to load', err);
       });
     });
+}
+
+/* Where no shrink is built, nothing above ever crosses the nav to its dark
+   ink, and it stayed light on the cream page below the hero: a white menu
+   button and a yellow name at under 1.4:1. That is reduced motion, and it is
+   a browser that gave no WebGL context too, where the hero stands unpinned on
+   the same light page -- so this sits outside the scene's branch rather than
+   in it. A plain toggle instead: light ink while the hero's plate is under
+   the nav, dark from there down. */
+const staticHeroTrack = document.querySelector<HTMLElement>('[data-hero-track]');
+if (staticHeroTrack && (reducedMotion || !gl)) {
+  /* By position, not by isActive: at the very bottom of the page the
+     trigger has ended and reports inactive, with the nav still on cream. */
+  const cross = (self: ScrollTrigger): void => {
+    navGroundStyle?.setProperty('--nav-invert', self.scroll() >= self.start ? '1' : '0');
+  };
+  ScrollTrigger.create({
+    trigger: staticHeroTrack,
+    start: () => `bottom top+=${navHeight()}`,
+    end: 'max',
+    invalidateOnRefresh: true,
+    onToggle: cross,
+    onRefresh: cross,
+  });
 }
