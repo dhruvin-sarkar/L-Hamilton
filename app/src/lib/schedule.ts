@@ -54,6 +54,17 @@ export function spell(n: number): string {
   return `${TENS[Math.floor(n / 10)]}${unit ? `-${SMALL_NUMBERS[unit]}` : ''}`;
 }
 
+/**
+ * A race by the name in front of "Grand Prix": "Singapore Grand Prix" ->
+ * "Singapore", for the places that print it with their own "GP" or on its own.
+ * Everything from " Grand Prix" on goes, not only a trailing one, because the
+ * feed names a relocated round "Bahrain Grand Prix in Malaysia" -- which an
+ * end-anchored pattern leaves whole, to be printed as "... in Malaysia GP".
+ */
+export function shortRaceName(raceName: string): string {
+  return raceName.replace(/ Grand Prix.*$/, '');
+}
+
 const ukClock = new Intl.DateTimeFormat('en-GB', {
   timeZone: 'Europe/London',
   year: 'numeric',

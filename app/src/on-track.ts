@@ -27,7 +27,14 @@ import { mountTrackMap } from './lib/track3d';
 import type { TrackMap } from './lib/track3d';
 import { closedReef, drawClosedReef } from './lib/closed-reef';
 import type { ReefBranch as ClosedReefBranch } from './lib/closed-reef';
-import { MONTHS, monthAbbr, sessionWhen, weekendSessions, weekendSpan } from './lib/schedule';
+import {
+  MONTHS,
+  monthAbbr,
+  sessionWhen,
+  shortRaceName,
+  weekendSessions,
+  weekendSpan,
+} from './lib/schedule';
 import { Signature, signatureTrace } from './Signature';
 import { mountReveals } from './lib/reveal';
 import { mountArrowCycles } from './lib/arrow-cycle';
@@ -464,7 +471,7 @@ function reveal(selector: string): void {
 const previous = lastRound();
 if (previous) {
   // The markup carries the "GP" as a second word, as the reference does.
-  slot('prev-race', previous.raceName.replace(/ Grand Prix$/, ''));
+  slot('prev-race', shortRaceName(previous.raceName));
 
   /* Spoken, not drawn \u2014 the card shows the circuit and the race name, as the
      reference's does. Phrased as a sentence, in words a screen reader says
@@ -528,7 +535,7 @@ if (next) {
 
   /* Locality, except where it only repeats the race name — "Abu Dhabi" under a
      card already labelled Abu Dhabi says nothing. */
-  const stripped = next.raceName.replace(/ Grand Prix$/, '');
+  const stripped = shortRaceName(next.raceName);
   slot('next-where', next.locality && next.locality !== stripped ? next.locality : next.circuitName);
 
   /* "Ferrari F1 since 2025", where the reference has its own team and year.
@@ -1753,7 +1760,7 @@ for (const figure of document.querySelectorAll<HTMLElement>('[data-gallery-race]
   }
   const caption = figure.querySelector<HTMLElement>('.gallery__cap');
   if (!caption) throw new Error('[gallery] a dated figure has no caption');
-  caption.textContent = `${win.raceName.replace(/ Grand Prix$/, '')} GP, ${win.season}`;
+  caption.textContent = `${shortRaceName(win.raceName)} GP, ${win.season}`;
 
   const pill = figure.querySelector<HTMLElement>('[data-gallery-pill]');
   const place = pill?.querySelector<HTMLElement>('[data-gallery-pill-place]');
