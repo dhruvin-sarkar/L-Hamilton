@@ -29,7 +29,7 @@
 
 import type Lenis from 'lenis';
 import { gsap, mm, ScrollTrigger } from '../lib/motion';
-import { el, pad2, place, raceDay } from '../lib/schedule';
+import { el, ordinal, pad2, place, raceDay } from '../lib/schedule';
 import { closedReef, drawClosedReef } from '../lib/closed-reef';
 import { calendar, races, seasonsNewestFirst } from '../content/live-stats';
 import type { CareerSeason, RaceEntry } from '../content/live-stats';
@@ -64,10 +64,24 @@ function placed(n: number, className = 'cal-row__place'): HTMLSpanElement {
   return node;
 }
 
+/** A row's finish in words: "finished 3rd", "retired". The rounds-run rows'
+    wording (season.ts `outcomeOf`) without the grid place, which the
+    race-by-race record does not carry. */
+function outcomeOf(race: RaceEntry): string {
+  if (race.position) return `finished ${ordinal(race.position)}`;
+  if (race.positionText === 'D') return 'was disqualified';
+  if (race.status === 'Retired') return 'retired';
+  return `did not finish (${race.status.toLowerCase()})`;
+}
+
 /** One Grand Prix inside an open season. */
 function raceRow(race: RaceEntry, season: readonly RaceEntry[]): HTMLLIElement {
   const item = el('li');
+  /* The cells are figures under a header that is itself hidden from a screen
+     reader -- "01 AUSTRALIA 18 MAR 07 3 RD 1:26.351 S" -- so the row is read
+     as the sentence below instead, as the rounds-run rows are by their label. */
   const row = el('div', 'ot-cal__row cal-results__race');
+  row.setAttribute('aria-hidden', 'true');
 
   const round = el('span', 'ot-cal__cell');
   round.appendChild(el('span', 'cal-results__round ot-cal__major', pad2(race.round)));
@@ -100,7 +114,11 @@ function raceRow(race: RaceEntry, season: readonly RaceEntry[]): HTMLLIElement {
   if (race.fastestLap) lap.appendChild(el('span', 'ot-cal__unit', 's'));
 
   row.append(round, location, when, finish, lap, el('span', 'ot-cal__rule'));
-  item.appendChild(row);
+
+  const said =
+    `Round ${race.round}, ${race.raceName}, ${day.dayMonth} ${race.season}. ` +
+    `He ${outcomeOf(race)}${race.fastestLap ? `, fastest lap ${race.fastestLap}` : ''}.`;
+  item.append(el('span', 'sr-only', said), row);
   return item;
 }
 
