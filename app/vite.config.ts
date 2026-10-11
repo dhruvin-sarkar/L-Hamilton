@@ -202,10 +202,70 @@ function stylesFirst(): Plugin {
   };
 }
 
+/**
+ * The built pages without their authoring comments.
+ *
+ * The entries and the partials explain themselves at length in HTML comments,
+ * and the build copied every one into the served document: 36-42% of each
+ * page's bytes, and more than half of what a visitor downloads (Home's document
+ * gzips to 26 kB with them and 10 kB without). The document is the first
+ * render-blocking download. They are also working notes, naming the reference
+ * site and this repository's briefs, which a published page should not carry.
+ *
+ * Build only. The sources keep their comments and the dev server still serves
+ * them, so view-source in dev explains the page.
+ *
+ * A comment alone on its line or lines goes with them, so no blank line marks
+ * where it was; one sharing a line with markup leaves the rest of that line as
+ * it stood. An inline <script> or <style> block is matched first and returned
+ * untouched, because `<!--` inside one is script or CSS text, not a comment.
+ *
+ * A comment that still opens with `<!--#` is an include or marquee directive
+ * the passes above did not resolve (a misspelt name). Deleting it would drop
+ * part of the page without a word, so it stops the build instead.
+ */
+function stripComments(): Plugin {
+  /* Alternatives in the order they must win: a whole script or style block,
+     then a comment with the indent before it and the line end after it, where
+     it has them. The body is `(?:(?!-->)[\s\S])*` rather than a lazy
+     `[\s\S]*?` so it cannot run past its own `-->`: a lazy match backtracks to
+     find a line end, and would swallow the markup between two comments that
+     share a line. */
+  const TOKEN = /(<(script|style)\b[^>]*>[\s\S]*?<\/\2\s*>)|(^[ \t]*)?<!--((?:(?!-->)[\s\S])*)-->([ \t]*\r?\n)?/gim;
+
+  return {
+    name: 'strip-comments',
+    apply: 'build',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html, ctx) {
+        return html.replace(
+          TOKEN,
+          (
+            _match,
+            block: string | undefined,
+            _tag: string | undefined,
+            indent: string | undefined,
+            body: string,
+            lineEnd: string | undefined,
+          ) => {
+            if (block !== undefined) return block;
+            if (body.startsWith('#')) {
+              throw new Error(`${ctx.filename}: unresolved directive <!--${body}--> left in the built page`);
+            }
+            const ownLines = indent !== undefined && lineEnd !== undefined;
+            return ownLines ? '' : (indent ?? '') + (lineEnd ?? '');
+          },
+        );
+      },
+    },
+  };
+}
+
 export default defineConfig({
   root: here,
   publicDir: fileURLToPath(new URL('./public', import.meta.url)),
-  plugins: [htmlPartials(), heroMarquee(), stylesFirst()],
+  plugins: [htmlPartials(), heroMarquee(), stylesFirst(), stripComments()],
   server: { port: 5173, open: false },
   /* The dependency cache lives beside this config, not in node_modules. Every
      worktree links app/node_modules to one shared install, so the default
