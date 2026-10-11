@@ -13,6 +13,7 @@ import { mountFooterMarquee, mountMarquee } from './lib/marquee';
 import { mountHomeInk } from './lib/home-ink';
 import { cssRGB, hexRGB, legibleOn, mixRGB, toLinear, type RGB } from './lib/legible';
 import { mountReveals } from './lib/reveal';
+import { spell } from './lib/schedule';
 import { GLLayer } from './lib/gl-layers';
 import {
   mountCalloutCrest,
@@ -26,7 +27,7 @@ import { BackgroundField } from './BackgroundField';
 import { HeadScene } from './HeadScene';
 import { Signature, signatureTrace } from './Signature';
 import { age, driver, eras, seasonsRacing } from './content/hamilton';
-import { nextRound } from './content/live-stats';
+import { career, nextRound } from './content/live-stats';
 import { isHeroBand } from './content/home';
 import { PARTNERS } from './content/partners';
 
@@ -272,6 +273,11 @@ if (!reducedMotion) {
  * is exactly one place a number can be wrong.
  * ------------------------------------------------------------------ */
 
+/** A word with its first letter raised, for one that opens a sentence. */
+function sentenceInitial(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
 const bindings: Record<string, string> = {
   age: `${age()} y.o`,
   birthplace: driver.birthplace,
@@ -297,6 +303,11 @@ const bindings: Record<string, string> = {
      own prefix and would need revisiting alongside a team change, which is a
      larger content edit than this. */
   'team-line': `Scuderia ${driver.currentTeam} since ${currentEra.from}`,
+  /* The store's "Seven stars": one star per title on the product, so the count
+     is the title count. Spelled because it sits in a sentence, and capitalised
+     because it opens one — On Track binds the same figure mid-sentence as
+     `titles-word`. */
+  'titles-word-initial': sentenceInitial(spell(career.championships)),
 };
 
 for (const [key, value] of Object.entries(bindings)) {
