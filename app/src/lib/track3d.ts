@@ -44,7 +44,7 @@
  *     changes (a drag still turns it).
  *
  * Cost: one WebGL context per mounted map, rendering only while its host is
- * within half a screen of the viewport and the tab is visible.
+ * on screen and the tab is visible.
  */
 
 import * as THREE from 'three';
@@ -333,7 +333,10 @@ export interface TrackMap {
 }
 
 export function mountTrackMap(host: HTMLElement, circuitId: string): TrackMap {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  /* No multisampling: the canvas only ever receives the composer's two
+     full-screen passes, which have no edge inside them to smooth, so a
+     four-sample canvas cost its fill and its resolve for the same picture. */
+  const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.domElement.className = 'track3d__canvas';
@@ -395,7 +398,7 @@ export function mountTrackMap(host: HTMLElement, circuitId: string): TrackMap {
 
   const clock = new THREE.Clock();
   let time = 0;
-  let near = false;
+  let onScreen = false;
   let frame = 0;
   const projected = new THREE.Vector3();
 
@@ -418,7 +421,7 @@ export function mountTrackMap(host: HTMLElement, circuitId: string): TrackMap {
 
   const tick = (): void => {
     frame = 0;
-    if (!near || document.hidden) return;
+    if (!onScreen || document.hidden) return;
     const dt = Math.min(clock.getDelta(), 0.1);
     time += dt;
     controls.update(dt);
@@ -427,7 +430,7 @@ export function mountTrackMap(host: HTMLElement, circuitId: string): TrackMap {
   };
 
   const run = (): void => {
-    if (frame || !near || document.hidden) return;
+    if (frame || !onScreen || document.hidden) return;
     if (reducedMotion) {
       draw();
       return;
@@ -437,7 +440,7 @@ export function mountTrackMap(host: HTMLElement, circuitId: string): TrackMap {
   };
 
   /* Under reduced motion nothing moves on its own: draw when a drag turns it. */
-  if (reducedMotion) controls.addEventListener('change', () => near && draw());
+  if (reducedMotion) controls.addEventListener('change', () => onScreen && draw());
 
   const resize = (): void => {
     const width = host.clientWidth;
@@ -458,7 +461,7 @@ export function mountTrackMap(host: HTMLElement, circuitId: string): TrackMap {
     /* One degree across whatever the panel's proportion. */
     camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(FOV_ACROSS) / 2) / camera.aspect));
     camera.updateProjectionMatrix();
-    if (reducedMotion && near) draw();
+    if (reducedMotion && onScreen) draw();
   };
   const resizer = new ResizeObserver(resize);
   resizer.observe(host);
@@ -466,13 +469,12 @@ export function mountTrackMap(host: HTMLElement, circuitId: string): TrackMap {
   window.addEventListener('resize', resize);
   resize();
 
-  const watcher = new IntersectionObserver(
-    ([entry]) => {
-      near = entry?.isIntersecting ?? false;
-      run();
-    },
-    { rootMargin: '50% 0px' },
-  );
+  /* On screen, not near it: a frame nobody can see is still a scene and a
+     seven-target bloom drawn. */
+  const watcher = new IntersectionObserver(([entry]) => {
+    onScreen = entry?.isIntersecting ?? false;
+    run();
+  });
   watcher.observe(host);
   const onVisibility = (): void => run();
   document.addEventListener('visibilitychange', onVisibility);
@@ -556,7 +558,7 @@ export function mountTrackMap(host: HTMLElement, circuitId: string): TrackMap {
         setShown(current, false);
         current = circuitFor(id);
         setShown(current, true);
-        if (near) draw();
+        if (onScreen) draw();
         return;
       }
       if (swapping) {
