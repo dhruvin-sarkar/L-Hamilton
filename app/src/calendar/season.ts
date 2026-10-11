@@ -630,6 +630,13 @@ function mountCard(
   /* What the card shows for a row. */
   let draw: (round: CalendarRound) => void;
   let dispose = (): void => {};
+  /* Whether it has anything to show yet. The circuit card is given a circuit
+     as it mounts. The photo card has no picture until a row has been under
+     the pointer, and its ground takes in the header strip over the rows: it
+     stays shut there rather than follow the pointer as an empty frame. (The
+     reference's opens there too, with nothing in it -- but on no ground, so
+     nothing is seen.) */
+  let filled = kind === 'circuit';
 
   if (kind === 'photo') {
     const frame = card.querySelector<HTMLElement>('[data-cal-card-photo]');
@@ -676,10 +683,11 @@ function mountCard(
     const box = area.getBoundingClientRect();
     const inside =
       pointer.x >= box.left && pointer.x <= box.right && pointer.y >= box.top && pointer.y <= box.bottom;
-    if (inside && !over) {
+    const open = inside && filled;
+    if (open && !over) {
       over = true;
       appear.timeScale(1).play();
-    } else if (!inside && over) {
+    } else if (!open && over) {
       over = false;
       appear.timeScale(2).reverse();
     }
@@ -698,7 +706,13 @@ function mountCard(
     const row = (event.target as Element | null)?.closest('.ot-cal__row');
     const index = row ? buttons.indexOf(row as HTMLButtonElement) : -1;
     const round = rounds[index];
-    if (round) draw(round);
+    if (!round) return;
+    draw(round);
+    /* The first row reached gives a card held shut its picture, so it opens
+       now. No move need follow this event: a list scrolled under a still
+       pointer sends it alone. */
+    filled = true;
+    follow();
   };
   const watch = new IntersectionObserver(([entry]) => {
     near = entry?.isIntersecting ?? false;
