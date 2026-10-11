@@ -431,6 +431,8 @@ function el<K extends keyof HTMLElementTagNameMap>(
 
 const bindings: Record<string, string> = {
   'driver-name': driver.fullName,
+  /* The numeral in the hero's round card. */
+  'driver-number': String(driver.number),
   'driver-age': String(age()),
   'driver-birthplace': driver.birthplace,
   'driver-seasons': String(career.seasonsContested),
