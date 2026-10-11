@@ -803,7 +803,6 @@ body[data-page='off-track'] {
   display: flex;
   flex-direction: column;
   gap: calc(1.25 * var(--u));
-  margin-block-end: calc(1.25 * var(--u));
 }
 
 .oft-gal__icon {
@@ -843,8 +842,11 @@ body[data-page='off-track'] {
   white-space: nowrap;
 }
 
+/* The gap and the 8.42vh as one margin on the picture: as a margin under the
+   heading and another over the picture they collapsed into the larger, and
+   the picture sat a gap higher than the reference's. */
 .oft-gal__lead .gallery__frame {
-  margin-block-start: 8.42vh;
+  margin-block-start: calc(8.42vh + 1.25 * var(--u));
 }
 
 /* ---- the title columns ---- */
@@ -1142,7 +1144,6 @@ body[data-page='off-track'] {
     grid-template-columns: 1fr 1fr;
     gap: calc(1.25 * var(--u));
     align-items: start;
-    margin-block-end: 0;
   }
 
   .oft-gal__heading {
