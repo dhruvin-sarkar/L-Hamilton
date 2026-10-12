@@ -115,8 +115,8 @@ const revealChunk = /* glsl */ `
  * the cutout sees the difference between sRGB and linear blending.
  */
 const filterChunk = /* glsl */ `
-  uniform float uFilter;
-  uniform vec3  COLOR_FILTER;
+  uniform float uFilterAmount;
+  uniform vec3  uFilterTint;
 
   vec3 filterToLinear(vec3 c) {
     c = clamp(c, 0.0, 1.0);
@@ -132,22 +132,22 @@ const filterChunk = /* glsl */ `
     return base < 0.5 ? 2.0 * base * blend : 1.0 - 2.0 * (1.0 - base) * (1.0 - blend);
   }
 
-  /* The end state for a LINEAR colour. blendHardLight(end, COLOR_FILTER) is
-     the overlay with the filter as its base. */
+  /* The end state for a LINEAR colour. A hard light of the end by the tint is
+     the overlay with the tint as its base. */
   vec3 filterEnd(vec3 linearColor) {
     float gray = dot(linearColor, vec3(0.299, 0.587, 0.114));
     float v = ((gray - 0.5) * 0.8 + 0.5) * 0.75;
     return vec3(
-      filterOverlay(COLOR_FILTER.r, v),
-      filterOverlay(COLOR_FILTER.g, v),
-      filterOverlay(COLOR_FILTER.b, v)
+      filterOverlay(uFilterTint.r, v),
+      filterOverlay(uFilterTint.g, v),
+      filterOverlay(uFilterTint.b, v)
     );
   }
 
   /* Cross-fade an sRGB colour to a LINEAR end state, in linear. */
   vec3 applyFilter(vec3 srgbColor, vec3 linearEnd) {
-    if (uFilter <= 0.0) return srgbColor;
-    return filterToSrgb(mix(filterToLinear(srgbColor), linearEnd, uFilter));
+    if (uFilterAmount <= 0.0) return srgbColor;
+    return filterToSrgb(mix(filterToLinear(srgbColor), linearEnd, uFilterAmount));
   }
 `;
 
@@ -156,103 +156,93 @@ const filterChunk = /* glsl */ `
  * ------------------------------------------------------------------ */
 
 /**
- * Pass two: trace the outlines of the binary map ContourField wrote, and tint
- * the result. Ported from the reference's `118-offsets-for-neighboring-pixels`.
+ * Pass two: draw the band map ContourField wrote -- the borders of its bands
+ * as lines and, wherever the reveal mask is up, the bands themselves filled in
+ * a second palette. The reference composes its background from the same two
+ * passes; this one is ours, written from what the field looks like on screen.
  *
- * The equality test is the whole mechanism and it is intentionally exact, not
- * a tolerance. Pass one emits only 0.0 and 1.0, so inside a region all five
- * taps return the identical interpolated constant and `!=` is false; within one
- * texel of a boundary bilinear filtering puts them on a ramp and `!=` is true.
- * A tolerance would only widen the line — badly, and non-uniformly.
+ * A border is wherever the map is not LEVEL. Pass one writes only 0.0 and 1.0,
+ * so read through bilinear filtering the map is perfectly flat inside a region
+ * and a ramp within a texel of a boundary. The test probes a fraction of a
+ * pixel to each side and takes the spread of what comes back: nothing on the
+ * flat, something on a ramp. It asks for exactly nothing, not for less than a
+ * tolerance -- a tolerance would only widen the line, badly and non-uniformly.
  *
- * Shared with BackgroundField, which leaves tCursorEffect at rest and
- * uHelmetHover at zero, so the fluid and hover terms fall away there.
+ * Shared with BackgroundField, which holds the dye at rest and the wipe at
+ * zero, so the second palette never shows there.
  */
 export const fieldFragment = /* glsl */ `
   precision highp float;
 
-  uniform sampler2D tBackgroundNoise;
-  uniform sampler2D tCursorEffect;
+  uniform sampler2D uBands;
 
-  uniform bool  OUTLINE;
-  uniform float THICKNESS;
-  uniform vec3  COLOR_BACKGROUND;
-  uniform vec3  COLOR_FOREGROUND;
-  uniform vec3  COLOR_OUTLINE;
-  uniform vec3  COLOR_CURSOR_BACKGROUND;
-  uniform vec3  COLOR_CURSOR_FOREGROUND;
-  uniform vec3  COLOR_CURSOR_OUTLINE;
+  /* A palette is a ground, a colour for the bands and one for the lines round
+     them. This is the one at rest... */
+  uniform vec3  uGround;
+  uniform vec3  uBand;
+  uniform vec3  uLine;
+  /* ...and this the one under the fluid and the hover wipe. */
+  uniform vec3  uStirGround;
+  uniform vec3  uStirBand;
+  uniform vec3  uStirLine;
 
-  uniform float uReveal;
-  uniform float uCursorIntensity;
-  uniform float uHelmetHover;
+  uniform float uRevealGain;
   /* The plate has gone still: flat ground, no contours, nothing sampled. */
   uniform bool  uFlat;
 
+  ${revealChunk}
   ${filterChunk}
 
   varying vec2 vUv;
 
+  /* How far to each side the map is probed for a border, in screen pixels.
+     A reach, not a width: see ContourField. */
+  const float PROBE = 1.0 / 32.0;
+
+  float bandAt(vec2 at) {
+    return texture2D(uBands, at).r;
+  }
+
+  /* 1 on a border of the band map, 0 off it: whether the map, here and a
+     probe's reach to either side and above and below, is anything but level. */
+  float borderAt(vec2 at, float here) {
+    vec2 reach = fwidth(at) * PROBE;
+    vec4 around = vec4(
+      bandAt(at - vec2(reach.x, 0.0)),
+      bandAt(at + vec2(reach.x, 0.0)),
+      bandAt(at - vec2(0.0, reach.y)),
+      bandAt(at + vec2(0.0, reach.y))
+    );
+    float lowest = min(here, min(min(around.x, around.y), min(around.z, around.w)));
+    float highest = max(here, max(max(around.x, around.y), max(around.z, around.w)));
+    return highest > lowest ? 1.0 : 0.0;
+  }
+
+  vec3 paint(vec3 ground, vec3 band, vec3 line, float inBand, float onBorder) {
+    return mix(mix(ground, band, inBand), line, onBorder);
+  }
+
   void main() {
-    vec3 groundEnd = filterEnd(vec3(0.05));
+    vec3 stillGround = filterEnd(vec3(0.05));
     if (uFlat) {
-      gl_FragColor = vec4(applyFilter(COLOR_BACKGROUND, groundEnd), 1.0);
+      gl_FragColor = vec4(applyFilter(uGround, stillGround), 1.0);
       return;
     }
 
-    vec4 textureBackgroundNoise = texture2D(tBackgroundNoise, vUv);
-    float noiseBase = textureBackgroundNoise.r;
+    float inBand = bandAt(vUv);
+    float onBorder = borderAt(vUv, inBand);
 
-    // The reference's reveal term, kept as it wrote it. Both hero and
-    // background hold uReveal at 1, as the running reference does.
-    vec3 background = mix(
-      COLOR_BACKGROUND,
-      mix(COLOR_BACKGROUND, COLOR_FOREGROUND, uReveal),
-      noiseBase
-    );
+    /* Which palette. The fluid's share is scaled by uRevealGain, which the
+       scroll takes to zero; the hover wipe's is not. Both masks are hard, and
+       that is what gives the blob its crisp, liquid edge. */
+    float stirred = max(stirredAt(vUv) * uRevealGain, wipedAt(vUv));
 
-    // The alternate palette shown inside a cursor blob. Built even when the
-    // blob is elsewhere — a branch around it would cost more than the two mixes.
-    vec3 cursorBackground = mix(COLOR_CURSOR_BACKGROUND, COLOR_CURSOR_FOREGROUND, noiseBase);
+    // Both built wherever the blob is: a branch around the second would cost
+    // more than its two mixes.
+    vec3 resting = paint(uGround, uBand, uLine, inBand, onBorder);
+    vec3 under = paint(uStirGround, uStirBand, uStirLine, inBand, onBorder);
 
-    if (OUTLINE) {
-      float edge = 0.0;
-
-      vec4 sampledRight = texture2D(tBackgroundNoise, vUv + vec2(THICKNESS, 0.0));
-      vec4 sampledLeft  = texture2D(tBackgroundNoise, vUv + vec2(-THICKNESS, 0.0));
-      vec4 sampledUp    = texture2D(tBackgroundNoise, vUv + vec2(0.0, THICKNESS));
-      vec4 sampledDown  = texture2D(tBackgroundNoise, vUv + vec2(0.0, -THICKNESS));
-
-      if (sampledRight.r != textureBackgroundNoise.r ||
-          sampledLeft.r  != textureBackgroundNoise.r ||
-          sampledUp.r    != textureBackgroundNoise.r ||
-          sampledDown.r  != textureBackgroundNoise.r) {
-        edge = 1.0;
-      }
-
-      // Note this REPLACES the filled-region colouring above rather than adding
-      // to it: with OUTLINE on, the regions go flat and only their borders draw.
-      background = mix(
-        COLOR_BACKGROUND,
-        mix(COLOR_BACKGROUND, COLOR_OUTLINE, uReveal),
-        edge
-      );
-
-      cursorBackground = mix(cursorBackground, COLOR_CURSOR_OUTLINE, edge);
-    }
-
-    /* Cursor blob, and the hover wipe, both in the reference's order. The
-     * cursor term is scaled by uCursorIntensity, which the scroll takes to zero;
-     * the hover term is not. step, not smoothstep: the hard threshold is what
-     * gives the blob its crisp, liquid edge. */
-    vec2 cursorUv = vec2(0.025) + vUv * 0.95;
-    float cursorEffect = step(0.1, 1.0 - texture2D(tCursorEffect, cursorUv).r);
-    background = mix(background, cursorBackground, cursorEffect * uCursorIntensity);
-
-    float hoverFront = vUv.y + sin(vUv.x * 3.141592) * sin(uHelmetHover * 3.141592) * 0.2;
-    background = mix(background, cursorBackground, step(1.0 - hoverFront, uHelmetHover));
-
-    gl_FragColor = vec4(applyFilter(background, groundEnd), 1.0);
+    gl_FragColor = vec4(applyFilter(mix(resting, under, stirred), stillGround), 1.0);
   }
 `;
 
@@ -417,46 +407,43 @@ type RevealUniforms = ReturnType<typeof makeRevealUniforms>;
 /**
  * The scroll-out transition's inputs, shared by field, portrait and helmet.
  *
- * COLOR_FILTER goes in as its plain sRGB components, as the reference's does
+ * The tint goes in as its plain sRGB components, as the reference's does
  * (it builds a Color from the hex and calls convertLinearToSRGB on it), because
  * the formula treats it as a value, not as a colour to be managed.
  */
 const makeFilterUniforms = (filterColor: THREE.Color) => ({
-  uFilter: { value: 0 },
-  COLOR_FILTER: { value: filterColor.clone().convertLinearToSRGB() },
+  uFilterAmount: { value: 0 },
+  uFilterTint: { value: filterColor.clone().convertLinearToSRGB() },
 });
 type FilterUniforms = ReturnType<typeof makeFilterUniforms>;
 
 const makeFieldUniforms = (
-  noise: THREE.Texture,
+  bands: THREE.Texture,
   reveal: RevealUniforms,
   filter: FilterUniforms,
   token: (name: string, fallback: string) => THREE.Color,
 ) => ({
   ...filter,
-  tBackgroundNoise: { value: noise },
-  tCursorEffect: reveal.uFluidDye,
-  uHelmetHover: reveal.uHelmetWipe,
+  uBands: { value: bands },
+  uFluidDye: reveal.uFluidDye,
+  uHelmetWipe: reveal.uHelmetWipe,
   uFlat: { value: false },
 
-  OUTLINE: { value: true },
-  // The reference's epsilon, unchanged. See ContourField: this is not a width.
-  THICKNESS: { value: 0.000005 },
+  /* At rest the bands take the ground's own colour, so only the lines round
+     them draw. There is no intro on them: the running reference holds its
+     own at its end from load, so its field is complete on the first frame. */
+  uGround: { value: token('--gl-bg', '#241b1e') },
+  uBand: { value: token('--gl-bg', '#241b1e') },
+  uLine: { value: token('--gl-outline', '#9c6a71') },
+  // Under the fluid and the hover wipe the bands fill.
+  uStirGround: { value: token('--gl-cursor-bg', '#33262a') },
+  uStirBand: { value: token('--gl-cursor-fg', '#ff2800') },
+  uStirLine: { value: token('--gl-cursor-outline', '#ff2800') },
 
-  COLOR_BACKGROUND: { value: token('--gl-bg', '#241b1e') },
-  COLOR_OUTLINE: { value: token('--gl-outline', '#9c6a71') },
-  COLOR_FOREGROUND: { value: token('--gl-outline', '#9c6a71') },
-  COLOR_CURSOR_BACKGROUND: { value: token('--gl-cursor-bg', '#33262a') },
-  COLOR_CURSOR_FOREGROUND: { value: token('--gl-cursor-fg', '#ff2800') },
-  COLOR_CURSOR_OUTLINE: { value: token('--gl-cursor-outline', '#ff2800') },
-
-  /* 1, and never animated: the reference's shaders carry this reveal, but the
-     running site holds window.landoGL.reveal at 1 from load, so its field is
-     complete on the first frame. */
-  uReveal: { value: 1 },
-  // The reference's composite uCursorIntensity: 1 at rest, taken to 0 as the
-  // scroll hands the hero over. Shared with the helmet's mask.
-  uCursorIntensity: { value: 1.0 },
+  // How much of the fluid's reveal shows: 1 at rest, taken to 0 as the scroll
+  // hands the hero over, as the reference fades its own. Shared with the
+  // helmet's mask.
+  uRevealGain: { value: 1.0 },
 });
 type FieldUniforms = ReturnType<typeof makeFieldUniforms>;
 
@@ -743,7 +730,7 @@ export class HeadScene {
       uniforms: this.headU,
     });
 
-    this.maskU = makeMaskUniforms(this.revealU, this.fieldU.uCursorIntensity, this.filterU, this.headU);
+    this.maskU = makeMaskUniforms(this.revealU, this.fieldU.uRevealGain, this.filterU, this.headU);
 
     const quad = new THREE.PlaneGeometry(1, 1);
 
@@ -871,7 +858,7 @@ export class HeadScene {
             if (!gl_FrontFacing) gl_FragColor.rgb = vec3(0.0);
             /* The transition: fade toward the end state of the PORTRAIT under
                this pixel, as the reference's composite does. */
-            if (uFilter > 0.0) {
+            if (uFilterAmount > 0.0) {
               vec2 portraitUv = (gl_FragCoord.xy - uPortraitRect.xy) / uPortraitRect.zw;
               float inPlane = step(0.0, portraitUv.x) * step(portraitUv.x, 1.0)
                             * step(0.0, portraitUv.y) * step(portraitUv.y, 1.0);
@@ -1121,7 +1108,7 @@ export class HeadScene {
    * on: flat ground, face on it, no contours, no helmet, nothing moving.
    *
    * The helmet does not cut out. As on the reference, the reveal
-   * (uCursorIntensity) and the wireframe (uShown) fade to nothing over a
+   * (uRevealGain) and the wireframe (uShown) fade to nothing over a
    * quarter second, and only then does the scene stop simulating. Scrolling
    * back brings them back the same way.
    */
@@ -1131,11 +1118,11 @@ export class HeadScene {
     const fade = { duration: reducedMotion ? 0 : 0.25, ease: 'power1.inOut', overwrite: 'auto' as const };
 
     if (v) {
-      gsap.to(this.fieldU.uCursorIntensity, { ...fade, value: 0, onComplete: () => this.applyStill() });
+      gsap.to(this.fieldU.uRevealGain, { ...fade, value: 0, onComplete: () => this.applyStill() });
       if (this.helmet) gsap.to(this.helmet.wireU.uShown, { ...fade, value: 0 });
     } else {
       this.applyStill();
-      gsap.to(this.fieldU.uCursorIntensity, { ...fade, value: 1 });
+      gsap.to(this.fieldU.uRevealGain, { ...fade, value: 1 });
       if (this.helmet) gsap.to(this.helmet.wireU.uShown, { ...fade, value: 1 });
     }
   }
@@ -1161,8 +1148,8 @@ export class HeadScene {
    * scroll. See filterChunk.
    */
   set filter(v: number) {
-    if (this.filterU.uFilter.value === v) return;
-    this.filterU.uFilter.value = v;
+    if (this.filterU.uFilterAmount.value === v) return;
+    this.filterU.uFilterAmount.value = v;
     this.dirty = true;
   }
 

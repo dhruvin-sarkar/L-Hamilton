@@ -13,17 +13,18 @@ import * as THREE from 'three';
  *
  *   The output here is the parity of a band count, i.e. every texel is exactly
  *   0.0 or 1.0. There are no contour LINES in this target at
- *   all — only flat regions. The lines appear in pass two, which asks whether a
- *   neighbouring sample differs. Under bilinear filtering that comparison is
- *   false everywhere inside a region and true only within one texel of a
+ *   all — only flat regions. The lines appear in pass two, which asks whether
+ *   the map is level where it stands. Under bilinear filtering it is level
+ *   everywhere inside a region and a ramp only within one texel of a
  *   boundary, so the line comes out exactly one texel wide, everywhere, for free
- *   — no derivative, no smoothstep, no thickness tuning.
+ *   — no smoothstep, no thickness tuning.
  *
- *   That is why THICKNESS is 0.000005. It is an EPSILON, not a width: it only
- *   has to be small enough to stay on the interpolation ramp and larger than
- *   zero. Line weight is set by this target's RESOLUTION. Reading it as a width
- *   and substituting something "reasonable" like 1/1024 steps clean over the
- *   ramp into the next region and turns the contours into blobs.
+ *   That is why pass two's PROBE is a thirty-second of a screen pixel. It is a
+ *   reach, not a width: it only has to be long enough for the sampler to tell
+ *   the two ends apart and far shorter than a texel. Line weight is set by
+ *   this target's RESOLUTION. Reading the probe as a width and lengthening it
+ *   to a texel or so steps clean over the ramp into the next region and turns
+ *   the contours into blobs.
  *
  * `bandPairs` is the band count. At 3 the noise's range is cut into six
  * slices, three bands and the three gaps between them, giving six boundaries —
@@ -281,8 +282,8 @@ export class ContourField {
       // LINEAR is load-bearing, not a default worth leaving alone. The whole
       // outline trick is that sampling a hair to the side of a boundary returns
       // a slightly different value; under NearestFilter every sample inside a
-      // texel is identical, the equality test never fails, and the pass returns
-      // a blank frame.
+      // texel is identical, the map reads as level everywhere, and the pass
+      // returns a blank frame.
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
       // Clamp, so the four neighbour taps at the frame edge do not wrap around
