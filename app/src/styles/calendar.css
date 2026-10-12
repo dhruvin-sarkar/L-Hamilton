@@ -713,6 +713,13 @@ button.cal-row--past:hover:focus-visible {
   .cal-sched__lede {
     max-inline-size: none;
   }
+
+  /* Reference `.btn-icon-w`: 1.2rem and nothing either side. The shared
+     icon's 0.075 margins made each outline button 0.15rem longer than the
+     reference's, measured at 820 (115.5px against 114.1). */
+  .cal-btn-line .ot-cal__btn-icon {
+    margin-inline: 0;
+  }
 }
 
 @media (max-width: 767px) {
@@ -771,13 +778,18 @@ button.cal-row--past:hover:focus-visible {
     inline-size: 1.5rem;
   }
 
-  /* The reference's `data-hide="m"`: a run round drops its date here and
-     keeps its fastest lap, where a round to come drops its distance. */
-  .cal-row--past > :nth-child(3),
-  #calendar-list .ot-cal__row--head > :nth-child(3) {
-    display: none;
+  /* Reference `.text-on-t-stat-label-sm` here: every small label drops
+     0.1rem. The standing's letters and the panel's session lines are that
+     label; the shared sheet sizes them and leaves them where they were. */
+  .cal-sched__standing .ot-cal__suffix,
+  .cal-panel .ot-cal__session > span:not(.ot-cal__eyebrow) {
+    position: relative;
+    inset-block-start: 0.1rem;
   }
 
+  /* A run round keeps its fastest lap on the four-column grid, where the
+     shared sheet drops every figure with a unit: its date went at 497, in
+     the block after this one. */
   .cal-row--past > .ot-cal__cell--unit,
   #calendar-list .ot-cal__row--head > :nth-child(5) {
     display: flex;
@@ -793,8 +805,10 @@ button.cal-row--past:hover:focus-visible {
 
   /* Reference `.f1-highlight-item-round-w` and `.f1-highlight-round-svg`
      here: the box only as wide as its number, so the number starts under its
-     header, and the strike half as wide again. */
-  .cal-row__round-w {
+     header, and the strike half as wide again. A season's plain round number
+     is the same box. */
+  .cal-row__round-w,
+  .cal-results__round {
     min-inline-size: auto;
   }
 
@@ -875,6 +889,21 @@ button.cal-row--past:hover:focus-visible {
   .cal-results__reef svg {
     inline-size: calc(var(--u) * 2);
     block-size: calc(var(--u) * 2);
+  }
+}
+
+/* The reference's `data-hide="m"` is written for 497px, not 479 (the inline
+   sheet in its page, not site.css): from there down a run round drops its
+   date and a round to come its distance, on whichever grid the row is on --
+   the five-column one for the eighteen pixels above 479. A season's rows in
+   the results keep their date until 479: hidden on the five-column grid, the
+   reference's finish and lap time slide a column left of their headers. */
+@media (max-width: 497px) {
+  .cal-row--past > :nth-child(3),
+  #calendar-list .ot-cal__row--head > :nth-child(3),
+  .cal-row--next > .ot-cal__cell--unit,
+  #calendar-upcoming .ot-cal__row--head > :nth-child(5) {
+    display: none;
   }
 }
 
