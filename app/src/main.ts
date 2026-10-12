@@ -1790,15 +1790,24 @@ if (stage && heroLayer && gl) {
    the same light page -- so this sits outside the scene's branch rather than
    in it. A plain toggle instead: light ink while the hero's plate is under
    the nav, dark from there down. */
-const staticHeroTrack = document.querySelector<HTMLElement>('[data-hero-track]');
-if (staticHeroTrack && (reducedMotion || !gl)) {
+const staticHero = document.querySelector<HTMLElement>('[data-hero-track] .hero');
+if (staticHero && (reducedMotion || !gl)) {
+  /* The stylesheet's cue that the hero stands still. The screen it would have
+     pulled back to is never uncovered here -- the bands stay behind the plate
+     -- so home.css sets that screen's words under the portrait instead. Set in
+     the branch that decides it, as [data-hero-pinned] is in the one that
+     builds the shrink, and never both. */
+  document.documentElement.dataset.heroStatic = '';
+
   /* By position, not by isActive: at the very bottom of the page the
      trigger has ended and reports inactive, with the nav still on cream. */
   const cross = (self: ScrollTrigger): void => {
     navGroundStyle?.setProperty('--nav-invert', self.scroll() >= self.start ? '1' : '0');
   };
   ScrollTrigger.create({
-    trigger: staticHeroTrack,
+    /* The plate, which is the track's first screen and not the whole of it:
+       those words follow on the light ground, still inside the track. */
+    trigger: staticHero,
     start: () => `bottom top+=${navHeight()}`,
     end: 'max',
     invalidateOnRefresh: true,

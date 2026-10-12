@@ -522,6 +522,60 @@
   min-block-size: 200dvh;
 }
 
+/* ------------------------------------------------ The story, standing still
+ *
+ * Where no shrink is built -- motion turned down, or a browser that gave no
+ * WebGL context -- the hero never pulls back, so the screen it lands on is
+ * never uncovered: the bands stay behind the plate and the mark is not shown.
+ * The visually-hidden heading and paragraph carried those words to a screen
+ * reader and to nobody else. Here they are simply shown, under the portrait
+ * and on the ground the wall below stands on, in the faces the landed screen
+ * sets them in: the mark's eyebrow, and the top band's serif.
+ *
+ * Keyed off [data-hero-static], which main.ts sets in the branch that decides
+ * the hero stands still, for the reason the pinned layout is keyed off its own
+ * attribute further down. */
+[data-hero-static] .hero-track {
+  /* The layers are absolute and one screen tall: this is the room they take,
+     and what follows it is in flow. */
+  padding-block-start: 100dvh;
+  background: var(--field-ground);
+}
+
+[data-hero-static] :is(#marquee-h, #marquee-text) {
+  /* Out of .sr-only's one-pixel box and into the page. */
+  position: relative;
+  z-index: 1;
+  inline-size: auto;
+  block-size: auto;
+  overflow: visible;
+  clip-path: none;
+  white-space: normal;
+  margin-inline: auto;
+  padding-inline: var(--padding--container);
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--dark);
+}
+
+[data-hero-static] #marquee-h {
+  padding-block-start: 6rem; /* the wall's own measure above its crest */
+  font-size: var(--text--eyebrow);
+  font-weight: 700;
+  line-height: 1;
+}
+
+[data-hero-static] #marquee-text {
+  max-inline-size: 22em;
+  padding-block-start: var(--gap);
+  font-family: var(--font-serif);
+  font-weight: 500;
+  font-size: min(var(--text--h2), 9vw);
+  line-height: 1;
+  letter-spacing: -0.0263em;
+  text-wrap: balance;
+}
+
 /* Written by one scrubbed timeline in main.ts. Registered because an
    unregistered custom property inside scale() fails to parse and takes the
    whole declaration down with it. */
@@ -875,8 +929,8 @@
 
 /* The mark is where the SHRUNK hero lands, over the revealed cream screen.
    Without the pinned sequence the hero never shrinks, so it would sit on the
-   dark portrait instead, dark ink on dark ground. It is aria-hidden and the
-   marquee's sr-only heading carries the same words, so nothing is lost. */
+   dark portrait instead, dark ink on dark ground. It is aria-hidden, and the
+   same words are the heading [data-hero-static] sets under the portrait. */
 :root:not([data-hero-pinned]) .hero-mark {
   display: none;
 }
@@ -2097,8 +2151,8 @@
   font-kerning: none;
 }
 
-/* Motion off: the rows stop dead and the visually-hidden paragraph is what
-   carries the content, so nothing is lost. */
+/* Motion off: the rows stop dead behind the plate, and their words are set
+   under the portrait instead -- see [data-hero-static]. */
 @media (prefers-reduced-motion: reduce) {
   /* Nothing to stop here any more. The bands' loop is a GSAP tween that is
      never built in this mode, and the field behind them is now GL rather than
