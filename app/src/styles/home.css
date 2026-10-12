@@ -5947,37 +5947,11 @@ body:not([data-page='on-track']) .otot :focus-visible {
  * that, so the cards become a swipe row instead. Sideways is the reader's own
  * gesture here rather than a hijacked scroll, so it stays horizontal. */
 @media (max-width: 991px) {
+  /* The partners row holds its layout here: the reference only shortens the
+     two `.spacer._20rem.tablet-reduce` to 14rem. The heading, the paragraph
+     beside it, the drawn word and the 8rem above the logos are unchanged. */
   .collabs {
-    padding-block: 8rem 4rem;
-  }
-
-  .collabs__inner {
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
-  }
-
-  .collabs__title {
-    font-size: clamp(2.6rem, 12vw, 4.5rem);
-  }
-
-  .collabs__title-line.is-serif {
-    font-size: clamp(2.7rem, 12.5vw, 4.6875rem);
-  }
-
-  .collabs__mark {
-    inset-block-start: 2rem;
-    inline-size: 130%;
-    block-size: 24rem;
-  }
-
-  /* Level again at this width: tilted, the word would climb out of a section
-     this short. */
-  .collabs__mark-svg {
-    transform: none;
-  }
-
-  .collabs__marquee {
-    margin-block-start: 4rem;
+    padding-block: 14rem;
   }
 
   /* The reference keeps its fan below 992 -- measured at 360 and 768, the same
@@ -6080,6 +6054,11 @@ body:not([data-page='on-track']) .otot :focus-visible {
 }
 
 @media (max-width: 767px) {
+  /* `.text-body-reg-mona` on a phone turned on its side. */
+  .collabs__body {
+    font-size: 1.75rem;
+  }
+
   .socials {
     --u: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
     --card-w: calc(var(--u) * 15);
@@ -6089,6 +6068,54 @@ body:not([data-page='on-track']) .otot :focus-visible {
 /* Under 480 the heading drops to 2.6, the follow line to 1.7, and the links
    wrap onto centred rows no wider than 20 units, as the reference's do. */
 @media (max-width: 479px) {
+  /* The partners row on a phone: 8rem at either end, and the reference's
+     `.title-layout` at this width, two equal columns on a 2 * --gap gutter
+     with the heading at 2.6rem in both faces and the paragraph beside it at
+     1.3rem and unbounded. That same 2 * --gap goes under the pair as a
+     margin, added here to the 8rem over the logos because a margin on each
+     would collapse into one. */
+  .collabs {
+    padding-block: 8rem;
+  }
+
+  .collabs__inner {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .collabs__title,
+  .collabs__title-line.is-serif {
+    font-size: 2.6rem;
+  }
+
+  .collabs__body {
+    max-inline-size: none;
+    font-size: 1.3rem;
+  }
+
+  .collabs__marquee {
+    margin-block-start: calc(8rem + var(--gap) * 2);
+  }
+
+  /* `.marquee-spacer`: 4rem between the logos, down from 7. */
+  .collabs__item {
+    padding-inline: 2rem;
+  }
+
+  /* `.home-collab-rive-w`: 31rem wide on its own ratio, 1.6rem down and 2.1rem
+     off the left edge. The word inside is set on the same slant, its nudge
+     scaled with the box (31 / 79.6). */
+  .collabs__mark {
+    inset-block-start: 1.6rem;
+    inset-inline-start: -2.1rem;
+    inline-size: 31rem;
+    block-size: auto;
+    aspect-ratio: 79.625 / 49.87;
+  }
+
+  .collabs__mark-svg {
+    transform: translate(0.37rem, -1rem) rotate(-26.2deg) scale(1.07);
+  }
+
   .socials {
     --u: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
     --card-w: calc(var(--u) * 14);
