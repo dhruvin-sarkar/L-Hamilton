@@ -1397,6 +1397,12 @@ body[data-page='off-track'] {
     --r: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
     --text--eyebrow: var(--r);
   }
+
+  /* Reference .text-body-sm-mona under 768: 1.5rem, and back to 1rem under
+     480 (below). The root is at its smallest in this band, 5.6px at 480. */
+  .oft-hero__note {
+    font-size: 1.5rem;
+  }
 }
 
 /* Reference [data-hide='m']: the ventures row is not shown on a phone.
@@ -1497,5 +1503,15 @@ body[data-page='off-track'] {
   /* Reference .on-t-hero-stats-para-w under 480: 1rem under the paragraph. */
   .oft-hero__para-w {
     margin-block-end: var(--r);
+  }
+
+  /* Reference .text-body-lg-brier under 480: 1.9rem, a step under the
+     2.25rem the paragraph around it keeps. */
+  .oft-hero__accent {
+    font-size: 1.9rem;
+  }
+
+  .oft-hero__note {
+    font-size: 1rem;
   }
 }
