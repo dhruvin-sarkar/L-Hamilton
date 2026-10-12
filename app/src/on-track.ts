@@ -983,9 +983,10 @@ if (statGrid) {
  * helmet supplied for this build; the three boxes it flies through are in the
  * markup ([data-helm-stop]), sized exactly as the reference sizes its own.
  *
- * Desktop only, as the stops are laid out for it. Under reduced motion it is
- * parked in the wreath and never moves -- the wreath reads as a wreath around
- * something, and empty it would read as a missing image.
+ * At every width, as the reference flies it: the stops are laid out for each
+ * (on-track.css), in the flow under the cards on a phone. Under reduced motion
+ * it is parked in the wreath and never moves -- the wreath reads as a wreath
+ * around something, and empty it would read as a missing image.
  * ------------------------------------------------------------------ */
 
 const hero = document.querySelector<HTMLElement>('.ot-hero');
@@ -1080,15 +1081,14 @@ if (hero && impact && helmStops.length === 3) {
      hardware acceleration off, too many contexts) three.js throws, and
      uncaught that took every section built below here down with it -- the
      season table, the highlights, the countdown, the schedule. The hero and
-     the statement are complete without the helmet. */
-  mm.add('(min-width: 992px)', () => {
-    try {
-      return mountHelmetScroll({ from: hero, to: impact, stops, still: reducedMotion });
-    } catch (error) {
-      console.warn('[on-track] the scroll helmet could not start', error);
-      return undefined;
-    }
-  });
+     the statement are complete without the helmet; the room the phone header
+     keeps open for it under the cards is given back. */
+  try {
+    mountHelmetScroll({ from: hero, to: impact, stops, still: reducedMotion });
+  } catch (error) {
+    console.warn('[on-track] the scroll helmet could not start', error);
+    stops[0].hidden = true;
+  }
 }
 
 /* ------------------------------------------------------------------ *
