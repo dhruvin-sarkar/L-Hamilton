@@ -2505,8 +2505,8 @@
  * five in the muted dark of the light screen, the rest in the muted light of
  * the dark one) and that is where ours rests too, but a fixed ink falls to
  * ~2:1 while the ground crosses under it. main.ts writes --gallery-text from
- * the ground each frame (lib/legible.ts); with no darkening running (below
- * 992px, reduced motion) the ground stays light and so does the fallback. */
+ * the ground each frame (lib/legible.ts); with no darkening running (reduced
+ * motion) the ground stays light and so does the fallback. */
 .gallery--home .gallery__item,
 .gallery--home .gallery__callout {
   position: relative;

@@ -555,7 +555,14 @@ mountHelmets();
  * catches up over a one-second scrub. */
 mountGalleryScroll({ start: 'rising', scrub: 1 });
 
-mm.add(WIDE_AND_ANIMATED, () => {
+/* At every width, not only where the wall travels. Under 992px the reference's
+   wall is a column and nothing moves sideways, but its screen still crosses
+   from one ground to the other over the same stretch -- the section's top at
+   the top of the screen to its bottom at the bottom -- and on the same curve:
+   at 390 its ground reads 137, 205 and 236 at three points down the column,
+   where easeOutQuad over that range puts 137, 205 and 236. Only the motion
+   preference takes the crossing away. */
+mm.add('(prefers-reduced-motion: no-preference)', () => {
   if (!gallery) return;
 
   /* The ground as it actually lands on screen, for the gallery's text to be
@@ -673,7 +680,7 @@ mm.add(WIDE_AND_ANIMATED, () => {
     gallery.style.removeProperty('--gallery-accent');
     otot?.style.removeProperty('--otot-ink');
     // Withdraw this section's contribution rather than clearing the value: the
-    // store still has a say, and in the column layout there is no darkening
+    // store still has a say, and with the motion off there is no darkening
     // left for it to undo.
     groundCross.darkening = 0;
     groundCross.ink = 0;
@@ -923,9 +930,9 @@ if (footerPanel) {
 
 /* The helmet wall and the callout under it: an opaque dark ground that is not
    the field's. Where the gallery is built over a field it has taken the
-   ground dark by here and its `ink` term carries the nav across both. Below
-   992px and under reduced motion the gallery is a plain column that reports
-   nothing, and with no WebGL context it has no field to take dark, so the nav
+   ground dark by here and its `ink` term carries the nav across both. Under
+   reduced motion the gallery is a plain column that reports nothing, and with
+   no WebGL context it has no field to take dark, so the nav
    kept its dark ink on this dark ground and the menu button, the only route
    to the menu on a phone, was all but invisible for the whole wall. Asserted
    here like the two dark surfaces above, whatever the gallery says: the terms
