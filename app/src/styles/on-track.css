@@ -236,12 +236,28 @@ body[data-page='on-track'] {
   pointer-events: none;
 }
 
-/* The flight is mounted from 992px up only (on-track.ts), so below that the
-   stops measure nothing -- and at 390 this 1241px box hanging off the hero made
-   the whole page scroll sideways. Gone rather than clipped. */
-@media (max-width: 991px) {
-  .ot-hero__helm-pos,
-  .ot-impact__anchor {
+/* On a phone the reference takes the stop into the flow instead (its
+   .on-t-helm-scroll-pos1 under 480): the hero's full width at the same
+   proportions, after the cards and pulled 3rem up under them -- so the helmet
+   starts whole at the foot of the header rather than cut off by its edge, and
+   nothing hangs out past the screen. */
+@media (max-width: 479px) {
+  .ot-hero__helm-pos {
+    position: relative;
+    inset: auto;
+    order: 1;
+    flex: none;
+    inline-size: 100%;
+    block-size: auto;
+    aspect-ratio: 77.5625 / 66;
+    margin-block-start: calc(-3 * var(--hu));
+  }
+}
+
+/* Parked in the wreath when motion is reduced (on-track.ts), so the place it
+   would have started from is not held open under the cards. */
+@media (max-width: 479px) and (prefers-reduced-motion: reduce) {
+  .ot-hero__helm-pos {
     display: none;
   }
 }
@@ -1154,6 +1170,17 @@ body[data-page='on-track'] {
 
   .ot-impact__wreath {
     inline-size: calc(11.5 * var(--ref-rem));
+  }
+
+  /* The helmet's two stops here, in the same rem as everything around them. */
+  .ot-impact__anchor--text {
+    inline-size: calc(32 * var(--ref-rem));
+    block-size: calc(27.625 * var(--ref-rem));
+    translate: -50% calc(-50% - 13 * var(--ref-rem));
+  }
+
+  .ot-impact__anchor--wreath {
+    translate: 0 calc(-1 * var(--ref-rem));
   }
 }
 
@@ -4436,18 +4463,24 @@ button.ot-cal__row:focus-visible {
  * line hidden up to 497 (`data-hide="m"`, below). Anything not restated here
  * is the desktop rule, scaled by --hu.
  *
- * Under the cards the reference hangs its helmet render, which ours mounts
- * from 992 up only, so the header ends on the cards instead of on a screen of
- * empty ground. */
+ * Under the cards the reference hangs its helmet render -- the helmet's first
+ * stop, in the flow here (.ot-hero__helm-pos, above) -- so the header is a
+ * whole screen with the cards and the helmet packed against its foot, one gap
+ * off the bottom edge as on the desktop. At least a screen rather than exactly
+ * one: on a short phone the reference lets the helmet run on under the next
+ * section, and here the header grows to hold it. */
 @media (max-width: 479px) {
   .ot-hero {
     --hu: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
     block-size: auto;
-    padding-block: calc(6.375 * var(--hu)) calc(4 * var(--hu));
+    min-block-size: min(100svh, 1200px);
+    padding-block: calc(6.375 * var(--hu)) var(--hgap);
   }
 
-  /* Its --padding--container is one unit here, not the gap. */
+  /* Its --padding--container is one unit here, not the gap. The rest of the
+     screen, now the header's height is a minimum and no longer a given. */
   .ot-hero__c {
+    flex: 1;
     padding-inline: var(--hu);
   }
 
@@ -4493,12 +4526,18 @@ button.ot-cal__row:focus-visible {
     font-size: calc(1.6 * var(--hu));
   }
 
-  /* A column, not the info row's grid, as the reference's stats grid is here. */
+  /* A column, not the info row's grid, as the reference's stats grid is here:
+     the rest of the screen, with the copy, the cards and the helmet's stop
+     packed downward in it. */
   .ot-hero__stats {
     display: flex;
     flex-direction: column;
-    flex: none;
+    flex: 1;
     margin-block-start: calc(0.9 * var(--hu));
+  }
+
+  .ot-hero__stats-w {
+    margin-block-start: auto;
   }
 
   .ot-hero__spacer {
