@@ -840,7 +840,9 @@ if (statGrid) {
    * reference's size at every desktop width -- the root is fluid, figure and
    * column scale together -- and only steps in where a figure would otherwise
    * crowd the next column: to 92% of its own, which leaves at least a gutter
-   * and a half of air between two numbers.
+   * and a half of air between two numbers. The size itself stays the
+   * stylesheet's (it is smaller under 992, as the reference's is); this hands
+   * it one scale, --stat-scale, and nothing else.
    *
    * Sized as a SET rather than per item, because four numbers at four sizes
    * read as four unrelated facts instead of one career. Measured before the
@@ -852,7 +854,7 @@ if (statGrid) {
   const figures = [...statGrid.querySelectorAll<HTMLElement>('.ot-stats__value')];
 
   const fitStats = (): void => {
-    statGrid.style.removeProperty('--stat-size');
+    statGrid.style.removeProperty('--stat-scale');
     const column = statGrid.firstElementChild?.clientWidth ?? 0;
     if (column <= 0) return;
 
@@ -868,7 +870,7 @@ if (statGrid) {
 
     if (widest <= 0) return;
     const scale = Math.min(1, (column * STAT_SPAN) / widest);
-    statGrid.style.setProperty('--stat-size', `${17.5 * scale}rem`);
+    statGrid.style.setProperty('--stat-scale', String(scale));
   };
 
   fitStats();
