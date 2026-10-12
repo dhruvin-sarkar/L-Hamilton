@@ -49,6 +49,11 @@ body[data-page='off-track'] {
 
 .oft-hero__c {
   block-size: 100%;
+  /* Reference .c: the fluid container, capped where the root stops growing
+     (1920px) and centred beyond. Uncapped, on a wider screen the copy stood
+     at the far left edge and the columns spread with the window. */
+  max-inline-size: 108rem;
+  margin-inline: auto;
   /* Reference: --on-t-nav-spacer (5.375rem) on top, the container's --gap at
      the sides, and .off-t-hero-title-layout's --gap at the foot. */
   padding: calc(5.375 * var(--r)) var(--gap) var(--gap);
@@ -310,12 +315,13 @@ body[data-page='off-track'] {
 
 /* ------------------------------------------------------------ The marquee */
 
-/* Reference .marquee-offest-w.z-20: the full viewport width, pulled out of
-   the container's left gap, 2rem under the note. */
+/* Reference .marquee-offest-w.z-20: the full viewport width, capped with the
+   container, pulled out of the container's left gap, 2rem under the note. */
 .oft-hero__marquee {
   position: relative;
   z-index: 20;
   inline-size: 100vw;
+  max-inline-size: 108rem;
   margin-block-start: calc(2 * var(--r));
   margin-inline-start: calc(var(--gap) * -1);
   overflow: clip;
@@ -354,6 +360,12 @@ body[data-page='off-track'] {
 
   .oft-hero__marquee-track ~ .oft-hero__marquee-track {
     display: none;
+  }
+
+  /* The spacer that follows each name in the loop goes half to either side
+     of it here, or every wrapped line sits half a spacer left of centre. */
+  .oft-hero__marquee-track .oft-hero__venture {
+    padding-inline: calc(3.5 * var(--r));
   }
 }
 
@@ -551,13 +563,25 @@ body[data-page='off-track'] {
 }
 
 /* One line of the statement, cut by off-track.ts for the oval reveal: a clip
-   box the width of its words, and the words inside it. */
+   box the width of its words, and the words inside it.
+
+   The clip edge stands 0.2em off the line on every side, for the glyphs that
+   overhang it: padding out to that edge and a margin of the same size back
+   in, so the words sit exactly where an unpadded box puts them.
+   overflow-clip-margin says the same in one line, but Safari does not
+   implement it and clipped at the line itself, shaving those glyphs. */
 .oft-oval {
   display: block;
   inline-size: fit-content;
-  margin-inline: auto;
+  padding: 0.2em;
+  margin: -0.2em auto;
   overflow: clip;
-  overflow-clip-margin: 0.2em;
+}
+
+/* Adjoining margins collapse to the larger of the two rather than adding up,
+   so between two lines the pull-back of both is written on the lower one. */
+.oft-oval + .oft-oval {
+  margin-block-start: -0.4em;
 }
 
 .oft-oval__line {
@@ -684,6 +708,14 @@ body[data-page='off-track'] {
   :where(.gallery--off-track) .gallery__item.is-out {
     margin-inline-start: 0;
   }
+
+  /* On the sideways track two of the titles are pushed down their column,
+     50.5vh off its foot. Stacked, that margin is half a screen of nothing
+     between the title and its pictures. This one is not the column's own
+     rule, so it is written to win over the track's, further down. */
+  .gallery--off-track .oft-gal__title--mid {
+    margin-block: 0;
+  }
 }
 
 .gallery--off-track {
@@ -785,7 +817,6 @@ body[data-page='off-track'] {
   display: flex;
   flex-direction: column;
   gap: calc(1.25 * var(--u));
-  margin-block-end: calc(1.25 * var(--u));
 }
 
 .oft-gal__icon {
@@ -825,8 +856,11 @@ body[data-page='off-track'] {
   white-space: nowrap;
 }
 
+/* The gap and the 8.42vh as one margin on the picture: as a margin under the
+   heading and another over the picture they collapsed into the larger, and
+   the picture sat a gap higher than the reference's. */
 .oft-gal__lead .gallery__frame {
-  margin-block-start: 8.42vh;
+  margin-block-start: calc(8.42vh + 1.25 * var(--u));
 }
 
 /* ---- the title columns ---- */
@@ -1124,7 +1158,6 @@ body[data-page='off-track'] {
     grid-template-columns: 1fr 1fr;
     gap: calc(1.25 * var(--u));
     align-items: start;
-    margin-block-end: 0;
   }
 
   .oft-gal__heading {
@@ -1350,18 +1383,19 @@ body[data-page='off-track'] {
   .oft-impact__text {
     font-size: calc(7 * var(--r));
   }
+
+  /* Reference `.impact-content-w .text-impact-lg-mona strong` under 992:
+     font-size inherit. The accented words stop standing a step larger and
+     take the statement's own size, here and on a phone. */
+  .oft-impact__accent {
+    font-size: inherit;
+  }
 }
 
 @media (max-width: 767px) {
   .oft-group {
     --r: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
     --text--eyebrow: var(--r);
-  }
-
-  /* The reference's --padding--container drops to 1rem here and its
-     --on-t-nav-spacer grows to 6.375rem. */
-  .oft-hero__c {
-    padding: calc(6.375 * var(--r)) var(--r) var(--gap);
   }
 }
 
@@ -1379,6 +1413,13 @@ body[data-page='off-track'] {
   .oft-group {
     --r: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
     --text--eyebrow: calc(0.8 * var(--r));
+  }
+
+  /* The reference's --padding--container drops to 1rem here and its
+     --on-t-nav-spacer grows to 6.375rem: on .c.is-on-track-home, under 480
+     and not before. */
+  .oft-hero__c {
+    padding: calc(6.375 * var(--r)) var(--r) var(--gap);
   }
 
   .oft-hero__title-w {
@@ -1439,10 +1480,6 @@ body[data-page='off-track'] {
      word. The same here, by taking the break out of the flow. */
   .oft-impact__text br {
     display: none;
-  }
-
-  .oft-impact__accent {
-    font-size: calc(3.6 * var(--r));
   }
 
   /* Reference .base-helmet-rive under 480: 4.7rem across, its height from
