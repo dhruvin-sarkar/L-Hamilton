@@ -1972,6 +1972,12 @@ body[data-page='on-track'] {
     --season-year: 51.53%;
     --season-finish: 25.77%;
   }
+
+  /* The reference's button carries a 1px border in its own fill, so it is two
+     pixels wider than its padding makes it: 168.8 against 166.8 at 390. */
+  .ot-seasons .ot-btn {
+    padding-inline: calc(1rem + 1px);
+  }
 }
 
 @media (max-width: 767px) {
@@ -1989,6 +1995,9 @@ body[data-page='on-track'] {
     --season-finish: 25.93%;
     grid-template-columns: 1fr;
     row-gap: calc(var(--gap) * 2);
+    /* Reference `.title-layout.grid-main` under 480: two gaps under the block
+       as well as between its rows, before the next section's own spacer. */
+    margin-block-end: calc(var(--gap) * 2);
   }
 
   /* The head's three children join the block's own rows, so the photograph can
@@ -3574,6 +3583,14 @@ button.ot-cal__row:focus-visible {
     font-size: calc(var(--u) * 1.3);
   }
 
+  /* Reference `.text-on-t-stat-label-sm` under 480: every one of them sits a
+     tenth of a rem low -- the session, its date and its time here, and the
+     standing's ordinal below. Moved, not re-flowed, so the rules stay put. */
+  .ot-cal__session-list .ot-cal__session > span {
+    position: relative;
+    inset-block-start: 0.1rem;
+  }
+
   .ot-cal__session--note {
     padding-block-start: calc(var(--g) * 0.2);
   }
@@ -3656,6 +3673,13 @@ button.ot-cal__row:focus-visible {
     font-size: calc(var(--u) * 1.3);
   }
 
+  /* The standing's ordinal only: the Calendar page hangs its row ordinals off
+     this class too, and places those itself. */
+  .ot-cal__standing-value .ot-cal__suffix {
+    position: relative;
+    inset-block-start: 0.1rem;
+  }
+
   /* The table's own button, under the vignette, is the way out here. */
   .ot-cal__btn-w {
     display: none;
@@ -3663,7 +3687,7 @@ button.ot-cal__row:focus-visible {
 
   /* Reference `.btn-icon-w` under 480: a 1.5rem slot round the same arrow,
      where it is 1.2 above. The drawing keeps its size; the button widens. */
-  .ot-cal__btn-icon {
+  .ot-cal__btn .ot-cal__btn-icon {
     margin-inline: 0.225rem;
   }
 
@@ -3987,7 +4011,8 @@ button.ot-cal__row:focus-visible {
   .gallery--on-track .gallery__callout::after {
     content: '';
     inline-size: calc(9 * var(--u));
-    aspect-ratio: 54.16 / 25.41;
+    /* `.horizontal-rive-placeholder`'s own proportion: 54.2 x 24.6 at 390. */
+    aspect-ratio: 4.125 / 1.875;
   }
 
   .gallery--on-track .gallery__quote {
