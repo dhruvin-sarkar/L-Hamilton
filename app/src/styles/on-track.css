@@ -1978,11 +1978,22 @@ body[data-page='on-track'] {
   .ot-seasons .ot-btn {
     padding-inline: calc(1rem + 1px);
   }
+
+  /* Our small print has no counterpart to copy, so it takes the steps of the
+     reference's own small body line (`.text-body-sm-mona`: 1rem, 1.5 from 480
+     to 767, 1 again under 480). At the desktop's 0.875 it was 6px at 600. */
+  .ot-career .ot-provenance {
+    font-size: 1rem;
+  }
 }
 
 @media (max-width: 767px) {
   .ot-career {
     --eyebrow-ref: 1;
+  }
+
+  .ot-career .ot-provenance {
+    font-size: 1.5rem;
   }
 }
 
@@ -2039,6 +2050,7 @@ body[data-page='on-track'] {
   .ot-career .ot-provenance {
     order: 3;
     max-inline-size: none;
+    font-size: 1rem;
   }
 
   /* Reference `.text-on-t-large-number.fixed-width` at 5rem of a 10rem figure,
@@ -4466,6 +4478,14 @@ button.ot-cal__row:focus-visible {
        stacking them would break all five. */
     overflow-x: auto;
     overscroll-behavior-x: contain;
+    /* Out to the screen's edge, which is where the reference's cluster is cut
+       off: past the grid's own shortfall (its four columns stop 5.8% short of
+       the container, less three gaps) and the gutter after it -- 22px at 820.
+       Written against this column's width, not the viewport's, so a classic
+       scrollbar cannot push it past the edge; half a pixel shy, so rounding
+       cannot either. */
+    max-inline-size: none;
+    margin-inline-end: calc(2 * var(--hgap) + 0.5px - 0.12314 * (100% - var(--hgap)));
   }
 
   .ot-gigantic__num {
@@ -4620,6 +4640,7 @@ button.ot-cal__row:focus-visible {
   .ot-hero__ui {
     block-size: calc(13.3 * var(--hu));
     margin-block-start: 0;
+    margin-inline-end: 0;
     overflow: visible;
   }
 
