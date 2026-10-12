@@ -247,17 +247,18 @@ export const fieldFragment = /* glsl */ `
  * ------------------------------------------------------------------ */
 
 /**
- * The reference's wireframe (its `102-float-scaneffect`), reproduced:
+ * The resting shell, and the pulse that runs down it -- what the reference's
+ * wireframe does, in a shader of our own.
  *
- *     scanEffect = IS_WIREFRAME_ANIMATING ? pow(fract(-y * 10.0 - uTime), 4.0) * 0.1 : 0.1
- *     gl_FragColor = vec4(vec3(0.0), scanEffect * uOpacity)
- *
- * fract() of a scaled height is a sawtooth, and sliding it with time makes it
- * travel; the fourth power crushes all but the crest, so the shell sits almost
- * invisible and a pulse runs down it once a second. Its model is 0.0771 units
- * tall, so `y * 10` puts 0.771 of a period across the helmet: one pulse at a
- * time, with a gap before the next. `uScanSpan` is that 0.771, applied to our
- * model's own normalised height so the rhythm is the same.
+ * The shell sits almost invisible, a tenth of its line colour, and once a
+ * second a front of light crosses it from crown to base. Behind the front the
+ * light dies away by the fourth power of the time since it passed, which
+ * crushes all but the crest, so what reads is one bright edge travelling down
+ * with a short tail above it. The reference's model is 0.0771 units tall and
+ * its pulse repeats every tenth of a unit, which puts 0.771 of a period across
+ * the helmet: one pulse at a time, with a gap before the next. `uPulseSpan` is
+ * that 0.771, applied to our model's own normalised height so the rhythm is
+ * the same.
  *
  * Light lines instead of black: our ground is dark where the reference's is
  * cream, and the palette inverts with it. `uWeight` scales for our denser mesh
@@ -275,20 +276,29 @@ const wireVertex = /* glsl */ `
 
 const wireFragment = /* glsl */ `
   precision highp float;
-  uniform float uTime;
-  uniform float uOpacity;
-  uniform float uScanSpan;
-  uniform bool  uIsWireframeAnimating;
-  uniform vec3  uColor;
+  uniform float uClock;
+  uniform float uShown;
+  uniform float uPulseSpan;
+  uniform float uPulsing;
+  uniform vec3  uLine;
   uniform float uWeight;
   varying float vHeight;
 
+  /* A line's alpha with no pulse on it, and right at a pulse's front. */
+  const float SHELL = 0.1;
+
   void main() {
-    float scanEffect = 0.1;
-    if (uIsWireframeAnimating) {
-      scanEffect = pow(fract(-vHeight * uScanSpan - uTime), 4.0) * 0.1;
-    }
-    gl_FragColor = vec4(uColor, scanEffect * uOpacity * uWeight);
+    // Pulse periods since the last front crossed this height: 0 as it passes,
+    // climbing until the next one arrives and takes it back to 0.
+    float since = fract(vHeight * uPulseSpan + uClock);
+
+    // What is left of the front's light by then, to the fourth power.
+    float glow = 1.0 - since;
+    glow *= glow;
+    glow *= glow;
+
+    float alpha = SHELL * mix(1.0, glow, uPulsing);
+    gl_FragColor = vec4(uLine, alpha * uShown * uWeight);
   }
 `;
 
@@ -457,19 +467,20 @@ const makeHeadUniforms = (
 type HeadUniforms = ReturnType<typeof makeHeadUniforms>;
 
 const makeWireUniforms = (heightRange: THREE.Vector2, color: THREE.Color) => ({
-  uTime: { value: 0 },
-  // The reference's wireframe uOpacity: 1 at rest, 0 once the scroll takes over.
-  uOpacity: { value: 1 },
-  uScanSpan: { value: 0.771 },
+  uClock: { value: 0 },
+  // 1 at rest, 0 once the scroll takes over, as the reference fades its own.
+  uShown: { value: 1 },
+  uPulseSpan: { value: 0.771 },
   /* Line weight against the reference's. Its wireframe is 45.5k triangles;
      ours is 212.8k, so at the same alpha the same shell draws 4.7x the ink and
      the dense parts (visor frame, fins, rim) burn solid. Measured as mean
      luminance change over the helmet's box, static scan, both sites: the
      reference 7.6, ours 36.1 at 1.0 and 7.8 at 0.11. */
   uWeight: { value: 0.11 },
-  uIsWireframeAnimating: { value: !reducedMotion },
+  // 1 while the pulse runs, 0 for the plain shell.
+  uPulsing: { value: reducedMotion ? 0 : 1 },
   uHeightRange: { value: heightRange },
-  uColor: { value: color },
+  uLine: { value: color },
 });
 type WireUniforms = ReturnType<typeof makeWireUniforms>;
 
@@ -1096,7 +1107,7 @@ export class HeadScene {
    * on: flat ground, face on it, no contours, no helmet, nothing moving.
    *
    * The helmet does not cut out. As on the reference, the reveal
-   * (uCursorIntensity) and the wireframe (uOpacity) fade to nothing over a
+   * (uCursorIntensity) and the wireframe (uShown) fade to nothing over a
    * quarter second, and only then does the scene stop simulating. Scrolling
    * back brings them back the same way.
    */
@@ -1107,11 +1118,11 @@ export class HeadScene {
 
     if (v) {
       gsap.to(this.fieldU.uCursorIntensity, { ...fade, value: 0, onComplete: () => this.applyStill() });
-      if (this.helmet) gsap.to(this.helmet.wireU.uOpacity, { ...fade, value: 0 });
+      if (this.helmet) gsap.to(this.helmet.wireU.uShown, { ...fade, value: 0 });
     } else {
       this.applyStill();
       gsap.to(this.fieldU.uCursorIntensity, { ...fade, value: 1 });
-      if (this.helmet) gsap.to(this.helmet.wireU.uOpacity, { ...fade, value: 1 });
+      if (this.helmet) gsap.to(this.helmet.wireU.uShown, { ...fade, value: 1 });
     }
   }
 
@@ -1266,8 +1277,8 @@ export class HeadScene {
       rig.litPose.rotation.set(turnX, turnY, 0);
       rig.wirePose.rotation.set(turnX, turnY, 0);
 
-      rig.wireU.uTime.value = t;
-      rig.wireU.uIsWireframeAnimating.value = this.params.IS_WIREFRAME_ANIMATING;
+      rig.wireU.uClock.value = t;
+      rig.wireU.uPulsing.value = this.params.IS_WIREFRAME_ANIMATING ? 1 : 0;
       this.maskU.uShowHelmet.value = this.params.SHOW_HELMET_PERMANENTLY ? 1 : 0;
     }
     return true;
