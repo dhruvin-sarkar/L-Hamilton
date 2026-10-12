@@ -385,7 +385,40 @@ if (marquee) {
      Carrying the copy count in a local rather than round-tripping it through a
      data attribute: a missing attribute would silently fall back to a different
      number, and the loop would jump at every repeat with nothing to say why. */
-  const bands: { track: HTMLElement; copies: number; rightward: boolean }[] = [];
+  type Band = {
+    row: HTMLElement;
+    track: HTMLElement;
+    first: HTMLElement;
+    copies: number;
+    rightward: boolean;
+  };
+  const bands: Band[] = [];
+
+  /**
+   * Adds copies until the band covers its row through a whole shift, and says
+   * whether it had to.
+   *
+   * Identical copies side by side. The loop shifts by exactly one of them, so
+   * copy 2 lands where copy 1 was and the seam is invisible — one copy is the
+   * pattern's period and the only distance that keeps its phase.
+   *
+   * A copy is measured, then only as many more are added as the shift needs:
+   * copyWidth * (copies - 1) >= viewport. A fixed count overshoots badly — four
+   * copies of this text made a 14,535px composited layer.
+   */
+  const fill = (band: Band): boolean => {
+    const copyWidth = band.track.scrollWidth / band.copies;
+    /* +1 for the copy that gets shifted out, and never fewer than two — with a
+       single copy there is no second one to hand over to at the seam. */
+    const needed =
+      copyWidth > 0
+        ? Math.max(2, Math.ceil(band.row.clientWidth / copyWidth) + 1)
+        : MARQUEE_FALLBACK_COPIES;
+    if (needed <= band.copies) return false;
+    for (let i = band.copies; i < needed; i++) band.track.append(band.first.cloneNode(true));
+    band.copies = needed;
+    return true;
+  };
 
   for (const row of marquee.querySelectorAll<HTMLElement>('[data-marquee]')) {
     const name = row.dataset.marquee;
@@ -398,24 +431,10 @@ if (marquee) {
     const first = track.querySelector<HTMLElement>('.marquee__item');
     if (!first) throw new Error(`[hero] the "${name}" marquee band is missing from the served page`);
 
-    /* Identical copies side by side. The loop shifts by exactly one of them, so
-       copy 2 lands where copy 1 was and the seam is invisible — one copy is the
-       pattern's period and the only distance that keeps its phase.
-     *
-     * The served copy is measured, then only as many more are added as the
-     * shift needs: copyWidth * (copies - 1) >= viewport. A fixed count
-     * overshoots badly — four copies of this text made a 14,535px composited
-     * layer. */
-    const copyWidth = track.scrollWidth;
-    /* +1 for the copy that gets shifted out, and never fewer than two — with a
-       single copy there is no second one to hand over to at the seam. */
-    const copies =
-      copyWidth > 0
-        ? Math.max(2, Math.ceil(row.clientWidth / copyWidth) + 1)
-        : MARQUEE_FALLBACK_COPIES;
-    for (let i = 1; i < copies; i++) track.append(first.cloneNode(true));
-
-    bands.push({ track, copies, rightward: name === 'right' });
+    /* One copy is served; the rest are made here. */
+    const band: Band = { row, track, first, copies: 1, rightward: name === 'right' };
+    fill(band);
+    bands.push(band);
   }
 
   if (!reducedMotion) {
@@ -426,7 +445,7 @@ if (marquee) {
 
        `ease: none` holds the speed constant so the joint never shows up as a
        hesitation. */
-    const loops = bands.map(({ track, copies, rightward }) => {
+    const run = ({ track, copies, rightward }: Band): gsap.core.Tween => {
       /* One copy's width, as a percentage of the whole track. This is the
          pattern's period, and therefore the ONLY distance the track can travel
          without changing phase — land on it and the loop is seamless, miss it
@@ -459,7 +478,8 @@ if (marquee) {
           repeat: -1,
         },
       );
-    });
+    };
+    const loops = bands.map(run);
 
     /* Scroll speeds the bands up, in either scroll direction — the reference
        adds |lenis.velocity| x 0.001 units to each frame's 1/60-unit step, so
@@ -485,6 +505,24 @@ if (marquee) {
       { threshold: 0 },
     );
     runner.observe(marquee);
+
+    /* The count is for the window as it stood. A wider one needs more, and so
+       does a shorter one, whose type and so whose copies are smaller: 1720
+       widened to 3440 left two 3269px copies 171px short of the row, a blank at
+       the end of every loop. A band that had to grow gets a new loop, since its
+       step is a share of a longer track now, picked up at the same point in
+       the period so nothing jumps. Listening after sizeBands, which sets the
+       size these copies are measured at. */
+    window.addEventListener('resize', () => {
+      loops.forEach((old, i) => {
+        const band = bands[i];
+        if (!band || !fill(band)) return;
+        const next = run(band).progress(old.progress()).timeScale(rate);
+        if (old.paused()) next.pause();
+        old.kill();
+        loops[i] = next;
+      });
+    });
   }
 }
 
