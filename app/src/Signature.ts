@@ -250,7 +250,11 @@ export class Signature {
   resize(): void {
     /* The CANVAS's own box, not the host's. The host is the full-viewport
        sticky layer that centres this; the width that matters is the one CSS
-       puts on the canvas itself. */
+       puts on the canvas itself. The pixel size written below is taken off
+       first, or it is that size being read back and the signature stays the
+       width it was at load through every later resize and rotation. */
+    this.canvas.style.width = '';
+    this.canvas.style.height = '';
     const box = this.canvas.getBoundingClientRect();
     if (box.width < 1) return;
 

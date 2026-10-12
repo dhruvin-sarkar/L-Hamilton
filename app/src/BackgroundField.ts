@@ -177,10 +177,11 @@ export class BackgroundField {
     this.contour.setPointer(nx, ny);
   }
 
-  resize(): void {
+  /** The scene's box, the same one the hero's plate is given. See HeadScene.resize. */
+  resize(width: number, height: number): void {
     // CSS pixels, not device pixels: line weight is this target's texel size.
     // See ContourField.setSize.
-    this.contour.setSize(window.innerWidth, window.innerHeight);
+    this.contour.setSize(width, height);
   }
 
   /**

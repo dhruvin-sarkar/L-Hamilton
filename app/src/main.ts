@@ -358,8 +358,29 @@ function el<K extends keyof HTMLElementTagNameMap>(
 /** Copies per track when the track cannot be measured. See the build below. */
 const MARQUEE_FALLBACK_COPIES = 4;
 
+/**
+ * How large the bands are drawn against the desktop's, for this window width.
+ *
+ * The reference's carousel is seen by a camera at z 4.5. At 768px and below
+ * its responsive() pulls that camera back — 6.5 at 768 out to 11 at 480, then
+ * 9.5 at 479 out to 14 at 320 — so everything on the plane is 4.5 / z the
+ * size: 0.37 at 390, 0.69 at 768. The stylesheet takes it as --marquee-k.
+ */
+function marqueeScale(): number {
+  const vw = window.innerWidth;
+  if (vw > 768) return 1;
+  const z = vw >= 480 ? 11 - (4.5 * (vw - 480)) / 288 : 14 - (4.5 * Math.max(vw - 320, 0)) / 160;
+  return 4.5 / z;
+}
+
 const marquee = document.querySelector<HTMLElement>('.hero-back');
 if (marquee) {
+  /* Before anything below measures a band: the copy count is taken off the
+     size the text is actually drawn at. */
+  const sizeBands = (): void => marquee.style.setProperty('--marquee-k', String(marqueeScale()));
+  sizeBands();
+  window.addEventListener('resize', sizeBands);
+
   /* Built here, animated further down once the reduced-motion branch is known.
      Carrying the copy count in a local rather than round-tripping it through a
      data attribute: a missing attribute would silently fall back to a different
@@ -418,9 +439,10 @@ if (marquee) {
        * The reference moves each band one world unit a second, and 6.906 units
        * span the viewport's height: 14.48vh a second on screen. The bottom row
        * is squeezed to 0.9 by a transform its track sits inside, so its own
-       * layout distance is a ninth longer for the same on-screen speed. */
+       * layout distance is a ninth longer for the same on-screen speed. A unit
+       * is that much smaller on a phone, where the camera stands further back. */
       const squeeze = rightward ? 0.9 : 1;
-      const pxPerSecond = (window.innerHeight / 6.906) / squeeze;
+      const pxPerSecond = ((window.innerHeight / 6.906) * marqueeScale()) / squeeze;
       const duration = (track.scrollWidth * (step / 100)) / pxPerSecond;
 
       /* The two bands travel opposite ways, and the rightward one has to START
@@ -1128,18 +1150,72 @@ if (stage && heroLayer && gl) {
   const bgLayer = bgStage && !reducedMotion ? new GLLayer(bgStage, true) : null;
   if (bgLayer) background = new BackgroundField(renderer);
 
-  /* Both layers are the same box — 100% by 100dvh, the field fixed and the
-     plate pinned — so one drawing buffer size serves both. The ELEMENT's box,
-     not the window's: they differ by the scrollbar, and a canvas sized to the
-     window inside a narrower element stretches every pixel horizontally, which
-     on thin contour lines shows up as the two fields not lining up. */
+  const heroTrack = document.querySelector<HTMLElement>('[data-hero-track]');
+
+  /* ---------------------------------------------------------------- *
+   * The landing box, and the scene that has to fill it
+   *
+   * The reference shrinks its plate onto a DOM element, .marquee-gl-target:
+   * 35.375 x 22.875rem, and 25 x 29rem below 480px, in ITS rem — which keeps
+   * scaling under 992px where ours locks at 16px. Measured at 1908 that is
+   * 624.95 x 404.13, 32.75% of the width at an aspect of 1.546; at 820 it is
+   * 336 x 217 and at 390 it is 271 x 314, taller than it is wide.
+   * ---------------------------------------------------------------- */
+
+  /** The reference's root font size at this window width, in px. */
+  const referenceRem = (vw: number): number => {
+    if (vw >= 992) return (Math.min(vw, 1920) / 1728) * 16;
+    if (vw >= 480) return (vw / 1728) * 20;
+    return (Math.max(vw, 320) / 1728) * 48;
+  };
+
+  const landingBox = (vw: number): { w: number; h: number } => {
+    const rem = referenceRem(vw);
+    return vw < 480 ? { w: 25 * rem, h: 29 * rem } : { w: 35.375 * rem, h: 22.875 * rem };
+  };
+
+  /* Push past a plain fit, so the face grows while the frame closes around it.
+     Without it the portrait just recedes and the landing is a wide shot. */
+  const FACE_ZOOM = 1.35;
+
+  /**
+   * How wide the scene is drawn, in CSS pixels: the window, or wider.
+   *
+   * The plate is this canvas scaled down and cropped, and the scale follows
+   * the box's HEIGHT (see plateGeometry). On an upright screen the box it lands
+   * in is far wider for its height than the window is, so a window-wide canvas
+   * scaled to that height stopped short of the box's sides — at 390 wide it
+   * covered 196px of a 271px box. The reference has no such edge: it widens
+   * its camera with the plate and simply shows more of the scene. So the
+   * canvas is made wide enough to still cover the box when it lands, centred
+   * on the window, and what overhangs is clipped until the shrink uncovers it.
+   */
+  const sceneWidth = (): number => {
+    const box = landingBox(window.innerWidth);
+    return Math.max(stage.clientWidth, Math.ceil((stage.clientHeight * box.w) / box.h / FACE_ZOOM));
+  };
+  /** The current scene width, for the pointer and the plate's crop. */
+  let sceneW = sceneWidth();
+
+  /* Both layers are the same box — the scene's width by 100dvh, the field
+     fixed and the plate pinned — so one drawing buffer size serves both. The
+     ELEMENT's box, not the window's: they differ by the scrollbar, and a canvas
+     sized to the window inside a narrower element stretches every pixel
+     horizontally, which on thin contour lines shows up as the two fields not
+     lining up. */
   const resize = () => {
-    renderer.setSize(stage.clientWidth, stage.clientHeight, false);
+    sceneW = sceneWidth();
+    /* Only where it is wider than the stage. Left unset the canvases follow
+       their boxes at 100%, with no frame's wait on this handler. */
+    if (sceneW > stage.clientWidth) heroTrack?.style.setProperty('--scene-w', `${sceneW}px`);
+    else heroTrack?.style.removeProperty('--scene-w');
+
+    renderer.setSize(sceneW, stage.clientHeight, false);
     const { width, height } = offscreen;
     heroLayer.setSize(width, height);
     bgLayer?.setSize(width, height);
-    head.resize();
-    background?.resize();
+    head.resize(sceneW, stage.clientHeight);
+    background?.resize(sceneW, stage.clientHeight);
     // Its canvas is sized off the host box, which is sized in vw — so a resize
     // changes it, and the cached ink has to be re-rendered at the new scale.
     signature?.resize();
@@ -1159,14 +1235,38 @@ if (stage && heroLayer && gl) {
   };
   window.addEventListener('resize', onResize);
 
-  // "Tap to lock" freezes the reveal where it is, so the composition can be
-  // read without the cursor dragging it around.
-  let locked = false;
+  /* "Tap to lock" holds the PAGE, not the reveal — the reference's
+     [data-home-swipe-toggle]. A touch screen has one finger for scrolling and
+     for drawing, so pressing this puts the page at the top and keeps it there
+     while the finger draws on the portrait, and pressing it again hands the
+     scroll back. Lenis is stopped where it is the scroller; the flag on the
+     root is what stops the browser itself panning (home.css), which under
+     reduced motion is the only scroller there is. */
   const lockBtn = document.querySelector<HTMLButtonElement>('#lock-btn');
-  lockBtn?.addEventListener('click', () => {
-    locked = !locked;
-    lockBtn.setAttribute('aria-pressed', String(locked));
-  });
+  if (lockBtn) {
+    const hold = (held: boolean): void => {
+      lockBtn.setAttribute('aria-pressed', String(held));
+      document.documentElement.toggleAttribute('data-hero-held', held);
+      if (held) {
+        window.scrollTo(0, 0);
+        lenis?.stop();
+      } else {
+        lenis?.start();
+      }
+    };
+    lockBtn.addEventListener('click', () => hold(lockBtn.getAttribute('aria-pressed') !== 'true'));
+
+    /* Let go if the page moves anyway. Focus travelling down the document
+       scrolls it whatever is held, and a page left off the top with its scroll
+       switched off and this control out of reach would be a trap. */
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (window.scrollY > 0 && lockBtn.getAttribute('aria-pressed') === 'true') hold(false);
+      },
+      { passive: true },
+    );
+  }
 
   // Hovering the team row brings the whole helmet up over the head -- the
   // reference's [data-gl-helmet="hover"] on the same row of the same card.
@@ -1177,9 +1277,9 @@ if (stage && heroLayer && gl) {
   window.addEventListener(
     'pointermove',
     (e) => {
-      if (locked) return;
-      // -1..1, y flipped: screen y grows downward, the shader assumes y up.
-      const nx = (e.clientX / window.innerWidth) * 2 - 1;
+      /* -1..1, y flipped: screen y grows downward, the shader assumes y up.
+         Across the SCENE, which is centred on the window and may overhang it. */
+      const nx = ((e.clientX - (window.innerWidth - sceneW) / 2) / sceneW) * 2 - 1;
       const ny = -((e.clientY / window.innerHeight) * 2 - 1);
 
       /* The screen behind takes the pointer for the whole sequence. Once the
@@ -1210,8 +1310,6 @@ if (stage && heroLayer && gl) {
    * recomputes the correct scale without the timeline having to re-fire.
    * ---------------------------------------------------------------- */
 
-  const heroTrack = document.querySelector<HTMLElement>('[data-hero-track]');
-
   /* Resolved once. The scrub writes to it every frame, and a querySelector per
      frame is a lookup the shrink does not need to repeat. */
   const navStyle = document.querySelector<HTMLElement>('.nav-inner')?.style;
@@ -1220,24 +1318,12 @@ if (stage && heroLayer && gl) {
   const monogram = document.querySelector<HTMLElement>('.nav-inner .monogram');
 
   /* End scale of the plate, per axis. Measured, not chosen: the reference's
-     landing box is 625x404 in a 1908x926 viewport.
+     landing box is 625x404 in a 1908x926 viewport — see landingBox, above.
    *
    * The two axes differ and that IS the move — 0.328 across against 0.436 down.
    * The sides come in noticeably faster than the top, so a 2.06 viewport aspect
    * resolves toward a 1.55 near-square. A single uniform scale holds the aspect
    * fixed and reads as a plain zoom-out. */
-  /* The landing box, as a rule rather than two numbers.
-   *
-   * Measured off the reference: 624.95 x 404.13 in a 1908px viewport, which is
-   * 32.75% of the width at an aspect of 1.546, centred on both axes. Checked at
-   * a second viewport width to confirm it tracks width rather than being fixed
-   * pixels. */
-  const BOX_WIDTH_FRACTION = 0.3275;
-  const BOX_ASPECT = 1.546;
-
-  /* Push past a plain fit, so the face grows while the frame closes around it.
-     Without it the portrait just recedes and the landing is a wide shot. */
-  const FACE_ZOOM = 1.35;
 
   /**
    * Where the plate's frame sits at eased progress `e`, for the current viewport.
@@ -1254,10 +1340,11 @@ if (stage && heroLayer && gl) {
   const plateGeometry = (e: number) => {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+    const box = landingBox(vw);
 
     // Where the frame is now: straight line from full-bleed to the landing box.
-    const frameW = vw + (vw * BOX_WIDTH_FRACTION - vw) * e;
-    const frameH = vh + ((vw * BOX_WIDTH_FRACTION) / BOX_ASPECT - vh) * e;
+    const frameW = vw + (box.w - vw) * e;
+    const frameH = vh + (box.h - vh) * e;
 
     /* How far in on the face we have pushed so far. Ramped separately from the
        frame, because it is a separate idea — the frame closing is the sequence,
@@ -1269,32 +1356,42 @@ if (stage && heroLayer && gl) {
        is NOT cropped has to be the one the scale lands exactly. */
     const zoom = (frameH / vh) * faceZoom;
 
-    /* Whatever the zoom overshoots is what gets cropped away. At e=0 both fall
-       out as zero without being special-cased — frameH is vh and faceZoom is 1,
-       so zoom is 1 and there is nothing to trim. */
-    const cropX = (1 - frameW / (vw * zoom)) / 2;
+    /* Whatever the zoom overshoots is what gets cropped away. At e=0 the height
+       falls out as zero without being special-cased — frameH is vh and
+       faceZoom is 1, so zoom is 1 and there is nothing to trim — and the width
+       trims only what the scene overhangs the window by. Never negative: the
+       scene is made wide enough to cover the box (sceneWidth). */
+    const cropX = Math.max(0, (1 - frameW / (sceneW * zoom)) / 2);
     const cropYTotal = 1 - frameH / (vh * zoom);
+
+    /* Split unevenly, toward the face. The band the zoom leaves is 1 / FACE_ZOOM
+       of the scene's height, and centring it on the face is a fixed share of
+       the trim off the top: a quarter where the portrait fills the height, so
+       more comes off the BOTTOM — the head sits above centre, and an even crop
+       would trim the top of it while leaving empty chest. On a phone the
+       portrait stands lower and smaller, and the share is nearer two thirds. */
+    const split = gsap.utils.clamp(
+      0,
+      1,
+      (head.faceCentre - 0.5 / FACE_ZOOM) / (1 - 1 / FACE_ZOOM),
+    );
 
     return {
       zoom,
       cropX,
-      /* Split unevenly, taking more off the BOTTOM. The subject's head sits
-         above centre, so cropping symmetrically would trim the top of it while
-         leaving empty chest. A quarter/three-quarters split holds the face
-         centred in the box. */
-      cropTop: cropYTotal * 0.25,
-      cropBottom: cropYTotal * 0.75,
+      cropTop: cropYTotal * split,
+      cropBottom: cropYTotal * (1 - split),
       /* ...and the pixels that split costs us, handed back.
          A clip inset removes from the element's own box, so an uneven split
-         moves the surviving band's centre to 0.5 - 0.25 * cropYTotal of the
-         box; scale() then works about the BOX centre, not the band's, and
-         carries that offset with it. The plate therefore landed
-         0.25 * cropYTotal * vh * zoom ABOVE the viewport centre — 32px at the
-         landing values, measured, against a reference whose plate is centred
-         to half a pixel at every moment of the close.
+         moves the surviving band's centre (split - 0.5) * cropYTotal of the box
+         off its middle; scale() then works about the BOX centre, not the
+         band's, and carries that offset with it. At the quarter split the
+         plate therefore landed 0.25 * cropYTotal * vh * zoom ABOVE the viewport
+         centre — 32px at the landing values, measured, against a reference
+         whose plate is centred to half a pixel at every moment of the close.
          Compensated here rather than by evening the split, because the uneven
          split is the point: it is what holds the face centred in the box. */
-      cropShift: cropYTotal * 0.25 * vh * zoom,
+      cropShift: cropYTotal * (0.5 - split) * vh * zoom,
     };
   };
 
@@ -1357,31 +1454,54 @@ if (stage && heroLayer && gl) {
        2px, shown at 0). A toggle rather than a scrub; the clip and its timing
        live in home.css. */
     const heroSection = heroTrack.querySelector<HTMLElement>('.hero');
-    const furniture = heroSection?.querySelectorAll<HTMLElement>('.next-race, .lock') ?? [];
+    const card = heroSection?.querySelector<HTMLElement>('.next-race');
+    const touchControl = heroSection?.querySelector<HTMLElement>('.lock');
     const syncFurniture = (): void => {
       const scrolled = window.scrollY > 0;
       heroSection?.classList.toggle('is-scrolled', scrolled);
-      /* Clipped shut they paint nothing, focus ring included, so they leave
-         the tab order with it rather than taking focus unseen. */
-      for (const piece of furniture) piece.inert = scrolled;
+      /* Clipped shut it paints nothing, focus ring included, so it leaves the
+         tab order with it rather than taking focus unseen. */
+      if (card) card.inert = scrolled;
+      /* The touch control outlasts the card: the reference keeps it for the
+         first tenth of a screen (a ScrollTrigger on its 10vh top marker) and
+         then fades it. `inert` is the switch, and the fade hangs off it. */
+      if (touchControl) touchControl.inert = window.scrollY > window.innerHeight * 0.1;
     };
     window.addEventListener('scroll', syncFurniture, { passive: true });
     syncFurniture();
 
-    /* The landed label rises a character at a time, so each one is its own box
-       carrying its index; the pacing is CSS's, off --hero-t. */
-    const heroEyebrow = heroTrack.querySelector<HTMLElement>('[data-hero-eyebrow]');
-    if (heroEyebrow) {
-      const text = heroEyebrow.textContent ?? '';
-      heroEyebrow.textContent = '';
+    /** Cut a label into one box per character, each carrying its letter's index. Returns the letter count. */
+    const splitLetters = (label: HTMLElement, className: string): number => {
+      const text = label.textContent ?? '';
+      label.textContent = '';
       // Counted over letters only, as the reference splits its label: a space
       // is not a character that arrives.
       let letter = 0;
       for (const char of text) {
-        const box = el('span', 'hero-mark__char', char);
+        const box = el('span', className, char);
         box.style.setProperty('--i', String(char === ' ' ? letter : letter++));
-        heroEyebrow.append(box);
+        label.append(box);
       }
+      return letter;
+    };
+
+    /* The landed label rises a character at a time, so each one is its own box
+       carrying its index; the pacing is CSS's, off --hero-t. */
+    const heroEyebrow = heroTrack.querySelector<HTMLElement>('[data-hero-eyebrow]');
+    if (heroEyebrow) splitLetters(heroEyebrow, 'hero-mark__char');
+
+    /* Below 992px the hero carries the name, and its team line leaves a letter
+       at a time (see .hero-name). The reference's timeline gives the
+       wordmark's clip 0.8s and each letter 0.8s, 0.02s apart, and scrubs the
+       whole of it across 15% of the pin — so how much of the pin one of those
+       moves takes depends on how many letters the line has. */
+    const teamLine = heroTrack.querySelector<HTMLElement>('[data-hero-team]');
+    if (teamLine) {
+      const letters = splitLetters(teamLine, 'hero-name__char');
+      const total = 0.8 + 0.02 * Math.max(0, letters - 1);
+      const name = teamLine.closest<HTMLElement>('.hero-name');
+      name?.style.setProperty('--name-span', String((0.15 * 0.8) / total));
+      name?.style.setProperty('--name-step', String((0.15 * 0.02) / total));
     }
 
     const p = { t: 0 };

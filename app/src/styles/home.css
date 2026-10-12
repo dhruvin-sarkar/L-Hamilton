@@ -491,6 +491,29 @@
      dead scroll. */
   min-block-size: 100dvh;
   background: var(--white);
+  /* The reference's rem, for the measures that place the hero's parts against
+     each other. Ours from 992px up; below it the reference's keeps scaling
+     where ours locks at 16px, so it is restated band by band, as the nav's
+     --nav-u is. */
+  --hero-u: 1rem;
+}
+
+@media (max-width: 991px) {
+  .hero-track {
+    --hero-u: calc(clamp(768px, 100vw, 991px) / 1728 * 20);
+  }
+}
+
+@media (max-width: 767px) {
+  .hero-track {
+    --hero-u: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
+  }
+}
+
+@media (max-width: 479px) {
+  .hero-track {
+    --hero-u: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
+  }
 }
 
 /* Two viewport heights: the first is the shrink, the second is what a sticky
@@ -677,6 +700,7 @@
 .hero-bg {
   position: fixed;
   z-index: 0;
+  overflow: clip;
 }
 
 .hero-bg canvas {
@@ -715,6 +739,7 @@
  * rebuilding this inside the GL. */
 .hero__stage {
   z-index: 2;
+  overflow: clip;
   /* The mute lives in the portrait's shader now, not in a filter here. A
      filter on a full-viewport element makes the compositor rasterise the
      layer, run a pass over it and composite the result on every frame the
@@ -756,6 +781,18 @@
   will-change: transform, clip-path;
 }
 
+/* The scene is the window's width, or wider. On an upright screen the plate
+   lands in a box that is wider for its height than the window is, so main.ts
+   draws both layers --scene-w across, centred here, and their two boxes clip
+   what overhangs. Unset, which is every landscape window, they are 100%.
+   After both canvases' own rules, so it is the width that wins. */
+.hero-bg canvas,
+.hero__stage canvas {
+  inline-size: var(--scene-w, 100%);
+  max-inline-size: none;
+  margin-inline-start: calc((100% - var(--scene-w, 100%)) / 2);
+}
+
 /* Above the plate, and deliberately WIDER than it. On the reference the
    signature overhangs the box on both sides by a long way — it is written
    across the composition, not inside the frame — so this is sized off the
@@ -776,11 +813,28 @@
 
    The ink is drawn into a canvas rather than composited through an SVG mask.
    The mask version looked identical and cost more per frame than both WebGL
-   scenes put together; the measurements are in Signature. */
+   scenes put together; the measurements are in Signature.
+
+   The reference's box for it is .marquee-gl-rive-target, 70rem capped at 800px,
+   50vw below 992px and 80vw below 480px, and its ink fills 98.25% of that box
+   across (786 of 800, read off its canvas at 1440). The cap is the size at
+   every width from 1235px up, which is why this is not a share of the width. */
 .hero-sign canvas {
   display: block;
-  inline-size: min(41vw, 52rem);
+  inline-size: min(68.775rem, 786px);
   block-size: auto;
+}
+
+@media (max-width: 991px) {
+  .hero-sign canvas {
+    inline-size: 49.125vw;
+  }
+}
+
+@media (max-width: 479px) {
+  .hero-sign canvas {
+    inline-size: 78.6vw;
+  }
 }
 
 /* ------------------------------------------- Monogram above the plate
@@ -815,8 +869,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--gap);
-  padding-block-start: calc(50dvh - 22.5rem);
+  gap: calc(var(--hero-u) * 1.25);
+  padding-block-start: calc(50dvh - var(--hero-u) * 22.5);
 }
 
 /* The mark is where the SHRUNK hero lands, over the revealed cream screen.
@@ -833,8 +887,8 @@
   --mark-r: calc(1 - var(--mark-x));
   inline-size: auto;
   /* 34px of mark at the top of the reference's 2.284rem slot. */
-  block-size: 2.125rem;
-  margin-block-end: 0.1594rem;
+  block-size: calc(var(--hero-u) * 2.125);
+  margin-block-end: calc(var(--hero-u) * 0.1594);
   flex: none;
   color: var(--rosso-corsa);
   opacity: calc(1 - var(--mark-r) * var(--mark-r) * var(--mark-r) * var(--mark-r));
@@ -868,6 +922,117 @@
      now, and painting over it would hide the portrait entirely. */
 }
 
+/* --------------------------------------------- Name under the mark (<992px)
+ *
+ * The reference's .home-hero-tablet-hero-text. Below 992px its nav has no room
+ * for the lockup, so the hero carries the name instead: the centre mark comes
+ * down 3.5rem to stand over it, the wordmark is set on one line 10rem down the
+ * screen, and the team line sits a gap beneath. Measured at 390 wide: mark
+ * 63-90, name 108-129, team line 142-151; at 820, 50-76, 95-116 and 128-136.
+ *
+ * It leaves on the pin's RAW progress, the reference's Z_() timeline again:
+ * over 70-85% of the pin the wordmark is clipped away upwards by an ellipse
+ * hung from its top edge, and the team line's letters roll up out of their
+ * line 0.02s apart, each on power3.out. main.ts writes the two fractions of
+ * the pin those take, because they depend on how many letters the line has.
+ *
+ * Until then it does not move. The plate shrinks away from under it from
+ * about 40%, and from there it is light ink on the light screen — as the
+ * reference's is dark on dark through the same stretch. */
+.hero-name {
+  display: none;
+}
+
+@media (max-width: 991px) {
+  .hero-name {
+    position: absolute;
+    inset-block-start: calc(var(--hero-u) * 10);
+    inset-inline: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(var(--hero-u) * 1.25);
+    pointer-events: none;
+  }
+
+  /* One line, both names at one cap height: the reference's is a 19rem image
+     2.2rem tall, 16 by 1.76 below 480px. */
+  .hero-name__mark {
+    --name-cap: calc(var(--hero-u) * 2.2);
+    --name-x: clamp(0, (var(--hero-t) - 0.7) / var(--name-span, 0.1), 1);
+    /* What is left of the move; to the 4th power it is GSAP's power3.out. */
+    --name-r: calc((1 - var(--name-x)) * (1 - var(--name-x)) * (1 - var(--name-x)) * (1 - var(--name-x)));
+    display: flex;
+    align-items: baseline;
+    gap: 0.1em;
+    /* The reference's image is the capitals and nothing else; a line of type
+       carries room above and below them. Taken back off, so the capitals and
+       the team line land where its do. */
+    margin-block: calc(var(--name-cap) * -0.14) calc(var(--name-cap) * -0.21);
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+    clip-path: ellipse(
+      calc(100% + 10% * var(--name-r)) calc(110% * var(--name-r)) at 50% 0
+    );
+  }
+
+  /* Playfair's capitals are 0.708 of its em and Mona Sans's 0.729. */
+  .hero-name__first {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-size: calc(var(--name-cap) / 0.708);
+    letter-spacing: -0.04em;
+    color: var(--rosso-corsa);
+  }
+
+  .hero-name__last {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: calc(var(--name-cap) / 0.729);
+    letter-spacing: -0.03em;
+    color: var(--giallo-modena);
+  }
+
+  .hero-name__team {
+    font-size: var(--text--eyebrow);
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+
+  .hero-name__line {
+    display: flex;
+    overflow: clip;
+    white-space: pre;
+  }
+
+  .hero-name__char {
+    --char-x: clamp(
+      0,
+      (var(--hero-t) - 0.7 - var(--i, 0) * var(--name-step, 0)) / var(--name-span, 0.1),
+      1
+    );
+    --char-r: calc(1 - var(--char-x));
+    display: inline-block;
+    translate: 0
+      calc((var(--char-r) * var(--char-r) * var(--char-r) * var(--char-r) - 1) * 100%);
+  }
+
+  /* Home only: the other three pages keep the mark between the buttons, as
+     the reference sets it back to 0 on leaving its home page. */
+  body:not([data-page]) .monogram {
+    top: calc(var(--nav-u) * 4.75 + var(--nav-btn) / 2);
+  }
+}
+
+@media (max-width: 479px) {
+  .hero-name__mark {
+    --name-cap: calc(var(--hero-u) * 1.76);
+  }
+}
+
 /* The hero's own furniture belongs to the full-bleed screen, so it goes with
    it — and the reference does not scrub this. The moment the page moves off
    zero its card takes `.hidden`, and an ellipse hung from the card's top edge
@@ -877,8 +1042,7 @@
    Three selectors, and that is load-bearing: `.is-ready .hero-in` sets the
    entrance transition at 0-2-0 LATER in this file, so this has to out-rank it
    and restate the entrance's two properties alongside the clip. */
-.hero-track .hero .next-race,
-.hero-track .hero .lock {
+.hero-track .hero .next-race {
   clip-path: ellipse(100% 120% at 50% 0);
   transition:
     clip-path var(--duration-default) var(--cubic-default),
@@ -886,8 +1050,7 @@
     translate 0.9s var(--cubic-default) var(--in-delay, 0ms);
 }
 
-.hero-track .hero.is-scrolled .next-race,
-.hero-track .hero.is-scrolled .lock {
+.hero-track .hero.is-scrolled .next-race {
   clip-path: ellipse(100% 0% at 50% 0);
 }
 
@@ -905,8 +1068,10 @@
  * card's centre line (race name 36.5-122.6 in a card at 20-139). */
 .next-race {
   position: absolute;
-  left: var(--padding--container);
-  bottom: var(--padding--container);
+  /* 1.25 of the reference's unit, which below 992px is the nav buttons' own
+     inset (12px at 820) rather than our 20px. */
+  left: calc(var(--hero-u) * 1.25);
+  bottom: calc(var(--hero-u) * 1.25);
   z-index: 10;
   inline-size: 7.4375rem;
   block-size: 15.25rem;
@@ -1036,19 +1201,29 @@
   align-items: center;
 }
 
+/* Not on a phone. The reference drops the card below 480px, where the portrait
+   fills the width and the card would stand across his collar. */
+@media (max-width: 479px) {
+  .next-race {
+    display: none;
+  }
+}
+
 /* ------------------------------------------ Tap to lock (bottom-right) */
 
 /* A touch control. The reference's `.home-hero-touch-controls-w` is
-   `display: none` on desktop and only appears at 991px and below, where there
-   is no hover to separate "move the cursor" from "scroll the page". */
+   `display: none` on desktop and only appears at 991px and below, where one
+   finger has to both scroll the page and draw on the portrait. Its measures,
+   in its own unit: 1.25 off the corner, a button 5 across (4 below 480px, with
+   a rounder corner) and the label one unit to the button's left. */
 .lock {
   position: absolute;
-  right: var(--padding--container);
-  bottom: var(--padding--container);
+  right: calc(var(--hero-u) * 1.25);
+  bottom: calc(var(--hero-u) * 1.25);
   z-index: 10;
   display: none;
   align-items: center;
-  gap: 0.9rem;
+  gap: var(--hero-u);
 }
 
 @media (max-width: 991px) {
@@ -1057,41 +1232,98 @@
   }
 }
 
-.lock__label {
-  font-size: var(--text--eyebrow);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
-  font-weight: 600;
+/* Held (main.ts, the button below): the document can be neither scrolled nor
+   panned, so a finger moving over the portrait stays a pointer the scene can
+   follow. Pinching to zoom is left alone. The reference gets the clip from
+   Lenis's own stylesheet, `.lenis-stopped { overflow: clip }`. */
+:root[data-hero-held] {
+  overflow: clip;
+  touch-action: pinch-zoom;
 }
 
+/* Two labels in one cell, and the cell cut to a single line: the one not in
+   use waits a line below, and they trade places over 0.3s on power2.out as
+   the button is pressed. The reference's .text-eyebrow, in its white. */
+.lock__label {
+  display: grid;
+  justify-items: end;
+  overflow: clip;
+  font-size: var(--text--eyebrow);
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--text);
+  transition: opacity 0.3s var(--ease-reveal-open);
+}
+
+.lock__state {
+  grid-area: 1 / 1;
+  transition: translate 0.3s var(--ease-reveal-open);
+}
+
+.lock__state[data-lock-label='locked'],
+:root[data-hero-held] .lock__state[data-lock-label='unlocked'] {
+  translate: 0 100%;
+}
+
+:root[data-hero-held] .lock__state[data-lock-label='locked'] {
+  translate: none;
+}
+
+/* Never under 2.75rem. The reference's unit alone takes its button down to
+   28px on a 480px screen, which is less than a fingertip. */
 .lock__btn {
   display: grid;
   place-items: center;
-  inline-size: 3.4rem;
-  block-size: 3.4rem;
-  border-radius: var(--radius--btn);
+  inline-size: max(calc(var(--hero-u) * 5), 2.75rem);
+  aspect-ratio: 1;
+  border-radius: calc(var(--hero-u) * 0.54);
   background: var(--accent);
   color: var(--dark);
-  transition: background var(--animation-default);
+  transition:
+    background var(--animation-default),
+    opacity 0.3s var(--ease-reveal-open);
 }
 
-.lock__btn svg {
-  inline-size: 1.4rem;
-  block-size: 1.4rem;
+@media (max-width: 479px) {
+  .lock__btn {
+    inline-size: max(min(calc(var(--hero-u) * 4), 60px), 2.75rem);
+    border-radius: calc(var(--hero-u) * 0.75);
+  }
+}
+
+/* A hand while the page scrolls, a cross while it is held — swapped outright,
+   as the reference swaps its own two. Both drawn in the same 24-unit box. */
+.lock__icon {
+  grid-area: 1 / 1;
+  inline-size: 80%;
+  block-size: 80%;
+}
+
+.lock__btn[aria-pressed='false'] [data-lock-icon='locked'],
+.lock__btn[aria-pressed='true'] [data-lock-icon='unlocked'] {
+  display: none;
 }
 
 .lock__btn:hover {
   background: var(--accent-off);
 }
 
-.lock__btn[aria-pressed='true'] {
-  background: var(--text);
+/* It outlasts the card, and it fades rather than being clipped shut: the
+   reference keeps it for the first tenth of a screen and takes it out over
+   0.3s. main.ts makes it inert there, and this hangs off that so the control
+   is never faded and still focusable. On the two children, because the
+   wrapper's own opacity belongs to the entrance (.hero-in, below). */
+.lock[inert] > * {
+  opacity: 0;
 }
 
-@media (max-width: 40rem) {
-  .lock__label {
-    display: none;
+@media (prefers-reduced-motion: reduce) {
+  .lock__state,
+  .lock__label,
+  .lock__btn {
+    transition: none;
   }
 }
 
@@ -1769,9 +2001,23 @@
  * ------------------------------------------------------------------ */
 
 .hero-back {
-  --marquee-top-size: 12.42vh; /* Brier's 0.697 cap on a 12.656vh em */
-  --marquee-bottom-size: 12.163vh; /* 0.84 / 6.906 */
-  --marquee-gap: 1.448vh; /* the 0.1-unit seam between copies */
+  /* 768px and below, the reference pulls the camera back and drops the plane
+     the bands are drawn on by 35% of the screen (its carousel's responsive()):
+     z 4.5 becomes 6.5 at 768 running out to 11 at 480, and 9.5 at 479 out to
+     14 at 320. So the bands are 4.5 / z of their size, about their own middle,
+     and sit that much lower, under the landed plate instead of behind it.
+     main.ts writes the ratio, which CSS cannot divide for; the drop is here. */
+  --marquee-k: 1;
+  --marquee-drop: 0vh;
+  --marquee-top-size: calc(12.42vh * var(--marquee-k)); /* Brier's 0.697 cap on a 12.656vh em */
+  --marquee-bottom-size: calc(12.163vh * var(--marquee-k)); /* 0.84 / 6.906 */
+  --marquee-gap: calc(1.448vh * var(--marquee-k)); /* the 0.1-unit seam between copies */
+}
+
+@media (max-width: 768px) {
+  .hero-back {
+    --marquee-drop: 35vh;
+  }
 }
 
 .marquee__row {
@@ -1783,10 +2029,12 @@
 }
 
 /* Cap tops at 427px and 548px of a 1080px frame, measured off the landed
-   screen; each row's top is that less the face's own cap offset in a
-   line-height: 1 box. */
+   screen — 10.37vh above the middle and 0.741vh below it; each row's top is
+   that less the face's own cap offset in a line-height: 1 box. */
 .hero-back [data-marquee='left'] {
-  inset-block-start: calc(39.63vh - 0.207 * var(--marquee-top-size));
+  inset-block-start: calc(
+    50vh + var(--marquee-drop) - 10.37vh * var(--marquee-k) - 0.207 * var(--marquee-top-size)
+  );
   color: var(--accent-off);
 }
 
@@ -1794,7 +2042,9 @@
   /* The group is squeezed to 0.9 about the screen's centre. Scaling a
      full-width row would shrink its clip to 90% of the screen too, so it is
      laid out a ninth wider and pulled back by half of that first. */
-  inset-block-start: calc(50.741vh - 0.155 * var(--marquee-bottom-size));
+  inset-block-start: calc(
+    50vh + var(--marquee-drop) + 0.741vh * var(--marquee-k) - 0.155 * var(--marquee-bottom-size)
+  );
   inset-inline-start: calc((100% - 100% / 0.9) / 2);
   inline-size: calc(100% / 0.9);
   transform: scaleX(0.9);
