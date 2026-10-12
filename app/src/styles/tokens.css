@@ -18,18 +18,39 @@
  * At a 1908px viewport that puts 1rem at ~17.7px, which is why the reference's
  * nav is 110px tall rather than 100 — it is 6.25rem. Getting this wrong makes
  * every single measurement drift, and no amount of per-component tuning fixes
- * it. Below 992px it locks, above 1920px it stops growing.
+ * it. Above 1920px it stops growing.
+ *
+ * Below 992px it does not stop: the reference keeps the 1728 width and changes
+ * the unit it divides into, 20 for a tablet and a phone on its side and 48 for
+ * a phone upright, each band clamped to its own ends. So a rem is 9.49px at
+ * 820 wide and 10.83px at 390, and its tokens -- the same values at every
+ * width -- shrink with it: 1.25rem of margin is 13.5px on that phone.
+ *
+ * Ours locked at 16px here until the phone layouts were set to match the
+ * reference's, and sections were matched one at a time before that by
+ * restating this unit as their own (--u, --hu, --r, --ref-rem, --nav-u,
+ * --hero-u). Those are the same expressions as these, so each is now 1rem.
  * -------------------------------------------------------------------------- */
 
 html {
   font-size: calc(clamp(992px, 100vw, 1920px) / 1728 * 16);
 }
 
-/* Small screens opt out: the design width is desktop, and holding a 992px
-   minimum on a phone would push the layout off the side of the device. */
 @media (max-width: 991px) {
   html {
-    font-size: 16px;
+    font-size: calc(clamp(768px, 100vw, 991px) / 1728 * 20);
+  }
+}
+
+@media (max-width: 767px) {
+  html {
+    font-size: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
+  }
+}
+
+@media (max-width: 479px) {
+  html {
+    font-size: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
   }
 }
 
