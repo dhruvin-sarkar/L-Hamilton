@@ -1009,20 +1009,29 @@
     pointer-events: none;
   }
 
-  /* One line, both names at one cap height: the reference's is a 19rem image
-     2.2rem tall, 16 by 1.76 below 480px. */
+  /* One line, both names at one cap height: the reference's is a 19rem image,
+     16rem below 480px, and its row is 2.2rem tall at 820 wide. */
   .hero-name__mark {
     --name-cap: calc(var(--hero-u) * 2.2);
+    /* Half the height of that image, which is 205 by 22. */
+    --name-half: calc(var(--hero-u) * 19 * 11 / 205);
     --name-x: clamp(0, (var(--hero-t) - 0.7) / var(--name-span, 0.1), 1);
     /* What is left of the move; to the 4th power it is GSAP's power3.out. */
     --name-r: calc((1 - var(--name-x)) * (1 - var(--name-x)) * (1 - var(--name-x)) * (1 - var(--name-x)));
     display: flex;
     align-items: baseline;
     gap: 0.1em;
-    /* The reference's image is the capitals and nothing else; a line of type
-       carries room above and below them. Taken back off, so the capitals and
-       the team line land where its do. */
-    margin-block: calc(var(--name-cap) * -0.14) calc(var(--name-cap) * -0.21);
+    /* The reference's image stands on a line of its 14px body text, 20px
+       tall, centred on that line's x-height. So at every width its middle is
+       11.4px down the row, and the row ends 8.6px under that or half the
+       image, whichever is more: 20.7px at 390 wide, 20 at 600, 21.1 at 820.
+       The row is held to that and the capitals centred on the same point,
+       rather than left to a line of our own type, which is as tall as the two
+       faces' rounded metrics make it at each size and put the team line 3px
+       high at 600 and 2px low at 820. A line of type sets its capitals 0.14
+       of their height down from its top, hence 0.64. */
+    margin-block: calc(11.4px - var(--name-cap) * 0.64) 0;
+    block-size: calc(max(8.6px, var(--name-half)) + var(--name-cap) * 0.64);
     line-height: 1;
     text-transform: uppercase;
     white-space: nowrap;
@@ -1084,6 +1093,7 @@
 @media (max-width: 479px) {
   .hero-name__mark {
     --name-cap: calc(var(--hero-u) * 1.76);
+    --name-half: calc(var(--hero-u) * 16 * 11 / 205);
   }
 }
 
@@ -2369,10 +2379,11 @@
     font-size: calc(3.5 * var(--u));
   }
 
-  /* The reference's phone slot is 4.7u by 2.5u, 51 x 27 at 390. */
+  /* The reference's phone slot is 4.7u across on its 6.0625 : 3.1875 shape,
+     so 2.47u tall: 50.9 x 26.8 at 390. */
   .impact__crest {
     inline-size: calc(4.7 * var(--u));
-    block-size: calc(2.5 * var(--u));
+    block-size: calc(2.47 * var(--u));
   }
 }
 
@@ -4272,10 +4283,19 @@
   }
 }
 
-/* .text-body-reg-mona is 1.75rem between 480 and 767px. */
+/* .text-body-reg-mona is 1.75rem between 480 and 767px, and at that size, as
+   on a phone, our Off Track blurb runs a line longer than the On Track one,
+   which the reference's two never do. It only sends a button to the floor of
+   the row under 480px (.btn-auto-top); ours go there from 767px down, so the
+   pair stays level whichever blurb is longer. Where the two blurbs are the
+   same height the margin is nothing and the buttons stand where its do. */
 @media (max-width: 767px) {
   .otot__blurb {
     font-size: 1.75rem;
+  }
+
+  .otot__link {
+    margin-block-start: auto;
   }
 }
 
@@ -4311,17 +4331,21 @@
     letter-spacing: calc(-0.1 * var(--u));
   }
 
+  /* Playfair for Brier, a 64th smaller as it is above this (7.2 for 7.3125),
+     so its 0.823 line is the reference's 0.81 of 4rem: 35.1px at 390. */
+  .otot__head-line.is-thin {
+    font-size: calc(3.94 * var(--u));
+  }
+
   .otot__blurb {
     inline-size: 100%;
     font-size: calc(1.3 * var(--u));
   }
 
-  /* .btn-auto-top: both buttons on the floor of the row, whichever blurb runs
-     longer. */
+  /* .btn-w.icon-only on a phone. */
   .otot__link {
     inline-size: calc(3.3 * var(--u));
     block-size: calc(3.3 * var(--u));
-    margin-block-start: auto;
   }
 
   .otot__cut.is-on {
