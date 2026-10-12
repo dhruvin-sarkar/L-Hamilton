@@ -3730,16 +3730,20 @@
 /* Written per frame by main.ts. Registered so they are typed rather than
    re-parsed as strings on every write. They live on .otot, NOT on :root —
    a custom property on the root invalidates style for every element that
-   could inherit it, which measured 4.5x the cost of a scoped write. */
+   could inherit it, which measured 4.5x the cost of a scoped write.
+
+   Each is how much of its travel is still to go, 1 down to 0, and not a
+   length: the travel is 20 and 5 of the reference's rem, and under 992px that
+   rem is not ours (see --u on .otot), so the distance is worked out here. */
 @property --otot-cut {
-  syntax: '<length>';
-  initial-value: 0px;
+  syntax: '<number>';
+  initial-value: 0;
   inherits: true;
 }
 
 @property --otot-txt {
-  syntax: '<length>';
-  initial-value: 0px;
+  syntax: '<number>';
+  initial-value: 0;
   inherits: true;
 }
 
@@ -3770,6 +3774,10 @@
   z-index: 1;
   /* Two screens: one to pin, one for the riser to climb through. */
   block-size: 200dvh;
+  /* The reference's rem, which this whole screen is set in: ours from 992 up,
+     and restated under that (see "narrow screens" below) where the
+     reference's root keeps scaling and ours locks at 16px. */
+  --u: 1rem;
 }
 
 .otot__pin {
@@ -3814,7 +3822,7 @@
 .otot__cut.is-on {
   inline-size: calc(90.67vh * 834 / 1984);
   inset-inline-start: 0;
-  transform: translate3d(calc(var(--otot-cut, 0px) * -1), 0, 0);
+  transform: translate3d(calc(var(--otot-cut, 0) * -20 * var(--u)), 0, 0);
 }
 
 .otot__cut.is-on img {
@@ -3824,7 +3832,7 @@
 .otot__cut.is-off {
   inline-size: calc(90.67vh * 898 / 1984);
   inset-inline-end: 0;
-  transform: translate3d(var(--otot-cut, 0px), 0, 0);
+  transform: translate3d(calc(var(--otot-cut, 0) * 20 * var(--u)), 0, 0);
 }
 
 .otot__cut.is-off img {
@@ -3854,13 +3862,13 @@
 .otot__col.is-on {
   align-items: flex-end;
   text-align: right;
-  transform: translate3d(calc(var(--otot-txt, 0px) * -1), 0, 0);
+  transform: translate3d(calc(var(--otot-txt, 0) * -5 * var(--u)), 0, 0);
 }
 
 .otot__col.is-off {
   align-items: flex-start;
   text-align: left;
-  transform: translate3d(var(--otot-txt, 0px), 0, 0);
+  transform: translate3d(calc(var(--otot-txt, 0) * 5 * var(--u)), 0, 0);
 }
 
 /* The heading and blurb take the same ink, as the reference's do. It crosses
@@ -3893,6 +3901,9 @@
   right: -1rem;
   z-index: 10;
   inline-size: 15.94rem;
+  /* Wider than the heading it hangs off once that drops to 4rem on a phone,
+     as the reference's is; the reset would hold an svg to its box. */
+  max-inline-size: none;
   block-size: 12.125rem;
   color: var(--accent);
   pointer-events: none;
@@ -4069,57 +4080,85 @@
 .otot__end-img--sharp {
   object-fit: contain;
   /* Fallback 1, not 0 — the fallback is the RESTING value, not the opening
-     one. --otot-rise is written only by the WIDE_AND_ANIMATED branch, and that
-     branch's cleanup removes the property again, so below 992px and under
-     reduced motion this resolved to scale(1 - 0.04) and the picture sat 4%
-     small forever, never reaching the completeness the push-in exists to
-     arrive at. On wide screens the trigger's onRefresh writes the real
-     progress immediately, so nothing starts in the wrong place. */
+     one. --otot-rise is written only while motion is allowed, and that
+     branch's cleanup removes the property again, so under reduced motion this
+     resolved to scale(1 - 0.04) and the picture sat 4% small forever, never
+     reaching the completeness the push-in exists to arrive at. With motion
+     on, the trigger's onRefresh writes the real progress immediately, so
+     nothing starts in the wrong place. */
   transform: scale(calc(1 - (1 - var(--otot-rise, 1)) * 0.04));
 }
 
 /* ---- narrow screens ----
  *
- * The same call the gallery makes: the closing needs two screens of scroll
- * and a wide frame to read at all, and a phone has neither. The section
- * becomes one stacked screen with the cutouts held back behind the type. */
+ * The same scene, as the reference keeps it at every width: the screen still
+ * pins, the cutouts still close in and the type still settles, on the same
+ * curves. Only the arrangement changes. Under 992px the type stands at the
+ * top of the screen, 8rem down, and the cutouts shorten to 62.67vh so they
+ * come in under it; under 480px the two columns become an even pair across
+ * the screen, their buttons level, and each cutout starts 7rem further out.
+ *
+ * All of it is in the reference's rem, restated as --u: 20/1728 of the width
+ * down to 480 and 48/1728 under that (9.49px at 820, 10.83px at 390). */
 @media (max-width: 991px) {
   .otot {
+    --u: calc(100vw / 86.4);
+    --gap: calc(1.25 * var(--u));
+    /* The pinned screen and then the picture, which keeps its own shape here
+       (below) rather than taking a second screen. */
     block-size: auto;
   }
 
   .otot__pin {
-    position: static;
-    block-size: auto;
-    padding-block: var(--padding--xlarge, 5rem);
+    align-items: flex-start;
+    padding-block-start: calc(8 * var(--u));
   }
 
-  .otot__layout {
-    inline-size: 100%;
-    flex-direction: column;
-    gap: 4rem;
-    padding-inline: var(--padding--container);
+  .otot__cut {
+    inset-block-start: auto;
+    block-size: 62.67vh;
+  }
+
+  .otot__cut.is-on {
+    inline-size: calc(62.67vh * 834 / 1984);
+  }
+
+  .otot__cut.is-off {
+    inline-size: calc(62.67vh * 898 / 1984);
+    inset-inline-end: -1px;
+  }
+
+  .otot__script {
+    right: calc(-1 * var(--u));
+    inline-size: calc(15.94 * var(--u));
+    block-size: calc(12.125 * var(--u));
+  }
+
+  .otot__head-line {
+    font-size: calc(7 * var(--u));
+    letter-spacing: calc(-0.25 * var(--u));
+  }
+
+  .otot__head-line.is-thin {
+    font-size: calc(7.2 * var(--u));
+    letter-spacing: calc(-0.4 * var(--u));
   }
 
   .otot__blurb {
-    inline-size: min(21rem, 100%);
+    inline-size: calc(21 * var(--u));
+    font-size: calc(1.25 * var(--u));
+    letter-spacing: calc(-0.0125 * var(--u));
   }
 
-  /* Matched to the .is-on/.is-off specificity of the rules they undo — a bare
-     .otot__cut here would lose to .otot__cut.is-on and the reset would look
-     applied while doing nothing. */
-  .otot__col.is-on,
-  .otot__col.is-off,
-  .otot__cut.is-on,
-  .otot__cut.is-off {
-    transform: none;
+  .otot__link {
+    inline-size: calc(3.75 * var(--u));
+    block-size: calc(3.75 * var(--u));
+    border-radius: calc(0.54 * var(--u));
   }
 
-  .otot__cut.is-on,
-  .otot__cut.is-off {
-    inline-size: 42vw;
-    /* Behind the type rather than beside it — there is no room for both. */
-    opacity: 0.22;
+  .otot__arrow {
+    inline-size: var(--u);
+    block-size: var(--u);
   }
 
   /* The frame takes the picture's own shape rather than a slice of it. A
@@ -4133,12 +4172,47 @@
   }
 }
 
-/* The reference drops both heading faces to 4rem on a phone. */
 @media (max-width: 479px) {
+  .otot {
+    --u: calc(100vw / 36);
+  }
+
+  /* .otot-home-layout as a grid of two equal columns, 2 gaps apart, inside the
+     container's own gutter. */
+  .otot__layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: calc(var(--gap) * 2);
+    inline-size: 100%;
+    padding-inline: var(--gap);
+  }
+
+  /* The reference drops both heading faces to 4rem on a phone. */
   .otot__head-line,
   .otot__head-line.is-thin {
-    font-size: 4rem;
-    letter-spacing: -0.1rem;
+    font-size: calc(4 * var(--u));
+    letter-spacing: calc(-0.1 * var(--u));
+  }
+
+  .otot__blurb {
+    inline-size: 100%;
+    font-size: calc(1.3 * var(--u));
+  }
+
+  /* .btn-auto-top: both buttons on the floor of the row, whichever blurb runs
+     longer. */
+  .otot__link {
+    inline-size: calc(3.3 * var(--u));
+    block-size: calc(3.3 * var(--u));
+    margin-block-start: auto;
+  }
+
+  .otot__cut.is-on {
+    inset-inline-start: calc(-7 * var(--u));
+  }
+
+  .otot__cut.is-off {
+    inset-inline-end: calc(-7 * var(--u));
   }
 }
 

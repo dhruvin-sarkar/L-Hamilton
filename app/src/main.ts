@@ -4,7 +4,7 @@
 // that link element.
 import * as THREE from 'three';
 import Lenis from 'lenis';
-import { gsap, mm, reducedMotion, ScrollTrigger, WIDE_AND_ANIMATED } from './lib/motion';
+import { gsap, mm, reducedMotion, ScrollTrigger } from './lib/motion';
 import { mountChrome } from './lib/chrome';
 import { whenEntranceCued } from './lib/transition';
 import { hasTrack, mountCircuit } from './lib/circuit';
@@ -708,20 +708,23 @@ mm.add('(prefers-reduced-motion: no-preference)', () => {
  * partial with a shared mount — mountRiser, in lib/showcase.ts.
  * ------------------------------------------------------------------ */
 
-/* Same breakpoint and the same reasoning as the gallery, on the same context
-   mechanism: below 992px the section is a static stack, and the CSS that makes
-   it one only holds if no transform is being written underneath it. */
-mm.add(WIDE_AND_ANIMATED, () => {
+/* At every width, as the reference's is: under 992px its screen is rearranged
+   (home.css) but it still pins and closes on these two curves -- sampled at
+   390, its cutouts read 119, 65 and 11px where power3.out over the section and
+   the picture after it puts 119, 65 and 11, and its type reaches rest at 60%
+   of the same range. What is written is how much of each travel is left, 1
+   down to 0; the distances are the stylesheet's, in the unit of the width. */
+mm.add('(prefers-reduced-motion: no-preference)', () => {
   if (!otot) return;
 
   const applyCutouts = (progress: number): void => {
     const rest = 1 - progress;
     // power3.out: most of the distance is covered early, so the cutouts arrive
     // with weight and then ease the last few pixels shut.
-    otot.style.setProperty('--otot-cut', `${20 * rest * rest * rest}rem`);
+    otot.style.setProperty('--otot-cut', String(rest * rest * rest));
     // Linear, and done at 60%.
     const t = gsap.utils.clamp(0, 1, progress / 0.6);
-    otot.style.setProperty('--otot-txt', `${5 * (1 - t)}rem`);
+    otot.style.setProperty('--otot-txt', String(1 - t));
   };
 
   gsap.to(
@@ -749,8 +752,8 @@ mm.add(WIDE_AND_ANIMATED, () => {
 
   /* Same reasoning as the gallery's: the offsets are our own inline writes, so
      the context will not clear them. Left behind, the cutouts would stay parked
-     at whatever offset the last frame wrote while the stacked layout expects
-     them at rest. */
+     at whatever offset the last frame wrote while a visitor who has just
+     turned the motion off expects them at rest. */
   return () => {
     otot.style.removeProperty('--otot-cut');
     otot.style.removeProperty('--otot-txt');
