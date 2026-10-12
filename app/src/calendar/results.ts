@@ -212,7 +212,10 @@ export function mountResults(section: HTMLElement, scroller: Lenis | null): void
     const build = (): void => {
       const head = el('div', 'ot-cal__row ot-cal__row--head cal-results__subhead');
       head.setAttribute('aria-hidden', 'true');
-      for (const label of ['Round', 'Location', 'Finish', 'Fastest lap']) {
+      const round = el('p', 'ot-cal__eyebrow');
+      round.append(el('span', 'cal-head__long', 'Round'), el('span', 'cal-head__short', 'Rnd'));
+      head.appendChild(round);
+      for (const label of ['Location', 'Finish', 'Fastest lap']) {
         head.appendChild(el('p', 'ot-cal__eyebrow', label));
       }
       const racesList = el('ol', 'ot-cal__list cal-results__races');

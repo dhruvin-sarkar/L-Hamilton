@@ -307,6 +307,12 @@ body[data-page='calendar'] {
   margin-block-start: calc(var(--g) * 2);
 }
 
+/* Reference `.text-eyebrow.dt-only` and `.mob-only`: the first header reads
+   "Round" down to 480px and "Rnd" on a phone. */
+.cal-head__short {
+  display: none;
+}
+
 /* Reference `.f1-highlight-item-round-w`: at least 3.4rem wide, the strike
    centred over it. A round run (`.cal-previous`) takes the page's grey; a
    round to come keeps the row's ink. */
@@ -764,6 +770,14 @@ button.cal-row--past:hover:focus-visible {
   .cal-row--past > .ot-cal__cell--unit,
   #calendar-list .ot-cal__row--head > :nth-child(5) {
     display: flex;
+  }
+
+  .cal-head__long {
+    display: none;
+  }
+
+  .cal-head__short {
+    display: inline;
   }
 
   /* Reference `.f1-highlight-item-round-w` and `.f1-highlight-round-svg`
