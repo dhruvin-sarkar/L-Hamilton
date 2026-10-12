@@ -1204,6 +1204,21 @@ if (stage && heroLayer && gl) {
   /** The current scene width, for the pointer and the plate's crop. */
   let sceneW = sceneWidth();
 
+  /** Measures the scene and hands both canvases its width. */
+  const layoutScene = () => {
+    sceneW = sceneWidth();
+    /* Only where it is wider than the stage. Left unset the canvases follow
+       their boxes at 100%, with no frame's wait on this handler. */
+    if (sceneW > stage.clientWidth) heroTrack?.style.setProperty('--scene-w', `${sceneW}px`);
+    else heroTrack?.style.removeProperty('--scene-w');
+  };
+  /* Once here, in the task that made the two canvases, so they are never laid
+     out at any other width. The first resize() waits on the portrait, and until
+     it ran an upright screen had both canvases at 100%: at 390 wide they then
+     widened to 539 and slid 74px to re-centre, three seconds in, which is a
+     layout shift of 0.088 from a full-screen element. */
+  layoutScene();
+
   /* Both layers are the same box — the scene's width by 100dvh, the field
      fixed and the plate pinned — so one drawing buffer size serves both. The
      ELEMENT's box, not the window's: they differ by the scrollbar, and a canvas
@@ -1211,11 +1226,7 @@ if (stage && heroLayer && gl) {
      horizontally, which on thin contour lines shows up as the two fields not
      lining up. */
   const resize = () => {
-    sceneW = sceneWidth();
-    /* Only where it is wider than the stage. Left unset the canvases follow
-       their boxes at 100%, with no frame's wait on this handler. */
-    if (sceneW > stage.clientWidth) heroTrack?.style.setProperty('--scene-w', `${sceneW}px`);
-    else heroTrack?.style.removeProperty('--scene-w');
+    layoutScene();
 
     renderer.setSize(sceneW, stage.clientHeight, false);
     const { width, height } = offscreen;
