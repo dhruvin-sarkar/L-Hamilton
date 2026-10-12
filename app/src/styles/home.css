@@ -5234,65 +5234,160 @@
 
 /* ---- narrow screens ----
  *
- * The same call every other section here makes: the composition depends on a
- * wide frame and there is not one. The art becomes a plain two-column strip
- * under the type instead of an arrangement placed against the viewport, and
- * the section takes its height from its content. */
+ * The reference does not restack this section below 992px. Its
+ * `.c.is-lando-exe` gives up the 11rem margins for one --gap and everything
+ * else holds, so a tablet gets the wide composition on a narrower screen: the
+ * same two halves of its `.grid-main` (four 23.55% tracks on one --gap, each
+ * half spanning two), the same four frames and sticker hung off them at the
+ * same sizes, the side shot and the patch further off their edges than at
+ * 1728. The visor keeps its 8rem and the frames their 4rem of travel.
+ *
+ * Two things do change. The eyebrow goes (`data-hide="t"`), and the type is
+ * no longer a stated distance down: it is centred on the hero's row
+ * (`align-self: center` on `.exe-text-w`), 8rem under the section top and
+ * 52.0625rem tall, which is what the wide layout's 18.17rem works out to with
+ * the eyebrow in place. */
 @media (max-width: 991px) {
   .shop {
-    block-size: auto;
-    padding-block-end: 5rem;
-  }
-
-  .shop__visor {
-    block-size: 4rem;
+    block-size: 68.0625rem;
+    /* One half of the grid, and where the second half starts. Percentages on
+       purpose: they are read against the section by the frames using them. */
+    --shop-col: calc((100% - var(--gap) * 2) * 0.471 + var(--gap));
+    --shop-col2: calc(var(--gap) * 2 + var(--shop-col));
+    /* The foot of the type, for the one frame the reference hangs from the
+       text column rather than from the hero's: the row's centre (34.03rem)
+       plus half of our text block. It follows the copy, so a line more of
+       body moves it down half a line. */
+    --shop-text-foot: 48.38rem;
   }
 
   .shop__inner {
-    padding-block-start: 7rem;
-    padding-inline: var(--gutter);
+    display: flex;
+    align-items: center;
+    max-inline-size: none;
+    block-size: 60.0625rem;
+    padding-block-start: 8rem;
+    padding-inline: var(--gap);
   }
 
-  .shop__title {
-    font-size: clamp(3rem, 15vw, 5.5rem);
+  .shop__text {
+    inline-size: calc(47.1% + var(--gap));
   }
 
-  .shop__art {
-    position: static;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-block-start: 3rem;
-    padding-inline: var(--gutter);
-  }
-
-  /* Each takes its own source ratio here — no forced shape, so nothing is
-     cropped on a phone. The travel goes with the placement: sliding a picture
-     inside a static column reads as a misalignment, not as depth. */
-  .shop__frame {
-    position: relative;
-    inset: auto;
-    inline-size: auto;
-    block-size: auto;
-    transform: none;
-    align-self: start;
-  }
-
-  .shop__frame .shop__img,
-  .shop__frame--photo .shop__img {
-    block-size: auto;
-    transform: none;
-  }
-
-  /* The big one takes the full width; the rest pair up beneath it. */
-  .shop__frame--hero {
-    grid-column: 1 / -1;
-  }
-
-  /* Off-canvas placement is viewport composition, so the sticker simply goes.
-     Nothing is lost: it carries no content. */
-  .shop__sticker {
+  .shop__eyebrow {
     display: none;
+  }
+
+  /* The space it kept under the eyebrow, which is no longer above it. */
+  .shop__title {
+    margin-block-start: 0;
+  }
+
+  .shop__frame--hero {
+    inset-inline-start: var(--shop-col2);
+  }
+
+  /* `inset: 8rem -16rem auto auto` of the second half, 25rem wide. */
+  .shop__frame--side {
+    inset-inline-start: calc(var(--shop-col2) + var(--shop-col) - 9rem);
+  }
+
+  /* `inset: auto auto -8rem -11.3rem` of it. */
+  .shop__frame--print {
+    inset-inline-start: calc(var(--shop-col2) - 11.3rem);
+    inset-block-start: 49.9375rem;
+  }
+
+  /* `inset: auto auto -8rem -14rem` of the text column: 8rem under the type's
+     foot and 14rem left of the gutter, so a sliver of it shows at the edge. */
+  .shop__frame--patch {
+    inset-inline-start: calc(var(--gap) - 14rem);
+    inset-block-start: calc(var(--shop-text-foot) - 3.875rem);
+  }
+
+  /* `inset: auto 8rem -2rem auto` of the second half, 15.1875rem wide. */
+  .shop__sticker {
+    inset-inline-start: calc(var(--shop-col2) + var(--shop-col) - 23.1875rem);
+  }
+}
+
+/* A phone on its side: the reference's `.text-body-reg-mona` goes to 1.75rem,
+   which is a line more of body and so a taller text block. */
+@media (max-width: 767px) {
+  .shop {
+    --shop-text-foot: 50.41rem;
+  }
+
+  .shop__body {
+    font-size: 1.75rem;
+  }
+}
+
+/* A phone upright, and here the reference does rearrange. `.exe-grid` becomes
+   a flex row under a 12rem spacer: the type on the left in what the hero
+   leaves it, and the hero at 14 x 18rem pinned to the right gutter and lifted
+   7.5rem out of the row. The side shot and the patch are dropped; the print
+   and the sticker shrink and move to the foot of the row, which is as tall as
+   the type (or as the hero, were the type ever shorter). The section is that
+   row plus its 12rem and 8rem, no longer a stated height. */
+@media (max-width: 479px) {
+  .shop {
+    block-size: auto;
+  }
+
+  .shop__inner {
+    block-size: auto;
+    min-block-size: 38rem;
+    padding-block: 12rem 8rem;
+  }
+
+  .shop__text {
+    inline-size: calc(100% - 14rem - var(--gap));
+  }
+
+  /* `.text-impact-lg-mona.reduce` */
+  .shop__title {
+    font-size: 3.6rem;
+  }
+
+  /* `.text-body-reg-mona` in `.g-text-para-w.is-exe` */
+  .shop__body {
+    inline-size: 13rem;
+    font-size: 1.3rem;
+  }
+
+  .shop__frame--hero {
+    inset-inline: auto var(--gap);
+    inset-block-start: 4.5rem;
+    inline-size: 14rem;
+    block-size: 18rem;
+  }
+
+  .shop__frame--side,
+  .shop__frame--patch {
+    display: none;
+  }
+
+  /* `inset: auto 10.6rem -.2rem auto` of the hero's column: the foot of the
+     row is the section's less the closing 8rem. */
+  .shop__frame--print {
+    inset-inline: auto calc(var(--gap) + 10.6rem);
+    inset-block: auto 7.8rem;
+    inline-size: 7rem;
+    block-size: 9rem;
+  }
+
+  /* `inset: auto 1rem 3.7rem auto` */
+  .shop__sticker {
+    inset-inline: auto calc(var(--gap) + 1rem);
+    inset-block: auto 11.7rem;
+    inline-size: 7.1rem;
+    block-size: 5.4rem;
+  }
+
+  /* `.btn-icon-w` is 1.5rem wide here; the mark in it stays the size it was. */
+  .store-cta__arrow {
+    inline-size: 1.5rem;
   }
 }
 
