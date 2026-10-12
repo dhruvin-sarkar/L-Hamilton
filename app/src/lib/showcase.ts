@@ -47,8 +47,8 @@ import type { Helmet } from '../content/helmets';
 
 export function mountRiser(): void {
   /* At every width: the reference's picture moves through its pass on a phone
-     as it does on a desktop. Under 992px ours is a frame of the picture's own
-     shape rather than a screen (home.css), and the push-in runs inside it. */
+     as it does on a desktop. Under 992px the frame is the reference's, a screen
+     tall and 60vh on a phone (home.css), and the push-in runs inside it. */
   mm.add('(prefers-reduced-motion: no-preference)', () => {
     const riser = document.querySelector<HTMLElement>('[data-riser]');
     if (!riser) return;
