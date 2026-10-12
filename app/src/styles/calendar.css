@@ -453,6 +453,18 @@ body[data-page='calendar'] {
   }
 }
 
+/* Below 992 the reference gives a run round no hover at all: its
+   `.f1-highlight-grid.is-previous:hover` there is a clear ground and the
+   row's own ink. Stated, because the shared row's schedule hover (the dark
+   ground, the accent ink) would otherwise show on a run round too -- and on
+   a touch screen a tapped row stays hovered until something else is. */
+@media (max-width: 991px) {
+  button.cal-row--past:hover {
+    background: transparent;
+    color: inherit;
+  }
+}
+
 /* The phone box: 3rem down, the panel's full width, 23rem tall. The reference
    keeps the box above down to 480px and switches at 479, measured. */
 @media (max-width: 479px) {
