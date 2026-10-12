@@ -1325,12 +1325,13 @@
   translate: none;
 }
 
-/* Never under 2.75rem. The reference's unit alone takes its button down to
-   28px on a 480px screen, which is less than a fingertip. */
+/* The reference's .btn-w.is-touch-swipe: 5 of its unit across, and 4 under
+   480px. The smallest that gets is 28px, on a 480px screen, which is still
+   over WCAG 2.2's 24px. */
 .lock__btn {
   display: grid;
   place-items: center;
-  inline-size: max(calc(var(--hero-u) * 5), 2.75rem);
+  inline-size: calc(var(--hero-u) * 5);
   aspect-ratio: 1;
   border-radius: calc(var(--hero-u) * 0.54);
   background: var(--accent);
@@ -1342,7 +1343,7 @@
 
 @media (max-width: 479px) {
   .lock__btn {
-    inline-size: max(min(calc(var(--hero-u) * 4), 60px), 2.75rem);
+    inline-size: min(calc(var(--hero-u) * 4), 60px);
     border-radius: calc(var(--hero-u) * 0.75);
   }
 }
@@ -2003,14 +2004,26 @@
 
 /* The reference's smaller menus. Below 992px the collage goes and the link
    column centres in the panel; below 480px the links come down to 3.7rem, the
-   crest to 4.7rem across, and the socials wrap onto centred rows. */
+   crest's slot to 4.7rem across, and the socials wrap onto centred rows. */
 @media (max-width: 991px) {
+  /* .nav-menu-w centres .nav-menu-inner.c, which is never taller than 80rem.
+     A phone upright is shorter than that and fills its screen; a tablet
+     upright is not (759px of 1180 at 820 wide), so there the links, the crest
+     and the footer stand as one block in the middle of the panel rather than
+     spread to its two ends. `.menu[hidden]` still out-ranks this. */
+  .menu {
+    display: flex;
+    align-items: center;
+  }
+
   .menu__images {
     display: none;
   }
 
   .menu__grid {
     justify-content: center;
+    inline-size: 100%;
+    max-block-size: 80rem;
     padding-inline: 1.25rem;
   }
 
@@ -2024,9 +2037,13 @@
     font-size: 3.7rem;
   }
 
+  /* Sized to the height of the reference's slot, as it is above this: the
+     slot is 4.7rem across on its 6.0625 : 3.1875 shape, 2.47rem tall, and our
+     mark is a 64 x 44 box, so matching the width instead stood it 0.76rem
+     taller and pushed the team line and the footer down with it. */
   .menu__crest {
-    inline-size: 4.7rem;
-    block-size: auto;
+    inline-size: 3.59rem;
+    block-size: 2.47rem;
   }
 
   .menu__socials {
@@ -2302,8 +2319,8 @@
    every size in the wall is written in it, so the section lays out as the
    reference's does — measured at 768 and 390: padding 6u over 12u, the crest
    6.06u by 3.19u (4.7u wide on a phone), 3.75u down to the wall, type at 7u
-   (3.5u on a phone) on the same tracking. The eyebrow keeps its own size:
-   scaled, it would be 7px. */
+   (3.5u on a phone) on the same tracking. The eyebrow takes the reference's
+   own steps, with every other eyebrow up here: see "Eyebrows below 992px". */
 
 @media (max-width: 991px) {
   .impact {
@@ -2356,6 +2373,42 @@
   .impact__crest {
     inline-size: calc(4.7 * var(--u));
     block-size: calc(2.5 * var(--u));
+  }
+}
+
+/* ------------------------------------------------ Eyebrows below 992px
+ *
+ * The reference's .text-eyebrow steps at its three breakpoints: 0.625rem from
+ * 992px up, 0.8rem under that, 1rem between 480 and 767px and 0.8rem again
+ * under 480px -- 7.6px at 820 wide, 6.9px at 600 and 8.7px on a 390 phone.
+ * Every label listed here is that class on the reference: the next-race
+ * card's three, the lock's, the team line under the name, the line under the
+ * landed mark, the menu's team line and the statement's. They read the
+ * 0.625rem token above 992px, which is why this comes after all of them. The
+ * gallery's captions take the same steps beside their own rules, below. */
+@media (max-width: 991px) {
+  .next-race__label,
+  .next-race__name,
+  .next-race__team,
+  .lock__label,
+  .hero-name__team,
+  .hero-mark__eyebrow,
+  .menu__eyebrow,
+  .impact__eyebrow {
+    font-size: 0.8rem;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  .next-race__label,
+  .next-race__name,
+  .next-race__team,
+  .lock__label,
+  .hero-name__team,
+  .hero-mark__eyebrow,
+  .menu__eyebrow,
+  .impact__eyebrow {
+    font-size: 1rem;
   }
 }
 
@@ -2930,9 +2983,10 @@
   }
 }
 
-/* The reference hides its pill under 480px, and with it the space. With the
-   motion off the column has no use for an empty band either. */
-@media (max-width: 479px), (prefers-reduced-motion: reduce) {
+/* The reference hides its pill at 497px and under (`[data-hide="m"]`, which is
+   not its 479px step), and with it the space. With the motion off the column
+   has no use for an empty band either. */
+@media (max-width: 497px), (prefers-reduced-motion: reduce) {
   .gallery__pill-slot {
     display: none;
   }
