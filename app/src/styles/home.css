@@ -1009,20 +1009,34 @@
     pointer-events: none;
   }
 
-  /* One line, both names at one cap height: the reference's is a 19rem image
-     2.2rem tall, 16 by 1.76 below 480px. */
+  /* One line, both names at one cap height: the reference's is a 19rem image,
+     16rem below 480px, and its row is 2.2rem tall at 820 wide. */
   .hero-name__mark {
     --name-cap: calc(var(--hero-u) * 2.2);
+    /* Half the height of that image, which is 205 by 22. */
+    --name-half: calc(var(--hero-u) * 19 * 11 / 205);
     --name-x: clamp(0, (var(--hero-t) - 0.7) / var(--name-span, 0.1), 1);
     /* What is left of the move; to the 4th power it is GSAP's power3.out. */
     --name-r: calc((1 - var(--name-x)) * (1 - var(--name-x)) * (1 - var(--name-x)) * (1 - var(--name-x)));
     display: flex;
     align-items: baseline;
     gap: 0.1em;
-    /* The reference's image is the capitals and nothing else; a line of type
-       carries room above and below them. Taken back off, so the capitals and
-       the team line land where its do. */
-    margin-block: calc(var(--name-cap) * -0.14) calc(var(--name-cap) * -0.21);
+    /* The reference's image stands on a line of its 14px body text, 20px
+       tall, centred on that line's x-height. So at every width its middle is
+       11.4px down the row, and the row ends 8.6px under that or half the
+       image, whichever is more: 20.7px at 390 wide, 20 at 600, 21.1 at 820.
+       The row is held to that and the capitals centred on the same point,
+       rather than left to a line of our own type, which is as tall as the two
+       faces' rounded metrics make it at each size and put the team line 3px
+       high at 600 and 2px low at 820. A line of type sets its capitals 0.14
+       of their height down from its top, hence 0.64 above. The box itself is
+       1.45 of the capitals tall, what a line of this type came to, because
+       the ellipse that takes the name away is cut from it: any shorter and
+       the ellipse trims the feet of the outermost letters at rest. What that
+       is over the row comes back off underneath. */
+    margin-block: calc(11.4px - var(--name-cap) * 0.64)
+      calc(max(8.6px, var(--name-half)) - var(--name-cap) * 0.81);
+    block-size: calc(var(--name-cap) * 1.45);
     line-height: 1;
     text-transform: uppercase;
     white-space: nowrap;
@@ -1084,6 +1098,7 @@
 @media (max-width: 479px) {
   .hero-name__mark {
     --name-cap: calc(var(--hero-u) * 1.76);
+    --name-half: calc(var(--hero-u) * 16 * 11 / 205);
   }
 }
 
@@ -1325,12 +1340,13 @@
   translate: none;
 }
 
-/* Never under 2.75rem. The reference's unit alone takes its button down to
-   28px on a 480px screen, which is less than a fingertip. */
+/* The reference's .btn-w.is-touch-swipe: 5 of its unit across, and 4 under
+   480px. The smallest that gets is 28px, on a 480px screen, which is still
+   over WCAG 2.2's 24px. */
 .lock__btn {
   display: grid;
   place-items: center;
-  inline-size: max(calc(var(--hero-u) * 5), 2.75rem);
+  inline-size: calc(var(--hero-u) * 5);
   aspect-ratio: 1;
   border-radius: calc(var(--hero-u) * 0.54);
   background: var(--accent);
@@ -1342,7 +1358,7 @@
 
 @media (max-width: 479px) {
   .lock__btn {
-    inline-size: max(min(calc(var(--hero-u) * 4), 60px), 2.75rem);
+    inline-size: min(calc(var(--hero-u) * 4), 60px);
     border-radius: calc(var(--hero-u) * 0.75);
   }
 }
@@ -2003,14 +2019,26 @@
 
 /* The reference's smaller menus. Below 992px the collage goes and the link
    column centres in the panel; below 480px the links come down to 3.7rem, the
-   crest to 4.7rem across, and the socials wrap onto centred rows. */
+   crest's slot to 4.7rem across, and the socials wrap onto centred rows. */
 @media (max-width: 991px) {
+  /* .nav-menu-w centres .nav-menu-inner.c, which is never taller than 80rem.
+     A phone upright is shorter than that and fills its screen; a tablet
+     upright is not (759px of 1180 at 820 wide), so there the links, the crest
+     and the footer stand as one block in the middle of the panel rather than
+     spread to its two ends. `.menu[hidden]` still out-ranks this. */
+  .menu {
+    display: flex;
+    align-items: center;
+  }
+
   .menu__images {
     display: none;
   }
 
   .menu__grid {
     justify-content: center;
+    inline-size: 100%;
+    max-block-size: 80rem;
     padding-inline: 1.25rem;
   }
 
@@ -2024,9 +2052,13 @@
     font-size: 3.7rem;
   }
 
+  /* Sized to the height of the reference's slot, as it is above this: the
+     slot is 4.7rem across on its 6.0625 : 3.1875 shape, 2.47rem tall, and our
+     mark is a 64 x 44 box, so matching the width instead stood it 0.76rem
+     taller and pushed the team line and the footer down with it. */
   .menu__crest {
-    inline-size: 4.7rem;
-    block-size: auto;
+    inline-size: 3.59rem;
+    block-size: 2.47rem;
   }
 
   .menu__socials {
@@ -2302,8 +2334,8 @@
    every size in the wall is written in it, so the section lays out as the
    reference's does — measured at 768 and 390: padding 6u over 12u, the crest
    6.06u by 3.19u (4.7u wide on a phone), 3.75u down to the wall, type at 7u
-   (3.5u on a phone) on the same tracking. The eyebrow keeps its own size:
-   scaled, it would be 7px. */
+   (3.5u on a phone) on the same tracking. The eyebrow takes the reference's
+   own steps, with every other eyebrow up here: see "Eyebrows below 992px". */
 
 @media (max-width: 991px) {
   .impact {
@@ -2352,10 +2384,49 @@
     font-size: calc(3.5 * var(--u));
   }
 
-  /* The reference's phone slot is 4.7u by 2.5u, 51 x 27 at 390. */
+  /* The reference's phone slot is 4.7u across on its 6.0625 : 3.1875 shape,
+     so 2.47u tall: 50.9 x 26.8 at 390. */
   .impact__crest {
     inline-size: calc(4.7 * var(--u));
-    block-size: calc(2.5 * var(--u));
+    block-size: calc(2.47 * var(--u));
+  }
+}
+
+/* ------------------------------------------------ Eyebrows below 992px
+ *
+ * The reference's .text-eyebrow steps at its three breakpoints: 0.625rem from
+ * 992px up, 0.8rem under that, 1rem between 480 and 767px and 0.8rem again
+ * under 480px -- 7.6px at 820 wide, 6.9px at 600 and 8.7px on a 390 phone.
+ * Every label listed here is that class on the reference: the next-race
+ * card's three, the lock's, the team line under the name, the line under the
+ * landed mark, the menu's team line and the statement's. They read the
+ * 0.625rem token above 992px, which is why this comes after all of them. The
+ * gallery's captions take the same steps beside their own rules, below. */
+@media (max-width: 991px) {
+  [data-hero-static] #marquee-h,
+  .next-race__label,
+  .next-race__name,
+  .next-race__team,
+  .lock__label,
+  .hero-name__team,
+  .hero-mark__eyebrow,
+  .menu__eyebrow,
+  .impact__eyebrow {
+    font-size: 0.8rem;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  [data-hero-static] #marquee-h,
+  .next-race__label,
+  .next-race__name,
+  .next-race__team,
+  .lock__label,
+  .hero-name__team,
+  .hero-mark__eyebrow,
+  .menu__eyebrow,
+  .impact__eyebrow {
+    font-size: 1rem;
   }
 }
 
@@ -2529,6 +2600,10 @@
  * moves them without moving the column). */
 .gallery--home {
   --grid-spacer: 31.51vh;
+  /* The reference's rem, which the stacked wall is set in: ours from 992 up,
+     and restated under that (see "Below 992px", after the callouts) where the
+     reference's root keeps scaling and ours locks at 16px. */
+  --u: 1rem;
 }
 
 .gallery--home .gallery__track {
@@ -2680,42 +2755,71 @@
 
 /* Below 992px the reference stacks the wall (its I_() never runs there): the
    track becomes a column with 5rem between pictures, the offsets drop, and
-   every other picture moves to the right-hand edge.
+   every other picture moves to the right-hand edge. The frames keep their
+   desktop sizes, which are in vh and so do not care how narrow the screen is.
  *
- * Reduced motion takes the same column at every width. Without the travel the
- * wall would be a sideways scroller, and with scrollbars unpainted site-wide
- * and nothing focusable inside it, half the pictures and the second callout
- * could not be reached at all. */
+ * Everything else is in its rem, which keeps scaling under 992 where ours
+ * locks at 16px, so it is restated as --u the way Off Track's wall does it:
+ * 20/1728 of the width down to 480 and 48/1728 under that (9.49px at 820,
+ * 10.83px at 390). The captions are its .text-eyebrow: 0.8rem under 992, 1rem
+ * under 768 and 0.8rem again under 480.
+ *
+ * Reduced motion takes the same column at every width, at the desktop's own
+ * --u. Without the travel the wall would be a sideways scroller, and with
+ * scrollbars unpainted site-wide and nothing focusable inside it, half the
+ * pictures and the second callout could not be reached at all. */
+@media (max-width: 991px) {
+  .gallery--home {
+    --u: calc(100vw / 86.4);
+  }
+
+  .gallery--home .gallery__cap {
+    font-size: calc(0.8 * var(--u));
+  }
+
+  /* Where its signature stands, which grows to 9rem here. */
+  .gallery__sign-slot {
+    inline-size: calc(9 * var(--u));
+    block-size: calc(4.2 * var(--u));
+  }
+}
+
+@media (max-width: 767px) {
+  .gallery--home .gallery__cap {
+    font-size: var(--u);
+  }
+}
+
 @media (max-width: 991px), (prefers-reduced-motion: reduce) {
   .gallery--home .gallery__track {
     block-size: auto;
-    padding: var(--padding--xlarge) var(--padding--container);
-    gap: 5rem;
+    padding: 7vh calc(1.25 * var(--u)) calc(2.5 * var(--u));
+    gap: calc(5 * var(--u));
   }
 
   .gallery--home .gallery__col {
     block-size: auto;
-    gap: 5rem;
+    gap: calc(5 * var(--u));
   }
 
   /* The big picture leads and its callout follows, a rem beneath. */
   .gallery--home .gallery__col.is-large {
     flex-direction: column-reverse;
-    gap: 1rem;
+    gap: var(--u);
   }
 
-  .gallery--home .is-home-callout-1 {
-    max-inline-size: 31rem;
-  }
-
-  .gallery--home .gallery__quote {
-    font-size: 1.9rem;
+  /* The shared column (further down) sends every fourth child of the track to
+     the right; this wall places its own pictures. */
+  .gallery--home .gallery__col:nth-child(4n + 3) .gallery__item,
+  .gallery--home .gallery__col:nth-child(4n + 3) .gallery__callout {
+    align-self: auto;
   }
 
   .gallery--home .gallery__item,
   .gallery--home .gallery__callout {
     inset-inline-start: 0;
     margin: 0;
+    gap: calc(1.25 * var(--u));
   }
 
   .gallery--home .is-home-2,
@@ -2725,9 +2829,38 @@
     margin-inline-start: auto;
   }
 
+  /* The four offsets the reference keeps once the rest have dropped. */
+  .gallery--home .is-home-8 {
+    margin-block-start: 2vh;
+  }
+
+  .gallery--home .is-home-9 {
+    margin-block-end: calc(2.5 * var(--u));
+  }
+
+  .gallery--home .is-home-callout-1 {
+    max-inline-size: calc(31 * var(--u));
+    margin-block-start: 1.67vh;
+  }
+
+  .gallery--home .is-home-callout-2 {
+    max-inline-size: calc(30 * var(--u));
+    margin-block-end: 2.67vh;
+  }
+
+  .gallery--home .gallery__quote {
+    font-size: calc(1.9 * var(--u));
+    letter-spacing: calc(0.05 * var(--u));
+  }
+
+  /* min-block-size: the frame is a flex box with a ratio, and such a box is
+     never shorter than its content -- a portrait photograph at the frame's
+     width -- unless told it may be. Without it every crop here took the shape
+     of its file instead of --ar. */
   .gallery--home .gallery__frame {
-    inline-size: min(var(--w), 100vw - 2 * var(--padding--container));
+    inline-size: min(var(--w), 100vw - 2.5 * var(--u));
     block-size: auto;
+    min-block-size: 0;
     aspect-ratio: var(--ar);
   }
 
@@ -2736,8 +2869,142 @@
     block-size: 100%;
     transform: none;
   }
+}
 
-  /* The reference hides its pill on small screens, and with it the space. */
+/* Under 480px the reference lays the wall out again, as a collage: every
+   frame restated in its rem (or as a share of the column), the pictures hard
+   against alternate edges with their captions, and four of them drawn up into
+   the gap above so the two sides interleave instead of taking turns. Its
+   ≤479 rules, one for one. */
+@media (max-width: 479px) {
+  .gallery--home {
+    --u: calc(100vw / 36);
+  }
+
+  .gallery--home .gallery__cap {
+    font-size: calc(0.8 * var(--u));
+  }
+
+  .gallery__sign-slot {
+    inline-size: calc(5 * var(--u));
+    block-size: calc(2.34 * var(--u));
+  }
+
+  .gallery--home .gallery__track {
+    padding-block: 0;
+  }
+
+  .gallery--home .gallery__col {
+    gap: calc(3 * var(--u));
+  }
+
+  /* .large-img, .is-home-flip.neg-margin and the last .neg-margin column. */
+  .gallery--home .gallery__col.is-large,
+  .gallery--home .gallery__col:has(> .is-home-4),
+  .gallery--home .gallery__col:has(> .is-home-10) {
+    margin-block-start: calc(-7 * var(--u));
+  }
+
+  /* .is-home-flip: the larger of the pair leads. */
+  .gallery--home .gallery__col:has(> .is-home-4) {
+    flex-direction: column-reverse;
+  }
+
+  /* Each picture takes the column's width and stands against one edge of it. */
+  .gallery--home .gallery__item,
+  .gallery--home .gallery__callout {
+    inline-size: 100%;
+    margin: 0;
+  }
+
+  .gallery--home .is-home-2,
+  .gallery--home .is-home-5,
+  .gallery--home .is-home-7,
+  .gallery--home .is-home-10 {
+    align-items: flex-end;
+  }
+
+  .gallery--home .is-home-1 {
+    inline-size: auto;
+    inset-inline-start: 20%;
+  }
+
+  .gallery--home .is-home-4 {
+    margin-block-start: calc(-5.2 * var(--u));
+  }
+
+  .gallery--home .is-home-6 {
+    inline-size: auto;
+    margin: calc(-7 * var(--u)) 0 0 40%;
+  }
+
+  .gallery--home .is-home-8 {
+    margin-block-start: calc(-7 * var(--u));
+  }
+
+  .gallery--home .is-home-9 {
+    margin-block: calc(-5 * var(--u)) calc(2.5 * var(--u));
+  }
+
+  .gallery--home .is-home-callout-1 {
+    max-inline-size: calc(20 * var(--u));
+  }
+
+  .gallery--home .is-home-callout-2 {
+    max-inline-size: calc(19 * var(--u));
+  }
+
+  .gallery--home .gallery__quote {
+    font-size: calc(1.5 * var(--u));
+  }
+
+  .gallery--home .is-home-1 .gallery__frame {
+    inline-size: calc(13 * var(--u));
+    aspect-ratio: 13 / 14;
+  }
+
+  .gallery--home .is-home-2 .gallery__frame,
+  .gallery--home .is-home-4 .gallery__frame,
+  .gallery--home .is-home-7 .gallery__frame {
+    inline-size: calc(10 * var(--u));
+    aspect-ratio: 1;
+  }
+
+  .gallery--home .is-home-3 .gallery__frame {
+    inline-size: 50vw;
+    aspect-ratio: 10 / 8.5;
+  }
+
+  .gallery--home .is-home-5 .gallery__frame {
+    inline-size: calc(15 * var(--u));
+    aspect-ratio: 1;
+  }
+
+  .gallery--home .is-home-6 .gallery__frame {
+    inline-size: calc(13 * var(--u));
+    aspect-ratio: 13 / 17;
+  }
+
+  .gallery--home .is-home-8 .gallery__frame {
+    inline-size: 50%;
+    aspect-ratio: 1;
+  }
+
+  .gallery--home .is-home-9 .gallery__frame {
+    inline-size: calc(13 * var(--u));
+    aspect-ratio: 27 / 25;
+  }
+
+  .gallery--home .is-home-10 .gallery__frame {
+    inline-size: 35%;
+    aspect-ratio: 32 / 38;
+  }
+}
+
+/* The reference hides its pill at 497px and under (`[data-hide="m"]`, which is
+   not its 479px step), and with it the space. With the motion off the column
+   has no use for an empty band either. */
+@media (max-width: 497px), (prefers-reduced-motion: reduce) {
   .gallery__pill-slot {
     display: none;
   }
@@ -3412,55 +3679,125 @@
 /* ---- narrow ----
  *
  * The reference keeps its landscape panel all the way down to 480px and only
- * then swaps to the portrait cut. We swap at OUR breakpoint, 992, and the
- * reason is the root font-size rather than taste.
+ * then swaps to the portrait cut, and so does this. It can because a rem
+ * shrinks with the screen below 992px (tokens.css): the panel is 44.5rem tall
+ * on an 86.4rem screen at every width in that range, and the type in it is
+ * sized in the same unit, so the composition holds together as it shrinks.
  *
- * The reference's root keeps scaling below 992 — 11.5px at 991, 11.0px at 950,
- * 8.9px at 768 — so its panel and the type inside it shrink together and 44rem
- * of panel still holds its content. Ours LOCKS at 16px there (tokens.css, a
- * deliberate site-wide call so a phone is not handed a 992px design). With the
- * root fixed and the panel still sized by aspect-ratio, a 900px viewport gives
- * a 28rem-tall panel asked to hold 56rem of content, and the headline, the
- * links and the portrait all land on top of each other.
- *
- * So: same mechanic as the reference, same two masks, breakpoint chosen for our
- * own root instead of copied across. Below 992 the panel takes the portrait cut
- * — which has the height the locked type needs — and the composition stacks. */
+ * What the reference changes there is small. The link columns come in (4.1rem
+ * of padding for 12.8), the statement rises to 10rem on a 42rem measure with
+ * its first face at 5rem, the figure is drawn at 31 / 39.875 of its wide size,
+ * and the legal line leaves the panel's notches to centre under it. */
 @media (max-width: 991px) {
+  .footer__links {
+    padding-inline: 4.1rem;
+  }
+
+  /* `.text-eyebrow` */
+  .footer__eyebrow {
+    font-size: 0.8rem;
+  }
+
+  .footer__statement {
+    inset-block-start: 10rem;
+  }
+
+  .footer__statement-inner {
+    inline-size: 42rem;
+  }
+
+  /* `.text-impact-sm-mona.footer`. Its second face is not in that rule and
+     stays 5.4375rem, so the step between the two widens. */
+  .footer__headline {
+    font-size: 5rem;
+  }
+
+  .footer__headline em {
+    font-size: 1.0875em;
+  }
+
+  /* The figure, scaled as the reference scales its own (`.footer-bg-img`, 31rem
+     for 39.875) and hung so the crown stays on its helmet's: 17.26rem down a
+     44.54rem panel, the crown 13.83% down the picture. */
+  .footer__portrait {
+    inset-block-end: -9.17rem;
+    block-size: 42.29rem;
+  }
+
+  /* `.footer-legal-links-w`, with the copyright's `.text-title-small-label`
+     at 1rem. */
+  .footer__legal {
+    position: relative;
+    inset: auto;
+    flex-direction: row-reverse;
+    justify-content: center;
+    align-items: center;
+    gap: var(--gap);
+    margin-block-start: 2rem;
+    font-size: 1rem;
+  }
+}
+
+/* A phone on its side: the two small labels step up, as the reference's
+   `.text-eyebrow` and `.text-title-small-label` do. */
+@media (max-width: 767px) {
+  .footer__eyebrow {
+    font-size: 1rem;
+  }
+
+  .footer__legal {
+    font-size: 1.3rem;
+  }
+}
+
+/* A phone upright, and the portrait cut. Swapping --mask-url and the ratio
+ * that goes with it is the reference's whole change to the panel; inside it
+ * the composition stops floating and stacks in source order. The link row is
+ * 9rem down instead of pushed to the foot, the statement follows it in flow
+ * 5rem and then 1.2rem below, and the partner row moves to the top of the
+ * panel, over the links, since there is no room for it to pass behind the
+ * shoulders. */
+@media (max-width: 479px) {
   .footer__panel {
     --mask-url: url('/assets/footer/panel-mask-mobile.svg');
     aspect-ratio: 381.94 / 627.49;
   }
 
-  .footer__lead {
-    block-size: 7rem;
+  .footer__links {
+    margin-block: 9rem 5rem;
   }
 
-  /* Everything that was floated over the middle joins the flow, top down:
-     statement, then links, with the portrait still anchored to the bottom. */
-  .footer__stack {
-    justify-content: flex-start;
+  .footer__col {
+    inline-size: 50%;
+  }
+
+  .footer__eyebrow {
+    font-size: 0.8rem;
+  }
+
+  /* --text--btn-footer, which the reference restates as 1.6rem here. */
+  .footer__link .btn-text {
+    font-size: 1.6rem;
   }
 
   .footer__statement {
-    position: static;
-    /* Ahead of the links. The reference's DOM order puts its statement after
-       them, which at this width would open with the nav list and only then say
-       what the page is — worth the one deviation. */
-    order: -1;
-    /* Clears the marquee AND the signature hanging above the headline: the row
-       ends at 5.625rem (3 + its 2.625 height) and the signature reaches 4.8rem
-       above the first line, so anything less than this lands type on type. */
-    margin-block-start: 11rem;
+    position: relative;
+    inset: auto;
   }
 
   .footer__statement-inner {
     inline-size: auto;
     max-inline-size: 90%;
+    margin-block-start: 1.2rem;
   }
 
+  /* Both faces at 3.6rem. */
   .footer__headline {
     font-size: 3.6rem;
+  }
+
+  .footer__headline em {
+    font-size: 1em;
   }
 
   .footer__sign {
@@ -3470,103 +3807,33 @@
     aspect-ratio: 13.0625 / 8.5;
   }
 
-  .footer__links {
-    margin-block: 4rem 0;
-    padding-inline: 1.25rem;
-  }
-
-  .footer__col {
-    inline-size: 50%;
-  }
-
-  .footer__link .btn-text {
-    font-size: 1.6rem;
-  }
-
-  /* Proportional rather than fixed, because the portrait cut is 1.64x as tall
-     as it is wide and a fixed width leaves a hole under the links at the top of
-     this range. The cap stops it overwhelming an actual phone. */
-  /* The flex parent needs a definite width here or nothing resolves. It is
-     shrink-to-fit, and its width is derived from this image — while the image
-     asks for 80% OF IT. That circularity left the portrait at 0x0 with
-     naturalWidth 0 at 360, 375, 479, 768 and 991: the browser never even
-     fetched it, so the whole footer art column collapsed to nothing on every
-     screen below 992. Giving the parent 100% breaks the loop — the percentage
-     then resolves against the panel and the width/height attributes supply the
-     ratio. */
-  .footer__art-inner {
-    inline-size: 100%;
-  }
-
-  /* The overhang goes back to 3rem with the width sizing: the wide one is
-     solved for a crown against a 56rem panel's headline, and on the portrait
-     cut it would just take the shoulders off a figure this size. */
+  /* 24 / 39.875 of the wide size, the crown at 34.6rem of a 55.04rem panel.
+     Wider than the panel at that height, so the cap every image carries comes
+     off, as the reference takes it off its own (`max-width: none`): held to
+     the panel's width the picture would be squeezed rather than cropped. */
   .footer__portrait {
-    inset-block-end: -3rem;
-    inline-size: 80%;
-    block-size: auto;
-    max-inline-size: 30rem;
+    inset-block-end: -7.78rem;
+    max-inline-size: none;
+    block-size: 32.74rem;
   }
 
   .footer__cta {
     inset-block-end: 1.1rem;
   }
 
-  /* Above the portrait rather than across it: at this width there is no room
-     for the logos to pass behind the shoulders and still be read. */
+  /* `.btn-icon-w` is 1.5rem wide here; the mark in it stays the size it was. */
+  .footer-cta__icon {
+    inline-size: 1.5rem;
+  }
+
   .footer__marquee {
     inset: 3rem 0 auto;
   }
 
-  /* Out from under the panel and centred, since the portrait cut's bottom
-     notches are too narrow to seat a spread. */
-  .footer__legal {
-    position: relative;
-    inset: auto;
-    flex-direction: row-reverse;
-    justify-content: center;
-    align-items: center;
-    gap: var(--gap);
-    margin-block-start: 2rem;
-  }
-}
-
-@media (max-width: 479px) {
-  /* Reclaim the lead at the very bottom of the range. The panel's height is
-     pinned by aspect-ratio, which at 360px gives 526px, while the stacked
-     content measured 528 — so the CTA, absolutely positioned at the foot,
-     came down on top of the links: at 360 it covered Calendar, Store and the
-     X link, all three unclickable underneath an opaque button, and at 375 it
-     still covered Store. It clears from 390 up. Trimming the statement's lead
-     and the links' top margin gives back ~70px, which is more than the
-     overlap needs.
-
-     The 11rem and 4rem those replace are sized to clear the marquee and the
-     signature above the headline, and both still do at this size because the
-     signature itself is 7.5rem here rather than its full width. */
-  .footer__statement {
-    margin-block-start: 7rem;
-  }
-
-  .footer__links {
-    margin-block: 2rem 0;
-  }
-
-  .footer__headline {
-    font-size: 2.6rem;
-  }
-
-  .footer__link .btn-text {
-    font-size: 1.3rem;
-  }
-
-  .footer__sign {
-    inline-size: 7.5rem;
-    inset-block-start: -3.6rem;
-  }
-
   .footer__legal {
     margin-block-start: 1rem;
+    font-size: 0.65rem;
+    line-height: 1;
   }
 
   .footer__legal-links {
@@ -3589,16 +3856,20 @@
 /* Written per frame by main.ts. Registered so they are typed rather than
    re-parsed as strings on every write. They live on .otot, NOT on :root —
    a custom property on the root invalidates style for every element that
-   could inherit it, which measured 4.5x the cost of a scoped write. */
+   could inherit it, which measured 4.5x the cost of a scoped write.
+
+   Each is how much of its travel is still to go, 1 down to 0, and not a
+   length: the travel is 20 and 5 of the reference's rem, and under 992px that
+   rem is not ours (see --u on .otot), so the distance is worked out here. */
 @property --otot-cut {
-  syntax: '<length>';
-  initial-value: 0px;
+  syntax: '<number>';
+  initial-value: 0;
   inherits: true;
 }
 
 @property --otot-txt {
-  syntax: '<length>';
-  initial-value: 0px;
+  syntax: '<number>';
+  initial-value: 0;
   inherits: true;
 }
 
@@ -3629,6 +3900,10 @@
   z-index: 1;
   /* Two screens: one to pin, one for the riser to climb through. */
   block-size: 200dvh;
+  /* The reference's rem, which this whole screen is set in: ours from 992 up,
+     and restated under that (see "narrow screens" below) where the
+     reference's root keeps scaling and ours locks at 16px. */
+  --u: 1rem;
 }
 
 .otot__pin {
@@ -3673,7 +3948,7 @@
 .otot__cut.is-on {
   inline-size: calc(90.67vh * 834 / 1984);
   inset-inline-start: 0;
-  transform: translate3d(calc(var(--otot-cut, 0px) * -1), 0, 0);
+  transform: translate3d(calc(var(--otot-cut, 0) * -20 * var(--u)), 0, 0);
 }
 
 .otot__cut.is-on img {
@@ -3683,7 +3958,7 @@
 .otot__cut.is-off {
   inline-size: calc(90.67vh * 898 / 1984);
   inset-inline-end: 0;
-  transform: translate3d(var(--otot-cut, 0px), 0, 0);
+  transform: translate3d(calc(var(--otot-cut, 0) * 20 * var(--u)), 0, 0);
 }
 
 .otot__cut.is-off img {
@@ -3713,13 +3988,13 @@
 .otot__col.is-on {
   align-items: flex-end;
   text-align: right;
-  transform: translate3d(calc(var(--otot-txt, 0px) * -1), 0, 0);
+  transform: translate3d(calc(var(--otot-txt, 0) * -5 * var(--u)), 0, 0);
 }
 
 .otot__col.is-off {
   align-items: flex-start;
   text-align: left;
-  transform: translate3d(var(--otot-txt, 0px), 0, 0);
+  transform: translate3d(calc(var(--otot-txt, 0) * 5 * var(--u)), 0, 0);
 }
 
 /* The heading and blurb take the same ink, as the reference's do. It crosses
@@ -3752,6 +4027,9 @@
   right: -1rem;
   z-index: 10;
   inline-size: 15.94rem;
+  /* Wider than the heading it hangs off once that drops to 4rem on a phone,
+     as the reference's is; the reset would hold an svg to its box. */
+  max-inline-size: none;
   block-size: 12.125rem;
   color: var(--accent);
   pointer-events: none;
@@ -3928,76 +4206,171 @@
 .otot__end-img--sharp {
   object-fit: contain;
   /* Fallback 1, not 0 — the fallback is the RESTING value, not the opening
-     one. --otot-rise is written only by the WIDE_AND_ANIMATED branch, and that
-     branch's cleanup removes the property again, so below 992px and under
-     reduced motion this resolved to scale(1 - 0.04) and the picture sat 4%
-     small forever, never reaching the completeness the push-in exists to
-     arrive at. On wide screens the trigger's onRefresh writes the real
-     progress immediately, so nothing starts in the wrong place. */
+     one. --otot-rise is written only while motion is allowed, and that
+     branch's cleanup removes the property again, so under reduced motion this
+     resolved to scale(1 - 0.04) and the picture sat 4% small forever, never
+     reaching the completeness the push-in exists to arrive at. With motion
+     on, the trigger's onRefresh writes the real progress immediately, so
+     nothing starts in the wrong place. */
   transform: scale(calc(1 - (1 - var(--otot-rise, 1)) * 0.04));
 }
 
 /* ---- narrow screens ----
  *
- * The same call the gallery makes: the closing needs two screens of scroll
- * and a wide frame to read at all, and a phone has neither. The section
- * becomes one stacked screen with the cutouts held back behind the type. */
+ * The same scene, as the reference keeps it at every width: the screen still
+ * pins, the cutouts still close in and the type still settles, on the same
+ * curves. Only the arrangement changes. Under 992px the type stands at the
+ * top of the screen, 8rem down, and the cutouts shorten to 62.67vh so they
+ * come in under it; under 480px the two columns become an even pair across
+ * the screen, their buttons level, and each cutout starts 7rem further out.
+ * The picture after it stays a whole screen down to 480px and is 60vh under
+ * that, the reference's `.otot-home-end-img-w`.
+ *
+ * All of it is in the reference's rem, restated as --u: 20/1728 of the width
+ * down to 480 and 48/1728 under that (9.49px at 820, 10.83px at 390). */
 @media (max-width: 991px) {
   .otot {
+    --u: calc(100vw / 86.4);
+    --gap: calc(1.25 * var(--u));
+    /* The pinned screen and then the picture, whatever height the picture's
+       frame is given below: two screens down to 480px, 1.6 under that. */
     block-size: auto;
   }
 
   .otot__pin {
-    position: static;
-    block-size: auto;
-    padding-block: var(--padding--xlarge, 5rem);
+    align-items: flex-start;
+    padding-block-start: calc(8 * var(--u));
   }
 
-  .otot__layout {
-    inline-size: 100%;
-    flex-direction: column;
-    gap: 4rem;
-    padding-inline: var(--padding--container);
+  .otot__cut {
+    inset-block-start: auto;
+    block-size: 62.67vh;
+  }
+
+  .otot__cut.is-on {
+    inline-size: calc(62.67vh * 834 / 1984);
+  }
+
+  .otot__cut.is-off {
+    inline-size: calc(62.67vh * 898 / 1984);
+    inset-inline-end: -1px;
+  }
+
+  .otot__script {
+    right: calc(-1 * var(--u));
+    inline-size: calc(15.94 * var(--u));
+    block-size: calc(12.125 * var(--u));
+  }
+
+  .otot__head-line {
+    font-size: calc(7 * var(--u));
+    letter-spacing: calc(-0.25 * var(--u));
+  }
+
+  .otot__head-line.is-thin {
+    font-size: calc(7.2 * var(--u));
+    letter-spacing: calc(-0.4 * var(--u));
   }
 
   .otot__blurb {
-    inline-size: min(21rem, 100%);
+    inline-size: calc(21 * var(--u));
+    font-size: calc(1.25 * var(--u));
+    letter-spacing: calc(-0.0125 * var(--u));
   }
 
-  /* Matched to the .is-on/.is-off specificity of the rules they undo — a bare
-     .otot__cut here would lose to .otot__cut.is-on and the reset would look
-     applied while doing nothing. */
-  .otot__col.is-on,
-  .otot__col.is-off,
-  .otot__cut.is-on,
-  .otot__cut.is-off {
-    transform: none;
+  .otot__link {
+    inline-size: calc(3.75 * var(--u));
+    block-size: calc(3.75 * var(--u));
+    border-radius: calc(0.54 * var(--u));
   }
 
-  .otot__cut.is-on,
-  .otot__cut.is-off {
-    inline-size: 42vw;
-    /* Behind the type rather than beside it — there is no room for both. */
-    opacity: 0.22;
+  .otot__arrow {
+    inline-size: var(--u);
+    block-size: var(--u);
   }
 
-  /* The frame takes the picture's own shape rather than a slice of it. A
-     phone-width frame at any useful height is portrait while the image is
-     16:9, so `cover` would discard roughly two thirds of its width — both
-     raised arms included — and leave a meaningless crop of the middle. */
-  .otot__end,
+  /* The frame is upright here and the photograph is not, so the blurred bed
+     shows above and below it as it never does on a desktop, edge to edge. Its
+     blur fades the outer 2.25rem or so of it towards nothing, more than the
+     bed's 8% of overhang covers on a frame this narrow, and the pinned
+     screen's two cutouts showed through down both sides. A ground under the
+     bed closes it: the fade runs out to the page's black instead. */
   .otot__end-frame {
-    block-size: auto;
-    aspect-ratio: 16 / 9;
+    background: var(--black);
   }
 }
 
-/* The reference drops both heading faces to 4rem on a phone. */
+/* .text-body-reg-mona is 1.75rem between 480 and 767px, and at that size, as
+   on a phone, our Off Track blurb runs a line longer than the On Track one,
+   which the reference's two never do. It only sends a button to the floor of
+   the row under 480px (.btn-auto-top); ours go there from 767px down, so the
+   pair stays level whichever blurb is longer. Where the two blurbs are the
+   same height the margin is nothing and the buttons stand where its do. */
+@media (max-width: 767px) {
+  .otot__blurb {
+    font-size: 1.75rem;
+  }
+
+  .otot__link {
+    margin-block-start: auto;
+  }
+}
+
 @media (max-width: 479px) {
+  .otot {
+    --u: calc(100vw / 36);
+  }
+
+  /* The picture's frame is the reference's 60vh on a phone, not the whole
+     screen it is above 480px. The frame is portrait at either height and the
+     photograph is 16:9, so it is the sharp copy's `contain` and the blurred
+     bed behind it that keep both raised arms in the picture, as they do on a
+     desktop: `cover` would take two thirds of its width. */
+  .otot__end,
+  .otot__end-frame {
+    block-size: 60vh;
+  }
+
+  /* .otot-home-layout as a grid of two equal columns, 2 gaps apart, inside the
+     container's own gutter. */
+  .otot__layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: calc(var(--gap) * 2);
+    inline-size: 100%;
+    padding-inline: var(--gap);
+  }
+
+  /* The reference drops both heading faces to 4rem on a phone. */
   .otot__head-line,
   .otot__head-line.is-thin {
-    font-size: 4rem;
-    letter-spacing: -0.1rem;
+    font-size: calc(4 * var(--u));
+    letter-spacing: calc(-0.1 * var(--u));
+  }
+
+  /* Playfair for Brier, a 64th smaller as it is above this (7.2 for 7.3125),
+     so its 0.823 line is the reference's 0.81 of 4rem: 35.1px at 390. */
+  .otot__head-line.is-thin {
+    font-size: calc(3.94 * var(--u));
+  }
+
+  .otot__blurb {
+    inline-size: 100%;
+    font-size: calc(1.3 * var(--u));
+  }
+
+  /* .btn-w.icon-only on a phone. */
+  .otot__link {
+    inline-size: calc(3.3 * var(--u));
+    block-size: calc(3.3 * var(--u));
+  }
+
+  .otot__cut.is-on {
+    inset-inline-start: calc(-7 * var(--u));
+  }
+
+  .otot__cut.is-off {
+    inset-inline-end: calc(-7 * var(--u));
   }
 }
 
@@ -4499,19 +4872,19 @@
   flex: none;
 }
 
-/* Below 992px our root locks at 16px where the reference's keeps shrinking
-   (10.8px at 390), so its rem values cannot be copied across. Measured
-   instead: its 12rem / 8.75rem run is 130 / 95px at 390, which 8rem / 6rem
-   lands on. The line is the reference's `.text-cta-short-intro.font-brier` —
-   the same class as the socials' "Follow" line — so it takes the size that
-   line takes here rather than a size of its own. */
-@media (max-width: 991px) {
-  .callout {
-    padding-block: 8rem 6rem;
+/* The reference changes three things here and only under 480px: the line's
+   `.text-cta-short-intro.font-brier` drops to 1.7rem, its `.callout-text-w`
+   narrows to 29rem, and the button's `.btn-icon-w` widens to 1.5rem around a
+   mark that stays the size it was. The 12rem / 8.75rem run and the crest hold
+   at every width. */
+@media (max-width: 479px) {
+  .callout__text {
+    max-inline-size: 29rem;
+    font-size: 1.7rem;
   }
 
-  .callout__text {
-    font-size: 1.5rem;
+  .callout__arrow {
+    inline-size: 1.5rem;
   }
 }
 
@@ -4529,35 +4902,11 @@
  * read as a stagger at all, and on a phone it would just be two lists sliding
  * past each other at different speeds. */
 @media (max-width: 991px) {
-  .hof {
-    padding-block: 4rem 5rem;
-  }
-
-  /* The standfirst stacks: at this width the paragraph column is too narrow to
-     hold a readable measure beside a 72px title. */
-  .hof__head {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-    margin-block-end: 3rem;
-  }
-
-  /* Back to the one column, or the wide layout's placements would open
-     implicit tracks beside it. */
-  .hof__title,
+  /* The standfirst keeps its four tracks, its sizes and the 8.75rem under it.
+     The one change is the paragraph's cell, which the reference widens from
+     the third track to the third and fourth. */
   .hof__blurb {
-    grid-column: auto;
-  }
-
-  .hof__title {
-    font-size: var(--text--h3);
-  }
-
-  .hof__title-line.is-serif {
-    font-size: calc(var(--text--h3) * 1.0417);
-  }
-
-  .hof__blurb {
-    font-size: 1rem;
+    grid-column: 3 / span 2;
   }
 
   .hof__grid {
@@ -4583,9 +4932,8 @@
      in, 15.65% down) carried into that smaller square.
 
      The label: 1.2rem type on a 2rem box, 2.9% and 4.85% of the card; the name
-     and year 3.46% apart. The 0.6rem floor stays: at 480 the reference's type
-     falls to 7.2px, which is below anything that reads. The box grows with the
-     type rather than clipping it at the card's edge. */
+     and year 3.46% apart. The box grows with the type rather than clipping it
+     at the card's edge. Under 768px the type is the reference's 1.3rem. */
   .hof__helmet {
     inset-inline-start: 34.27%;
     inset-block-start: 33.54%;
@@ -4600,6 +4948,49 @@
 
   .hof__name + .hof__year {
     margin-inline-start: 3.46cqi;
+  }
+}
+
+/* A phone on its side: `.text-body-reg-mona` goes to 1.75rem and the card's
+   `.text-title-small-label` to 1.3rem. */
+@media (max-width: 767px) {
+  .hof__blurb {
+    font-size: 1.75rem;
+  }
+
+  .hof__label {
+    font-size: 1.3rem;
+  }
+}
+
+/* A phone upright. The wall starts one --gap down rather than two, and the
+   standfirst is the reference's `.title-layout` at this width: two equal
+   columns on a 2 * --gap gutter, the title in the first at 2.6rem (its second
+   face at 2.4) and the paragraph beside it at 1.3rem, with that same gutter
+   and then the 6rem of `.spacer._8-75rem.m-6rem` under them. */
+@media (max-width: 479px) {
+  .hof {
+    padding-block-start: var(--gap);
+  }
+
+  .hof__head {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: calc(var(--gap) * 2);
+    margin-block-end: calc(var(--gap) * 2 + 6rem);
+  }
+
+  .hof__title {
+    grid-column: 1;
+    font-size: 2.6rem;
+  }
+
+  .hof__title-line.is-serif {
+    font-size: 2.4rem;
+  }
+
+  .hof__blurb {
+    grid-column: 2;
+    font-size: 1.3rem;
   }
 }
 
@@ -4965,65 +5356,160 @@
 
 /* ---- narrow screens ----
  *
- * The same call every other section here makes: the composition depends on a
- * wide frame and there is not one. The art becomes a plain two-column strip
- * under the type instead of an arrangement placed against the viewport, and
- * the section takes its height from its content. */
+ * The reference does not restack this section below 992px. Its
+ * `.c.is-lando-exe` gives up the 11rem margins for one --gap and everything
+ * else holds, so a tablet gets the wide composition on a narrower screen: the
+ * same two halves of its `.grid-main` (four 23.55% tracks on one --gap, each
+ * half spanning two), the same four frames and sticker hung off them at the
+ * same sizes, the side shot and the patch further off their edges than at
+ * 1728. The visor keeps its 8rem and the frames their 4rem of travel.
+ *
+ * Two things do change. The eyebrow goes (`data-hide="t"`), and the type is
+ * no longer a stated distance down: it is centred on the hero's row
+ * (`align-self: center` on `.exe-text-w`), 8rem under the section top and
+ * 52.0625rem tall, which is what the wide layout's 18.17rem works out to with
+ * the eyebrow in place. */
 @media (max-width: 991px) {
   .shop {
-    block-size: auto;
-    padding-block-end: 5rem;
-  }
-
-  .shop__visor {
-    block-size: 4rem;
+    block-size: 68.0625rem;
+    /* One half of the grid, and where the second half starts. Percentages on
+       purpose: they are read against the section by the frames using them. */
+    --shop-col: calc((100% - var(--gap) * 2) * 0.471 + var(--gap));
+    --shop-col2: calc(var(--gap) * 2 + var(--shop-col));
+    /* The foot of the type, for the one frame the reference hangs from the
+       text column rather than from the hero's: the row's centre (34.03rem)
+       plus half of our text block. It follows the copy, so a line more of
+       body moves it down half a line. */
+    --shop-text-foot: 48.38rem;
   }
 
   .shop__inner {
-    padding-block-start: 7rem;
-    padding-inline: var(--gutter);
+    display: flex;
+    align-items: center;
+    max-inline-size: none;
+    block-size: 60.0625rem;
+    padding-block-start: 8rem;
+    padding-inline: var(--gap);
   }
 
-  .shop__title {
-    font-size: clamp(3rem, 15vw, 5.5rem);
+  .shop__text {
+    inline-size: calc(47.1% + var(--gap));
   }
 
-  .shop__art {
-    position: static;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-    margin-block-start: 3rem;
-    padding-inline: var(--gutter);
-  }
-
-  /* Each takes its own source ratio here — no forced shape, so nothing is
-     cropped on a phone. The travel goes with the placement: sliding a picture
-     inside a static column reads as a misalignment, not as depth. */
-  .shop__frame {
-    position: relative;
-    inset: auto;
-    inline-size: auto;
-    block-size: auto;
-    transform: none;
-    align-self: start;
-  }
-
-  .shop__frame .shop__img,
-  .shop__frame--photo .shop__img {
-    block-size: auto;
-    transform: none;
-  }
-
-  /* The big one takes the full width; the rest pair up beneath it. */
-  .shop__frame--hero {
-    grid-column: 1 / -1;
-  }
-
-  /* Off-canvas placement is viewport composition, so the sticker simply goes.
-     Nothing is lost: it carries no content. */
-  .shop__sticker {
+  .shop__eyebrow {
     display: none;
+  }
+
+  /* The space it kept under the eyebrow, which is no longer above it. */
+  .shop__title {
+    margin-block-start: 0;
+  }
+
+  .shop__frame--hero {
+    inset-inline-start: var(--shop-col2);
+  }
+
+  /* `inset: 8rem -16rem auto auto` of the second half, 25rem wide. */
+  .shop__frame--side {
+    inset-inline-start: calc(var(--shop-col2) + var(--shop-col) - 9rem);
+  }
+
+  /* `inset: auto auto -8rem -11.3rem` of it. */
+  .shop__frame--print {
+    inset-inline-start: calc(var(--shop-col2) - 11.3rem);
+    inset-block-start: 49.9375rem;
+  }
+
+  /* `inset: auto auto -8rem -14rem` of the text column: 8rem under the type's
+     foot and 14rem left of the gutter, so a sliver of it shows at the edge. */
+  .shop__frame--patch {
+    inset-inline-start: calc(var(--gap) - 14rem);
+    inset-block-start: calc(var(--shop-text-foot) - 3.875rem);
+  }
+
+  /* `inset: auto 8rem -2rem auto` of the second half, 15.1875rem wide. */
+  .shop__sticker {
+    inset-inline-start: calc(var(--shop-col2) + var(--shop-col) - 23.1875rem);
+  }
+}
+
+/* A phone on its side: the reference's `.text-body-reg-mona` goes to 1.75rem,
+   which sets our body on three taller lines and so moves the type's foot. */
+@media (max-width: 767px) {
+  .shop {
+    --shop-text-foot: 49.32rem;
+  }
+
+  .shop__body {
+    font-size: 1.75rem;
+  }
+}
+
+/* A phone upright, and here the reference does rearrange. `.exe-grid` becomes
+   a flex row under a 12rem spacer: the type on the left in what the hero
+   leaves it, and the hero at 14 x 18rem pinned to the right gutter and lifted
+   7.5rem out of the row. The side shot and the patch are dropped; the print
+   and the sticker shrink and move to the foot of the row, which is as tall as
+   the type (or as the hero, were the type ever shorter). The section is that
+   row plus its 12rem and 8rem, no longer a stated height. */
+@media (max-width: 479px) {
+  .shop {
+    block-size: auto;
+  }
+
+  .shop__inner {
+    block-size: auto;
+    min-block-size: 38rem;
+    padding-block: 12rem 8rem;
+  }
+
+  .shop__text {
+    inline-size: calc(100% - 14rem - var(--gap));
+  }
+
+  /* `.text-impact-lg-mona.reduce` */
+  .shop__title {
+    font-size: 3.6rem;
+  }
+
+  /* `.text-body-reg-mona` in `.g-text-para-w.is-exe` */
+  .shop__body {
+    inline-size: 13rem;
+    font-size: 1.3rem;
+  }
+
+  .shop__frame--hero {
+    inset-inline: auto var(--gap);
+    inset-block-start: 4.5rem;
+    inline-size: 14rem;
+    block-size: 18rem;
+  }
+
+  .shop__frame--side,
+  .shop__frame--patch {
+    display: none;
+  }
+
+  /* `inset: auto 10.6rem -.2rem auto` of the hero's column: the foot of the
+     row is the section's less the closing 8rem. */
+  .shop__frame--print {
+    inset-inline: auto calc(var(--gap) + 10.6rem);
+    inset-block: auto 7.8rem;
+    inline-size: 7rem;
+    block-size: 9rem;
+  }
+
+  /* `inset: auto 1rem 3.7rem auto` */
+  .shop__sticker {
+    inset-inline: auto calc(var(--gap) + 1rem);
+    inset-block: auto 11.7rem;
+    inline-size: 7.1rem;
+    block-size: 5.4rem;
+  }
+
+  /* `.btn-icon-w` is 1.5rem wide here; the mark in it stays the size it was. */
+  .store-cta__arrow {
+    inline-size: 1.5rem;
   }
 }
 
@@ -5565,37 +6051,11 @@ body:not([data-page='on-track']) .otot :focus-visible {
  * that, so the cards become a swipe row instead. Sideways is the reader's own
  * gesture here rather than a hijacked scroll, so it stays horizontal. */
 @media (max-width: 991px) {
+  /* The partners row holds its layout here: the reference only shortens the
+     two `.spacer._20rem.tablet-reduce` to 14rem. The heading, the paragraph
+     beside it, the drawn word and the 8rem above the logos are unchanged. */
   .collabs {
-    padding-block: 8rem 4rem;
-  }
-
-  .collabs__inner {
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
-  }
-
-  .collabs__title {
-    font-size: clamp(2.6rem, 12vw, 4.5rem);
-  }
-
-  .collabs__title-line.is-serif {
-    font-size: clamp(2.7rem, 12.5vw, 4.6875rem);
-  }
-
-  .collabs__mark {
-    inset-block-start: 2rem;
-    inline-size: 130%;
-    block-size: 24rem;
-  }
-
-  /* Level again at this width: tilted, the word would climb out of a section
-     this short. */
-  .collabs__mark-svg {
-    transform: none;
-  }
-
-  .collabs__marquee {
-    margin-block-start: 4rem;
+    padding-block: 14rem;
   }
 
   /* The reference keeps its fan below 992 -- measured at 360 and 768, the same
@@ -5698,6 +6158,11 @@ body:not([data-page='on-track']) .otot :focus-visible {
 }
 
 @media (max-width: 767px) {
+  /* `.text-body-reg-mona` on a phone turned on its side. */
+  .collabs__body {
+    font-size: 1.75rem;
+  }
+
   .socials {
     --u: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
     --card-w: calc(var(--u) * 15);
@@ -5707,6 +6172,58 @@ body:not([data-page='on-track']) .otot :focus-visible {
 /* Under 480 the heading drops to 2.6, the follow line to 1.7, and the links
    wrap onto centred rows no wider than 20 units, as the reference's do. */
 @media (max-width: 479px) {
+  /* The partners row on a phone: 8rem at either end, and the reference's
+     `.title-layout` at this width, two equal columns on a 2 * --gap gutter
+     with the heading at 2.6rem in both faces and the paragraph beside it at
+     1.3rem and unbounded. That same 2 * --gap goes under the pair as a
+     margin, added here to the 8rem over the logos because a margin on each
+     would collapse into one. */
+  .collabs {
+    padding-block: 8rem;
+  }
+
+  /* minmax(0, 1fr): "&CAMPAIGNS" is a little wider than half the screen in
+     this face, and a bare 1fr would grow to hold it and take the difference
+     out of the paragraph. It runs into the gutter instead, as the
+     reference's does. */
+  .collabs__inner {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .collabs__title,
+  .collabs__title-line.is-serif {
+    font-size: 2.6rem;
+  }
+
+  .collabs__body {
+    max-inline-size: none;
+    font-size: 1.3rem;
+  }
+
+  .collabs__marquee {
+    margin-block-start: calc(8rem + var(--gap) * 2);
+  }
+
+  /* `.marquee-spacer`: 4rem between the logos, down from 7. */
+  .collabs__item {
+    padding-inline: 2rem;
+  }
+
+  /* `.home-collab-rive-w`: 31rem wide on its own ratio, 1.6rem down and 2.1rem
+     off the left edge. The word inside is set on the same slant, its nudge
+     scaled with the box (31 / 79.6). */
+  .collabs__mark {
+    inset-block-start: 1.6rem;
+    inset-inline-start: -2.1rem;
+    inline-size: 31rem;
+    block-size: auto;
+    aspect-ratio: 79.625 / 49.87;
+  }
+
+  .collabs__mark-svg {
+    transform: translate(0.37rem, -1rem) rotate(-26.2deg) scale(1.07);
+  }
+
   .socials {
     --u: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
     --card-w: calc(var(--u) * 14);

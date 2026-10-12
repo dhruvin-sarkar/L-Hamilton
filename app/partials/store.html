@@ -54,8 +54,10 @@
 
              The two photographs carry a srcset. The hero is drawn 43.12rem
              wide (its frame plus the 4rem of travel, under `cover`), the side
-             25rem, which is 39.93vw and 23.15vw between the root clamps; on a
-             phone the hero spans the strip and the side takes half of it.
+             25rem, which is 39.93vw and 23.15vw between the root clamps. Below
+             992px the frames keep those sizes on an 86.4rem screen, so 49.9vw
+             and 28.94vw; under 480 the hero's 14 x 18rem frame draws it
+             16.92rem wide on a 36rem screen, 47vw, and the side is not shown.
              The three cut-outs are 620-640px originals of 25-32 KB drawn at
              about 200px: already the 2x file, with nothing to gain. -->
         <div class="shop__art" aria-hidden="true">
@@ -63,14 +65,14 @@
             <img class="shop__img" src="/assets/store/store-hero.webp" width="1400"
               height="1820" alt=""
               srcset="/assets/store/store-hero-768.webp 768w, /assets/store/store-hero.webp 1400w"
-              sizes="(min-width: 992px) 39.93vw, calc(100vw - 40px)"
+              sizes="(min-width: 992px) 39.93vw, (min-width: 480px) 49.9vw, 47vw"
               loading="lazy" decoding="async" />
           </div>
           <div class="shop__frame shop__frame--photo shop__frame--side">
             <img class="shop__img" src="/assets/store/store-side.webp" width="900"
               height="1170" alt=""
               srcset="/assets/store/store-side-480.webp 480w, /assets/store/store-side.webp 900w"
-              sizes="(min-width: 992px) 23.15vw, calc(50vw - 28px)"
+              sizes="(min-width: 992px) 23.15vw, 28.94vw"
               loading="lazy" decoding="async" />
           </div>
           <div class="shop__frame shop__frame--cutout shop__frame--print">

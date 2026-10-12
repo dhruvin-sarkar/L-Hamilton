@@ -100,7 +100,9 @@
                  its own copies in /assets/footer/ rather than the 3780px file
                  the WebGL scene loads, which was a 317 KB download for this on
                  every page. Drawn 54.4rem tall, so 72.56rem (67.2vw) wide from
-                 992px; below that 80% of the panel, capped at 30rem.
+                 992px; 42.29rem tall below that, 56.4rem of an 86.4rem screen
+                 (65.3vw); and 32.74rem tall under 480px, 43.67rem of a 36rem
+                 screen (121vw, its transparent margins running off the panel).
                  width/height stay the master's, for the ratio. -->
             <div class="footer__art">
               <div class="footer__art-inner">
@@ -109,7 +111,7 @@
                   srcset="/assets/footer/portrait-640.webp 640w, /assets/footer/portrait-1024.webp 1024w,
                     /assets/footer/portrait-1440.webp 1440w, /assets/footer/portrait-1920.webp 1920w,
                     /assets/footer/portrait-2560.webp 2560w"
-                  sizes="(min-width: 992px) 67.2vw, (min-width: 640px) 480px, calc(80vw - 32px)"
+                  sizes="(min-width: 992px) 67.2vw, (min-width: 480px) 65.3vw, 121vw"
                   loading="lazy" decoding="async" aria-hidden="true" />
                 <div class="footer__cta">
                   <a class="footer-cta__link" href="#" data-placeholder-href>

@@ -46,7 +46,10 @@ import type { Helmet } from '../content/helmets';
  * ------------------------------------------------------------------ */
 
 export function mountRiser(): void {
-  mm.add(WIDE_AND_ANIMATED, () => {
+  /* At every width: the reference's picture moves through its pass on a phone
+     as it does on a desktop. Under 992px the frame is the reference's, a screen
+     tall and 60vh on a phone (home.css), and the push-in runs inside it. */
+  mm.add('(prefers-reduced-motion: no-preference)', () => {
     const riser = document.querySelector<HTMLElement>('[data-riser]');
     if (!riser) return;
 
@@ -74,8 +77,7 @@ export function mountRiser(): void {
     );
 
     /* Our own inline write, so the context will not clear it. Removed, the CSS
-       falls back to the resting value, which is what the stacked layout and
-       reduced motion both want. */
+       falls back to the resting value, which is what reduced motion wants. */
     return () => riser.style.removeProperty('--otot-rise');
   });
 }

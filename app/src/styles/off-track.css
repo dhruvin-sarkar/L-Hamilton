@@ -1390,12 +1390,28 @@ body[data-page='off-track'] {
   .oft-impact__accent {
     font-size: inherit;
   }
+
+  /* The reference's line splitter sets the statement as inline lines, which
+     drops the <br> after its first word: under 992 its first row runs on to a
+     second word, "Challenging the" at 820 and 600 as on a phone, and the
+     statement is five rows. The same here, by taking the break out of the
+     flow. Kept, it left the first word alone on its row and the statement a
+     row taller than the reference's from 480 to 991. */
+  .oft-impact__text br {
+    display: none;
+  }
 }
 
 @media (max-width: 767px) {
   .oft-group {
     --r: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
     --text--eyebrow: var(--r);
+  }
+
+  /* Reference .text-body-sm-mona under 768: 1.5rem, and back to 1rem under
+     480 (below). The root is at its smallest in this band, 5.6px at 480. */
+  .oft-hero__note {
+    font-size: 1.5rem;
   }
 }
 
@@ -1475,13 +1491,6 @@ body[data-page='off-track'] {
     font-size: calc(3.5 * var(--r));
   }
 
-  /* The reference's line splitter drops the <br> after its first word, which
-     only shows on a phone, where the first line then runs on to a second
-     word. The same here, by taking the break out of the flow. */
-  .oft-impact__text br {
-    display: none;
-  }
-
   /* Reference .base-helmet-rive under 480: 4.7rem across, its height from
      its ratio, and the ball in it scaled with it. */
   .oft-impact__reef {
@@ -1497,5 +1506,15 @@ body[data-page='off-track'] {
   /* Reference .on-t-hero-stats-para-w under 480: 1rem under the paragraph. */
   .oft-hero__para-w {
     margin-block-end: var(--r);
+  }
+
+  /* Reference .text-body-lg-brier under 480: 1.9rem, a step under the
+     2.25rem the paragraph around it keeps. */
+  .oft-hero__accent {
+    font-size: 1.9rem;
+  }
+
+  .oft-hero__note {
+    font-size: 1rem;
   }
 }
