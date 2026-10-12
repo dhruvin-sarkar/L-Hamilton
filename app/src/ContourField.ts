@@ -1,17 +1,18 @@
 import * as THREE from 'three';
 
 /**
- * Pass one of the reference's two-pass background: a simplex field reduced to a
- * BINARY map, written to a render target for the composite pass to trace.
+ * Pass one of the two-pass background: a simplex field reduced to a BINARY
+ * map, written to a render target for the composite pass to trace.
  *
- * Ported from the reference's own `136-fragment.frag`, parameter names intact,
- * because those names are the specification. Its live values, read off
- * `window.landoGL.params.headScene`, are the defaults below.
+ * The reference builds its background the same way, in two passes, and this
+ * one is tuned to it: the defaults below are its live values, read off
+ * `window.landoGL.params.headScene`. The shader is ours, written from what the
+ * field does on screen.
  *
  * Why two passes:
  *
- *   The output here is `step(0.5, fract(noise * NOISE_DETAIL))`, i.e. every
- *   texel is exactly 0.0 or 1.0. There are no contour LINES in this target at
+ *   The output here is the parity of a band count, i.e. every texel is exactly
+ *   0.0 or 1.0. There are no contour LINES in this target at
  *   all — only flat regions. The lines appear in pass two, which asks whether a
  *   neighbouring sample differs. Under bilinear filtering that comparison is
  *   false everywhere inside a region and true only within one texel of a
@@ -24,9 +25,9 @@ import * as THREE from 'three';
  *   and substituting something "reasonable" like 1/1024 steps clean over the
  *   ramp into the next region and turns the contours into blobs.
  *
- * NOISE_DETAIL is the band count. `fract(n * 3)` wraps three times across the
- * noise range and `step(0.5, ...)` splits each wrap, giving six boundaries — so
- * the field reads as a few broad, sweeping contours rather than fine banding.
+ * `bandPairs` is the band count. At 3 the noise's range is cut into six
+ * slices, three bands and the three gaps between them, giving six boundaries —
+ * so the field reads as a few broad, sweeping contours rather than fine banding.
  */
 
 /** Simplex 3D, Ashima Arts / Stefan Gustavson (MIT). The reference's `<simplex>`.
@@ -117,104 +118,119 @@ const noiseFragment = /* glsl */ `
 
   varying vec2 vUv;
 
-  uniform float uAspect;
-  uniform float uTime;
-  uniform float uMousePace;
-  uniform float uReveal;
-  uniform vec2  uMouseCoords;
+  /* What changes from frame to frame. */
+  uniform float uFrameRatio;   // width over height
+  uniform float uSeconds;
+  uniform float uPointerPace;  // 0 while the pointer rests, up to 1 as it moves
+  uniform float uIntro;        // 0 away, 1 in place
+  uniform vec2  uPointerAt;    // -1..1, y up
 
-  uniform float SCALE;
-  uniform float SPEED;
-  uniform float DISTORT_SCALE;
-  uniform float DISTORT_INTENSITY;
-  uniform float NOISE_DETAIL;
-  uniform float CURSOR_INTENSITY;
-  uniform float CURSOR_SCALE;
-  uniform float CURSOR_BOUNCE;
-  uniform float REVEAL_SIZE;
+  /* The tunables, keyed exactly as ContourParams is. */
+  uniform float zoom;
+  uniform float drift;
+  uniform float warpZoom;
+  uniform float warpReach;
+  uniform float bandPairs;
+  uniform float pointerReach;
+  uniform float pointerFalloff;
+  uniform float pointerFloor;
+  uniform float introTravel;
+
+  /* The warp's clock against the field's. A tenth, so the warp drifts far more
+     slowly than the field it is warping, and the two never fall into step. */
+  const float WARP_PACE = 0.1;
+
+  /* Simplex on a plane at a depth, moved from -1..1 onto 0..1.
+
+     Time is the depth, here and for the warp, so the surface DEFORMS in place
+     rather than travelling: contours grow, split, merge and close where they
+     are, the level sets of a solid that is slowly changing shape. */
+  float unitNoise(vec2 plane, float depth) {
+    return snoise(vec3(plane, depth)) * 0.5 + 0.5;
+  }
+
+  /* A place on the frame, in field units: one unit is the frame's height, so
+     the shapes stay round at any aspect. The intro lifts the window a long way
+     above the frame and squeezes it; at uIntro 1 it is the frame itself. */
+  vec2 fieldPoint(vec2 frame) {
+    float away = (1.0 - uIntro) * introTravel;
+    return vec2(frame.x * uFrameRatio, (frame.y + away * 4.0 / 3.0) / (1.0 + away));
+  }
+
+  /* How far the pointer shoves a point of the field: a cone standing on the
+     pointer, as tall as the pointer is fast.
+
+     The floor is doing real work and is not a guard. Away from the pointer the
+     cone runs negative, so the far field is shoved one way while the pointer's
+     own neighbourhood goes the other, and that difference is what drags the
+     contours as the pointer passes. The pace falls to zero when it stops, so
+     the shove relaxes out again: the field springs back rather than staying
+     dented. */
+  float pointerShove(vec2 point) {
+    vec2 pointer = (uPointerAt + 1.0) * 0.5;
+    pointer.x *= uFrameRatio;
+    float cone = 1.0 - pointerFalloff * length(point - pointer);
+    return pointerReach * max(cone * uPointerPace, pointerFloor);
+  }
 
   void main() {
-    /* UVs. Aspect-corrected so the field stays round, then pushed down and
-       compressed by the intro reveal — at uReveal 0 the sampled window sits far
-       above the frame and slides into place as it drives to 1. */
-    vec2 uv = vUv;
-    uv.x *= uAspect;
-    uv.y += (REVEAL_SIZE + REVEAL_SIZE / 3.0) * (1.0 - uReveal);
-    uv.y /= 1.0 + (REVEAL_SIZE) * (1.0 - uReveal);
+    vec2 point = fieldPoint(vUv);
+    float clock = uSeconds * drift;
 
-    /* Cursor. A cone falling away from the pointer, scaled by how fast the
-       pointer is actually moving and floored at CURSOR_BOUNCE.
+    /* One read of the noise decides where the next one is taken: every point
+       slides along the diagonal by the warp and by the pointer's shove. */
+    float warp = unitNoise(point * warpZoom, clock * WARP_PACE);
+    float slide = pointerShove(point) + warpReach * warp;
+    float level = unitNoise((point + slide) * zoom, clock);
 
-       The floor is doing real work and is not a guard: at -0.75 the whole field
-       away from the pointer is displaced by -0.75 * CURSOR_INTENSITY while the
-       pointer's own neighbourhood goes to +CURSOR_INTENSITY. That difference is
-       what drags the contours around as the cursor passes. Because uMousePace
-       falls to zero when the pointer stops, the displacement relaxes out again
-       — the field springs back rather than staying dented. Hence "bounce". */
-    vec2 mouse = uMouseCoords * 0.5 + 0.5;
-    mouse.x *= uAspect;
+    /* The level cut into equal slices, counted from zero. The odd slices are
+       the bands; the even ones are the gaps between them. */
+    float slice = floor(level * bandPairs * 2.0);
 
-    float cursor = 1.0 - distance(mouse, uv) * CURSOR_SCALE;
-    cursor *= uMousePace;
-    cursor = clamp(cursor, CURSOR_BOUNCE, 1.0);
-
-    /* Noise. The first sample warps the domain of the second — and note the
-       time axes differ by a factor of ten, so the warp drifts far more slowly
-       than the field it is warping. Two clocks that do not divide into each
-       other give a combined period long enough that the loop never shows. */
-    float noiseDistort = 0.5 + snoise(vec3(
-      uv.x * DISTORT_SCALE,
-      uv.y * DISTORT_SCALE,
-      uTime * SPEED * 0.1
-    )) * 0.5;
-
-    float noiseFinal = 0.5 + snoise(vec3(
-      (uv.x + (cursor * CURSOR_INTENSITY) + (noiseDistort * DISTORT_INTENSITY)) * SCALE,
-      (uv.y + (cursor * CURSOR_INTENSITY) + (noiseDistort * DISTORT_INTENSITY)) * SCALE,
-      uTime * SPEED
-    )) * 0.5;
-
-    /* Time rides the third noise axis, so the surface DEFORMS in place rather
-       than travelling. Contours grow, split, merge and close where they are —
-       the level sets of a solid that is itself slowly changing shape. No
-       amount of retuning a translation reaches this. */
-    noiseFinal *= NOISE_DETAIL;
-    noiseFinal = fract(noiseFinal);
-
-    float noiseBase = step(0.5, noiseFinal);
-
-    // R: the binary map the outline pass traces. G: the raw value, kept because
-    // the reference's hover effect thresholds against it.
-    gl_FragColor = vec4(noiseBase, noiseFinal, 0.0, 1.0);
+    gl_FragColor = vec4(vec3(mod(slice, 2.0)), 1.0);
   }
 `;
 
+/**
+ * The field's tunables. The reference keeps the same nine dials on
+ * `landoGL.params.headScene`, under the names given against each, so the two
+ * can still be set to the same thing from the console.
+ */
 export interface ContourParams {
-  SCALE: number;
-  SPEED: number;
-  DISTORT_SCALE: number;
-  DISTORT_INTENSITY: number;
-  NOISE_DETAIL: number;
-  CURSOR_INTENSITY: number;
-  CURSOR_SCALE: number;
-  CURSOR_BOUNCE: number;
-  REVEAL_SIZE: number;
+  /** Noise units to a frame height. Its SCALE. */
+  zoom: number;
+  /** Noise units the field moves through per second. Its SPEED. */
+  drift: number;
+  /** The same, for the slower read that warps the field. Its DISTORT_SCALE. */
+  warpZoom: number;
+  /** How far the warp slides a point, in frame heights. Its DISTORT_INTENSITY. */
+  warpReach: number;
+  /** Bands across the noise's range, each with its gap. Its NOISE_DETAIL. */
+  bandPairs: number;
+  /** How far a moving pointer shoves the field, in frame heights. Its CURSOR_INTENSITY. */
+  pointerReach: number;
+  /** How quickly that shove falls away from the pointer. Its CURSOR_SCALE. */
+  pointerFalloff: number;
+  /** The least the shove can be, far from the pointer. Its CURSOR_BOUNCE. */
+  pointerFloor: number;
+  /** How far above the frame the intro starts, in frame heights. Its REVEAL_SIZE. */
+  introTravel: number;
 }
 
 /**
- * The reference's live values, verbatim from `landoGL.params.headScene`.
- * Not copied from the docs — read off the running site, which is the authority.
+ * The reference's live values, read off `landoGL.params.headScene` on the
+ * running site, which is the authority, and not copied from the docs.
  */
 export const REFERENCE_PARAMS: ContourParams = {
-  SCALE: 1,
-  SPEED: 0.1,
-  DISTORT_SCALE: 1,
-  DISTORT_INTENSITY: 0.5,
-  NOISE_DETAIL: 3,
-  CURSOR_INTENSITY: 0.15,
-  CURSOR_SCALE: 3,
-  CURSOR_BOUNCE: -0.75,
-  REVEAL_SIZE: 25,
+  zoom: 1,
+  drift: 0.1,
+  warpZoom: 1,
+  warpReach: 0.5,
+  bandPairs: 3,
+  pointerReach: 0.15,
+  pointerFalloff: 3,
+  pointerFloor: -0.75,
+  introTravel: 25,
 };
 
 /** The params, one uniform each, keyed the same so `syncParams` can pair them. */
@@ -230,15 +246,15 @@ type ParamUniforms = { [K in keyof ContourParams]: THREE.IUniform<number> };
  * value, and there is no error anywhere to follow. Here it does not compile.
  */
 type NoiseUniforms = ParamUniforms & {
-  uAspect: THREE.IUniform<number>;
-  uTime: THREE.IUniform<number>;
-  uMousePace: THREE.IUniform<number>;
-  uReveal: THREE.IUniform<number>;
-  uMouseCoords: THREE.IUniform<THREE.Vector2>;
+  uFrameRatio: THREE.IUniform<number>;
+  uSeconds: THREE.IUniform<number>;
+  uPointerPace: THREE.IUniform<number>;
+  uIntro: THREE.IUniform<number>;
+  uPointerAt: THREE.IUniform<THREE.Vector2>;
 };
 
 export class ContourField {
-  /** The binary noise map. Sample `.r` for regions, `.g` for the raw value. */
+  /** The binary band map: 1 inside a band, 0 in the gap, on every channel. */
   get texture(): THREE.Texture {
     return this.target.texture;
   }
@@ -286,11 +302,11 @@ export class ContourField {
     ) as ParamUniforms;
 
     this.u = {
-      uAspect: { value: 1 },
-      uTime: { value: 0 },
-      uMousePace: { value: 0 },
-      uReveal: { value: 0 },
-      uMouseCoords: { value: this.pointer },
+      uFrameRatio: { value: 1 },
+      uSeconds: { value: 0 },
+      uPointerPace: { value: 0 },
+      uIntro: { value: 0 },
+      uPointerAt: { value: this.pointer },
       ...params,
     };
 
@@ -319,7 +335,7 @@ export class ContourField {
    */
   setSize(cssWidth: number, cssHeight: number): void {
     this.target.setSize(Math.max(1, Math.round(cssWidth)), Math.max(1, Math.round(cssHeight)));
-    this.u.uAspect.value = cssWidth / cssHeight;
+    this.u.uFrameRatio.value = cssWidth / cssHeight;
   }
 
   /** Pointer in -1..1, y up — the same convention `HeadScene.setPointer` takes. */
@@ -327,9 +343,9 @@ export class ContourField {
     this.pointer.set(nx, ny);
   }
 
-  /** Intro wipe, 0..1. Drives the UV window down over REVEAL_DURATION. */
+  /** Intro, 0..1: brings the sampled window down onto the frame. See `introTravel`. */
   set reveal(v: number) {
-    this.u.uReveal.value = v;
+    this.u.uIntro.value = v;
   }
 
   /** Push a parameter change through to the GPU. For live tuning from console. */
@@ -356,10 +372,10 @@ export class ContourField {
      *
      * PACE_CEILING is the important number here and it is deliberately small.
      *
-     * CURSOR_BOUNCE is the LOWER clamp on `cursor`, and since (1 - dist * 3)
-     * goes negative past about a third of the frame, that floor is what almost
-     * every pixel gets. So the far field is displaced by
-     * CURSOR_BOUNCE * pace * CURSOR_INTENSITY — a near-constant offset applied
+     * The shader's cone, (1 - distance * pointerFalloff), goes negative past
+     * about a third of the frame, so at a high pace `pointerFloor` is what
+     * almost every pixel gets. The far field is then displaced by
+     * pointerFloor * pointerReach — a near-constant offset applied
      * to the ENTIRE noise domain. At pace 1 that is 0.11 UV, and the whole
      * background visibly slides sideways the moment the pointer moves, which
      * reads as the field getting out of the cursor's way. It is not what the
@@ -378,9 +394,9 @@ export class ContourField {
     // Still asymmetric — it climbs faster than it falls, so a flick registers
     // and then relaxes — but both are gentler now, so nothing snaps.
     this.pace += (impulse - this.pace) * (impulse > this.pace ? 0.12 : 0.03);
-    this.u.uMousePace.value = this.pace;
+    this.u.uPointerPace.value = this.pace;
 
-    this.u.uTime.value = time;
+    this.u.uSeconds.value = time;
 
     const previous = this.renderer.getRenderTarget();
     this.renderer.setRenderTarget(this.target);

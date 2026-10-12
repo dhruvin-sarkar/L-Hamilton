@@ -597,7 +597,8 @@ export class HeadScene {
   /**
    * Pass one of the background. Exposed so its parameters can be dialled in
    * from the console against the live render — `hamiltonGL.head.contour.params`
-   * mirrors `landoGL.params.headScene` name for name.
+   * has a dial for each of `landoGL.params.headScene`'s; ContourParams says
+   * which is which.
    */
   readonly contour: ContourField;
 
