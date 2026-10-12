@@ -707,6 +707,12 @@ button.cal-row--past:hover:focus-visible {
   .cal-hero__serif {
     font-size: 1em;
   }
+
+  /* Reference `.title-headline-w.mw-calendar` here: its 38rem cap comes off,
+     so the sentence runs the width of its two columns. */
+  .cal-sched__lede {
+    max-inline-size: none;
+  }
 }
 
 @media (max-width: 767px) {
@@ -728,18 +734,17 @@ button.cal-row--past:hover:focus-visible {
     --u: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
   }
 
-  /* Reference: the title at 3.5rem and its serif at 3.6rem, 5rem under it,
-     the mark 16rem wide. */
+  /* Reference: the title at 3.5rem, 5rem under it, the mark 16rem wide. The
+     serif keeps the title's size, as it does from 991 down: the 3.6rem the
+     reference's sheet gives `.text-impact-lg-brier` here is one class against
+     the two of `.text-impact-lg-brier.c-grey-on-track { font-size: inherit }`
+     in its 991 block, and loses to it. */
   .cal-hero {
     padding-block-end: calc(var(--u) * 5);
   }
 
   .cal-hero__title {
     font-size: calc(var(--u) * 3.5);
-  }
-
-  .cal-hero__serif {
-    font-size: calc(var(--u) * 3.6);
   }
 
   .cal-hero__sign {
@@ -758,6 +763,12 @@ button.cal-row--past:hover:focus-visible {
 
   .cal-sched__btns {
     flex-wrap: wrap;
+  }
+
+  /* Reference `.btn-icon-w` here: 1.5rem wide where it is 1.2, so each
+     button is 0.3rem longer. The arrow in it is drawn no larger. */
+  .cal-btn-line .ot-cal__btn-icon {
+    inline-size: 1.5rem;
   }
 
   /* The reference's `data-hide="m"`: a run round drops its date here and
