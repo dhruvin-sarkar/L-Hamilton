@@ -14,7 +14,7 @@ import { mountHomeInk } from './lib/home-ink';
 import { cssRGB, hexRGB, legibleOn, mixRGB, toLinear, type RGB } from './lib/legible';
 import { mountReveals } from './lib/reveal';
 import { shortRaceName, spell } from './lib/schedule';
-import { GLLayer } from './lib/gl-layers';
+import { createSurface, GLLayer, type GLSurface } from './lib/gl-layers';
 import {
   mountCalloutCrest,
   mountHelmets,
@@ -385,7 +385,40 @@ if (marquee) {
      Carrying the copy count in a local rather than round-tripping it through a
      data attribute: a missing attribute would silently fall back to a different
      number, and the loop would jump at every repeat with nothing to say why. */
-  const bands: { track: HTMLElement; copies: number; rightward: boolean }[] = [];
+  type Band = {
+    row: HTMLElement;
+    track: HTMLElement;
+    first: HTMLElement;
+    copies: number;
+    rightward: boolean;
+  };
+  const bands: Band[] = [];
+
+  /**
+   * Adds copies until the band covers its row through a whole shift, and says
+   * whether it had to.
+   *
+   * Identical copies side by side. The loop shifts by exactly one of them, so
+   * copy 2 lands where copy 1 was and the seam is invisible — one copy is the
+   * pattern's period and the only distance that keeps its phase.
+   *
+   * A copy is measured, then only as many more are added as the shift needs:
+   * copyWidth * (copies - 1) >= viewport. A fixed count overshoots badly — four
+   * copies of this text made a 14,535px composited layer.
+   */
+  const fill = (band: Band): boolean => {
+    const copyWidth = band.track.scrollWidth / band.copies;
+    /* +1 for the copy that gets shifted out, and never fewer than two — with a
+       single copy there is no second one to hand over to at the seam. */
+    const needed =
+      copyWidth > 0
+        ? Math.max(2, Math.ceil(band.row.clientWidth / copyWidth) + 1)
+        : MARQUEE_FALLBACK_COPIES;
+    if (needed <= band.copies) return false;
+    for (let i = band.copies; i < needed; i++) band.track.append(band.first.cloneNode(true));
+    band.copies = needed;
+    return true;
+  };
 
   for (const row of marquee.querySelectorAll<HTMLElement>('[data-marquee]')) {
     const name = row.dataset.marquee;
@@ -398,24 +431,10 @@ if (marquee) {
     const first = track.querySelector<HTMLElement>('.marquee__item');
     if (!first) throw new Error(`[hero] the "${name}" marquee band is missing from the served page`);
 
-    /* Identical copies side by side. The loop shifts by exactly one of them, so
-       copy 2 lands where copy 1 was and the seam is invisible — one copy is the
-       pattern's period and the only distance that keeps its phase.
-     *
-     * The served copy is measured, then only as many more are added as the
-     * shift needs: copyWidth * (copies - 1) >= viewport. A fixed count
-     * overshoots badly — four copies of this text made a 14,535px composited
-     * layer. */
-    const copyWidth = track.scrollWidth;
-    /* +1 for the copy that gets shifted out, and never fewer than two — with a
-       single copy there is no second one to hand over to at the seam. */
-    const copies =
-      copyWidth > 0
-        ? Math.max(2, Math.ceil(row.clientWidth / copyWidth) + 1)
-        : MARQUEE_FALLBACK_COPIES;
-    for (let i = 1; i < copies; i++) track.append(first.cloneNode(true));
-
-    bands.push({ track, copies, rightward: name === 'right' });
+    /* One copy is served; the rest are made here. */
+    const band: Band = { row, track, first, copies: 1, rightward: name === 'right' };
+    fill(band);
+    bands.push(band);
   }
 
   if (!reducedMotion) {
@@ -426,7 +445,7 @@ if (marquee) {
 
        `ease: none` holds the speed constant so the joint never shows up as a
        hesitation. */
-    const loops = bands.map(({ track, copies, rightward }) => {
+    const run = ({ track, copies, rightward }: Band): gsap.core.Tween => {
       /* One copy's width, as a percentage of the whole track. This is the
          pattern's period, and therefore the ONLY distance the track can travel
          without changing phase — land on it and the loop is seamless, miss it
@@ -459,7 +478,8 @@ if (marquee) {
           repeat: -1,
         },
       );
-    });
+    };
+    const loops = bands.map(run);
 
     /* Scroll speeds the bands up, in either scroll direction — the reference
        adds |lenis.velocity| x 0.001 units to each frame's 1/60-unit step, so
@@ -485,6 +505,24 @@ if (marquee) {
       { threshold: 0 },
     );
     runner.observe(marquee);
+
+    /* The count is for the window as it stood. A wider one needs more, and so
+       does a shorter one, whose type and so whose copies are smaller: 1720
+       widened to 3440 left two 3269px copies 171px short of the row, a blank at
+       the end of every loop. A band that had to grow gets a new loop, since its
+       step is a share of a longer track now, picked up at the same point in
+       the period so nothing jumps. Listening after sizeBands, which sets the
+       size these copies are measured at. */
+    window.addEventListener('resize', () => {
+      loops.forEach((old, i) => {
+        const band = bands[i];
+        if (!band || !fill(band)) return;
+        const next = run(band).progress(old.progress()).timeScale(rate);
+        if (old.paused()) next.pause();
+        old.kill();
+        loops[i] = next;
+      });
+    });
   }
 }
 
@@ -1090,29 +1128,34 @@ mountChrome();
 const stage = document.querySelector<HTMLDivElement>('#stage');
 
 /**
- * ONE renderer for both GL layers, drawing off-screen and handing each frame
+ * ONE renderer for both GL layers, drawing off the page and handing each frame
  * to its layer's canvas — see GLLayer. The settings are the hero's, which the
  * field needs nothing different from: its one full-screen quad has no edge for
  * antialiasing to touch, and it writes opaque alpha everywhere.
  *
- * Null where the browser will not give an OffscreenCanvas a WebGL context —
- * Safari before 17, a blocklisted driver, a GPU process that has given up.
- * Three throws for that, and thrown at module scope it was an uncaught error
- * that took the rest of this file with it. The page has a state for it instead:
- * the hero stands unpinned on its flat plate and everything below is dark ink
- * on #main's light ground, as home.css describes. Logged, because it is still
- * a scene that did not come up.
+ * Null where the browser has no WebGL context to give — a blocklisted driver,
+ * a GPU process that has given up. Three throws for that, and thrown at module
+ * scope it was an uncaught error that took the rest of this file with it. The
+ * page has a state for it instead: the hero stands unpinned on its flat plate
+ * and everything below is dark ink on #main's light ground, as home.css
+ * describes. Logged, because it is still a scene that did not come up.
  */
-function createRenderer(): { offscreen: OffscreenCanvas; renderer: THREE.WebGLRenderer } | null {
+function createRenderer(
+  surface: ReturnType<typeof createSurface>,
+): { surface: GLSurface; renderer: THREE.WebGLRenderer } | null {
   try {
-    const offscreen = new OffscreenCanvas(1, 1);
-    const renderer = new THREE.WebGLRenderer({ canvas: offscreen, antialias: true, alpha: true });
-    return { offscreen, renderer };
+    if (!surface) throw new Error('the browser gave no WebGL2 context');
+    const renderer = new THREE.WebGLRenderer({ ...surface, antialias: true, alpha: true });
+    return { surface: surface.canvas, renderer };
   } catch (err) {
     console.error('[hero] no WebGL context, so the page stays on its static ground', err);
     return null;
   }
 }
+
+/* The surface first, since how a layer shows a frame follows from which kind
+   it is; asking for one throws nothing. */
+const glSurface = stage ? createSurface() : null;
 
 /* The plate's canvas goes in BEFORE the renderer is asked for, and whether or
    not one comes back. It is what paints the plate's ground — --gl-bg, on
@@ -1124,12 +1167,12 @@ function createRenderer(): { offscreen: OffscreenCanvas; renderer: THREE.WebGLRe
    that has been handed nothing does not paint one (see GLLayer.clear). Only
    the plate: the field's layer is opaque, so the same call there would lay
    black over a page whose fallback ground is the light one. */
-const heroLayer = stage ? new GLLayer(stage, false) : null;
+const heroLayer = stage ? new GLLayer(stage, false, glSurface?.canvas ?? null) : null;
 heroLayer?.clear();
-const gl = stage ? createRenderer() : null;
+const gl = stage ? createRenderer(glSurface) : null;
 
 if (stage && heroLayer && gl) {
-  const { offscreen, renderer } = gl;
+  const { surface, renderer } = gl;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.setClearColor(0x000000, 0);
@@ -1154,7 +1197,7 @@ if (stage && heroLayer && gl) {
   const bgStage = document.querySelector<HTMLDivElement>('#bg-stage');
   /* Opaque: this is the bottom layer and paints every pixel, so letting the
      compositor blend it would only add work. */
-  const bgLayer = bgStage && !reducedMotion ? new GLLayer(bgStage, true) : null;
+  const bgLayer = bgStage && !reducedMotion ? new GLLayer(bgStage, true, surface) : null;
   if (bgLayer) background = new BackgroundField(renderer);
 
   const heroTrack = document.querySelector<HTMLElement>('[data-hero-track]');
@@ -1229,7 +1272,7 @@ if (stage && heroLayer && gl) {
     layoutScene();
 
     renderer.setSize(sceneW, stage.clientHeight, false);
-    const { width, height } = offscreen;
+    const { width, height } = surface;
     heroLayer.setSize(width, height);
     bgLayer?.setSize(width, height);
     head.resize(sceneW, stage.clientHeight);
@@ -1698,7 +1741,7 @@ if (stage && heroLayer && gl) {
     if (background && bgLayer && shrunk > 0.001 && !document.hidden) {
       background.update();
       background.render();
-      bgLayer.present(offscreen);
+      bgLayer.present();
     }
 
     // The portrait is the opposite case: it is a fixed-size plate that leaves
@@ -1711,7 +1754,7 @@ if (stage && heroLayer && gl) {
        was handed. update() says which. */
     if (!head.update()) return;
     renderer.render(head.scene, head.camera);
-    heroLayer.present(offscreen);
+    heroLayer.present();
   };
 
   head
@@ -1752,15 +1795,24 @@ if (stage && heroLayer && gl) {
    the same light page -- so this sits outside the scene's branch rather than
    in it. A plain toggle instead: light ink while the hero's plate is under
    the nav, dark from there down. */
-const staticHeroTrack = document.querySelector<HTMLElement>('[data-hero-track]');
-if (staticHeroTrack && (reducedMotion || !gl)) {
+const staticHero = document.querySelector<HTMLElement>('[data-hero-track] .hero');
+if (staticHero && (reducedMotion || !gl)) {
+  /* The stylesheet's cue that the hero stands still. The screen it would have
+     pulled back to is never uncovered here -- the bands stay behind the plate
+     -- so home.css sets that screen's words under the portrait instead. Set in
+     the branch that decides it, as [data-hero-pinned] is in the one that
+     builds the shrink, and never both. */
+  document.documentElement.dataset.heroStatic = '';
+
   /* By position, not by isActive: at the very bottom of the page the
      trigger has ended and reports inactive, with the nav still on cream. */
   const cross = (self: ScrollTrigger): void => {
     navGroundStyle?.setProperty('--nav-invert', self.scroll() >= self.start ? '1' : '0');
   };
   ScrollTrigger.create({
-    trigger: staticHeroTrack,
+    /* The plate, which is the track's first screen and not the whole of it:
+       those words follow on the light ground, still inside the track. */
+    trigger: staticHero,
     start: () => `bottom top+=${navHeight()}`,
     end: 'max',
     invalidateOnRefresh: true,
