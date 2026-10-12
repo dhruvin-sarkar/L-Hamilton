@@ -575,10 +575,12 @@ if (next) {
 
   /* "Ferrari F1 since 2025", where the reference has its own team and year.
      Read off the era that has not ended rather than off driver.currentTeam, so
-     the year comes from the same record as the team. */
+     the year comes from the same record as the team. Two slots, because the
+     markup breaks the line between them. */
   const era = eras.find((e) => e.to === null);
   if (!era) throw new Error('[hero] no open era in the content model');
-  slot('next-team', `${era.team} F1 since ${era.from}`);
+  slot('next-team', `${era.team} F1`);
+  slot('next-team-since', String(era.from));
 
   slot('round-circuit', next.circuitName);
   slot('round-country', countryName(next.country));

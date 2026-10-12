@@ -228,7 +228,17 @@
                         <svg class="ot-hero__crest" viewBox="0 0 64 44" aria-hidden="true">
                           <use href="#nr-crest" />
                         </svg>
-                        <p class="ot-hero__ui-eyebrow reveal-text" data-next-team>&mdash;</p>
+                        <!-- Two lines, and the break is written rather than left
+                             to the wrap: "Ferrari F1 since" fits the 6rem box,
+                             so a browser without `text-wrap: balance` (Safari
+                             before 17.5) set the year alone on the second. A
+                             <br> rather than a block span because the line
+                             reveal carries a <br> through its cut and still
+                             sweeps each line under its own bar. -->
+                        <p class="ot-hero__ui-eyebrow reveal-text" data-reveal-rich>
+                          <span data-next-team>&mdash;</span><br />
+                          since <span data-next-team-since>&mdash;</span>
+                        </p>
                       </div>
                     </div>
                     <svg class="ot-hero__next-frame" viewBox="0 0 276 244" aria-hidden="true">

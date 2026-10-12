@@ -549,12 +549,12 @@ body[data-page='on-track'] {
 }
 
 /* "Ferrari F1 / since 2025" on two lines in a 6rem box, as the reference's
-   `.on-t-ui-stats-box1-row-2` holds its team line. Balanced, because "FERRARI
-   F1 SINCE" happens to fit 6rem where "MCLAREN F1 SINCE" did not, and breaking
-   there leaves the year alone on a line of its own. */
+   `.on-t-ui-stats-box1-row-2` holds its team line. The break is a <br> in the
+   markup, not the wrap's: "FERRARI F1 SINCE" happens to fit 6rem where
+   "MCLAREN F1 SINCE" did not, and breaking there leaves the year alone on a
+   line of its own. */
 .ot-hero__next-row--team .ot-hero__ui-eyebrow {
   inline-size: calc(6 * var(--hu));
-  text-wrap: balance;
 }
 
 /* ------------------------------------------------------- Connectors */
