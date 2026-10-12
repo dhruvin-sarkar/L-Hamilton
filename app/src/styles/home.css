@@ -3607,55 +3607,125 @@
 /* ---- narrow ----
  *
  * The reference keeps its landscape panel all the way down to 480px and only
- * then swaps to the portrait cut. We swap at OUR breakpoint, 992, and the
- * reason is the root font-size rather than taste.
+ * then swaps to the portrait cut, and so does this. It can because a rem
+ * shrinks with the screen below 992px (tokens.css): the panel is 44.5rem tall
+ * on an 86.4rem screen at every width in that range, and the type in it is
+ * sized in the same unit, so the composition holds together as it shrinks.
  *
- * The reference's root keeps scaling below 992 — 11.5px at 991, 11.0px at 950,
- * 8.9px at 768 — so its panel and the type inside it shrink together and 44rem
- * of panel still holds its content. Ours LOCKS at 16px there (tokens.css, a
- * deliberate site-wide call so a phone is not handed a 992px design). With the
- * root fixed and the panel still sized by aspect-ratio, a 900px viewport gives
- * a 28rem-tall panel asked to hold 56rem of content, and the headline, the
- * links and the portrait all land on top of each other.
- *
- * So: same mechanic as the reference, same two masks, breakpoint chosen for our
- * own root instead of copied across. Below 992 the panel takes the portrait cut
- * — which has the height the locked type needs — and the composition stacks. */
+ * What the reference changes there is small. The link columns come in (4.1rem
+ * of padding for 12.8), the statement rises to 10rem on a 42rem measure with
+ * its first face at 5rem, the figure is drawn at 31 / 39.875 of its wide size,
+ * and the legal line leaves the panel's notches to centre under it. */
 @media (max-width: 991px) {
+  .footer__links {
+    padding-inline: 4.1rem;
+  }
+
+  /* `.text-eyebrow` */
+  .footer__eyebrow {
+    font-size: 0.8rem;
+  }
+
+  .footer__statement {
+    inset-block-start: 10rem;
+  }
+
+  .footer__statement-inner {
+    inline-size: 42rem;
+  }
+
+  /* `.text-impact-sm-mona.footer`. Its second face is not in that rule and
+     stays 5.4375rem, so the step between the two widens. */
+  .footer__headline {
+    font-size: 5rem;
+  }
+
+  .footer__headline em {
+    font-size: 1.0875em;
+  }
+
+  /* The figure, scaled as the reference scales its own (`.footer-bg-img`, 31rem
+     for 39.875) and hung so the crown stays on its helmet's: 17.26rem down a
+     44.54rem panel, the crown 13.83% down the picture. */
+  .footer__portrait {
+    inset-block-end: -9.17rem;
+    block-size: 42.29rem;
+  }
+
+  /* `.footer-legal-links-w`, with the copyright's `.text-title-small-label`
+     at 1rem. */
+  .footer__legal {
+    position: relative;
+    inset: auto;
+    flex-direction: row-reverse;
+    justify-content: center;
+    align-items: center;
+    gap: var(--gap);
+    margin-block-start: 2rem;
+    font-size: 1rem;
+  }
+}
+
+/* A phone on its side: the two small labels step up, as the reference's
+   `.text-eyebrow` and `.text-title-small-label` do. */
+@media (max-width: 767px) {
+  .footer__eyebrow {
+    font-size: 1rem;
+  }
+
+  .footer__legal {
+    font-size: 1.3rem;
+  }
+}
+
+/* A phone upright, and the portrait cut. Swapping --mask-url and the ratio
+ * that goes with it is the reference's whole change to the panel; inside it
+ * the composition stops floating and stacks in source order. The link row is
+ * 9rem down instead of pushed to the foot, the statement follows it in flow
+ * 5rem and then 1.2rem below, and the partner row moves to the top of the
+ * panel, over the links, since there is no room for it to pass behind the
+ * shoulders. */
+@media (max-width: 479px) {
   .footer__panel {
     --mask-url: url('/assets/footer/panel-mask-mobile.svg');
     aspect-ratio: 381.94 / 627.49;
   }
 
-  .footer__lead {
-    block-size: 7rem;
+  .footer__links {
+    margin-block: 9rem 5rem;
   }
 
-  /* Everything that was floated over the middle joins the flow, top down:
-     statement, then links, with the portrait still anchored to the bottom. */
-  .footer__stack {
-    justify-content: flex-start;
+  .footer__col {
+    inline-size: 50%;
+  }
+
+  .footer__eyebrow {
+    font-size: 0.8rem;
+  }
+
+  /* --text--btn-footer, which the reference restates as 1.6rem here. */
+  .footer__link .btn-text {
+    font-size: 1.6rem;
   }
 
   .footer__statement {
-    position: static;
-    /* Ahead of the links. The reference's DOM order puts its statement after
-       them, which at this width would open with the nav list and only then say
-       what the page is — worth the one deviation. */
-    order: -1;
-    /* Clears the marquee AND the signature hanging above the headline: the row
-       ends at 5.625rem (3 + its 2.625 height) and the signature reaches 4.8rem
-       above the first line, so anything less than this lands type on type. */
-    margin-block-start: 11rem;
+    position: relative;
+    inset: auto;
   }
 
   .footer__statement-inner {
     inline-size: auto;
     max-inline-size: 90%;
+    margin-block-start: 1.2rem;
   }
 
+  /* Both faces at 3.6rem. */
   .footer__headline {
     font-size: 3.6rem;
+  }
+
+  .footer__headline em {
+    font-size: 1em;
   }
 
   .footer__sign {
@@ -3665,103 +3735,29 @@
     aspect-ratio: 13.0625 / 8.5;
   }
 
-  .footer__links {
-    margin-block: 4rem 0;
-    padding-inline: 1.25rem;
-  }
-
-  .footer__col {
-    inline-size: 50%;
-  }
-
-  .footer__link .btn-text {
-    font-size: 1.6rem;
-  }
-
-  /* Proportional rather than fixed, because the portrait cut is 1.64x as tall
-     as it is wide and a fixed width leaves a hole under the links at the top of
-     this range. The cap stops it overwhelming an actual phone. */
-  /* The flex parent needs a definite width here or nothing resolves. It is
-     shrink-to-fit, and its width is derived from this image — while the image
-     asks for 80% OF IT. That circularity left the portrait at 0x0 with
-     naturalWidth 0 at 360, 375, 479, 768 and 991: the browser never even
-     fetched it, so the whole footer art column collapsed to nothing on every
-     screen below 992. Giving the parent 100% breaks the loop — the percentage
-     then resolves against the panel and the width/height attributes supply the
-     ratio. */
-  .footer__art-inner {
-    inline-size: 100%;
-  }
-
-  /* The overhang goes back to 3rem with the width sizing: the wide one is
-     solved for a crown against a 56rem panel's headline, and on the portrait
-     cut it would just take the shoulders off a figure this size. */
+  /* 24 / 39.875 of the wide size, the crown at 34.6rem of a 55.04rem panel. */
   .footer__portrait {
-    inset-block-end: -3rem;
-    inline-size: 80%;
-    block-size: auto;
-    max-inline-size: 30rem;
+    inset-block-end: -7.78rem;
+    block-size: 32.74rem;
   }
 
   .footer__cta {
     inset-block-end: 1.1rem;
   }
 
-  /* Above the portrait rather than across it: at this width there is no room
-     for the logos to pass behind the shoulders and still be read. */
+  /* `.btn-icon-w` is 1.5rem wide here; the mark in it stays the size it was. */
+  .footer-cta__icon {
+    inline-size: 1.5rem;
+  }
+
   .footer__marquee {
     inset: 3rem 0 auto;
   }
 
-  /* Out from under the panel and centred, since the portrait cut's bottom
-     notches are too narrow to seat a spread. */
-  .footer__legal {
-    position: relative;
-    inset: auto;
-    flex-direction: row-reverse;
-    justify-content: center;
-    align-items: center;
-    gap: var(--gap);
-    margin-block-start: 2rem;
-  }
-}
-
-@media (max-width: 479px) {
-  /* Reclaim the lead at the very bottom of the range. The panel's height is
-     pinned by aspect-ratio, which at 360px gives 526px, while the stacked
-     content measured 528 — so the CTA, absolutely positioned at the foot,
-     came down on top of the links: at 360 it covered Calendar, Store and the
-     X link, all three unclickable underneath an opaque button, and at 375 it
-     still covered Store. It clears from 390 up. Trimming the statement's lead
-     and the links' top margin gives back ~70px, which is more than the
-     overlap needs.
-
-     The 11rem and 4rem those replace are sized to clear the marquee and the
-     signature above the headline, and both still do at this size because the
-     signature itself is 7.5rem here rather than its full width. */
-  .footer__statement {
-    margin-block-start: 7rem;
-  }
-
-  .footer__links {
-    margin-block: 2rem 0;
-  }
-
-  .footer__headline {
-    font-size: 2.6rem;
-  }
-
-  .footer__link .btn-text {
-    font-size: 1.3rem;
-  }
-
-  .footer__sign {
-    inline-size: 7.5rem;
-    inset-block-start: -3.6rem;
-  }
-
   .footer__legal {
     margin-block-start: 1rem;
+    font-size: 0.65rem;
+    line-height: 1;
   }
 
   .footer__legal-links {
