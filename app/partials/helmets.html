@@ -5,18 +5,23 @@
              strokes in its 407x411 viewBox (HOF_CARD_PATH in lib/showcase.ts),
              divided through by 407 and 411 — so one definition tracks the cards
              at any width instead of a px path that would only be right at one
-             viewport. Change one and the other has to follow. -->
+             viewport. Change one and the other has to follow: both clips here
+             are printed by tools/gen-frames.py alongside the lines they match. -->
         <svg class="hof__defs" aria-hidden="true" focusable="false">
           <defs>
             <clipPath id="hof-card" clipPathUnits="objectBoundingBox">
-              <path d="M0.019656 0.001217 H0.980074
-                       A0.018428 0.018248 0 0 1 0.998501 0.019465 V0.888036
-                       A0.018428 0.018248 0 0 1 0.980074 0.906285 H0.647000
-                       A0.057744 0.057182 0 0 0 0.601853 0.927815
-                       L0.561314 0.978168
-                       A0.055287 0.054749 0 0 1 0.518088 0.998783 H0.019656
-                       A0.018428 0.018248 0 0 1 0.001229 0.980535 V0.019465
-                       A0.018428 0.018248 0 0 1 0.019656 0.001217 Z" />
+              <path d="M0.518115 0.998783
+                       A0.055283 0.054745 0 0 0 0.561339 0.978169
+                       L0.60185 0.927857
+                       A0.05774 0.057178 0 0 1 0.646995 0.906326
+                       L0.980098 0.906326
+                       A0.018428 0.018248 0 0 0 0.998526 0.888078
+                       L0.998526 0.019465
+                       A0.018428 0.018248 0 0 0 0.980098 0.001217
+                       L0.019656 0.001217
+                       A0.018428 0.018248 0 0 0 0.001229 0.019465
+                       L0.001229 0.980535
+                       A0.018428 0.018248 0 0 0 0.019656 0.998783 Z" />
             </clipPath>
             <!-- The phone card, under 480px: the reference swaps in a second
                  outline there (its 187x188 `.helmet-grid-frame-w.mobile`) whose
@@ -24,14 +29,18 @@
                  width and a two-column label has room in it. HOF_CARD_PATH_NARROW
                  in lib/showcase.ts, divided through by 187 and 188. -->
             <clipPath id="hof-card-narrow" clipPathUnits="objectBoundingBox">
-              <path d="M0.042781 0.002660 H0.952513
-                       A0.040107 0.039894 0 0 1 0.992620 0.042553 V0.864947
-                       A0.040107 0.039894 0 0 1 0.952513 0.904840 H0.324497
-                       A0.056150 0.055851 0 0 0 0.280594 0.925872
-                       L0.238561 0.978309
-                       A0.050802 0.050532 0 0 1 0.198845 0.997340 H0.042781
-                       A0.040107 0.039894 0 0 1 0.002674 0.957447 V0.042553
-                       A0.040107 0.039894 0 0 1 0.042781 0.002660 Z" />
+              <path d="M0.198816 0.99734
+                       A0.050802 0.050532 0 0 0 0.238564 0.978278
+                       L0.280514 0.925856
+                       A0.05615 0.055851 0 0 1 0.324446 0.904787
+                       L0.952406 0.904787
+                       A0.040107 0.039894 0 0 0 0.992513 0.864894
+                       L0.992513 0.042553
+                       A0.040107 0.039894 0 0 0 0.952406 0.00266
+                       L0.042781 0.00266
+                       A0.040107 0.039894 0 0 0 0.002674 0.042553
+                       L0.002674 0.957447
+                       A0.040107 0.039894 0 0 0 0.042781 0.99734 Z" />
             </clipPath>
           </defs>
         </svg>

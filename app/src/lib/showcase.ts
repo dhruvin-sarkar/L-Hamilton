@@ -108,14 +108,18 @@ export function mountHelmets(): void {
   /* Two outlines, as the reference draws them: the resting line inset half a
      pixel with a non-scaling 2px stroke, the hover line inset a whole pixel at a
      2px stroke that scales with the card. The corners where the step meets the
-     diagonal are rounded rather than mitred — 23.5 and 22.5 radii, measured. */
+     diagonal are rounded rather than mitred — 23.5 and 22.5 radii, measured.
+
+     All three paths here are tools/gen-frames.py's, built there from the card's
+     measurements; run it after changing one and it says which copies are stale. */
   const HOF_CARD_PATH =
-    'M8 .5h390.89a7.5 7.5 0 0 1 7.5 7.5v356.983a7.5 7.5 0 0 1-7.5 7.5H263.329' +
-    'a23.502 23.502 0 0 0-18.375 8.849l-16.499 20.695a22.502 22.502 0 0 1-17.593 8.473' +
-    'H8A7.5 7.5 0 0 1 .5 403V8A7.5 7.5 0 0 1 8 .5Z';
+    'M210.87 410.5 A22.5 22.5 0 0 0 228.46 402.03 L244.95 381.35 A23.5 23.5 0 0 1 263.33 372.5 ' +
+    'L398.9 372.5 A7.5 7.5 0 0 0 406.4 365 L406.4 8 A7.5 7.5 0 0 0 398.9 0.5 L8 0.5 ' +
+    'A7.5 7.5 0 0 0 0.5 8 L0.5 403 A7.5 7.5 0 0 0 8 410.5 Z';
   const HOF_CARD_PATH_ON =
-    'M8 1h390.89a7 7 0 0 1 7 7v356.983a7 7 0 0 1-7 7H263.329a23.999 23.999 0 0 0-18.766 9.038' +
-    'l-16.499 20.694A21.999 21.999 0 0 1 210.862 410H8a7 7 0 0 1-7-7V8a7 7 0 0 1 7-7Z';
+    'M210.87 410 A22 22 0 0 0 228.07 401.72 L244.56 381.04 A24 24 0 0 1 263.33 372 ' +
+    'L398.9 372 A7 7 0 0 0 405.9 365 L405.9 8 A7 7 0 0 0 398.9 1 L8 1 ' +
+    'A7 7 0 0 0 1 8 L1 403 A7 7 0 0 0 8 410 Z';
   /* The phone outline, drawn under 480px in place of the two above: the
      reference's `.helmet-grid-frame-w.mobile`, one 187x188 path for both the
      resting and the hover line. Its step sits at the LEFT, so the notch runs
@@ -123,9 +127,9 @@ export function mountHelmets(): void {
      card's half-width notch would have it across the diagonal. The
      #hof-card-narrow clipPath in partials/helmets.html is this normalised. */
   const HOF_CARD_PATH_NARROW =
-    'M8 .5h170.12a7.5 7.5 0 0 1 7.5 7.5v154.61a7.5 7.5 0 0 1-7.5 7.5H60.681' +
-    'a10.5 10.5 0 0 0-8.21 3.954l-7.86 9.858a9.5 9.5 0 0 1-7.427 3.578H8' +
-    'A7.5 7.5 0 0 1 .5 180V8A7.5 7.5 0 0 1 8 .5Z';
+    'M37.18 187.5 A9.5 9.5 0 0 0 44.61 183.92 L52.46 174.06 A10.5 10.5 0 0 1 60.67 170.1 ' +
+    'L178.1 170.1 A7.5 7.5 0 0 0 185.6 162.6 L185.6 8 A7.5 7.5 0 0 0 178.1 0.5 L8 0.5 ' +
+    'A7.5 7.5 0 0 0 0.5 8 L0.5 180 A7.5 7.5 0 0 0 8 187.5 Z';
 
   /** Attribute-safe text. The data is ours, but a name carrying a quote would
       otherwise close the attribute it sits in and swallow the rest of the tag. */
