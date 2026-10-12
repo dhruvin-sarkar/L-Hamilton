@@ -196,7 +196,20 @@ export function mountReveals(opts: RevealOptions): void {
         for (const token of run.text.split(/(\s+)/)) {
           if (!token) continue;
           if (/^\s+$/.test(token)) {
-            el.appendChild(document.createTextNode(token));
+            /* A space inside a classed run is that run's space, and is measured
+               as one. Left as bare text it was set in the block's own face --
+               wider than the accent's -- so a line the rebuilt clause fits on
+               measured a few pixels too long: on a phone the On Track header's
+               paragraph broke before its last word, five lines where the same
+               text laid out unsplit (reduced motion) takes four. */
+            if (run.cls) {
+              const gap = document.createElement('span');
+              gap.className = run.cls;
+              gap.textContent = token;
+              el.appendChild(gap);
+            } else {
+              el.appendChild(document.createTextNode(token));
+            }
             const last = pieces[pieces.length - 1];
             if (last) last.spaceAfter = true;
             continue;
