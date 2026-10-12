@@ -14,7 +14,7 @@ import { mountHomeInk } from './lib/home-ink';
 import { cssRGB, hexRGB, legibleOn, mixRGB, toLinear, type RGB } from './lib/legible';
 import { mountReveals } from './lib/reveal';
 import { shortRaceName, spell } from './lib/schedule';
-import { GLLayer } from './lib/gl-layers';
+import { createSurface, GLLayer, type GLSurface } from './lib/gl-layers';
 import {
   mountCalloutCrest,
   mountHelmets,
@@ -1128,29 +1128,34 @@ mountChrome();
 const stage = document.querySelector<HTMLDivElement>('#stage');
 
 /**
- * ONE renderer for both GL layers, drawing off-screen and handing each frame
+ * ONE renderer for both GL layers, drawing off the page and handing each frame
  * to its layer's canvas — see GLLayer. The settings are the hero's, which the
  * field needs nothing different from: its one full-screen quad has no edge for
  * antialiasing to touch, and it writes opaque alpha everywhere.
  *
- * Null where the browser will not give an OffscreenCanvas a WebGL context —
- * Safari before 17, a blocklisted driver, a GPU process that has given up.
- * Three throws for that, and thrown at module scope it was an uncaught error
- * that took the rest of this file with it. The page has a state for it instead:
- * the hero stands unpinned on its flat plate and everything below is dark ink
- * on #main's light ground, as home.css describes. Logged, because it is still
- * a scene that did not come up.
+ * Null where the browser has no WebGL context to give — a blocklisted driver,
+ * a GPU process that has given up. Three throws for that, and thrown at module
+ * scope it was an uncaught error that took the rest of this file with it. The
+ * page has a state for it instead: the hero stands unpinned on its flat plate
+ * and everything below is dark ink on #main's light ground, as home.css
+ * describes. Logged, because it is still a scene that did not come up.
  */
-function createRenderer(): { offscreen: OffscreenCanvas; renderer: THREE.WebGLRenderer } | null {
+function createRenderer(
+  surface: ReturnType<typeof createSurface>,
+): { surface: GLSurface; renderer: THREE.WebGLRenderer } | null {
   try {
-    const offscreen = new OffscreenCanvas(1, 1);
-    const renderer = new THREE.WebGLRenderer({ canvas: offscreen, antialias: true, alpha: true });
-    return { offscreen, renderer };
+    if (!surface) throw new Error('the browser gave no WebGL2 context');
+    const renderer = new THREE.WebGLRenderer({ ...surface, antialias: true, alpha: true });
+    return { surface: surface.canvas, renderer };
   } catch (err) {
     console.error('[hero] no WebGL context, so the page stays on its static ground', err);
     return null;
   }
 }
+
+/* The surface first, since how a layer shows a frame follows from which kind
+   it is; asking for one throws nothing. */
+const glSurface = stage ? createSurface() : null;
 
 /* The plate's canvas goes in BEFORE the renderer is asked for, and whether or
    not one comes back. It is what paints the plate's ground — --gl-bg, on
@@ -1162,12 +1167,12 @@ function createRenderer(): { offscreen: OffscreenCanvas; renderer: THREE.WebGLRe
    that has been handed nothing does not paint one (see GLLayer.clear). Only
    the plate: the field's layer is opaque, so the same call there would lay
    black over a page whose fallback ground is the light one. */
-const heroLayer = stage ? new GLLayer(stage, false) : null;
+const heroLayer = stage ? new GLLayer(stage, false, glSurface?.canvas ?? null) : null;
 heroLayer?.clear();
-const gl = stage ? createRenderer() : null;
+const gl = stage ? createRenderer(glSurface) : null;
 
 if (stage && heroLayer && gl) {
-  const { offscreen, renderer } = gl;
+  const { surface, renderer } = gl;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.setClearColor(0x000000, 0);
@@ -1192,7 +1197,7 @@ if (stage && heroLayer && gl) {
   const bgStage = document.querySelector<HTMLDivElement>('#bg-stage');
   /* Opaque: this is the bottom layer and paints every pixel, so letting the
      compositor blend it would only add work. */
-  const bgLayer = bgStage && !reducedMotion ? new GLLayer(bgStage, true) : null;
+  const bgLayer = bgStage && !reducedMotion ? new GLLayer(bgStage, true, surface) : null;
   if (bgLayer) background = new BackgroundField(renderer);
 
   const heroTrack = document.querySelector<HTMLElement>('[data-hero-track]');
@@ -1267,7 +1272,7 @@ if (stage && heroLayer && gl) {
     layoutScene();
 
     renderer.setSize(sceneW, stage.clientHeight, false);
-    const { width, height } = offscreen;
+    const { width, height } = surface;
     heroLayer.setSize(width, height);
     bgLayer?.setSize(width, height);
     head.resize(sceneW, stage.clientHeight);
@@ -1736,7 +1741,7 @@ if (stage && heroLayer && gl) {
     if (background && bgLayer && shrunk > 0.001 && !document.hidden) {
       background.update();
       background.render();
-      bgLayer.present(offscreen);
+      bgLayer.present();
     }
 
     // The portrait is the opposite case: it is a fixed-size plate that leaves
@@ -1749,7 +1754,7 @@ if (stage && heroLayer && gl) {
        was handed. update() says which. */
     if (!head.update()) return;
     renderer.render(head.scene, head.camera);
-    heroLayer.present(offscreen);
+    heroLayer.present();
   };
 
   head
