@@ -93,34 +93,28 @@ export class BackgroundField {
       vertexShader: quadVertex,
       fragmentShader: fieldFragment,
       uniforms: {
-        tBackgroundNoise: { value: this.contour.texture },
-        tCursorEffect: { value: this.restTexture },
+        uBands: { value: this.contour.texture },
+        uFluidDye: { value: this.restTexture },
 
-        OUTLINE: { value: true },
-        // The reference's epsilon. Not a line width — see ContourField.
-        THICKNESS: { value: 0.000005 },
+        uGround: { value: ground },
+        // The bands take the ground's own colour, so only the lines round
+        // them draw.
+        uBand: { value: ground },
+        uLine: { value: line },
 
-        COLOR_BACKGROUND: { value: ground },
-        // Unused while OUTLINE is on, since the outline branch replaces the
-        // filled colouring. Set anyway so toggling OUTLINE off from the console
-        // gives the right hue.
-        COLOR_FOREGROUND: { value: line },
-        COLOR_OUTLINE: { value: line },
+        // No fluid, so the second palette never shows. Matched to the first.
+        uStirGround: { value: ground },
+        uStirBand: { value: line },
+        uStirLine: { value: line },
 
-        // No fluid, so the blob term is dead. Matched to the base palette.
-        COLOR_CURSOR_BACKGROUND: { value: ground },
-        COLOR_CURSOR_FOREGROUND: { value: line },
-        COLOR_CURSOR_OUTLINE: { value: line },
-
-        uReveal: { value: 1 },
-        uCursorIntensity: { value: 0 },
+        uRevealGain: { value: 0 },
         // The hero's helmet-hover wipe. This screen has no helmet, so never.
-        uHelmetHover: { value: 0 },
+        uHelmetWipe: { value: 0 },
         // The hero plate's still state and scroll-out transition. This screen
         // is the one the plate transitions ONTO, so neither applies.
         uFlat: { value: false },
-        uFilter: { value: 0 },
-        COLOR_FILTER: { value: new THREE.Color(0, 0, 0) },
+        uFilterAmount: { value: 0 },
+        uFilterTint: { value: new THREE.Color(0, 0, 0) },
       },
       depthTest: false,
       depthWrite: false,
@@ -132,9 +126,9 @@ export class BackgroundField {
        material.uniforms, which would need a cast and a non-null assertion to
        say something already known here.
 
-       One object covers several uniforms: `ground` is both COLOR_BACKGROUND and
-       COLOR_CURSOR_BACKGROUND, and `line` is the foreground, the outline and
-       both cursor equivalents. That is deliberate — the whole palette should
+       One object covers several uniforms: `ground` is uGround, uBand and
+       uStirGround, and `line` is uLine and both of its counterparts in the
+       second palette. That is deliberate — the whole palette should
        cross together, not just the parts that happen to be visible. */
     this.groundUniform = ground;
     this.lineUniform = line;
