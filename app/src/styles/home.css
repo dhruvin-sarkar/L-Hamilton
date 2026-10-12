@@ -2475,6 +2475,10 @@
  * moves them without moving the column). */
 .gallery--home {
   --grid-spacer: 31.51vh;
+  /* The reference's rem, which the stacked wall is set in: ours from 992 up,
+     and restated under that (see "Below 992px", after the callouts) where the
+     reference's root keeps scaling and ours locks at 16px. */
+  --u: 1rem;
 }
 
 .gallery--home .gallery__track {
@@ -2626,42 +2630,71 @@
 
 /* Below 992px the reference stacks the wall (its I_() never runs there): the
    track becomes a column with 5rem between pictures, the offsets drop, and
-   every other picture moves to the right-hand edge.
+   every other picture moves to the right-hand edge. The frames keep their
+   desktop sizes, which are in vh and so do not care how narrow the screen is.
  *
- * Reduced motion takes the same column at every width. Without the travel the
- * wall would be a sideways scroller, and with scrollbars unpainted site-wide
- * and nothing focusable inside it, half the pictures and the second callout
- * could not be reached at all. */
+ * Everything else is in its rem, which keeps scaling under 992 where ours
+ * locks at 16px, so it is restated as --u the way Off Track's wall does it:
+ * 20/1728 of the width down to 480 and 48/1728 under that (9.49px at 820,
+ * 10.83px at 390). The captions are its .text-eyebrow: 0.8rem under 992, 1rem
+ * under 768 and 0.8rem again under 480.
+ *
+ * Reduced motion takes the same column at every width, at the desktop's own
+ * --u. Without the travel the wall would be a sideways scroller, and with
+ * scrollbars unpainted site-wide and nothing focusable inside it, half the
+ * pictures and the second callout could not be reached at all. */
+@media (max-width: 991px) {
+  .gallery--home {
+    --u: calc(100vw / 86.4);
+  }
+
+  .gallery--home .gallery__cap {
+    font-size: calc(0.8 * var(--u));
+  }
+
+  /* Where its signature stands, which grows to 9rem here. */
+  .gallery__sign-slot {
+    inline-size: calc(9 * var(--u));
+    block-size: calc(4.2 * var(--u));
+  }
+}
+
+@media (max-width: 767px) {
+  .gallery--home .gallery__cap {
+    font-size: var(--u);
+  }
+}
+
 @media (max-width: 991px), (prefers-reduced-motion: reduce) {
   .gallery--home .gallery__track {
     block-size: auto;
-    padding: var(--padding--xlarge) var(--padding--container);
-    gap: 5rem;
+    padding: 7vh calc(1.25 * var(--u)) calc(2.5 * var(--u));
+    gap: calc(5 * var(--u));
   }
 
   .gallery--home .gallery__col {
     block-size: auto;
-    gap: 5rem;
+    gap: calc(5 * var(--u));
   }
 
   /* The big picture leads and its callout follows, a rem beneath. */
   .gallery--home .gallery__col.is-large {
     flex-direction: column-reverse;
-    gap: 1rem;
+    gap: var(--u);
   }
 
-  .gallery--home .is-home-callout-1 {
-    max-inline-size: 31rem;
-  }
-
-  .gallery--home .gallery__quote {
-    font-size: 1.9rem;
+  /* The shared column (further down) sends every fourth child of the track to
+     the right; this wall places its own pictures. */
+  .gallery--home .gallery__col:nth-child(4n + 3) .gallery__item,
+  .gallery--home .gallery__col:nth-child(4n + 3) .gallery__callout {
+    align-self: auto;
   }
 
   .gallery--home .gallery__item,
   .gallery--home .gallery__callout {
     inset-inline-start: 0;
     margin: 0;
+    gap: calc(1.25 * var(--u));
   }
 
   .gallery--home .is-home-2,
@@ -2671,9 +2704,38 @@
     margin-inline-start: auto;
   }
 
+  /* The four offsets the reference keeps once the rest have dropped. */
+  .gallery--home .is-home-8 {
+    margin-block-start: 2vh;
+  }
+
+  .gallery--home .is-home-9 {
+    margin-block-end: calc(2.5 * var(--u));
+  }
+
+  .gallery--home .is-home-callout-1 {
+    max-inline-size: calc(31 * var(--u));
+    margin-block-start: 1.67vh;
+  }
+
+  .gallery--home .is-home-callout-2 {
+    max-inline-size: calc(30 * var(--u));
+    margin-block-end: 2.67vh;
+  }
+
+  .gallery--home .gallery__quote {
+    font-size: calc(1.9 * var(--u));
+    letter-spacing: calc(0.05 * var(--u));
+  }
+
+  /* min-block-size: the frame is a flex box with a ratio, and such a box is
+     never shorter than its content -- a portrait photograph at the frame's
+     width -- unless told it may be. Without it every crop here took the shape
+     of its file instead of --ar. */
   .gallery--home .gallery__frame {
-    inline-size: min(var(--w), 100vw - 2 * var(--padding--container));
+    inline-size: min(var(--w), 100vw - 2.5 * var(--u));
     block-size: auto;
+    min-block-size: 0;
     aspect-ratio: var(--ar);
   }
 
@@ -2682,8 +2744,141 @@
     block-size: 100%;
     transform: none;
   }
+}
 
-  /* The reference hides its pill on small screens, and with it the space. */
+/* Under 480px the reference lays the wall out again, as a collage: every
+   frame restated in its rem (or as a share of the column), the pictures hard
+   against alternate edges with their captions, and four of them drawn up into
+   the gap above so the two sides interleave instead of taking turns. Its
+   ≤479 rules, one for one. */
+@media (max-width: 479px) {
+  .gallery--home {
+    --u: calc(100vw / 36);
+  }
+
+  .gallery--home .gallery__cap {
+    font-size: calc(0.8 * var(--u));
+  }
+
+  .gallery__sign-slot {
+    inline-size: calc(5 * var(--u));
+    block-size: calc(2.34 * var(--u));
+  }
+
+  .gallery--home .gallery__track {
+    padding-block: 0;
+  }
+
+  .gallery--home .gallery__col {
+    gap: calc(3 * var(--u));
+  }
+
+  /* .large-img, .is-home-flip.neg-margin and the last .neg-margin column. */
+  .gallery--home .gallery__col.is-large,
+  .gallery--home .gallery__col:has(> .is-home-4),
+  .gallery--home .gallery__col:has(> .is-home-10) {
+    margin-block-start: calc(-7 * var(--u));
+  }
+
+  /* .is-home-flip: the larger of the pair leads. */
+  .gallery--home .gallery__col:has(> .is-home-4) {
+    flex-direction: column-reverse;
+  }
+
+  /* Each picture takes the column's width and stands against one edge of it. */
+  .gallery--home .gallery__item,
+  .gallery--home .gallery__callout {
+    inline-size: 100%;
+    margin: 0;
+  }
+
+  .gallery--home .is-home-2,
+  .gallery--home .is-home-5,
+  .gallery--home .is-home-7,
+  .gallery--home .is-home-10 {
+    align-items: flex-end;
+  }
+
+  .gallery--home .is-home-1 {
+    inline-size: auto;
+    inset-inline-start: 20%;
+  }
+
+  .gallery--home .is-home-4 {
+    margin-block-start: calc(-5.2 * var(--u));
+  }
+
+  .gallery--home .is-home-6 {
+    inline-size: auto;
+    margin: calc(-7 * var(--u)) 0 0 40%;
+  }
+
+  .gallery--home .is-home-8 {
+    margin-block-start: calc(-7 * var(--u));
+  }
+
+  .gallery--home .is-home-9 {
+    margin-block: calc(-5 * var(--u)) calc(2.5 * var(--u));
+  }
+
+  .gallery--home .is-home-callout-1 {
+    max-inline-size: calc(20 * var(--u));
+  }
+
+  .gallery--home .is-home-callout-2 {
+    max-inline-size: calc(19 * var(--u));
+  }
+
+  .gallery--home .gallery__quote {
+    font-size: calc(1.5 * var(--u));
+  }
+
+  .gallery--home .is-home-1 .gallery__frame {
+    inline-size: calc(13 * var(--u));
+    aspect-ratio: 13 / 14;
+  }
+
+  .gallery--home .is-home-2 .gallery__frame,
+  .gallery--home .is-home-4 .gallery__frame,
+  .gallery--home .is-home-7 .gallery__frame {
+    inline-size: calc(10 * var(--u));
+    aspect-ratio: 1;
+  }
+
+  .gallery--home .is-home-3 .gallery__frame {
+    inline-size: 50vw;
+    aspect-ratio: 10 / 8.5;
+  }
+
+  .gallery--home .is-home-5 .gallery__frame {
+    inline-size: calc(15 * var(--u));
+    aspect-ratio: 1;
+  }
+
+  .gallery--home .is-home-6 .gallery__frame {
+    inline-size: calc(13 * var(--u));
+    aspect-ratio: 13 / 17;
+  }
+
+  .gallery--home .is-home-8 .gallery__frame {
+    inline-size: 50%;
+    aspect-ratio: 1;
+  }
+
+  .gallery--home .is-home-9 .gallery__frame {
+    inline-size: calc(13 * var(--u));
+    aspect-ratio: 27 / 25;
+  }
+
+  .gallery--home .is-home-10 .gallery__frame {
+    inline-size: 35%;
+    aspect-ratio: 32 / 38;
+  }
+}
+
+/* The reference hides its pill under 480px, and with it the space. With the
+   motion off the column has no use for an empty band either. */
+@media (max-width: 479px), (prefers-reduced-motion: reduce) {
   .gallery__pill-slot {
     display: none;
   }
