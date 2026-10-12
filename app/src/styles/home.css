@@ -4768,19 +4768,19 @@
   flex: none;
 }
 
-/* Below 992px our root locks at 16px where the reference's keeps shrinking
-   (10.8px at 390), so its rem values cannot be copied across. Measured
-   instead: its 12rem / 8.75rem run is 130 / 95px at 390, which 8rem / 6rem
-   lands on. The line is the reference's `.text-cta-short-intro.font-brier` —
-   the same class as the socials' "Follow" line — so it takes the size that
-   line takes here rather than a size of its own. */
-@media (max-width: 991px) {
-  .callout {
-    padding-block: 8rem 6rem;
+/* The reference changes three things here and only under 480px: the line's
+   `.text-cta-short-intro.font-brier` drops to 1.7rem, its `.callout-text-w`
+   narrows to 29rem, and the button's `.btn-icon-w` widens to 1.5rem around a
+   mark that stays the size it was. The 12rem / 8.75rem run and the crest hold
+   at every width. */
+@media (max-width: 479px) {
+  .callout__text {
+    max-inline-size: 29rem;
+    font-size: 1.7rem;
   }
 
-  .callout__text {
-    font-size: 1.5rem;
+  .callout__arrow {
+    inline-size: 1.5rem;
   }
 }
 
@@ -4798,35 +4798,11 @@
  * read as a stagger at all, and on a phone it would just be two lists sliding
  * past each other at different speeds. */
 @media (max-width: 991px) {
-  .hof {
-    padding-block: 4rem 5rem;
-  }
-
-  /* The standfirst stacks: at this width the paragraph column is too narrow to
-     hold a readable measure beside a 72px title. */
-  .hof__head {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-    margin-block-end: 3rem;
-  }
-
-  /* Back to the one column, or the wide layout's placements would open
-     implicit tracks beside it. */
-  .hof__title,
+  /* The standfirst keeps its four tracks, its sizes and the 8.75rem under it.
+     The one change is the paragraph's cell, which the reference widens from
+     the third track to the third and fourth. */
   .hof__blurb {
-    grid-column: auto;
-  }
-
-  .hof__title {
-    font-size: var(--text--h3);
-  }
-
-  .hof__title-line.is-serif {
-    font-size: calc(var(--text--h3) * 1.0417);
-  }
-
-  .hof__blurb {
-    font-size: 1rem;
+    grid-column: 3 / span 2;
   }
 
   .hof__grid {
@@ -4852,9 +4828,8 @@
      in, 15.65% down) carried into that smaller square.
 
      The label: 1.2rem type on a 2rem box, 2.9% and 4.85% of the card; the name
-     and year 3.46% apart. The 0.6rem floor stays: at 480 the reference's type
-     falls to 7.2px, which is below anything that reads. The box grows with the
-     type rather than clipping it at the card's edge. */
+     and year 3.46% apart. The box grows with the type rather than clipping it
+     at the card's edge. Under 768px the type is the reference's 1.3rem. */
   .hof__helmet {
     inset-inline-start: 34.27%;
     inset-block-start: 33.54%;
@@ -4869,6 +4844,49 @@
 
   .hof__name + .hof__year {
     margin-inline-start: 3.46cqi;
+  }
+}
+
+/* A phone on its side: `.text-body-reg-mona` goes to 1.75rem and the card's
+   `.text-title-small-label` to 1.3rem. */
+@media (max-width: 767px) {
+  .hof__blurb {
+    font-size: 1.75rem;
+  }
+
+  .hof__label {
+    font-size: 1.3rem;
+  }
+}
+
+/* A phone upright. The wall starts one --gap down rather than two, and the
+   standfirst is the reference's `.title-layout` at this width: two equal
+   columns on a 2 * --gap gutter, the title in the first at 2.6rem (its second
+   face at 2.4) and the paragraph beside it at 1.3rem, with that same gutter
+   and then the 6rem of `.spacer._8-75rem.m-6rem` under them. */
+@media (max-width: 479px) {
+  .hof {
+    padding-block-start: var(--gap);
+  }
+
+  .hof__head {
+    grid-template-columns: 1fr 1fr;
+    column-gap: calc(var(--gap) * 2);
+    margin-block-end: calc(var(--gap) * 2 + 6rem);
+  }
+
+  .hof__title {
+    grid-column: 1;
+    font-size: 2.6rem;
+  }
+
+  .hof__title-line.is-serif {
+    font-size: 2.4rem;
+  }
+
+  .hof__blurb {
+    grid-column: 2;
+    font-size: 1.3rem;
   }
 }
 
