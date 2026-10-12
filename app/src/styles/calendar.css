@@ -453,6 +453,18 @@ body[data-page='calendar'] {
   }
 }
 
+/* Below 992 the reference gives a run round no hover at all: its
+   `.f1-highlight-grid.is-previous:hover` there is a clear ground and the
+   row's own ink. Stated, because the shared row's schedule hover (the dark
+   ground, the accent ink) would otherwise show on a run round too -- and on
+   a touch screen a tapped row stays hovered until something else is. */
+@media (max-width: 991px) {
+  button.cal-row--past:hover {
+    background: transparent;
+    color: inherit;
+  }
+}
+
 /* The phone box: 3rem down, the panel's full width, 23rem tall. The reference
    keeps the box above down to 480px and switches at 479, measured. */
 @media (max-width: 479px) {
@@ -707,6 +719,19 @@ button.cal-row--past:hover:focus-visible {
   .cal-hero__serif {
     font-size: 1em;
   }
+
+  /* Reference `.title-headline-w.mw-calendar` here: its 38rem cap comes off,
+     so the sentence runs the width of its two columns. */
+  .cal-sched__lede {
+    max-inline-size: none;
+  }
+
+  /* Reference `.btn-icon-w`: 1.2rem and nothing either side. The shared
+     icon's 0.075 margins made each outline button 0.15rem longer than the
+     reference's, measured at 820 (115.5px against 114.1). */
+  .cal-btn-line .ot-cal__btn-icon {
+    margin-inline: 0;
+  }
 }
 
 @media (max-width: 767px) {
@@ -728,18 +753,17 @@ button.cal-row--past:hover:focus-visible {
     --u: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
   }
 
-  /* Reference: the title at 3.5rem and its serif at 3.6rem, 5rem under it,
-     the mark 16rem wide. */
+  /* Reference: the title at 3.5rem, 5rem under it, the mark 16rem wide. The
+     serif keeps the title's size, as it does from 991 down: the 3.6rem the
+     reference's sheet gives `.text-impact-lg-brier` here is one class against
+     the two of `.text-impact-lg-brier.c-grey-on-track { font-size: inherit }`
+     in its 991 block, and loses to it. */
   .cal-hero {
     padding-block-end: calc(var(--u) * 5);
   }
 
   .cal-hero__title {
     font-size: calc(var(--u) * 3.5);
-  }
-
-  .cal-hero__serif {
-    font-size: calc(var(--u) * 3.6);
   }
 
   .cal-hero__sign {
@@ -760,13 +784,24 @@ button.cal-row--past:hover:focus-visible {
     flex-wrap: wrap;
   }
 
-  /* The reference's `data-hide="m"`: a run round drops its date here and
-     keeps its fastest lap, where a round to come drops its distance. */
-  .cal-row--past > :nth-child(3),
-  #calendar-list .ot-cal__row--head > :nth-child(3) {
-    display: none;
+  /* Reference `.btn-icon-w` here: 1.5rem wide where it is 1.2, so each
+     button is 0.3rem longer. The arrow in it is drawn no larger. */
+  .cal-btn-line .ot-cal__btn-icon {
+    inline-size: 1.5rem;
   }
 
+  /* Reference `.text-on-t-stat-label-sm` here: every small label drops
+     0.1rem. The standing's letters and the panel's session lines are that
+     label; the shared sheet sizes them and leaves them where they were. */
+  .cal-sched__standing .ot-cal__suffix,
+  .cal-panel .ot-cal__session > span:not(.ot-cal__eyebrow) {
+    position: relative;
+    inset-block-start: 0.1rem;
+  }
+
+  /* A run round keeps its fastest lap on the four-column grid, where the
+     shared sheet drops every figure with a unit: its date went at 497, in
+     the block after this one. */
   .cal-row--past > .ot-cal__cell--unit,
   #calendar-list .ot-cal__row--head > :nth-child(5) {
     display: flex;
@@ -782,8 +817,10 @@ button.cal-row--past:hover:focus-visible {
 
   /* Reference `.f1-highlight-item-round-w` and `.f1-highlight-round-svg`
      here: the box only as wide as its number, so the number starts under its
-     header, and the strike half as wide again. */
-  .cal-row__round-w {
+     header, and the strike half as wide again. A season's plain round number
+     is the same box. */
+  .cal-row__round-w,
+  .cal-results__round {
     min-inline-size: auto;
   }
 
@@ -864,6 +901,21 @@ button.cal-row--past:hover:focus-visible {
   .cal-results__reef svg {
     inline-size: calc(var(--u) * 2);
     block-size: calc(var(--u) * 2);
+  }
+}
+
+/* The reference's `data-hide="m"` is written for 497px, not 479 (the inline
+   sheet in its page, not site.css): from there down a run round drops its
+   date and a round to come its distance, on whichever grid the row is on --
+   the five-column one for the eighteen pixels above 479. A season's rows in
+   the results keep their date until 479: hidden on the five-column grid, the
+   reference's finish and lap time slide a column left of their headers. */
+@media (max-width: 497px) {
+  .cal-row--past > :nth-child(3),
+  #calendar-list .ot-cal__row--head > :nth-child(3),
+  .cal-row--next > .ot-cal__cell--unit,
+  #calendar-upcoming .ot-cal__row--head > :nth-child(5) {
+    display: none;
   }
 }
 
