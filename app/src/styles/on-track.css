@@ -1197,9 +1197,13 @@ body[data-page='on-track'] {
      anywhere. */
   background: var(--bg);
   color: var(--text);
+  /* The reference's rem, which the whole band is set in: ours at every width
+     from 992 up, and restated under that (see the narrow-width rules after the
+     number) where the reference's root keeps scaling and ours locks at 16px. */
+  --ref-rem: 1rem;
   /* The reference's 12rem spacer above the number, and nothing below: its
      section ends on the last line of the career grid. */
-  padding-block: 12rem 0;
+  padding-block: calc(12 * var(--ref-rem)) 0;
   /* The gigantic number is deliberately larger than its column and is allowed
      to bleed; clip rather than hidden so this does not become a scroll
      container and start capturing the page's scroll. */
@@ -1209,18 +1213,12 @@ body[data-page='on-track'] {
 /* ---------------------------------------------- The podium number */
 
 /* Reference `.c`: the page less its 1.25rem gutters — 1688px at a 1728
-   viewport. Padding rather than 100vw, so the scrollbar cannot push it wide. */
+   viewport. Padding rather than 100vw, so the scrollbar cannot push it wide.
+   The gutter is 1.25 of the reference's rem at every width -- 11px at 768 and
+   12.5px at 360, not our 20 -- so the number starts, and so bleeds off the
+   right edge, exactly where the reference's does. */
 .ot-band__page {
   inline-size: 100%;
-  padding-inline: 1.25rem;
-}
-
-/* The number's page carries the reference's rem (--ref-rem, restated under 992
-   below) so its gutter is the reference's 1.25 of it at every width -- 11px at
-   768 and 12.5px at 360, not our 20 -- and the number starts, and so bleeds
-   off the right edge, exactly where the reference's does. */
-.ot-band__page--podium {
-  --ref-rem: 1rem;
   padding-inline: calc(1.25 * var(--ref-rem));
 }
 
@@ -1249,7 +1247,7 @@ body[data-page='on-track'] {
 }
 
 .ot-podium {
-  /* The reference's sizes, in the reference's rem -- --ref-rem, set on the page
+  /* The reference's sizes, in the reference's rem -- --ref-rem, set on the band
      above (see the narrow-width rules at the end of this block for why that is
      not always ours). */
   --podium-ref: calc(114 * var(--ref-rem));
@@ -1363,7 +1361,7 @@ body[data-page='on-track'] {
  * word's start, then 38.8rem, 5.6rem and a 6rem rise under 480. The photo is
  * a pointer effect and goes, as the reference's does. */
 @media (max-width: 991px) {
-  .ot-band__page--podium {
+  .ot-band {
     --ref-rem: calc(clamp(768px, 100vw, 991px) / 1728 * 20);
   }
 
@@ -1382,13 +1380,13 @@ body[data-page='on-track'] {
 }
 
 @media (max-width: 767px) {
-  .ot-band__page--podium {
+  .ot-band {
     --ref-rem: calc(clamp(480px, 100vw, 767px) / 1728 * 20);
   }
 }
 
 @media (max-width: 479px) {
-  .ot-band__page--podium {
+  .ot-band {
     --ref-rem: calc(clamp(320px, 100vw, 479px) / 1728 * 48);
   }
 
@@ -1405,6 +1403,11 @@ body[data-page='on-track'] {
 /* ---------------------------------------------------------- F1 career */
 
 .ot-career {
+  /* The reference's gutter, 1.25 of ITS rem, for everything in the block. From
+     768 to 991 the reference keeps this desktop arrangement and only its rem
+     shrinks, so every size below is written against --ref-rem and the block
+     scales as one piece, as the number above it does. */
+  --gap: calc(1.25 * var(--ref-rem));
   /* Reference `.title-layout.grid-main`: the same four 23.55% columns the hero
      runs on, headline in 1-2 and stats in 3-4. */
   display: grid;
@@ -1440,10 +1443,10 @@ body[data-page='on-track'] {
      -0.125rem -- the hero's wider cut, not the condensed one the figures use. */
   font-family: var(--font-body);
   font-stretch: 93%;
-  font-size: 4.5rem;
+  font-size: calc(4.5 * var(--ref-rem));
   font-weight: 750;
   line-height: 0.886;
-  letter-spacing: -0.125rem;
+  letter-spacing: calc(-0.125 * var(--ref-rem));
   text-transform: uppercase;
 }
 
@@ -1465,13 +1468,13 @@ body[data-page='on-track'] {
   font-family: var(--font-serif);
   font-style: normal;
   font-weight: 500;
-  font-size: 4.6875rem;
+  font-size: calc(4.6875 * var(--ref-rem));
   /* The reference's serif line box, 67.78px at 1728: 0.9037 of the serif's
      size, as on the highlights heading. The inherited 0.886 set it 1.4px
      shallow and lifted the car photograph under it by as much. */
   line-height: 0.9037;
   font-variant-numeric: lining-nums;
-  letter-spacing: -0.125rem;
+  letter-spacing: calc(-0.125 * var(--ref-rem));
   text-transform: uppercase;
   color: var(--grey-on-track);
 }
@@ -1480,7 +1483,7 @@ body[data-page='on-track'] {
    4 * --gap under the headline (`.title-headline-w.img-below`). */
 .ot-career__img {
   inline-size: 100%;
-  max-inline-size: 25.4375rem;
+  max-inline-size: calc(25.4375 * var(--ref-rem));
   margin-block-start: calc(var(--gap) * 3);
   aspect-ratio: 407 / 457;
   overflow: clip;
@@ -1516,9 +1519,11 @@ body[data-page='on-track'] {
   padding: 0;
   /* Reference `.f1-car-stats-grid`: two columns, --gap across, six * --gap
      down. The row gap is the striking value — 120px is what stops two rows of
-     17.5rem figures reading as one block of numbers. */
+     17.5rem figures reading as one block of numbers. The columns hold their
+     half whatever is in them: on-track.ts fits the figures to the column, and
+     a column that grew to its figure would tell it they already fit. */
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: calc(var(--gap) * 6) var(--gap);
   align-content: start;
 }
@@ -1533,14 +1538,14 @@ body[data-page='on-track'] {
 .ot-stats__label {
   font-family: var(--font-body);
   font-stretch: 87.5%;
-  font-size: 1rem;
+  font-size: var(--ref-rem);
   font-weight: 800;
   line-height: 0.97;
   letter-spacing: 0;
   text-transform: uppercase;
   /* Two words, two lines — the reference breaks "FORMULA 1 / WINS" rather than
      running it across. */
-  max-inline-size: 6.8125rem;
+  max-inline-size: calc(6.8125 * var(--ref-rem));
 }
 
 .ot-stats__figure {
@@ -1562,14 +1567,14 @@ body[data-page='on-track'] {
 
 .ot-stats__value {
   font-family: var(--font-display);
-  /* Reference `.text-on-t-large-number`: 17.5rem on a 0.8 line, and 17.5rem is
-     what this resolves to wherever three digits still fit the column. Where
-     they do not, on-track.ts sets --stat-size once for the whole grid — see the
-     note there. */
-  font-size: var(--stat-size, 17.5rem);
+  /* Reference `.text-on-t-large-number`: 17.5rem on a 0.8 line (--stat-ref,
+     which a phone restates), and that is what this resolves to wherever three
+     digits still fit the column. Where they do not, on-track.ts sets
+     --stat-scale once for the whole grid — see the note there. */
+  font-size: calc(var(--stat-ref, 17.5) * var(--ref-rem) * var(--stat-scale, 1));
   font-weight: 700;
   line-height: 0.8;
-  letter-spacing: -0.1rem;
+  letter-spacing: calc(-0.1 * var(--ref-rem));
 }
 
 /* The whole part of a figure with decimals, held in the reference's
@@ -1583,9 +1588,9 @@ body[data-page='on-track'] {
    decimals at 2.75rem in grey, dropped 0.8rem from the figure's top. */
 .ot-stats__fraction {
   position: relative;
-  inset-block-start: 0.8rem;
+  inset-block-start: calc(0.8 * var(--ref-rem));
   font-family: var(--font-display);
-  font-size: 2.75rem;
+  font-size: calc(2.75 * var(--ref-rem));
   font-weight: 700;
   line-height: 0.97;
   color: var(--grey-on-track);
@@ -1620,7 +1625,7 @@ body[data-page='on-track'] {
    leaves below its picture. Set at the portrait's width so it reads as a note
    on the figures, not as a paragraph of the section. */
 .ot-career .ot-provenance {
-  max-inline-size: 25.4375rem;
+  max-inline-size: calc(25.4375 * var(--ref-rem));
   margin: 0;
   font-size: 0.875rem;
   line-height: 1.45;
@@ -1643,7 +1648,7 @@ body[data-page='on-track'] {
   margin: 0;
   font-family: var(--font-body);
   font-stretch: 87.5%;
-  font-size: 1rem;
+  font-size: var(--ref-rem);
   font-weight: 800;
   line-height: 0.97;
   text-transform: uppercase;
@@ -1801,9 +1806,9 @@ body[data-page='on-track'] {
 }
 
 .ot-seasons .ot-seasons__th {
-  padding: 1.875rem 0;
+  padding: calc(var(--gap) * 1.5) 0;
   font-family: var(--font-body);
-  font-size: 0.625rem;
+  font-size: calc(var(--eyebrow-ref, 0.625) * var(--ref-rem));
   font-weight: 700;
   letter-spacing: 0;
   line-height: 1;
@@ -1812,22 +1817,24 @@ body[data-page='on-track'] {
 }
 
 /* The reference's four-column grid with the year across the first two: of its
-   815px, 417.5 / 208.75 / 188.75 once each column takes the gutter after it.
-   A fixed table sizes its columns from the head, so the head carries them. */
+   815px, 417.5 / 208.75 / 188.75 once each column takes the gutter after it --
+   half the list and half a gutter, then a quarter of each. A fixed table sizes
+   its columns from the head, so the head carries them, and as plain
+   percentages: a table cell treats a calc() of a percentage as `auto`. */
 .ot-seasons .ot-seasons__th:nth-child(1) {
-  inline-size: 51.23%;
+  inline-size: var(--season-year, 51.23%);
 }
 .ot-seasons .ot-seasons__th:nth-child(2) {
-  inline-size: 25.61%;
+  inline-size: var(--season-finish, 25.61%);
 }
 
 .ot-seasons .ot-seasons__cell {
-  padding: 0.625rem 0;
+  padding: calc(var(--gap) * 0.5) 0;
   vertical-align: top;
-  font-size: 2.0625rem;
+  font-size: calc(var(--season-ref, 2.0625) * var(--ref-rem));
   font-weight: 700;
   line-height: 0.97;
-  letter-spacing: -0.00625rem;
+  letter-spacing: calc(-0.00625 * var(--ref-rem));
   border-block-end-color: var(--dark-tint-1);
 }
 
@@ -1836,12 +1843,12 @@ body[data-page='on-track'] {
    and so aligned to its top, then nudged .1rem down and right. */
 .ot-seasons__suffix {
   position: relative;
-  inset-block-start: 0.1rem;
-  inset-inline-start: 0.1rem;
+  inset-block-start: calc(0.1 * var(--ref-rem));
+  inset-inline-start: calc(0.1 * var(--ref-rem));
   vertical-align: top;
   font-family: var(--font-body);
   font-stretch: 87.5%;
-  font-size: 1rem;
+  font-size: var(--ref-rem);
   font-weight: 800;
   line-height: 0.97;
   text-transform: uppercase;
@@ -1852,10 +1859,10 @@ body[data-page='on-track'] {
    in the accent. The row's sr-only "world champion" says it aloud. */
 .ot-seasons__crown {
   position: relative;
-  inset-block-start: 0.1rem;
-  margin-inline-start: 0.35rem;
+  inset-block-start: calc(0.1 * var(--ref-rem));
+  margin-inline-start: calc(0.35 * var(--ref-rem));
   vertical-align: top;
-  font-size: 1rem;
+  font-size: var(--ref-rem);
   line-height: 0.97;
   color: var(--accent);
 }
@@ -1897,6 +1904,115 @@ body[data-page='on-track'] {
   flex: none;
   inline-size: 1.2rem;
   block-size: 1.2rem;
+}
+
+/* Under the seasons list the button is set in the band's rem like the rows it
+   closes, so below 992 it shrinks with them as the reference's does. */
+.ot-seasons .ot-btn {
+  block-size: calc(3 * var(--ref-rem));
+  padding-inline: var(--ref-rem);
+  border-radius: calc(0.54 * var(--ref-rem));
+  font-size: var(--ref-rem);
+}
+
+.ot-seasons .ot-btn__arrow {
+  inline-size: calc(1.2 * var(--ref-rem));
+  block-size: calc(1.2 * var(--ref-rem));
+}
+
+/* The career block under 992.
+ *
+ * From 480 to 991 the reference changes nothing but its rem: the four columns,
+ * the 17.5rem figures and the list all stay, smaller. Only its eyebrows step,
+ * to 0.8rem and then a whole one. Under 480 it restacks: the photograph first
+ * and full width at 24rem tall, the heading under it on ONE line at 2.6rem,
+ * the figures two by two at 10rem, the list at 1.6rem. Measured at 390, where
+ * its rem is 10.83px: photograph 363 x 260, heading 28.2px, figures 108.3px on
+ * 81px rows, list rows 31.3px. */
+@media (max-width: 991px) {
+  .ot-career {
+    --eyebrow-ref: 0.8;
+    /* The gutter is a larger share of the list at this rem, and larger again
+       on a phone, so half of it moves the Finish column a little further in. */
+    --season-year: 51.53%;
+    --season-finish: 25.77%;
+  }
+}
+
+@media (max-width: 767px) {
+  .ot-career {
+    --eyebrow-ref: 1;
+  }
+}
+
+@media (max-width: 479px) {
+  .ot-career {
+    --eyebrow-ref: 0.8;
+    --stat-ref: 10;
+    --season-ref: 1.6;
+    --season-year: 51.87%;
+    --season-finish: 25.93%;
+    grid-template-columns: 1fr;
+    row-gap: calc(var(--gap) * 2);
+  }
+
+  /* The head's three children join the block's own rows, so the photograph can
+     lead, the heading follow it and the small print close the block under the
+     list -- where it costs the figures none of the reference's position. */
+  .ot-career__head {
+    display: contents;
+  }
+
+  .ot-career__img {
+    order: 0;
+    max-inline-size: none;
+    aspect-ratio: auto;
+    block-size: calc(24 * var(--ref-rem));
+    margin-block-start: 0;
+  }
+
+  /* One gap under the photograph, not the block's two. Both faces at one size
+     on one line, set solid as the reference sets them: the change of face is
+     the word space. */
+  .ot-career__title {
+    order: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    margin-block-start: calc(var(--gap) * -1);
+    font-size: calc(2.6 * var(--ref-rem));
+  }
+
+  .ot-career__title-line--serif {
+    font-size: calc(2.6 * var(--ref-rem));
+  }
+
+  .ot-career__side {
+    order: 2;
+    grid-column: 1;
+  }
+
+  .ot-career .ot-provenance {
+    order: 3;
+    max-inline-size: none;
+  }
+
+  /* Reference `.text-on-t-large-number.fixed-width` at 5rem of a 10rem figure,
+     and its decimals 0.2rem down: the 0.8 of the wrapper less the 0.6 its
+     `.is-stat` label lifts. */
+  .ot-stats__value--whole {
+    inline-size: 0.5em;
+  }
+
+  .ot-stats__fraction {
+    inset-block-start: calc(0.2 * var(--ref-rem));
+  }
+
+  /* Reference `.f1-car-stats-win-rive`: a 10rem square, a rem proud of the
+     figure above and below. Still centred on our three digits. */
+  .ot-stats__scribble {
+    inset-block: calc(-1 * var(--ref-rem));
+  }
 }
 
 /* ============================================= F1 result highlights
@@ -4271,30 +4387,6 @@ button.ot-cal__row:focus-visible {
     overscroll-behavior-x: contain;
   }
 
-  .ot-band {
-    padding-block: 5rem 0;
-  }
-
-  /* One column: the headline and portrait, then the figures and the list. */
-  .ot-career {
-    grid-template-columns: 1fr;
-    row-gap: 4rem;
-  }
-
-  .ot-career__head,
-  .ot-career__side {
-    grid-column: 1 / -1;
-    min-inline-size: 0;
-  }
-
-  .ot-career__title {
-    font-size: clamp(2.75rem, 12vw, 4.5rem);
-  }
-
-  .ot-career__title-line--serif {
-    font-size: clamp(2.85rem, 12.5vw, 4.6875rem);
-  }
-
   .ot-gigantic__num {
     font-size: clamp(6rem, 32vw, 16rem);
   }
@@ -4315,21 +4407,6 @@ button.ot-cal__row:focus-visible {
 
   .ot-band__title {
     font-size: clamp(2.5rem, 9vw, 4.5rem);
-  }
-
-  .ot-stats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 2.5rem var(--gap);
-  }
-
-  .ot-stats__value {
-    font-size: clamp(2.25rem, 9vw, 3.5rem);
-  }
-}
-
-@media (max-width: 479px) {
-  .ot-stats {
-    grid-template-columns: 1fr;
   }
 }
 
