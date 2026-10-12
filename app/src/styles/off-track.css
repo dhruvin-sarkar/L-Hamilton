@@ -1390,6 +1390,16 @@ body[data-page='off-track'] {
   .oft-impact__accent {
     font-size: inherit;
   }
+
+  /* The reference's line splitter sets the statement as inline lines, which
+     drops the <br> after its first word: under 992 its first row runs on to a
+     second word, "Challenging the" at 820 and 600 as on a phone, and the
+     statement is five rows. The same here, by taking the break out of the
+     flow. Kept, it left the first word alone on its row and the statement a
+     row taller than the reference's from 480 to 991. */
+  .oft-impact__text br {
+    display: none;
+  }
 }
 
 @media (max-width: 767px) {
@@ -1479,13 +1489,6 @@ body[data-page='off-track'] {
 
   .oft-impact__text {
     font-size: calc(3.5 * var(--r));
-  }
-
-  /* The reference's line splitter drops the <br> after its first word, which
-     only shows on a phone, where the first line then runs on to a second
-     word. The same here, by taking the break out of the flow. */
-  .oft-impact__text br {
-    display: none;
   }
 
   /* Reference .base-helmet-rive under 480: 4.7rem across, its height from
