@@ -3735,9 +3735,13 @@
     aspect-ratio: 13.0625 / 8.5;
   }
 
-  /* 24 / 39.875 of the wide size, the crown at 34.6rem of a 55.04rem panel. */
+  /* 24 / 39.875 of the wide size, the crown at 34.6rem of a 55.04rem panel.
+     Wider than the panel at that height, so the cap every image carries comes
+     off, as the reference takes it off its own (`max-width: none`): held to
+     the panel's width the picture would be squeezed rather than cropped. */
   .footer__portrait {
     inset-block-end: -7.78rem;
+    max-inline-size: none;
     block-size: 32.74rem;
   }
 
@@ -4866,7 +4870,7 @@
   }
 
   .hof__head {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     column-gap: calc(var(--gap) * 2);
     margin-block-end: calc(var(--gap) * 2 + 6rem);
   }
@@ -5326,10 +5330,10 @@
 }
 
 /* A phone on its side: the reference's `.text-body-reg-mona` goes to 1.75rem,
-   which is a line more of body and so a taller text block. */
+   which sets our body on three taller lines and so moves the type's foot. */
 @media (max-width: 767px) {
   .shop {
-    --shop-text-foot: 50.41rem;
+    --shop-text-foot: 49.32rem;
   }
 
   .shop__body {
@@ -6074,8 +6078,12 @@ body:not([data-page='on-track']) .otot :focus-visible {
     padding-block: 8rem;
   }
 
+  /* minmax(0, 1fr): "&CAMPAIGNS" is a little wider than half the screen in
+     this face, and a bare 1fr would grow to hold it and take the difference
+     out of the paragraph. It runs into the gutter instead, as the
+     reference's does. */
   .collabs__inner {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
   .collabs__title,
