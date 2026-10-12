@@ -135,20 +135,20 @@
                      framed "next" card, a --gap-wide hatched connector, a 24rem
                      round panel, and a --gap-wide rounded end cap.
 
-                     Both notched outlines are traced from the reference's own
-                     paths and defined once here rather than repeated. A CSS
-                     border cannot cut that diagonal and clip-path would lose
-                     the 1px stroke. -->
+                     Both notched outlines are tools/gen-frames.py's, built
+                     there from the cards' measurements, and defined once here
+                     rather than repeated. A CSS border cannot cut that
+                     diagonal and clip-path would lose the 1px stroke. -->
                 <div class="ot-hero__ui">
                   <svg class="ot-hero__defs" aria-hidden="true" focusable="false">
                     <defs>
                       <path
                         id="ot-notch-sm"
-                        d="M118.5 6v232a5.5 5.5 0 0 1-5.5 5.5H6A5.5 5.5 0 0 1 .5 238V25A5.5 5.5 0 0 1 6 19.5h46.346c4.695 0 9.167-2 12.297-5.498l7.46-8.337A15.5 15.5 0 0 1 83.653.5H113a5.5 5.5 0 0 1 5.5 5.5Z"
+                        d="M0.5 238 A5.5 5.5 0 0 0 6 243.5 L113 243.5 A5.5 5.5 0 0 0 118.5 238 L118.5 6 A5.5 5.5 0 0 0 113 0.5 L83.65 0.5 A15.5 15.5 0 0 0 72.1 5.66 L64.64 14 A16.5 16.5 0 0 1 52.35 19.5 L6 19.5 A5.5 5.5 0 0 0 0.5 25 Z"
                       />
                       <path
                         id="ot-notch-lg"
-                        d="M275 .5v243H6A5.5 5.5 0 0 1 .5 238V25A5.5 5.5 0 0 1 6 19.5h46.346c4.695 0 9.167-2 12.297-5.498l7.46-8.337A15.5 15.5 0 0 1 83.653.5H275Z"
+                        d="M0.5 238 A5.5 5.5 0 0 0 6 243.5 L275 243.5 L275 0.5 L83.65 0.5 A15.5 15.5 0 0 0 72.1 5.66 L64.64 14 A16.5 16.5 0 0 1 52.35 19.5 L6 19.5 A5.5 5.5 0 0 0 0.5 25 Z"
                       />
                       <!-- The helmet-in-laurels crest, shared with the
                            homepage's next-race card. One source; both pages
