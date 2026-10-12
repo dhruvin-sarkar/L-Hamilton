@@ -54,29 +54,43 @@ export const quadVertex = /* glsl */ `
 `;
 
 /**
- * The reveal mask, shared by every material that answers the fluid.
+ * The reveal mask, shared by every material that answers the fluid: two
+ * yes-or-no questions about a place on the screen, 0..1 with y up.
  *
- * `cursorEffect` is the reference's, exactly: the fluid's colour target
- * inverted (it rests at white) and reduced to a HARD binary with step(0.1).
- * The hard edge is the effect -- a smoothstep reads as a haze, not as liquid.
- * The 0.025/0.95 inset is the reference's "gap fix": the solve has no real
- * boundary, so its outermost texels are never trusted.
+ * `stirredAt` asks whether the fluid has been through. Its dye rests at white
+ * and darkens where it moves, and a tenth off white counts: a HARD line, as on
+ * the reference, because the hard edge is the effect -- a soft one reads as a
+ * haze, not as liquid. The dye is read a little in from every side, as the
+ * reference reads its own: the solve has no real boundary, so its outermost
+ * texels are never trusted.
  *
- * `helmetHover` is the reference's hover wipe: a front that climbs the screen,
- * bowed by sin(x * PI) while it moves so the helmet arrives as a curve.
+ * `wipedAt` is the hover wipe, measured off the reference's: it opens from the
+ * top of the screen to the bottom, and while it travels its edge sags in the
+ * middle, so the helmet arrives behind a curve and both ends are straight.
  */
 const revealChunk = /* glsl */ `
-  uniform sampler2D tCursorEffect;
-  uniform vec2  uResolution;
-  uniform float uHelmetHover;
+  uniform sampler2D uFluidDye;
+  uniform vec2  uViewportPx;
+  uniform float uHelmetWipe;
 
-  float cursorEffectAt(vec2 screenUv) {
-    return step(0.1, 1.0 - texture2D(tCursorEffect, vec2(0.025) + screenUv * 0.95).r);
+  /* How far in from each side the dye is read, as a share of the screen. */
+  const float DYE_MARGIN = 0.025;
+  /* The dye rests at 1. At this or under, the fluid has been through. */
+  const float DYE_STIRRED = 0.9;
+  /* The deepest the wipe's edge sags, as a share of the screen's height. */
+  const float WIPE_SAG = 0.2;
+  /* Half a turn. Not PI: three's own chunks define that name as a macro. */
+  const float HALF_TURN = 3.14159265;
+
+  float stirredAt(vec2 screen) {
+    vec2 inset = mix(vec2(DYE_MARGIN), vec2(1.0 - DYE_MARGIN), screen);
+    return texture2D(uFluidDye, inset).r > DYE_STIRRED ? 0.0 : 1.0;
   }
 
-  float helmetHoverAt(vec2 screenUv) {
-    float front = screenUv.y + sin(screenUv.x * 3.141592) * sin(uHelmetHover * 3.141592) * 0.2;
-    return step(1.0 - front, uHelmetHover);
+  float wipedAt(vec2 screen) {
+    float sag = WIPE_SAG * sin(screen.x * HALF_TURN) * sin(uHelmetWipe * HALF_TURN);
+    float edge = 1.0 - uHelmetWipe - sag;
+    return screen.y < edge ? 0.0 : 1.0;
   }
 `;
 
@@ -353,8 +367,8 @@ const headFragment = /* glsl */ `
     if (alpha < 0.004) discard;
 
     /* The helmet's shadow, only where the helmet is showing. */
-    vec2 screenUv = gl_FragCoord.xy / uResolution;
-    float shade = min(cursorEffectAt(screenUv) + helmetHoverAt(screenUv), 1.0);
+    vec2 screen = gl_FragCoord.xy / uViewportPx;
+    float shade = max(stirredAt(screen), wipedAt(screen));
     if (shade > 0.0) {
       float below = (uShadowRim - vUv.y) / uShadowSize.y;
       float band = smoothstep(-0.3, 0.1, below) * (1.0 - smoothstep(0.2, 1.0, below));
@@ -392,11 +406,11 @@ const tokenColor = (css: string) => new THREE.Color(css);
  * ------------------------------------------------------------------ */
 
 /** The mask inputs every masked material shares, by reference. */
-const makeRevealUniforms = (cursor: THREE.Texture, viewportPx: THREE.Vector2) => ({
-  tCursorEffect: { value: cursor },
+const makeRevealUniforms = (dye: THREE.Texture, viewportPx: THREE.Vector2) => ({
+  uFluidDye: { value: dye },
   // The live viewport vector, not a copy — see viewportPx.
-  uResolution: { value: viewportPx },
-  uHelmetHover: { value: 0 },
+  uViewportPx: { value: viewportPx },
+  uHelmetWipe: { value: 0 },
 });
 type RevealUniforms = ReturnType<typeof makeRevealUniforms>;
 
@@ -421,8 +435,8 @@ const makeFieldUniforms = (
 ) => ({
   ...filter,
   tBackgroundNoise: { value: noise },
-  tCursorEffect: reveal.tCursorEffect,
-  uHelmetHover: reveal.uHelmetHover,
+  tCursorEffect: reveal.uFluidDye,
+  uHelmetHover: reveal.uHelmetWipe,
   uFlat: { value: false },
 
   OUTLINE: { value: true },
@@ -499,7 +513,7 @@ const makeMaskUniforms = (
 ) => ({
   ...reveal,
   ...filter,
-  uCursorIntensity: intensity,
+  uRevealGain: intensity,
   uShowHelmet: { value: 0 },
   uDiffuse: head.uDiffuse,
   uAlpha: head.uAlpha,
@@ -834,7 +848,7 @@ export class HeadScene {
             `#include <common>
             ${revealChunk}
             ${filterChunk}
-            uniform float uCursorIntensity;
+            uniform float uRevealGain;
             uniform float uShowHelmet;
             uniform sampler2D uDiffuse;
             uniform sampler2D uAlpha;
@@ -843,8 +857,8 @@ export class HeadScene {
           .replace(
             'void main() {',
             `void main() {
-              vec2 revealUv = gl_FragCoord.xy / uResolution;
-              float revealed = clamp((cursorEffectAt(revealUv) + helmetHoverAt(revealUv)) * uCursorIntensity, 0.0, 1.0);
+              vec2 revealAt = gl_FragCoord.xy / uViewportPx;
+              float revealed = min((stirredAt(revealAt) + wipedAt(revealAt)) * uRevealGain, 1.0);
               if (max(revealed, uShowHelmet) < 0.5) discard;`,
           )
           /* The inside of the shell is black, as it is on the reference, whose
@@ -1242,8 +1256,8 @@ export class HeadScene {
     this.fluid.update(dt);
     this.contour.update(t);
 
-    this.revealU.tCursorEffect.value = this.fluid.texture;
-    this.revealU.uHelmetHover.value = this.hover.wipe;
+    this.revealU.uFluidDye.value = this.fluid.texture;
+    this.revealU.uHelmetWipe.value = this.hover.wipe;
 
     // Exponential smoothing on the portrait's pointer.
     this.pointer.lerp(this.pointerTarget, this.ease);
