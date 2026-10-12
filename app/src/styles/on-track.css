@@ -1397,8 +1397,13 @@ body[data-page='on-track'] {
     --podium-label-from: calc(4 * var(--ref-rem));
   }
 
+  /* The reference keeps its 4.5rem under the word here, a 14rem word beside a
+     96rem number: the word's baseline 0.89rem above the digits', where the
+     desktop's proportion (the base rule) would leave it 0.19. Solved from the
+     same two facts as that rule, so it still follows a scaled number. */
   .ot-podium__label {
     font-size: calc(14 * var(--ref-rem));
+    padding-block-end: calc(var(--podium-font) * 0.0402 + 0.891rem - 0.01786em);
   }
 
   .ot-podium__photo {
@@ -1422,8 +1427,11 @@ body[data-page='on-track'] {
     --podium-rise: calc(6 * var(--ref-rem));
   }
 
+  /* Reference `.on-t-podium-text-col` under 480: 1.8rem under a 5.6rem word
+     beside a 38.8rem number, its baseline 0.34rem above the digits'. */
   .ot-podium__label {
     font-size: calc(5.6 * var(--ref-rem));
+    padding-block-end: calc(var(--podium-font) * 0.0402 + 0.34rem - 0.01786em);
   }
 }
 
@@ -2039,6 +2047,12 @@ body[data-page='on-track'] {
      figure above and below. Still centred on our three digits. */
   .ot-stats__scribble {
     inset-block: calc(-1 * var(--ref-rem));
+  }
+
+  /* Reference `.btn-icon-w` under 480: a 1.5rem slot round the same arrow,
+     where it is 1.2 above. The drawing keeps its size; the button widens. */
+  .ot-seasons .ot-btn__arrow {
+    margin-inline: 0.15rem;
   }
 }
 
@@ -3396,6 +3410,15 @@ button.ot-cal__row:focus-visible {
     display: none;
   }
 
+  /* Reference `.btn-w.icon-only.track-ui` from 480 to 991: 2.9rem tall on its
+     3.75rem width. The frame's notch is drawn for two 3.75rem arrows at the
+     design width and shrinks with the panel, while the rem here is a larger
+     share of it, so at full height the pair stood a quarter proud of the
+     notch. Square again under 480 (below), where the arrows move to the top. */
+  .ot-cal__ctrl {
+    block-size: 2.9rem;
+  }
+
   /* The heading's second line may break, as the reference's does once its
      two columns get narrow. */
   .ot-cal__h-line--serif {
@@ -3636,6 +3659,12 @@ button.ot-cal__row:focus-visible {
   /* The table's own button, under the vignette, is the way out here. */
   .ot-cal__btn-w {
     display: none;
+  }
+
+  /* Reference `.btn-icon-w` under 480: a 1.5rem slot round the same arrow,
+     where it is 1.2 above. The drawing keeps its size; the button widens. */
+  .ot-cal__btn-icon {
+    margin-inline: 0.225rem;
   }
 
   /* ------------------------------------------------------------ Table */
