@@ -1029,9 +1029,14 @@
        rather than left to a line of our own type, which is as tall as the two
        faces' rounded metrics make it at each size and put the team line 3px
        high at 600 and 2px low at 820. A line of type sets its capitals 0.14
-       of their height down from its top, hence 0.64. */
-    margin-block: calc(11.4px - var(--name-cap) * 0.64) 0;
-    block-size: calc(max(8.6px, var(--name-half)) + var(--name-cap) * 0.64);
+       of their height down from its top, hence 0.64 above. The box itself is
+       1.45 of the capitals tall, what a line of this type came to, because
+       the ellipse that takes the name away is cut from it: any shorter and
+       the ellipse trims the feet of the outermost letters at rest. What that
+       is over the row comes back off underneath. */
+    margin-block: calc(11.4px - var(--name-cap) * 0.64)
+      calc(max(8.6px, var(--name-half)) - var(--name-cap) * 0.81);
+    block-size: calc(var(--name-cap) * 1.45);
     line-height: 1;
     text-transform: uppercase;
     white-space: nowrap;
@@ -4280,6 +4285,16 @@
   .otot__arrow {
     inline-size: var(--u);
     block-size: var(--u);
+  }
+
+  /* The frame is upright here and the photograph is not, so the blurred bed
+     shows above and below it as it never does on a desktop, edge to edge. Its
+     blur fades the outer 2.25rem or so of it towards nothing, more than the
+     bed's 8% of overhang covers on a frame this narrow, and the pinned
+     screen's two cutouts showed through down both sides. A ground under the
+     bed closes it: the fade runs out to the page's black instead. */
+  .otot__end-frame {
+    background: var(--black);
   }
 }
 
