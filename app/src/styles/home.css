@@ -4151,6 +4151,8 @@
  * top of the screen, 8rem down, and the cutouts shorten to 62.67vh so they
  * come in under it; under 480px the two columns become an even pair across
  * the screen, their buttons level, and each cutout starts 7rem further out.
+ * The picture after it stays a whole screen down to 480px and is 60vh under
+ * that, the reference's `.otot-home-end-img-w`.
  *
  * All of it is in the reference's rem, restated as --u: 20/1728 of the width
  * down to 480 and 48/1728 under that (9.49px at 820, 10.83px at 390). */
@@ -4158,8 +4160,8 @@
   .otot {
     --u: calc(100vw / 86.4);
     --gap: calc(1.25 * var(--u));
-    /* The pinned screen and then the picture, which keeps its own shape here
-       (below) rather than taking a second screen. */
+    /* The pinned screen and then the picture, whatever height the picture's
+       frame is given below: two screens down to 480px, 1.6 under that. */
     block-size: auto;
   }
 
@@ -4214,21 +4216,28 @@
     inline-size: var(--u);
     block-size: var(--u);
   }
+}
 
-  /* The frame takes the picture's own shape rather than a slice of it. A
-     phone-width frame at any useful height is portrait while the image is
-     16:9, so `cover` would discard roughly two thirds of its width — both
-     raised arms included — and leave a meaningless crop of the middle. */
-  .otot__end,
-  .otot__end-frame {
-    block-size: auto;
-    aspect-ratio: 16 / 9;
+/* .text-body-reg-mona is 1.75rem between 480 and 767px. */
+@media (max-width: 767px) {
+  .otot__blurb {
+    font-size: 1.75rem;
   }
 }
 
 @media (max-width: 479px) {
   .otot {
     --u: calc(100vw / 36);
+  }
+
+  /* The picture's frame is the reference's 60vh on a phone, not the whole
+     screen it is above 480px. The frame is portrait at either height and the
+     photograph is 16:9, so it is the sharp copy's `contain` and the blurred
+     bed behind it that keep both raised arms in the picture, as they do on a
+     desktop: `cover` would take two thirds of its width. */
+  .otot__end,
+  .otot__end-frame {
+    block-size: 60vh;
   }
 
   /* .otot-home-layout as a grid of two equal columns, 2 gaps apart, inside the
