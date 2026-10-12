@@ -268,12 +268,12 @@ def helmet_card(m, by):
     width, height = m["box"]
     foot, head = m["slope"]
     card = [
-        (0, 0, m["corner"]),
-        (0, height, m["corner"]),
         (foot, height, m["bend"]),
         (head, height - m["shelf"], m["bend"]),
         (width, height - m["shelf"], m["corner"]),
         (width, 0, m["corner"]),
+        (0, 0, m["corner"]),
+        (0, height, m["corner"]),
     ]
     return inset(card, by)
 
