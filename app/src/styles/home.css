@@ -1009,20 +1009,34 @@
     pointer-events: none;
   }
 
-  /* One line, both names at one cap height: the reference's is a 19rem image
-     2.2rem tall, 16 by 1.76 below 480px. */
+  /* One line, both names at one cap height: the reference's is a 19rem image,
+     16rem below 480px, and its row is 2.2rem tall at 820 wide. */
   .hero-name__mark {
     --name-cap: calc(var(--hero-u) * 2.2);
+    /* Half the height of that image, which is 205 by 22. */
+    --name-half: calc(var(--hero-u) * 19 * 11 / 205);
     --name-x: clamp(0, (var(--hero-t) - 0.7) / var(--name-span, 0.1), 1);
     /* What is left of the move; to the 4th power it is GSAP's power3.out. */
     --name-r: calc((1 - var(--name-x)) * (1 - var(--name-x)) * (1 - var(--name-x)) * (1 - var(--name-x)));
     display: flex;
     align-items: baseline;
     gap: 0.1em;
-    /* The reference's image is the capitals and nothing else; a line of type
-       carries room above and below them. Taken back off, so the capitals and
-       the team line land where its do. */
-    margin-block: calc(var(--name-cap) * -0.14) calc(var(--name-cap) * -0.21);
+    /* The reference's image stands on a line of its 14px body text, 20px
+       tall, centred on that line's x-height. So at every width its middle is
+       11.4px down the row, and the row ends 8.6px under that or half the
+       image, whichever is more: 20.7px at 390 wide, 20 at 600, 21.1 at 820.
+       The row is held to that and the capitals centred on the same point,
+       rather than left to a line of our own type, which is as tall as the two
+       faces' rounded metrics make it at each size and put the team line 3px
+       high at 600 and 2px low at 820. A line of type sets its capitals 0.14
+       of their height down from its top, hence 0.64 above. The box itself is
+       1.45 of the capitals tall, what a line of this type came to, because
+       the ellipse that takes the name away is cut from it: any shorter and
+       the ellipse trims the feet of the outermost letters at rest. What that
+       is over the row comes back off underneath. */
+    margin-block: calc(11.4px - var(--name-cap) * 0.64)
+      calc(max(8.6px, var(--name-half)) - var(--name-cap) * 0.81);
+    block-size: calc(var(--name-cap) * 1.45);
     line-height: 1;
     text-transform: uppercase;
     white-space: nowrap;
@@ -1084,6 +1098,7 @@
 @media (max-width: 479px) {
   .hero-name__mark {
     --name-cap: calc(var(--hero-u) * 1.76);
+    --name-half: calc(var(--hero-u) * 16 * 11 / 205);
   }
 }
 
@@ -1325,12 +1340,13 @@
   translate: none;
 }
 
-/* Never under 2.75rem. The reference's unit alone takes its button down to
-   28px on a 480px screen, which is less than a fingertip. */
+/* The reference's .btn-w.is-touch-swipe: 5 of its unit across, and 4 under
+   480px. The smallest that gets is 28px, on a 480px screen, which is still
+   over WCAG 2.2's 24px. */
 .lock__btn {
   display: grid;
   place-items: center;
-  inline-size: max(calc(var(--hero-u) * 5), 2.75rem);
+  inline-size: calc(var(--hero-u) * 5);
   aspect-ratio: 1;
   border-radius: calc(var(--hero-u) * 0.54);
   background: var(--accent);
@@ -1342,7 +1358,7 @@
 
 @media (max-width: 479px) {
   .lock__btn {
-    inline-size: max(min(calc(var(--hero-u) * 4), 60px), 2.75rem);
+    inline-size: min(calc(var(--hero-u) * 4), 60px);
     border-radius: calc(var(--hero-u) * 0.75);
   }
 }
@@ -2003,14 +2019,26 @@
 
 /* The reference's smaller menus. Below 992px the collage goes and the link
    column centres in the panel; below 480px the links come down to 3.7rem, the
-   crest to 4.7rem across, and the socials wrap onto centred rows. */
+   crest's slot to 4.7rem across, and the socials wrap onto centred rows. */
 @media (max-width: 991px) {
+  /* .nav-menu-w centres .nav-menu-inner.c, which is never taller than 80rem.
+     A phone upright is shorter than that and fills its screen; a tablet
+     upright is not (759px of 1180 at 820 wide), so there the links, the crest
+     and the footer stand as one block in the middle of the panel rather than
+     spread to its two ends. `.menu[hidden]` still out-ranks this. */
+  .menu {
+    display: flex;
+    align-items: center;
+  }
+
   .menu__images {
     display: none;
   }
 
   .menu__grid {
     justify-content: center;
+    inline-size: 100%;
+    max-block-size: 80rem;
     padding-inline: 1.25rem;
   }
 
@@ -2024,9 +2052,13 @@
     font-size: 3.7rem;
   }
 
+  /* Sized to the height of the reference's slot, as it is above this: the
+     slot is 4.7rem across on its 6.0625 : 3.1875 shape, 2.47rem tall, and our
+     mark is a 64 x 44 box, so matching the width instead stood it 0.76rem
+     taller and pushed the team line and the footer down with it. */
   .menu__crest {
-    inline-size: 4.7rem;
-    block-size: auto;
+    inline-size: 3.59rem;
+    block-size: 2.47rem;
   }
 
   .menu__socials {
@@ -2302,8 +2334,8 @@
    every size in the wall is written in it, so the section lays out as the
    reference's does — measured at 768 and 390: padding 6u over 12u, the crest
    6.06u by 3.19u (4.7u wide on a phone), 3.75u down to the wall, type at 7u
-   (3.5u on a phone) on the same tracking. The eyebrow keeps its own size:
-   scaled, it would be 7px. */
+   (3.5u on a phone) on the same tracking. The eyebrow takes the reference's
+   own steps, with every other eyebrow up here: see "Eyebrows below 992px". */
 
 @media (max-width: 991px) {
   .impact {
@@ -2352,10 +2384,47 @@
     font-size: calc(3.5 * var(--u));
   }
 
-  /* The reference's phone slot is 4.7u by 2.5u, 51 x 27 at 390. */
+  /* The reference's phone slot is 4.7u across on its 6.0625 : 3.1875 shape,
+     so 2.47u tall: 50.9 x 26.8 at 390. */
   .impact__crest {
     inline-size: calc(4.7 * var(--u));
-    block-size: calc(2.5 * var(--u));
+    block-size: calc(2.47 * var(--u));
+  }
+}
+
+/* ------------------------------------------------ Eyebrows below 992px
+ *
+ * The reference's .text-eyebrow steps at its three breakpoints: 0.625rem from
+ * 992px up, 0.8rem under that, 1rem between 480 and 767px and 0.8rem again
+ * under 480px -- 7.6px at 820 wide, 6.9px at 600 and 8.7px on a 390 phone.
+ * Every label listed here is that class on the reference: the next-race
+ * card's three, the lock's, the team line under the name, the line under the
+ * landed mark, the menu's team line and the statement's. They read the
+ * 0.625rem token above 992px, which is why this comes after all of them. The
+ * gallery's captions take the same steps beside their own rules, below. */
+@media (max-width: 991px) {
+  .next-race__label,
+  .next-race__name,
+  .next-race__team,
+  .lock__label,
+  .hero-name__team,
+  .hero-mark__eyebrow,
+  .menu__eyebrow,
+  .impact__eyebrow {
+    font-size: 0.8rem;
+  }
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+  .next-race__label,
+  .next-race__name,
+  .next-race__team,
+  .lock__label,
+  .hero-name__team,
+  .hero-mark__eyebrow,
+  .menu__eyebrow,
+  .impact__eyebrow {
+    font-size: 1rem;
   }
 }
 
@@ -2930,9 +2999,10 @@
   }
 }
 
-/* The reference hides its pill under 480px, and with it the space. With the
-   motion off the column has no use for an empty band either. */
-@media (max-width: 479px), (prefers-reduced-motion: reduce) {
+/* The reference hides its pill at 497px and under (`[data-hide="m"]`, which is
+   not its 479px step), and with it the space. With the motion off the column
+   has no use for an empty band either. */
+@media (max-width: 497px), (prefers-reduced-motion: reduce) {
   .gallery__pill-slot {
     display: none;
   }
@@ -4151,6 +4221,8 @@
  * top of the screen, 8rem down, and the cutouts shorten to 62.67vh so they
  * come in under it; under 480px the two columns become an even pair across
  * the screen, their buttons level, and each cutout starts 7rem further out.
+ * The picture after it stays a whole screen down to 480px and is 60vh under
+ * that, the reference's `.otot-home-end-img-w`.
  *
  * All of it is in the reference's rem, restated as --u: 20/1728 of the width
  * down to 480 and 48/1728 under that (9.49px at 820, 10.83px at 390). */
@@ -4158,8 +4230,8 @@
   .otot {
     --u: calc(100vw / 86.4);
     --gap: calc(1.25 * var(--u));
-    /* The pinned screen and then the picture, which keeps its own shape here
-       (below) rather than taking a second screen. */
+    /* The pinned screen and then the picture, whatever height the picture's
+       frame is given below: two screens down to 480px, 1.6 under that. */
     block-size: auto;
   }
 
@@ -4215,20 +4287,46 @@
     block-size: var(--u);
   }
 
-  /* The frame takes the picture's own shape rather than a slice of it. A
-     phone-width frame at any useful height is portrait while the image is
-     16:9, so `cover` would discard roughly two thirds of its width — both
-     raised arms included — and leave a meaningless crop of the middle. */
-  .otot__end,
+  /* The frame is upright here and the photograph is not, so the blurred bed
+     shows above and below it as it never does on a desktop, edge to edge. Its
+     blur fades the outer 2.25rem or so of it towards nothing, more than the
+     bed's 8% of overhang covers on a frame this narrow, and the pinned
+     screen's two cutouts showed through down both sides. A ground under the
+     bed closes it: the fade runs out to the page's black instead. */
   .otot__end-frame {
-    block-size: auto;
-    aspect-ratio: 16 / 9;
+    background: var(--black);
+  }
+}
+
+/* .text-body-reg-mona is 1.75rem between 480 and 767px, and at that size, as
+   on a phone, our Off Track blurb runs a line longer than the On Track one,
+   which the reference's two never do. It only sends a button to the floor of
+   the row under 480px (.btn-auto-top); ours go there from 767px down, so the
+   pair stays level whichever blurb is longer. Where the two blurbs are the
+   same height the margin is nothing and the buttons stand where its do. */
+@media (max-width: 767px) {
+  .otot__blurb {
+    font-size: 1.75rem;
+  }
+
+  .otot__link {
+    margin-block-start: auto;
   }
 }
 
 @media (max-width: 479px) {
   .otot {
     --u: calc(100vw / 36);
+  }
+
+  /* The picture's frame is the reference's 60vh on a phone, not the whole
+     screen it is above 480px. The frame is portrait at either height and the
+     photograph is 16:9, so it is the sharp copy's `contain` and the blurred
+     bed behind it that keep both raised arms in the picture, as they do on a
+     desktop: `cover` would take two thirds of its width. */
+  .otot__end,
+  .otot__end-frame {
+    block-size: 60vh;
   }
 
   /* .otot-home-layout as a grid of two equal columns, 2 gaps apart, inside the
@@ -4248,17 +4346,21 @@
     letter-spacing: calc(-0.1 * var(--u));
   }
 
+  /* Playfair for Brier, a 64th smaller as it is above this (7.2 for 7.3125),
+     so its 0.823 line is the reference's 0.81 of 4rem: 35.1px at 390. */
+  .otot__head-line.is-thin {
+    font-size: calc(3.94 * var(--u));
+  }
+
   .otot__blurb {
     inline-size: 100%;
     font-size: calc(1.3 * var(--u));
   }
 
-  /* .btn-auto-top: both buttons on the floor of the row, whichever blurb runs
-     longer. */
+  /* .btn-w.icon-only on a phone. */
   .otot__link {
     inline-size: calc(3.3 * var(--u));
     block-size: calc(3.3 * var(--u));
-    margin-block-start: auto;
   }
 
   .otot__cut.is-on {
