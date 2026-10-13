@@ -3,7 +3,7 @@
  *
  * The reference's card over its "rounds run" list shows a photograph of its
  * driver at each round, from its own CMS. This build ships no race
- * photography (CLAUDE.md), so every round has an image SLOT at a fixed, named
+ * photography (the project brief), so every round has an image SLOT at a fixed, named
  * path, and what sits there now is a placeholder generated for this build
  * (tools/gen-calendar-placeholders.py): the round's number and place, set on
  * the site's own ground. Replace a file with a licensed picture of the same

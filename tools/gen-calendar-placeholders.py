@@ -2,7 +2,7 @@
 Placeholder pictures for the calendar page's rounds.
 
 The reference's card over its "rounds run" list shows a photograph of its
-driver at each round. This build ships no race photography (CLAUDE.md: no
+driver at each round. This build ships no race photography (the project brief: no
 copyrighted media), so each round gets an image SLOT at a fixed path, and this
 script fills every slot with an original graphic built from our own data:
 

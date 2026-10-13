@@ -81,7 +81,7 @@ const FACTS: Readonly<Record<string, CircuitFacts>> = {
 /**
  * A round's circuit facts, or a thrown error.
  *
- * Fails fast (CLAUDE.md, design principle 5). A calendar that gains a circuit
+ * Fails fast (the project brief, design principle 5). A calendar that gains a circuit
  * this table lacks, or moves on to a season it was not checked for, stops the
  * schedule. The alternative is printing a blank or another year's figure.
  */

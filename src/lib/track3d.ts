@@ -26,7 +26,7 @@
  *     fade, 0.015s apart -- then 1s in (expo.out), mirrored.
  *
  * What it does NOT reuse: the reference's model file, its matcap texture and
- * its shaders stay in the reference (CLAUDE.md). The geometry comes from
+ * its shaders stay in the reference (the project brief). The geometry comes from
  * content/generated/circuit-paths.json (MultiViewer and bacinger/f1-circuits,
  * MIT -- see tools/gen-circuit-paths.py for the sources), the shading is this
  * file's own, and the matcap's left-lit falloff is computed rather than

@@ -10,7 +10,7 @@ import { bandCopy, bandsSpoken, isHeroBand } from './src/content/home';
    check ran in the browser — a record with a required field deleted built
    cleanly and failed at runtime. Loaded here too, it runs when this config
    does, so `vite build` stops and the dev server refuses to start (or restart,
-   when the file changes) on a bad record. CLAUDE.md: validation that fails the
+   when the file changes) on a bad record. The project brief: validation that fails the
    build. Second, its values: the facts each page's <head> states are filled in
    from it below (see HEAD_TOKENS), because a title and a meta description are
    read by crawlers and link previews that never run the page's script. */

@@ -16,7 +16,7 @@ different mark or a different red.
                         behind anything transparent.
   share-card.png        1200 x 630, the picture a link to the site unfurls
                         with. This build ships no photography of its own to put
-                        there (CLAUDE.md: no copyrighted media), so the card is
+                        there (the project brief: no copyrighted media), so the card is
                         the mark over the wordmark as the nav sets it: "Lewis"
                         in Playfair Display italic over "HAMILTON" in condensed
                         Mona Sans, at the lockup's own ratio and tracking

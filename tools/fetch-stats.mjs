@@ -3,7 +3,7 @@
  *
  * CONTENT-DATA.md names Jolpica (`api.jolpi.ca/ergast/f1`, the maintained
  * successor to the retired Ergast) as the primary structured source, and
- * CLAUDE.md forbids hand-typing any number. So nothing here is transcribed:
+ * the project brief forbids hand-typing any number. So nothing here is transcribed:
  * every figure is either counted from the race-by-race record or read from the
  * official season standings.
  *

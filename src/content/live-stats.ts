@@ -8,7 +8,7 @@
  * Why validate a file we generate ourselves? Because the generator runs against
  * a live third-party API on a different day to the build. A schema change
  * upstream, a truncated write, or a hand-edit would otherwise reach the page as
- * `undefined` and render as blank or NaN. CLAUDE.md: "If race or season data is
+ * `undefined` and render as blank or NaN. The project brief: "If race or season data is
  * missing or malformed, throw and surface it in dev — never silently render
  * zeroes."
  */

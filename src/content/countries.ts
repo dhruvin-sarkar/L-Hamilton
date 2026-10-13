@@ -3,7 +3,7 @@
  *
  * The FIA labels sessions, timing screens and results with three-letter codes
  * that are the IOC set rather than ISO 3166 — Netherlands is NED and not NLD,
- * Bahrain is BRN, Saudi Arabia is KSA, Germany is GER. CLAUDE.md asks for real
+ * Bahrain is BRN, Saudi Arabia is KSA, Germany is GER. The project brief asks for real
  * F1 vocabulary, and on a timing-screen-shaped panel that is what the code has
  * to be.
  *
@@ -50,7 +50,7 @@ const CODES: Readonly<Record<string, string>> = {
 /**
  * The code for a country, or a thrown error.
  *
- * Fails fast on purpose (CLAUDE.md, design principle 5): a calendar that gains
+ * Fails fast on purpose (the project brief, design principle 5): a calendar that gains
  * a country this map has not got should stop the page in development rather
  * than quietly print an empty chip where a nation belongs.
  */

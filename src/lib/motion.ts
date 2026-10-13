@@ -8,7 +8,7 @@
  * module that reaches for `morphSVG` or ScrollTrigger has already caused the
  * registration by importing this — there is no ordering to get wrong.
  *
- * CLAUDE.md: "One animation orchestrator (GSAP + ScrollTrigger)."
+ * The project brief: "One animation orchestrator (GSAP + ScrollTrigger)."
  */
 
 import gsap from 'gsap';

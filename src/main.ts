@@ -329,7 +329,7 @@ for (const [key, value] of Object.entries(bindings)) {
  * markup settled.
  *
  * They are gone rather than wired up, because the reference's home page has no
- * stat band and no eras list, and CLAUDE.md's parity mandate is explicit that a
+ * stat band and no eras list, and the project brief's parity mandate is explicit that a
  * section the reference does not have is out of scope. The career numbers
  * belong to the season table on /on-track.
  * ------------------------------------------------------------------ */

@@ -6,7 +6,7 @@
  * foundation, research commission, fashion, film and drinks brand, in the same
  * slots and the same shapes.
  *
- * Rules this file keeps (CLAUDE.md, docs/CONTENT-DATA.md):
+ * Rules this file keeps (the project brief, docs/CONTENT-DATA.md):
  *
  *   - Every claim carries the URL it was checked against, and validate() below
  *     refuses to let the page build around one that does not.
@@ -230,7 +230,7 @@ export const projects: readonly Project[] = [
 /* ------------------------------------------------------------------ *
  * Validation
  *
- * Fail fast (CLAUDE.md): a slot with no source, no copy or an image outside
+ * Fail fast (the project brief): a slot with no source, no copy or an image outside
  * the site's own images is a build error in dev, never a quietly empty box.
  * ------------------------------------------------------------------ */
 

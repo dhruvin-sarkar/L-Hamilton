@@ -3,7 +3,7 @@
  *
  * They label the narrative that follows, which is what the reference's own band
  * does -- it reads "MESSAGE FROM LANDO" over the same moment. Third person on
- * purpose: CLAUDE.md forbids putting words in Hamilton's mouth, so this is site
+ * purpose: the project brief forbids putting words in Hamilton's mouth, so this is site
  * copy introducing him, never something he said. No figures here either --
  * every number on the page comes from the data layer, and a championship count
  * baked into a graphic surface would be the one place it could silently go
