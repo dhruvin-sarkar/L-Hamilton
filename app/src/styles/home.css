@@ -386,9 +386,9 @@
 
 .menu-btn {
   --menu-open: 0;
-  /* What the outline and bars are drawn in: the page's light ink over a dark
-     ground and its dark ink over a light one, following the lockup beside it,
-     as the reference's outline follows its nav theme. */
+  /* What the outline is drawn in: the page's light ink over a dark ground and
+     its dark ink over a light one, following the lockup beside it, as the
+     reference's outline follows its nav theme. */
   --menu-ink: color-mix(in oklab, var(--white), var(--dark) calc(var(--nav-ink, 0) * 100%));
 
   display: grid;
@@ -413,13 +413,29 @@
   block-size: 100%;
 }
 
-/* The reference's button at rest is an outline in the nav's ink with nothing
-   inside it. Pointing at it fills it from the bottom in the brand colour, the
-   store button's liquid (lib/chrome.ts drives the stop offsets), and the
-   outline stays. */
+/* Over a dark ground the reference's button is a solid tile in the light ink
+   with dark bars on it -- its `color-white` input, set while the nav's theme is
+   light -- and over a light ground the outline alone (`color-transparent`).
+   Read off its canvas at 1440 and at 390; --nav-ink is the same switch here. */
+.menu-btn__tile {
+  fill: var(--white);
+  opacity: calc(1 - var(--nav-ink, 0));
+}
+
+/* The outline, in the nav's ink. Pointing at the button fills it from the
+   bottom in the brand colour, the store button's liquid (lib/chrome.ts drives
+   the stop offsets), over the tile where there is one; the reference's goes
+   to its brand colour whole on hover. */
 .menu-btn__frame {
   fill: url(#menu-liquid);
-  stroke: var(--menu-ink);
+  /* Over the tile the outline goes with the fill, so the hovered button is
+     the brand colour to its edge as the reference's is; over a light ground,
+     where the outline is all there is at rest, it stays. */
+  stroke: color-mix(
+    in oklab,
+    var(--menu-ink),
+    var(--rosso-corsa) calc(var(--menu-hover, 0) * (1 - var(--nav-ink, 0)) * 100%)
+  );
   stroke-width: 2.75;
 }
 
@@ -443,7 +459,9 @@
 
 .menu-btn__bar {
   fill: none;
-  stroke: color-mix(in oklab, var(--menu-ink), var(--dark) calc(var(--menu-open) * 100%));
+  /* Dark in every state: on the light tile over a dark ground, in the dark
+     ink over a light one, and on the open tile. */
+  stroke: var(--dark);
   stroke-width: 2.8;
   stroke-linecap: round;
   will-change: transform;
