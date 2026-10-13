@@ -3497,6 +3497,11 @@ button.ot-cal__row:focus-visible {
     inline-size: calc(var(--u) * 28);
     block-size: auto;
     aspect-ratio: 57 / 35.125;
+    /* The reference's phrase is a canvas inline in an embed with a 20px line
+       box, which leaves 5px under it once its height goes to auto here.
+       Centred, that lifts the lettering 2.5px -- a fixed length there too, the
+       same at 330, 390 and 470 wide. */
+    margin-block-end: 5px;
   }
 
   /* -------------------------------------------------------- The panel */
@@ -3516,6 +3521,13 @@ button.ot-cal__row:focus-visible {
   .ot-cal__mframe {
     position: absolute;
     inset: 0;
+    /* A whole number of pixels wide. The top is an SVG path and the rest a CSS
+       border, and a browser rounds the two differently: the box's edges snap
+       one at a time, the path is drawn from the snapped left edge at its full
+       fractional width. On a fractional width that put the path's right-hand
+       line most of a pixel outside the border's. */
+    inset-inline-end: auto;
+    inline-size: round(down, 100%, 1px);
     z-index: 5;
     display: flex;
     flex-direction: column;
@@ -4410,30 +4422,11 @@ button.ot-cal__row:focus-visible {
   }
 }
 
-/* ============================================== Reduced motion
- *
- * The reference has no reduced-motion path at all — a grep across its CSS, its
- * markup and its bundle returns zero. So this is additive work rather than
- * parity work, and the standard to meet is the homepage's, not the reference's.
- *
- * The rules are stated at the same specificity as the ones they undo, because
- * a media query adds no specificity of its own and a bare selector here would
- * lose. That exact mistake left the homepage hero hidden under reduced motion.
- * (The season rows need nothing here: their entry is only ever switched on
- * behind WIDE_AND_ANIMATED in on-track.ts.) */
-@media (prefers-reduced-motion: reduce) {
-  .ot-gigantic__char,
-  .ot-gigantic__char:nth-child(even) {
-    transform: none;
-    opacity: 1;
-  }
-}
-
 /* ==================================================== Narrow widths
  *
- * Below 992px the root font-size locks at 16px (tokens.css), so rem values stop
- * scaling with the viewport and the display sizes above have to be restated
- * rather than left to shrink on their own. */
+ * Below 992px the root font-size follows the reference's own bands
+ * (tokens.css), so its rem values apply here as written. What is restated
+ * below is what the reference restates at its breakpoints. */
 
 @media (max-width: 991px) {
   /* The header, narrow: the reference's own layout at every width from 480 up
@@ -4486,28 +4479,6 @@ button.ot-cal__row:focus-visible {
        cannot either. */
     max-inline-size: none;
     margin-inline-end: calc(2 * var(--hgap) + 0.5px - 0.12314 * (100% - var(--hgap)));
-  }
-
-  .ot-gigantic__num {
-    font-size: clamp(6rem, 32vw, 16rem);
-  }
-
-  .ot-band__head {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-    /* 6rem of air below a heading is a proportion of the design width, not a
-       constant. Below 992px the rem stops scaling, so it has to come down with
-       everything else — this block heads four sections now. */
-    margin-block-end: 3rem;
-  }
-
-  .ot-band__title,
-  .ot-band__blurb {
-    grid-column: 1 / -1;
-  }
-
-  .ot-band__title {
-    font-size: clamp(2.5rem, 9vw, 4.5rem);
   }
 }
 
