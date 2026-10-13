@@ -135,15 +135,15 @@
                   />
                 </svg>
               </a>
-              <a class="menu__link" href="/on-track.html" data-menu-link="1">
+              <a class="menu__link" href="/on-track" data-menu-link="1">
                 <span class="sr-only">On Track</span>
                 <span class="menu__link-text" aria-hidden="true" data-split-chars>On Track</span>
               </a>
-              <a class="menu__link" href="/off-track.html" data-menu-link="2">
+              <a class="menu__link" href="/off-track" data-menu-link="2">
                 <span class="sr-only">Off Track</span>
                 <span class="menu__link-text" aria-hidden="true" data-split-chars>Off Track</span>
               </a>
-              <a class="menu__link" href="/calendar.html" data-menu-link="3">
+              <a class="menu__link" href="/calendar" data-menu-link="3">
                 <span class="sr-only">Calendar</span>
                 <span class="menu__link-text" aria-hidden="true" data-split-chars>Calendar</span>
               </a>
@@ -166,29 +166,31 @@
           </div>
 
           <div class="menu__footer">
-            <!-- PLACEHOLDER LINKS. Deliberately inert: pointing these at a
-                 guessed handle would be inventing data, and a nav link that
-                 goes to the wrong account is worse than one that goes nowhere.
-                 Swap the hrefs once the real accounts are confirmed. -->
-            <a class="menu__contact" href="#" data-placeholder-href data-menu-highlight>
+            <!-- A PLACEHOLDER LINK, deliberately inert and marked unavailable.
+                 The reference's is a mailto to its driver's business address;
+                 this is a fan project with no such address to give, and
+                 inventing one would be inventing data. -->
+            <a class="menu__contact" href="#" data-placeholder-href aria-disabled="true" data-menu-highlight>
               <span class="sr-only">Business enquiries</span>
               <span class="btn-text" aria-hidden="true" data-split-chars>Business enquiries</span>
             </a>
+            <!-- His own accounts: one value each, from vite.config.ts
+                 (SOCIAL_URLS). -->
             <div class="menu__socials">
-              <a href="#" data-placeholder-href data-menu-highlight>
-                <span class="sr-only">Instagram</span>
+              <a href="%%instagram-url%%" target="_blank" rel="noopener" data-menu-highlight>
+                <span class="sr-only">Instagram (opens in a new tab)</span>
                 <span class="btn-text" aria-hidden="true" data-split-chars>Instagram</span>
               </a>
-              <a href="#" data-placeholder-href data-menu-highlight>
-                <span class="sr-only">X</span>
+              <a href="%%x-url%%" target="_blank" rel="noopener" data-menu-highlight>
+                <span class="sr-only">X (opens in a new tab)</span>
                 <span class="btn-text" aria-hidden="true" data-split-chars>X</span>
               </a>
-              <a href="#" data-placeholder-href data-menu-highlight>
-                <span class="sr-only">TikTok</span>
+              <a href="%%tiktok-url%%" target="_blank" rel="noopener" data-menu-highlight>
+                <span class="sr-only">TikTok (opens in a new tab)</span>
                 <span class="btn-text" aria-hidden="true" data-split-chars>TikTok</span>
               </a>
-              <a href="#" data-placeholder-href data-menu-highlight>
-                <span class="sr-only">YouTube</span>
+              <a href="%%youtube-url%%" target="_blank" rel="noopener" data-menu-highlight>
+                <span class="sr-only">YouTube (opens in a new tab)</span>
                 <span class="btn-text" aria-hidden="true" data-split-chars>YouTube</span>
               </a>
             </div>

@@ -30,15 +30,15 @@
                       <span class="sr-only">Home</span>
                       <span class="btn-text" aria-hidden="true" data-split-chars>Home</span>
                     </a>
-                    <a class="footer__link reveal-text" href="/on-track.html">
+                    <a class="footer__link reveal-text" href="/on-track">
                       <span class="sr-only">On Track</span>
                       <span class="btn-text" aria-hidden="true" data-split-chars>On Track</span>
                     </a>
-                    <a class="footer__link reveal-text" href="/off-track.html">
+                    <a class="footer__link reveal-text" href="/off-track">
                       <span class="sr-only">Off Track</span>
                       <span class="btn-text" aria-hidden="true" data-split-chars>Off Track</span>
                     </a>
-                    <a class="footer__link reveal-text" href="/calendar.html">
+                    <a class="footer__link reveal-text" href="/calendar">
                       <span class="sr-only">Calendar</span>
                       <span class="btn-text" aria-hidden="true" data-split-chars>Calendar</span>
                     </a>
@@ -52,24 +52,23 @@
 
                 <div class="footer__col">
                   <p class="footer__eyebrow reveal-text">Follow on</p>
-                  <!-- PLACEHOLDER LINKS, as in the socials section and for the
-                       same reason: a link that goes to the wrong account is
-                       worse than one that goes nowhere. -->
+                  <!-- His own accounts, as in the socials section: one value
+                       each, from vite.config.ts (SOCIAL_URLS). -->
                   <nav class="footer__nav" aria-label="Social media">
-                    <a class="footer__link reveal-text" href="#" data-placeholder-href>
-                      <span class="sr-only">TikTok</span>
+                    <a class="footer__link reveal-text" href="%%tiktok-url%%" target="_blank" rel="noopener">
+                      <span class="sr-only">TikTok (opens in a new tab)</span>
                       <span class="btn-text" aria-hidden="true" data-split-chars>TikTok</span>
                     </a>
-                    <a class="footer__link reveal-text" href="#" data-placeholder-href>
-                      <span class="sr-only">Instagram</span>
+                    <a class="footer__link reveal-text" href="%%instagram-url%%" target="_blank" rel="noopener">
+                      <span class="sr-only">Instagram (opens in a new tab)</span>
                       <span class="btn-text" aria-hidden="true" data-split-chars>Instagram</span>
                     </a>
-                    <a class="footer__link reveal-text" href="#" data-placeholder-href>
-                      <span class="sr-only">YouTube</span>
+                    <a class="footer__link reveal-text" href="%%youtube-url%%" target="_blank" rel="noopener">
+                      <span class="sr-only">YouTube (opens in a new tab)</span>
                       <span class="btn-text" aria-hidden="true" data-split-chars>YouTube</span>
                     </a>
-                    <a class="footer__link reveal-text" href="#" data-placeholder-href>
-                      <span class="sr-only">X</span>
+                    <a class="footer__link reveal-text" href="%%x-url%%" target="_blank" rel="noopener">
+                      <span class="sr-only">X (opens in a new tab)</span>
                       <span class="btn-text" aria-hidden="true" data-split-chars>X</span>
                     </a>
                   </nav>
@@ -114,7 +113,9 @@
                   sizes="(min-width: 992px) 67.2vw, (min-width: 480px) 65.3vw, 121vw"
                   loading="lazy" decoding="async" aria-hidden="true" />
                 <div class="footer__cta">
-                  <a class="footer-cta__link" href="#" data-placeholder-href>
+                  <!-- Inert and marked unavailable, as the menu's is: a fan
+                       project has no business address to give. -->
+                  <a class="footer-cta__link" href="#" data-placeholder-href aria-disabled="true">
                     <span class="sr-only">Business enquiries</span>
                     <span class="btn-text" aria-hidden="true" data-split-chars>Business enquiries</span>
                     <svg class="footer-cta__icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -137,16 +138,21 @@
           </div>
 
           <div class="footer__legal">
-            <!-- The year is the season the site is about, filled at build from
-                 the data layer (vite.config.ts, HEAD_TOKENS), so it turns over
-                 with the calendar and the page titles instead of being typed. -->
-            <p class="footer__copy"><strong>&copy; %%season%% Lewis Hamilton.</strong> All rights reserved</p>
+            <!-- Where the reference states its driver's copyright. This site is
+                 not his, so the line says what it is instead: nothing on a
+                 public address should read as his own site claiming his
+                 rights. Kept no longer than the line it replaces: on a
+                 desktop it sits in the notch at the panel's bottom left, and
+                 anything wider runs on behind the panel. -->
+            <p class="footer__copy"><strong>Unofficial fan project.</strong> Not an official site</p>
+            <!-- Inert and marked unavailable: the reference's two go to legal
+                 pages, and this build is four pages with none. -->
             <div class="footer__legal-links">
-              <a class="footer__legal-link" href="#" data-placeholder-href>
+              <a class="footer__legal-link" href="#" data-placeholder-href aria-disabled="true">
                 <span class="sr-only">Privacy policy</span>
                 <span class="btn-text" aria-hidden="true" data-split-chars>Privacy Policy</span>
               </a>
-              <a class="footer__legal-link" href="#" data-placeholder-href>
+              <a class="footer__legal-link" href="#" data-placeholder-href aria-disabled="true">
                 <span class="sr-only">Terms</span>
                 <span class="btn-text" aria-hidden="true" data-split-chars>Terms</span>
               </a>
