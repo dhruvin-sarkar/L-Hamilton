@@ -3,7 +3,7 @@
   "source": {
     "api": "https://api.jolpi.ca/ergast/f1",
     "driver": "hamilton",
-    "fetchedAt": "2026-10-11T17:32:33.464Z",
+    "fetchedAt": "2026-10-13T06:18:47.424Z",
     "requests": 33,
     "polesDefinition": "Pole = started the Grand Prix from the front of the grid, as the record books count it, so grid penalties and qualifying exclusions move the pole with them. On 2022 sprint weekends, pole went to the fastest qualifier instead.",
     "latestRace": {
