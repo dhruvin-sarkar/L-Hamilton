@@ -1,8 +1,8 @@
 """
-Remove EXIF and XMP from every WebP under app/public and app/tools/sources,
+Remove EXIF and XMP from every WebP under public and tools/sources,
 leaving the pictures exactly as they are.
 
-Everything in app/public is copied into dist and served, and both folders are
+Everything in public is copied into dist and served, and both folders are
 tracked in git. An export from a design tool carries an XMP packet naming its
 author, the account it came from and that account's workspace, plus an EXIF
 block; 38 of the originals here shipped that to every visitor. None of it is

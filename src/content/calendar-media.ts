@@ -9,7 +9,7 @@
  * the site's own ground. Replace a file with a licensed picture of the same
  * name and the page picks it up; nothing here changes.
  *
- *   app/public/assets/calendar/<season>-round-<nn>.webp   330 x 394 at 2x
+ *   public/assets/calendar/<season>-round-<nn>.webp   330 x 394 at 2x
  */
 
 import type { CalendarRound } from './live-stats';

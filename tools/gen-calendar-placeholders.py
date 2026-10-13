@@ -18,7 +18,7 @@ licensed photograph of the same name and size and the page picks it up.
 
   python tools/gen-calendar-placeholders.py
 
-Writes app/public/assets/calendar/<season>-round-<nn>.webp at 660 x 788
+Writes public/assets/calendar/<season>-round-<nn>.webp at 660 x 788
 (the card is 330 x 394 CSS px at 1728 wide; this is 2x).
 """
 

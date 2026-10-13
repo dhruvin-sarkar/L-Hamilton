@@ -23,7 +23,7 @@ import { seasonLede, spell } from './src/lib/schedule';
 // "module"), where __dirname does not exist and would be undefined at runtime.
 //
 // There used to be a dev-only middleware here that fell back to the reference
-// build's assets under ../public for any /assets/ request app/public did not
+// build's assets under ../public for any /assets/ request public/ did not
 // answer. Every one of the 44 assets this app references now resolves locally,
 // so it was catching nothing — and what it would have caught is upstream
 // copyrighted material, silently served in dev and passing for ours. Gone, so
@@ -458,11 +458,11 @@ export default defineConfig({
   plugins: [htmlPartials(), headTags(), heroMarquee(), stylesFirst(), stripComments()],
   server: { port: 5173, open: false },
   /* The dependency cache lives beside this config, not in node_modules. Every
-     worktree links app/node_modules to one shared install, so the default
+     worktree links node_modules to one shared install, so the default
      node_modules/.vite put every dev server on ONE cache directory: they
      clobbered each other's optimised deps (504 "Outdated Optimize Dep", mixed
      ?v= hashes, duplicate three) and Windows refused the rename a re-optimise
-     needs while another server held the folder open (EPERM). app/.vite/ is
+     needs while another server held the folder open (EPERM). .vite/ is
      already gitignored. */
   cacheDir: path.resolve(here, '.vite'),
   /* Pre-bundle three and every addon we import in ONE pass. Left to runtime

@@ -1,25 +1,30 @@
 # This repository tracks the Lewis Hamilton site only.
 #
-# Deny-by-default, then allow app/. Everything else in this working directory —
-# the reference material it was studied against, the planning docs, the tooling
-# used to produce them — stays local.
+# Deny-by-default, then allow the site's own files. Everything else in this
+# working directory — the reference material it was studied against
+# (reference/), the planning docs, the tooling used to produce them — stays
+# local. That also covers node_modules/, dist/, .vite/, logs and the
+# full-resolution exports in asset-sources/: none of them is allowed below.
 
 /*
 !/.gitignore
 !/README.md
-!/app/
+!/index.html
+!/on-track.html
+!/off-track.html
+!/calendar.html
+!/partials/
+!/public/
+!/src/
+!/tools/
+!/media/
+!/package.json
+!/package-lock.json
+!/tsconfig.json
+!/vite.config.ts
+!/vercel.json
 
-# Inside app/
-app/node_modules/
-app/dist/
-app/*.log
-app/*.err
-app/.vite/
-# A design-lint hook's cache. It was kept out only by one clone's
-# .git/info/exclude, so anywhere else it showed up as untracked.
-app/.impeccable/
-
-# NOTE: there was an ignore rule here for app/public/assets/helmet/helmet.glb,
+# NOTE: there was an ignore rule here for public/assets/helmet/helmet.glb,
 # added when the reference site's own helmet briefly sat at that filename. That
 # model is gone, and our own packed helmet now lives at exactly that path — so
 # the rule was silently untracking the asset the hero needs to render. Removed
@@ -28,7 +33,3 @@ app/.impeccable/
 
 .DS_Store
 Thumbs.db
-
-# Full-resolution exports. The build only ever loads the .webp versions;
-# anything left in app/public/ is copied verbatim into dist/.
-app/asset-sources/
