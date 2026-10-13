@@ -44,8 +44,8 @@ function stem(id: number): string {
   return String(id).padStart(2, '0');
 }
 
-/* Helmets 1 and 2 swap files. The helmet shots as first supplied (kept in
-   asset-sources/helmets-hof-originals, where the doubled number is the helmet
+/* Helmets 1 and 2 swap files. The helmet shots as first supplied (the
+   original exports, where the doubled number is the helmet
    for that reveal) pair 11.webp, the roulette-crowned lid, with reveal 1 and
    22.webp, a yellow lid with diamonds along the crown, with reveal 2. The
    transparent cut-outs that replaced them came numbered the other way round,
