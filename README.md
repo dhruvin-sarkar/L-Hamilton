@@ -4,51 +4,31 @@
   <img src="media/hero.webp" width="100%" alt="The home page hero. Moving the pointer across Lewis Hamilton's portrait paints his helmet over it with a fluid simulation.">
 </a>
 
-<h1>Lewis Hamilton — a fan-built driver site</h1>
+<h1>Lewis Hamilton</h1>
 
-<p>
-  <b>Four pages. Twenty seasons. Seven world titles. Every figure wired to live race data.</b><br>
-  A scroll-driven Formula 1 site in TypeScript, Three.js and GSAP, with no framework underneath.
-</p>
 
 <a href="https://l-hamilton.vercel.app">
   <img src="https://img.shields.io/badge/open%20the%20live%20site-l--hamilton.vercel.app-ff2800?style=for-the-badge" alt="Open the live site: l-hamilton.vercel.app">
 </a>
 
-<p>
-  <img src="https://img.shields.io/badge/TypeScript-5.6%20strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript 5.6, strict">
-  <img src="https://img.shields.io/badge/Vite-5-646cff?style=flat-square&logo=vite&logoColor=white" alt="Vite 5">
-  <img src="https://img.shields.io/badge/Three.js-r174-111111?style=flat-square&logo=threedotjs&logoColor=white" alt="Three.js r174">
-  <img src="https://img.shields.io/badge/GSAP-3.15%20%2B%20ScrollTrigger-0ae448?style=flat-square" alt="GSAP 3.15 with ScrollTrigger">
-  <img src="https://img.shields.io/badge/Lenis-1.3-111111?style=flat-square" alt="Lenis 1.3">
-  <img src="https://img.shields.io/badge/Rive-2.26-1d1d1d?style=flat-square" alt="Rive 2.26">
-  <img src="https://img.shields.io/badge/Lighthouse-100%20%C2%B7%20100%20%C2%B7%20100-0cce6b?style=flat-square&logo=lighthouse&logoColor=white" alt="Lighthouse: accessibility 100, best practices 100, SEO 100">
-  <img src="https://img.shields.io/badge/Vercel-deployed-111111?style=flat-square&logo=vercel&logoColor=white" alt="Deployed on Vercel">
-</p>
 
 </div>
 
-> [!IMPORTANT]
-> **This is an unofficial fan project.** It is not affiliated with Lewis Hamilton, Scuderia Ferrari
-> or Formula 1, and it is not his official site (that is [lewishamilton.com](https://www.lewishamilton.com/)).
+## 
 
-## What it is
-
-A remake of [landonorris.com](https://landonorris.com) with a different driver in it.
+A remake of [landonorris.com](https://landonorris.com) 
 
 The structure, the sections and the scroll mechanics follow that site. The driver, the palette
 (Ferrari red in place of McLaren lime) and all of the career data are Hamilton's. Each effect was
 studied on the original as it runs, measured, and rebuilt in a new codebase: a WebGL hero, pinned
-and scrubbed scroll sections, a 3D circuit map, and a data layer that refuses to build if a number
-is missing.
-
+and scrubbed scroll sections, a 3D circuit map
 <div align="center">
   <img src="media/phones.webp" width="100%" alt="Five phone screens: the home hero, the helmet wall, On Track, Off Track and the Calendar with its 3D circuit.">
 </div>
 
-## The four pages
+## The pages
 
-### Home — [`/`](https://l-hamilton.vercel.app/)
+### Home 
 
 <img src="media/home.webp" width="100%" alt="Scrolling the home page: the portrait shrinks into a plate, a signature is drawn over it, and the opening statement reveals line by line.">
 
@@ -72,7 +52,7 @@ partners, socials and the footer.
   </tr>
 </table>
 
-### On Track — [`/on-track`](https://l-hamilton.vercel.app/on-track)
+### On Track 
 
 <table>
   <tr>
@@ -97,7 +77,7 @@ with the championship years marked, the wins as a results feed, his junior caree
   </tr>
 </table>
 
-### Off Track — [`/off-track`](https://l-hamilton.vercel.app/off-track)
+### Off Track 
 
 <table>
   <tr>
@@ -115,7 +95,7 @@ and Almave. Every fact on the page is third-person site copy with at least one s
 beside it in [`src/content/off-track.ts`](src/content/off-track.ts). Nothing on the site is a
 quote attributed to him.
 
-### Calendar — [`/calendar`](https://l-hamilton.vercel.app/calendar)
+### Calendar 
 
 <img src="media/circuits.webp" width="100%" alt="The Calendar's 3D circuit map swaps from Austin to Mexico City to São Paulo. Each circuit is a glowing yellow ribbon that wipes away and redraws under a slowly turning camera.">
 
@@ -136,14 +116,14 @@ round wipes the ribbon away and draws the next one over two seconds. You can dra
   </tr>
 </table>
 
-### Moving between them
+### Transitions
 
 <img src="media/menu.webp" width="100%" alt="The menu opens over the page, and choosing On Track plays a full-screen red transition with a large 44 before the next page arrives.">
 
 The menu button morphs between its bars and a cross and fills like liquid on hover. A page change
 plays one panel out and in: the same panel that serves as the loader on a first visit.
 
-## The numbers
+## The stats
 
 <div align="center">
 
@@ -170,107 +150,7 @@ flowchart LR
     PAGES --> DOM["what you read"]
 ```
 
-- **One source.** `tools/fetch-stats.mjs` rebuilds `src/content/generated/career.json` from the
-  API and cross-checks wins, poles and fastest laps against separate endpoints before writing.
-- **Fail fast.** `live-stats.ts` is the only module that reads that file. The data layer loads
-  when `vite.config.ts` does, so a missing or malformed record stops the build and the dev server
-  instead of rendering a zero.
-- **No stale heads.** Page titles and descriptions state the season, team and title count, so
-  they are filled from the same data at build time rather than typed.
 
-## How it is built
-
-| | |
-| :-- | :-- |
-| **Pages** | Four HTML entry points, with shared sections as partials stitched in by a small Vite plugin. No UI framework. |
-| **Language** | TypeScript 5.6 with `strict` and `noUncheckedIndexedAccess`. About 17,000 lines of TypeScript and 14,500 of CSS. |
-| **WebGL** | Three.js r174. The scenes are this site's own modules, listed below. |
-| **Motion** | One orchestrator: GSAP with ScrollTrigger, over Lenis smooth scrolling. |
-| **Vector animation** | Rive, for the circuit outlines. |
-| **Type** | Mona Sans and Playfair Display, self-hosted. |
-| **Data** | Jolpica-F1, the open successor to the Ergast API. |
-| **Hosting** | Static build on Vercel. |
-
-### The WebGL
-
-| Module | What it draws |
-| :-- | :-- |
-| [`src/HeadScene.ts`](src/HeadScene.ts) | The hero: a contour-line field, the portrait over it, the helmet fitted over the head, and the pointer fluid that plays between them. |
-| [`src/FluidCursor.ts`](src/FluidCursor.ts) | The pointer fluid, a stable-fluids solver: velocity and pressure passes at a tenth of the screen's resolution. |
-| [`src/ContourField.ts`](src/ContourField.ts) | The background contours: a simplex-noise field reduced to a binary map, then traced into lines in a second pass. |
-| [`src/HelmetModel.ts`](src/HelmetModel.ts) | The helmet, a Draco-compressed glTF shared by every scene that draws it. |
-| [`src/HelmetScroll.ts`](src/HelmetScroll.ts) | The helmet's flight through the top of On Track, driven by the scroll. |
-| [`src/lib/track3d.ts`](src/lib/track3d.ts) | The 3D circuit map: ribbons built from circuit paths, bloom, HTML corner markers projected over the render. |
-| [`src/lib/gl-layers.ts`](src/lib/gl-layers.ts) | One WebGL context shown on two canvases, so DOM text can sit between two GL layers. |
-
-### What ships
-
-Sizes from the production build, gzipped:
-
-| Chunk | Size | Loaded |
-| :-- | --: | :-- |
-| Shared code and GSAP | 90.8 kB | Every page |
-| Three.js | 133.8 kB | Home and On Track up front, Calendar when its circuit mounts |
-| Home | 18.7 kB | `/` |
-| On Track | 13.2 kB | `/on-track` |
-| Off Track | 11.9 kB | `/off-track` |
-| Calendar | 8.2 kB | `/calendar` |
-| 3D circuit map | 29.1 kB | On Track, and Calendar on demand |
-| Rive runtime | 30.2 kB, plus 541 kB of WebAssembly | On demand, when a circuit outline mounts |
-
-## Built to hold up
-
-- **Lighthouse 100 for accessibility, best practices and SEO** on all four pages (desktop,
-  production build, measured 13 October 2026).
-- **360px to 2560px** with no sideways overflow, checked at seven widths on every page.
-- **Reduced motion is a real path.** `prefers-reduced-motion` is read once, in
-  [`src/lib/motion.ts`](src/lib/motion.ts), so a page can never honour it in one place and ignore
-  it in another. Every pinned sequence still delivers its content without the motion.
-- **Keyboard and screen readers.** A skip link, a menu that opens and closes from the keyboard,
-  and a plain-text copy beside every heading that is split into animated characters.
-- **Readable with animation off.** The layout does not depend on an animation having run.
-
-## Run it
-
-Node 20 or newer.
-
-```bash
-git clone https://github.com/dhruvin-sarkar/L-Hamilton.git
-cd L-Hamilton
-npm install
-
-npm run dev          # dev server on http://localhost:5173
-npm run build        # production build into dist/
-npm run preview      # serves dist/ on http://localhost:4173
-npm run typecheck    # tsc --noEmit
-npm run fetch-stats  # refetch the career record from Jolpica-F1
-```
-
-Set `SITE_ORIGIN` when building for a public address, so link previews get an absolute image URL:
-
-```bash
-SITE_ORIGIN=https://example.com npm run build
-```
-
-On Vercel that is already done: [`vercel.json`](vercel.json) takes the origin from the project's
-production domain and serves the pages on clean addresses (`/on-track`, not `/on-track.html`).
-
-## Where things are
-
-```text
-index.html  on-track.html  off-track.html  calendar.html    the four entry points
-partials/            shared markup: nav, menu, footer, sections used on more than one page
-src/
-  main.ts  on-track.ts  off-track.ts  calendar.ts           one module per page
-  HeadScene.ts  FluidCursor.ts  HelmetModel.ts  ...          the WebGL scenes
-  lib/               motion, reveals, countdown, gallery, 3D circuit map, page transition
-  content/           the data layer; generated/career.json is written by fetch-stats
-  styles/            design tokens, then one stylesheet per page
-public/assets/       images, fonts, the helmet model, flags
-tools/               fetch-stats and the asset generators
-media/               the pictures in this README
-vite.config.ts       build, HTML partials, head tags, data validation
-```
 
 ## Credits
 
