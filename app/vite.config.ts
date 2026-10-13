@@ -57,6 +57,16 @@ if (missingPhotos.length > 0) {
    store.lewishamilton.com they used to point at is not a host that exists. */
 const STORE_URL = 'https://www.plus44world.com';
 
+/* His own accounts, as lewishamilton.com lists them (read 2026-10-13). The
+   menu, the socials section and the footer link the same four, so each is
+   written once, here. */
+const SOCIAL_URLS = {
+  instagram: 'https://www.instagram.com/lewishamilton',
+  tiktok: 'https://www.tiktok.com/@lewishamilton',
+  x: 'https://x.com/lewishamilton',
+  youtube: 'https://www.youtube.com/user/lewishamilton',
+} as const;
+
 /**
  * `%%name%%` in any HTML entry: a fact from the data layer, written into the
  * served document.
@@ -69,8 +79,8 @@ const STORE_URL = 'https://www.plus44world.com';
  * values the pages bind in their bodies (main.ts, on-track.ts). Figures inside
  * a sentence are spelled, as the pages spell them. The Calendar's hidden
  * schedule heading reads `season` too, so its outline names the year before
- * any script runs, and so does the footer's copyright line (partials/
- * footer.html), which would otherwise be a year typed by hand.
+ * any script runs. The links out of the site are filled the same way: the
+ * store's, and his four accounts.
  *
  * Every token must be one of these; anything else stops the build.
  */
@@ -80,6 +90,10 @@ const HEAD_TOKENS: ReadonlyMap<string, string> = new Map([
   ['titles-word', spell(career.championships)],
   ['seasons-word', spell(career.seasonsContested)],
   ['store-url', STORE_URL],
+  ['instagram-url', SOCIAL_URLS.instagram],
+  ['tiktok-url', SOCIAL_URLS.tiktok],
+  ['x-url', SOCIAL_URLS.x],
+  ['youtube-url', SOCIAL_URLS.youtube],
   /* The Calendar's opening line, as of this build. Written into the page
      because it is the largest text on a phone's first screen: left for the
      page's script to write, it was first painted when the loader lifted. */
